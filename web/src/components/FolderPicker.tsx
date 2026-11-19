@@ -6,6 +6,7 @@ import { api } from '../api'
 import { lazyModule } from '../moduleBundles'
 import { IconDrive, IconFolder } from '../icons'
 import { useApp } from '../state'
+import { t } from '../i18n'
 
 const FileBrowser = lazyModule<{ list: typeof listServer; onClose: () => void; onPick: (paths: string[]) => void }>('wittyintegratedfilebrowser', (m) => m.default)
 
@@ -18,7 +19,11 @@ const listServer = (path: string, hidden: boolean) => api.get<Listing>(`/fs${pat
 // built-in browser, which lists the server's drives and folders in the page
 // and so works from any device: a phone, a TV, another computer.
 // browseOnly leaves out the system's own folder window: only the browser in the page is offered.
-export function ChooseFolderButton({ onPick, label = 'Choose folder…', className = 'btn', browseOnly }: { onPick: (path: string) => void; label?: string; className?: string; browseOnly?: boolean }) {
+export function ChooseFolderButton({ onPick, label, className = 'btn', browseOnly }: { onPick: (path: string) => void; label?: string; className?: string; browseOnly?: boolean }) {
+  const chooseWords = t('Choose folder…')
+  const shown = label || chooseWords
+  // Without the desktop's window the same button browses in the page: "Choose folder…" becomes "Browse folder…".
+  const browseShown = shown === chooseWords ? t('Browse folder…') : shown
   const app = useApp()
   const pickerLocal = app.pickerLocal && !browseOnly
   const [browse, setBrowse] = useState(false)
@@ -35,13 +40,13 @@ export function ChooseFolderButton({ onPick, label = 'Choose folder…', classNa
   return (
     <>
       {pickerLocal && (
-        <button type="button" className={className} onClick={choose} disabled={busy} title="Opens this computer's own folder window">
-          <IconFolder /> {busy ? 'Waiting for the folder window…' : label}
+        <button type="button" className={className} onClick={choose} disabled={busy} title={t("Opens this computer's own folder window")}>
+          <IconFolder /> {busy ? t('Waiting for the folder window…') : shown}
         </button>
       )}
       <button type="button" className={pickerLocal ? 'btn' : className} onClick={() => setBrowse(true)}
-        title="Browse the server's drives and folders from this device">
-        <IconDrive /> {pickerLocal ? 'Browse folders' : label.replace('Choose', 'Browse')}
+        title={t("Browse the server's drives and folders from this device")}>
+        <IconDrive /> {pickerLocal ? t('Browse folders') : browseShown}
       </button>
       {browse && <Suspense fallback={null}><FileBrowser list={listServer} onClose={() => setBrowse(false)} onPick={(ps) => { ps.forEach(onPick); setBrowse(false) }} /></Suspense>}
     </>

@@ -1,0 +1,12 @@
+{
+  "Control bar": "แถบควบคุม",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "แบบละเอียดจะวางทุกปุ่มไว้บนแถบ แบบง่ายจะทำให้ภาพโล่ง: เล่นและข้ามอยู่ตรงกลาง ส่วนที่เหลือ (เสียง คำบรรยาย คุณภาพ ความเร็ว ฉาก) อยู่ในเมนูตัวเลือกเดียว แบบอัตโนมัติจะเป็นแบบง่ายบนโทรศัพท์หรือแท็บเล็ต และแบบละเอียดบนหน้าจอที่กว้างกว่า",
+  "Detailed": "ละเอียด",
+  "Back to options": "กลับไปที่ตัวเลือก",
+  "Mono": "โมโน",
+  "Styled text": "ข้อความแบบมีสไตล์",
+  "Keep playing in a corner": "เล่นต่อที่มุมจอ",
+  "{count} watching": {
+    "other": "{count} คนกำลังดู"
+  }
+}

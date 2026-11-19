@@ -1,0 +1,17 @@
+{
+  "Episode number": "Afleveringsnummer",
+  "Episode {episode}": "Aflevering {episode}",
+  "Episodes {episodes}": "Afleveringen {episodes}",
+  "Last episode": "Laatste aflevering",
+  "Season number": "Seizoensnummer",
+  "Show episodes as": "Afleveringen tonen als",
+  "Special {episode}": "Special {episode}",
+  "Specials {episodes}": "Specials {episodes}",
+  "S{season} · E{episode}": "S{season} · A{episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "Je grafische chip kan video converteren met een fractie van het processorwerk. Elke wordt getest als de server start, die je machine niet heeft, zijn grijs, en elke die werkt is aangevinkt tot je zelf kiest: de eerste aangevinkte die werkt, wordt gebruikt, en het beeld blijft waar het kan van decoderen tot encoderen op de chip. Met niets aangevinkt gaat alles via software, wat de beste kwaliteit voor de grootte geeft en de meeste processor gebruikt.",
+  "{left} of {count} left": {
+    "one": "nog {left} van {count}",
+    "other": "nog {left} van {count}"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

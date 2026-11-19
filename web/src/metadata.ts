@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, getToken, mediaUrlQ, serverBase, type Item, type Show } from './api'
 import type { LogoInfo } from './components/BrandLogo'
+import { t } from './i18n'
 
 // What the edit dialog, the fix-matches page and the library pages ask the server.
 // docs/METADATA.md says what each of these does.
@@ -74,13 +75,13 @@ export const artPictureUrl = (a: CategoryArt) => mediaUrlQ(a.type === 'item' ? `
 // Sends a picture as the body of a request, as Upload your own and a logo's own upload do.
 export async function sendPicture<T>(path: string, f: File, limitMB = 20): Promise<T> {
   // Said here, as a browser can go on sending a big file long after the server has refused it.
-  if (f.size > limitMB * (1 << 20)) throw new Error(`The picture is too big: the limit is ${limitMB} MB`)
+  if (f.size > limitMB * (1 << 20)) throw new Error(t('The picture is too big: the limit is {limit} MB', { limit: limitMB }))
   const headers: Record<string, string> = { 'Content-Type': f.type || 'application/octet-stream' }
   const tok = getToken()
   if (tok) headers.Authorization = 'Bearer ' + tok
   const res = await fetch(`${serverBase()}/api${path}`, { method: 'PUT', headers, body: f, credentials: 'same-origin' })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error(data.error || 'That picture could not be saved')
+  if (!res.ok) throw new Error(data.error || t('That picture could not be saved'))
   return data as T
 }
 

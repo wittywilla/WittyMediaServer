@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { AVATAR_COLORS } from './avatarColor'
+import { tk, tx } from '../i18n'
 
 // The pictures a profile can choose (auth.AvatarNames on the server, which keeps only the choice,
 // as "name:colour"). Each is one filled shape on the 24 grid, like the icons, so it is the same on
@@ -30,8 +31,14 @@ const COLOURS: Record<string, number> = { red: 0, orange: 1, yellow: 2, green: 3
 export const AVATAR_NAMES = Object.keys(SHAPES)
 export const AVATAR_COLOUR_NAMES = Object.keys(COLOURS)
 
-// What an avatar is called, for a screen reader choosing one.
-export const avatarLabel = (name: string) => name[0].toUpperCase() + name.slice(1)
+// What an avatar or a colour is called, for a screen reader choosing one.
+const LABELS: Record<string, string> = {
+  star: tk('Star'), heart: tk('Heart'), moon: tk('Moon'), sun: tk('Sun'), bolt: tk('Bolt'), diamond: tk('Diamond'), crown: tk('Crown'),
+  flower: tk('Flower'), music: tk('Music'), planet: tk('Planet'), paw: tk('Paw'), tree: tk('Tree'), rocket: tk('Rocket'),
+  gamepad: tk('Gamepad'), book: tk('Book'),
+  red: tk('Red'), orange: tk('Orange'), yellow: tk('Yellow'), green: tk('Green'), teal: tk('Teal'), blue: tk('Blue'), purple: tk('Purple'), pink: tk('Pink'),
+}
+export const avatarLabel = (name: string) => (LABELS[name] ? tx(LABELS[name]) : name[0].toUpperCase() + name.slice(1))
 
 export const avatarColourOf = (colour: string) => AVATAR_COLORS[COLOURS[colour] ?? 5]
 

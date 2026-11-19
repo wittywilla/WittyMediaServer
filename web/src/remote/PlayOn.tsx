@@ -14,6 +14,7 @@ import { myDeviceId, ownDeviceId, setTargetEnabled, targetEnabled, type RemoteCo
 import DeviceRemote from './DeviceRemote'
 import { positionNow } from './position'
 import { sendCommand, useDevices, type RemoteDevice, type ServerClock } from './useDevices'
+import { t, tx } from '../i18n'
 import './remote.css'
 import './playon.css'
 
@@ -44,7 +45,7 @@ function DeviceRow({ d, source, serverNow, onRemote, onPlayed }: { d: RemoteDevi
     setBusy(true)
     try { return await sendCommand(d.id, cmd) } catch (e) {
       const err = e as ApiError
-      toast(errorText(err.data?.code, err.message, d.name), { tone: 'warn' })
+      toast(errorText(err.data?.code, err.message, d.name, t), { tone: 'warn' })
       return null
     } finally { setBusy(false) }
   }
@@ -52,7 +53,7 @@ function DeviceRow({ d, source, serverNow, onRemote, onPlayed }: { d: RemoteDevi
     if (!source) return
     const queue = source.queue && source.queue.length > 1 && d.capabilities.features.includes('queue') ? { queue: source.queue, queueIndex: source.queueIndex || 0 } : null
     if (source.kind === 'item') {
-      if (await send(queue ? { type: 'play', ...queue } : { type: 'play', itemId: source.itemId })) { toast(`Playing on ${d.name}`, { tone: 'ok' }); onPlayed() }
+      if (await send(queue ? { type: 'play', ...queue } : { type: 'play', itemId: source.itemId })) { toast(t('Playing on {name}', { name: d.name }), { tone: 'ok' }); onPlayed() }
       return
     }
     // Handing over what's playing here. As a device, the server takes it from this one's
@@ -63,14 +64,14 @@ function DeviceRow({ d, source, serverNow, onRemote, onPlayed }: { d: RemoteDevi
       : await send({ type: 'play', ...(queue || { itemId: source.itemId }), positionSec: source.positionSec(), audio: source.audio, subtitle: source.subtitle })
     if (!res) return
     if (!me || res.sourceStopped === false) source.stop()
-    toast(`Now playing on ${d.name}`, { tone: 'ok' })
+    toast(t('Now playing on {name}', { name: d.name }), { tone: 'ok' })
     onPlayed()
   }
   const c = remoteControls(d)
   const st = d.state
-  const words = statusWords(d)
+  const words = tx(statusWords(d))
   const what = !d.online || st.status === 'idle' || d.hidden ? words
-    : [d.title || words, c.place === 'time' ? `${fmtTime(positionNow(st, d.stateAt, serverNow()))} of ${fmtTime(st.durationSec || 0)}` : '', st.status !== 'playing' ? words.toLowerCase() : ''].filter(Boolean).join(' · ')
+    : [d.title || words, c.place === 'time' ? t('{time} of {total}', { time: fmtTime(positionNow(st, d.stateAt, serverNow())), total: fmtTime(st.durationSec || 0) }) : '', st.status !== 'playing' ? words.toLowerCase() : ''].filter(Boolean).join(' · ')
   const plays = !!source && canPlayOn(d, kindOf(source))
   return (
     <li className={'rc-device rc-row' + (d.online ? '' : ' off')}>
@@ -78,11 +79,11 @@ function DeviceRow({ d, source, serverNow, onRemote, onPlayed }: { d: RemoteDevi
       <div className="rc-what">
         <div className="rc-name">{d.name}{!d.mine && <span className="pill">{d.userName}</span>}</div>
         <div className="rc-state">{what}</div>
-        {source && d.online && !plays && <div className="rc-state">It doesn’t play this kind of thing.</div>}
+        {source && d.online && !plays && <div className="rc-state">{t('It doesn’t play this kind of thing.')}</div>}
       </div>
       <div className="rc-acts">
-        {plays && <Button size="sm" variant="primary" busy={busy} icon={<IconPlay />} onClick={playHere}>{source!.kind === 'playing' ? 'Move here' : 'Play here'}</Button>}
-        <Button size="sm" icon={<IconRemote />} aria-label={`Remote for ${d.name}`} data-device={d.id} disabled={!d.online} onClick={onRemote}>Remote</Button>
+        {plays && <Button size="sm" variant="primary" busy={busy} icon={<IconPlay />} onClick={playHere}>{source!.kind === 'playing' ? t('Move here') : t('Play here')}</Button>}
+        <Button size="sm" icon={<IconRemote />} aria-label={t('Remote for {name}', { name: d.name })} data-device={d.id} disabled={!d.online} onClick={onRemote}>{t('Remote')}</Button>
       </div>
     </li>
   )
@@ -122,24 +123,24 @@ export default function PlayOn({ source, remote: remoteFor, onClose }: { source?
     return (
       <Dialog title={remote.name} onClose={onClose} className="rc-dialog rc-remote">
         <div ref={body} className="rc-body">
-          <div><Button size="sm" variant="ghost" icon={<IconBack />} onClick={() => setChosen('')}>All devices</Button></div>
+          <div><Button size="sm" variant="ghost" icon={<IconBack />} onClick={() => setChosen('')}>{t('All devices')}</Button></div>
           <DeviceRemote d={remote} serverNow={serverNow} />
         </div>
       </Dialog>
     )
   }
   return (
-    <Dialog title="Play on another device" onClose={onClose} className="rc-dialog"
-      description={source ? (source.kind === 'playing' ? `Move “${source.title}” to another device, at the same place.` : `Start “${source.title}” on another device.`) : 'Start something on another device from its page, or pick a device here to use this one as its remote.'}>
-      {off === 'profile' ? <Notice tone="info" title="Playing on other devices is turned off for this profile">Whoever manages this profile can turn it on under Settings, Profiles, Limits. Other people can still play on this device.</Notice>
-        : off ? <Notice tone="info" title="Playing on other devices is turned off">An administrator can turn it on under Settings, Sharing &amp; photos.</Notice>
-        : error && !devices ? <LoadError what="Your devices" onRetry={retry} />
+    <Dialog title={t('Play on another device')} onClose={onClose} className="rc-dialog"
+      description={source ? (source.kind === 'playing' ? t('Move “{title}” to another device, at the same place.', { title: source.title }) : t('Start “{title}” on another device.', { title: source.title })) : t('Start something on another device from its page, or pick a device here to use this one as its remote.')}>
+      {off === 'profile' ? <Notice tone="info" title={t('Playing on other devices is turned off for this profile')}>{t('Whoever manages this profile can turn it on under Settings, Profiles, Limits. Other people can still play on this device.')}</Notice>
+        : off ? <Notice tone="info" title={t('Playing on other devices is turned off')}>{t('An administrator can turn it on under Settings, Sharing & photos.')}</Notice>
+        : error && !devices ? <LoadError what={t('Your devices')} onRetry={retry} />
         : !devices ? <Spinner />
-        : others.length === 0 ? <EmptyState icon={<IconDevices />} title="No other devices right now" text="Open the app on another device signed in as you, and it shows here." />
+        : others.length === 0 ? <EmptyState icon={<IconDevices />} title={t('No other devices right now')} text={t('Open the app on another device signed in as you, and it shows here.')} />
         : <div ref={body}><ul className="rc-list">{others.map((d) => <DeviceRow key={d.id} d={d} source={source} serverNow={serverNow} onRemote={() => setChosen(d.id)} onPlayed={() => played(d.id)} />)}</ul></div>}
       {off !== 'server' && (
         <div className="rc-here">
-          <div><div className="rc-name" id="rc-here-label">Let other devices play here</div><div className="rc-state">This browser shows in the list on your other devices while the app is open.</div></div>
+          <div><div className="rc-name" id="rc-here-label">{t('Let other devices play here')}</div><div className="rc-state">{t('This browser shows in the list on your other devices while the app is open.')}</div></div>
           <Switch labelledBy="rc-here-label" checked={target} onChange={(v) => { setTargetEnabled(v); setTarget(v) }} />
         </div>
       )}

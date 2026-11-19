@@ -8,6 +8,7 @@
 //   english    the English release's name (A-Train), else the title.
 //   both       the name in its own script, with the English name (else the title) under it, smaller.
 // Pure functions only, so node --test can load this file; the hook is in useGameTitles.ts.
+import { tk } from '../words.ts'
 
 export type GameTitlePref = 'romanized' | 'native' | 'english' | 'both'
 export const GAME_TITLES_KEY = 'gameTitles'
@@ -61,12 +62,12 @@ export function titleLang(s: string | null | undefined): string | undefined {
   return undefined
 }
 
-// The choices, for Settings and first-run setup. The examples are what each choice shows for one game.
+// The choices, for Settings and first-run setup (marked with tk: show them with t(label) and t(note)). The examples are what each choice shows for one game.
 export const GAME_TITLE_CHOICES: { id: GameTitlePref; label: string; note: string }[] = [
-  { id: 'romanized', label: 'Romanized', note: 'In Latin letters, as listed' },
-  { id: 'native', label: 'Original', note: 'In the game’s own script' },
-  { id: 'english', label: 'English title', note: 'The English release’s name' },
-  { id: 'both', label: 'Original with English below', note: 'Both, the English name smaller' },
+  { id: 'romanized', label: tk('Romanized'), note: tk('In Latin letters, as listed') },
+  { id: 'native', label: tk('Original'), note: tk('In the game’s own script') },
+  { id: 'english', label: tk('English title'), note: tk('The English release’s name') },
+  { id: 'both', label: tk('Original with English below'), note: tk('Both, the English name smaller') },
 ]
 
 // A game to show the choices with.

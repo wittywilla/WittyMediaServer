@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { api, getPrefs } from '../api'
 import { copyText, type ShareLink } from '../gallery'
 import { toast } from '../state'
+import { t } from '../i18n'
 import { useEffect } from 'react'
 import LegalNote from './LegalNote'
 import '../gallery.css'
@@ -34,12 +35,12 @@ export default function ShareDialog({ kind, id, ids, title, onClose, internalPat
       setLink(location.origin + '/s/' + l.token)
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
-  const copy = async (t: string) => { toast((await copyText(t)) ? 'Link copied' : "Couldn't copy the link: select it and copy") }
+  const copy = async (text: string) => { toast((await copyText(text)) ? t('Link copied') : t("Couldn't copy the link: select it and copy")) }
   const page = shareSpec({ title, internal, allowed, link, days, download, busy, error: err })
   const press = (id: string) => { if (id === 'copyInternal') copy(internal); else if (id === 'copyLink') copy(link); else if (id === 'make') make() }
   const field = (id: string, v: string | number | boolean | File) => { if (id === 'days') setDays(Number(v)); else if (id === 'download') setDownload(!!v) }
   return (
-    <Dialog title={<>Share “{title}”</>} className="share-modal" onClose={onClose}>
+    <Dialog title={t('Share “{title}”', { title })} className="share-modal" onClose={onClose}>
       <LegalNote kind="sharing" />
       <SpecPage page={page} embedded handled={handledIds(page)} onAction={press} onField={field} />
     </Dialog>

@@ -4,7 +4,11 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { UseAComputer, advancedHere } from '../ui/advanced'
 import type { QualityPreset, QualityView } from '../api'
 import './quality.css'
-import { EMPTY, HEIGHTS, MAX_MBPS, MIN_MBPS, capOf, entryOf, formatChoice, parseChoice, perHour, presetChoice, rate, sizeName, type Choice } from './quality'
+import { EMPTY, HEIGHTS, MAX_MBPS, MIN_MBPS, capOf, entryOf, formatChoice, parseChoice, perHour, presetChoice, rate, sizeName, qualityWords, type Choice } from './quality'
+import { list, t } from '../i18n'
+
+// quality.ts has no i18n import (node tests load it): its words come in the app's language from here.
+qualityWords(t)
 
 // The player's quality menu: Auto, Original, then the sizes the picture has (only those at or
 // below its own, and within what the profile is allowed), each with its rough data use; and
@@ -68,9 +72,9 @@ export default function QualityMenu({ view, decision, presets: given, showInfo, 
   const cap = capOf(view.limits)
   const limited = cap.height > 0 || cap.kbps > 0
   const srcKbps = view.sourceKbps || 0
-  const original = live ? 'As the channel sends it'
-    : decision === 'direct' && current === 'original' ? 'Plays directly'
-    : srcKbps ? `Full quality · about ${rate(srcKbps)}` : 'Full quality'
+  const original = live ? t('As the channel sends it')
+    : decision === 'direct' && current === 'original' ? t('Plays directly')
+    : srcKbps ? t('Full quality · about {rate}', { rate: rate(srcKbps) }) : t('Full quality')
   const entry = (id: string, label: string, note: string, choice: string, extra?: string) => (
     <button key={id} type="button" role="radio" aria-checked={current === id} className={'qm-item' + (current === id ? ' active' : '')}
       tabIndex={current === id || (current === 'custom' && id === 'auto') ? 0 : -1} onClick={() => onChoose(choice)}
@@ -82,22 +86,22 @@ export default function QualityMenu({ view, decision, presets: given, showInfo, 
   return (
     <div className="qmenu" ref={root} role="dialog" aria-labelledby={titleId} onKeyDown={onKey} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
       <div className="qm-head">
-        {page === 'advanced' && <button type="button" className="ibtn qm-back" onClick={() => setPage('easy')} aria-label="Back to quality">‹</button>}
-        <h4 id={titleId}>{page === 'easy' ? 'Quality' : 'Advanced quality'}</h4>
-        <button type="button" className="ibtn qm-close" onClick={onClose} aria-label="Close quality">✕</button>
+        {page === 'advanced' && <button type="button" className="ibtn qm-back" onClick={() => setPage('easy')} aria-label={t('Back to quality')}>‹</button>}
+        <h4 id={titleId}>{page === 'easy' ? t('Quality') : t('Advanced quality')}</h4>
+        <button type="button" className="ibtn qm-close" onClick={onClose} aria-label={t('Close quality')}>✕</button>
       </div>
       {page === 'easy' ? (
         <>
           <div className="qm-list" role="radiogroup" aria-labelledby={titleId}>
-            {entry('auto', 'Auto', 'Adjusts to your connection and settings', '', 'Recommended')}
-            {entry('original', 'Original', original, 'original')}
-            {presets.map((p) => entry(p.name, p.name, `about ${rate(p.kbps)} · ${perHour(p.kbps)}`, presetChoice(p)))}
-            {current === 'custom' && entry('custom', 'Custom', customNote(asked), asked)}
+            {entry('auto', t('Auto'), t('Adjusts to your connection and settings'), '', t('Recommended'))}
+            {entry('original', t('Original'), original, 'original')}
+            {presets.map((p) => entry(p.name, p.name, t('about {rate} · {perHour}', { rate: rate(p.kbps), perHour: perHour(p.kbps) }), presetChoice(p)))}
+            {current === 'custom' && entry('custom', t('Custom'), customNote(asked), asked)}
           </div>
-          {limited && <p className="qm-small">Up to {[cap.height ? sizeName(cap.height) : '', cap.kbps ? rate(cap.kbps) : ''].filter(Boolean).join(' and ')} {view.away ? 'away from home' : 'on this profile'}, as the server allows.</p>}
-          <button type="button" className="qm-more" onClick={() => (advancedHere() ? setPage('advanced') : setWalled(true))}>Advanced…</button>
+          {limited && <p className="qm-small">{(() => { const limit = list([cap.height ? sizeName(cap.height) : '', cap.kbps ? rate(cap.kbps) : ''].filter(Boolean)); return view.away ? t('Up to {limit} away from home, as the server allows.', { limit }) : t('Up to {limit} on this profile, as the server allows.', { limit }) })()}</p>}
+          <button type="button" className="qm-more" onClick={() => (advancedHere() ? setPage('advanced') : setWalled(true))}>{t('Advanced…')}</button>
           {walled && <UseAComputer what="Advanced quality settings" onClose={() => setWalled(false)} />}
-          <p className="qm-small">Remembered on this device {where === 'away' ? 'away from home' : 'at home'}.</p>
+          <p className="qm-small">{where === 'away' ? t('Remembered on this device away from home.') : t('Remembered on this device at home.')}</p>
         </>
       ) : (
         <Advanced view={view} live={live} onApply={(c) => { onChoose(c); setPage('easy') }} showInfo={showInfo} onShowInfo={onShowInfo} />
@@ -109,8 +113,8 @@ export default function QualityMenu({ view, decision, presets: given, showInfo, 
 function customNote(choice: string): string {
   const c = parseChoice(choice)
   if (!c) return ''
-  return [c.maxHeight ? `up to ${sizeName(c.maxHeight)}` : '', c.maxKbps ? `about ${rate(c.maxKbps)}` : '', c.videoCodec ? 'H.264 only' : '',
-    c.audioKbps ? `sound ${c.audioKbps} kbps` : '', c.audioChannels === 2 ? 'stereo' : c.audioChannels === 6 ? '5.1' : ''].filter(Boolean).join(' · ')
+  return [c.maxHeight ? t('up to {size}', { size: sizeName(c.maxHeight) }) : '', c.maxKbps ? t('about {rate}', { rate: rate(c.maxKbps) }) : '', c.videoCodec ? t('H.264 only') : '',
+    c.audioKbps ? t('sound {n} kbps', { n: c.audioKbps }) : '', c.audioChannels === 2 ? t('stereo') : c.audioChannels === 6 ? '5.1' : ''].filter(Boolean).join(' · ')
 }
 
 // The advanced page: every part of the choice, applied together.
@@ -128,56 +132,56 @@ function Advanced({ view, live, onApply, showInfo, onShowInfo }: { view: Quality
   return (
     <div className="qm-adv">
       <label className="qm-field" htmlFor={id + 'h'}>
-        <span>Largest picture</span>
+        <span>{t('Largest picture')}</span>
         <select id={id + 'h'} value={c.maxHeight} onChange={(e) => set({ maxHeight: Number(e.target.value) })}>
-          <option value={0}>{cap.height ? `As allowed (${sizeName(cap.height)})` : 'The original size'}</option>
+          <option value={0}>{cap.height ? t('As allowed ({size})', { size: sizeName(cap.height) }) : t('The original size')}</option>
           {heights.map((h) => <option key={h} value={h}>{h}p{h === 2160 ? ' (4K)' : ''}</option>)}
         </select>
       </label>
       <div className="qm-field">
-        <label htmlFor={id + 'b'}>Most data</label>
+        <label htmlFor={id + 'b'}>{t('Most data')}</label>
         <div className="qm-rate">
-          <input type="range" min={0} max={maxMbps} step={0.5} value={mbps} aria-label="Most data, in megabits a second" aria-valuetext={mbps ? `${rate(c.maxKbps)}` : 'No limit'}
+          <input type="range" min={0} max={maxMbps} step={0.5} value={mbps} aria-label={t('Most data, in megabits a second')} aria-valuetext={mbps ? rate(c.maxKbps) : t('No limit')}
             onChange={(e) => setMbps(Number(e.target.value))} style={{ '--pct': (mbps / maxMbps) * 100 + '%' } as React.CSSProperties} className="range" />
           <span className="qm-num">
-            <input id={id + 'b'} type="number" inputMode="decimal" min={0} max={maxMbps} step={0.5} value={mbps || ''} placeholder="No limit"
+            <input id={id + 'b'} type="number" inputMode="decimal" min={0} max={maxMbps} step={0.5} value={mbps || ''} placeholder={t('No limit')}
               onChange={(e) => setMbps(Number(e.target.value))} aria-describedby={id + 'bn'} />
-            <span aria-hidden="true">Mbps</span>
+            <span aria-hidden="true">{t('Mbps')}</span>
           </span>
         </div>
-        <span className="qm-small" id={id + 'bn'}>{mbps ? `About ${perHour(c.maxKbps)}.` : cap.kbps ? `No limit of your own: up to ${rate(cap.kbps)}, as allowed.` : 'No limit: 0 or empty.'}</span>
+        <span className="qm-small" id={id + 'bn'}>{mbps ? t('About {perHour}.', { perHour: perHour(c.maxKbps) }) : cap.kbps ? t('No limit of your own: up to {rate}, as allowed.', { rate: rate(cap.kbps) }) : t('No limit: 0 or empty.')}</span>
       </div>
       <div className="qm-field">
-        <span id={id + 'v'}>Video format</span>
+        <span id={id + 'v'}>{t('Video format')}</span>
         <div className="seg" role="radiogroup" aria-labelledby={id + 'v'}>
-          {([['', 'Any my device plays'], ['h264', 'H.264 only']] as const).map(([v, l]) => (
+          {([['', t('Any my device plays')], ['h264', t('H.264 only')]] as const).map(([v, l]) => (
             <button type="button" key={v} role="radio" aria-checked={c.videoCodec === v} className={c.videoCodec === v ? 'active' : ''} onClick={() => set({ videoCodec: v })}>{l}</button>
           ))}
         </div>
-        <span className="qm-small">H.264 plays on everything; other formats are converted to it. Conversions are always H.264.</span>
+        <span className="qm-small">{t('H.264 plays on everything; other formats are converted to it. Conversions are always H.264.')}</span>
       </div>
       <label className="qm-field" htmlFor={id + 'a'}>
-        <span>Sound quality (when converted)</span>
+        <span>{t('Sound quality (when converted)')}</span>
         <select id={id + 'a'} value={c.audioKbps} onChange={(e) => set({ audioKbps: Number(e.target.value) })}>
-          <option value={0}>The server’s setting</option>
-          {view.audioRates.map((r) => <option key={r} value={r}>{r} kbps</option>)}
+          <option value={0}>{t('The server’s setting')}</option>
+          {view.audioRates.map((r) => <option key={r} value={r}>{t('{n} kbps', { n: r })}</option>)}
         </select>
       </label>
       <div className="qm-field">
-        <span id={id + 'c'}>Sound channels</span>
+        <span id={id + 'c'}>{t('Sound channels')}</span>
         <div className="seg" role="radiogroup" aria-labelledby={id + 'c'}>
-          {([[0, 'As the source'], [2, 'Stereo'], [6, '5.1']] as const).map(([v, l]) => (
+          {([[0, t('As the source')], [2, t('Stereo')], [6, '5.1']] as const).map(([v, l]) => (
             <button type="button" key={v} role="radio" aria-checked={c.audioChannels === v} className={c.audioChannels === v ? 'active' : ''} onClick={() => set({ audioChannels: v })}>{l}</button>
           ))}
         </div>
       </div>
       <div className="qm-field qm-row">
-        <span id={id + 'i'}>Show stream info</span>
+        <span id={id + 'i'}>{t('Show stream info')}</span>
         <button type="button" role="switch" aria-checked={showInfo} aria-labelledby={id + 'i'} className={'switch' + (showInfo ? ' on' : '')} onClick={() => onShowInfo(!showInfo)}><i /></button>
       </div>
       <div className="qm-actions">
-        <button type="button" className="btn ghost sm" onClick={() => setC(EMPTY)}>Reset</button>
-        <button type="button" className="btn primary sm" onClick={() => onApply(formatChoice(c))}>Apply</button>
+        <button type="button" className="btn ghost sm" onClick={() => setC(EMPTY)}>{t('Reset')}</button>
+        <button type="button" className="btn primary sm" onClick={() => onApply(formatChoice(c))}>{t('Apply')}</button>
       </div>
     </div>
   )
@@ -187,7 +191,7 @@ function Advanced({ view, live, onApply, showInfo, onShowInfo }: { view: Quality
 export function StreamInfo({ lines }: { lines: string[] }) {
   if (!lines.length) return null
   return (
-    <div className="stream-info" role="group" aria-label="Stream information">
+    <div className="stream-info" role="group" aria-label={t('Stream information')}>
       {lines.map((l) => <div key={l}>{l}</div>)}
     </div>
   )

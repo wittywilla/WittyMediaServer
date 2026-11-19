@@ -17,8 +17,9 @@ const shown = (el: HTMLElement) => el.getClientRects().length > 0 && !el.closest
 // Whatever is open as a dialog, menu or the full-screen player has the keys; the app-wide ones wait.
 const BUSY = '[role=dialog], [role=alertdialog], [role=menu], .modal, .picker-backdrop, .player:not(.mini):not(.inline), .reader, .wp-playing, .wp-capture'
 
+// The search field: marked data-app-search, as its aria-label is in the app's language (English "Search" still found).
 function search(): boolean {
-  const field = Array.from(document.querySelectorAll<HTMLInputElement>('.topbar .search input, input[type=search][aria-label=Search]')).find(shown)
+  const field = Array.from(document.querySelectorAll<HTMLInputElement>('.topbar .search input, input[type=search][data-app-search], input[type=search][aria-label=Search]')).find(shown)
   if (field) { field.focus(); field.select(); return true }
   const link = Array.from(document.querySelectorAll<HTMLElement>('[data-nav-zone="bar"] a[href="/search"], .tvm-pill[href="/search"], a[href="/search"][data-tab]')).find(shown)
   if (link) { link.click(); return true }

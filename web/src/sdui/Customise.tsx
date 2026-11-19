@@ -16,8 +16,10 @@ import { ArrangeList } from './ArrangeList'
 import { deletePersonal, getPersonal, putPersonal } from './client'
 import { allows, body, draftOf, move, same, setCardSize, setDefaultTab, setDensity, setHidden, setPinned, type Draft } from './personal'
 import type { Document, Node } from './types'
+import { t, tk, tx } from '../i18n'
 
-const SIZE_NAMES: Record<string, string> = { s: 'Small', m: 'Medium', l: 'Large' }
+const DENSITY: Record<string, string> = { compact: tk('Compact'), comfortable: tk('Comfortable'), spacious: tk('Spacious') }
+const SIZE_NAMES: Record<string, string> = { s: tk('Small cards'), m: tk('Medium cards'), l: tk('Large cards') }
 
 export default function Customise({ doc, onClose }: { doc: Document; onClose: () => void }) {
   const info = doc.personal
@@ -47,11 +49,11 @@ export default function Customise({ doc, onClose }: { doc: Document; onClose: ()
   const tabSets = useMemo(() => {
     const out: { id: string; tabs: { id: string; label: string }[] }[] = []
     const walk = (n: Node) => {
-      if (n.type === 'Tabs') out.push({ id: n.id, tabs: (n.children || []).filter((t) => t.type === 'Tab').map((t) => ({ id: t.id, label: String(t.props?.label || t.id) })) })
+      if (n.type === 'Tabs') out.push({ id: n.id, tabs: (n.children || []).filter((x) => x.type === 'Tab').map((x) => ({ id: x.id, label: tx(String(x.props?.label || x.id)) })) })
       n.children?.forEach(walk)
     }
     walk(doc.root)
-    return out.filter((t) => t.tabs.length > 1)
+    return out.filter((set) => set.tabs.length > 1)
   }, [doc.root])
 
   const save = async (next: Draft, was: Draft | null, said?: string) => {
@@ -65,7 +67,7 @@ export default function Customise({ doc, onClose }: { doc: Document; onClose: ()
     } catch (e) {
       setDraft(draft)
       if (was) setHistory((h) => h.slice(0, -1))
-      toast((e as Error).message || 'Could not save that', { tone: 'danger' })
+      toast((e as Error).message || t('Could not save that'), { tone: 'danger' })
     } finally { setSaving(false) }
   }
   const change = (next: Draft, said?: string) => save(next, draft, said)
@@ -73,50 +75,50 @@ export default function Customise({ doc, onClose }: { doc: Document; onClose: ()
     const was = history[history.length - 1]
     if (!was) return
     setHistory((h) => h.slice(0, -1))
-    save(was, null, 'Undone')
+    save(was, null, t('Undone'))
   }
   const reset = async () => {
-    if (!await ask({ title: 'Put this page back as everyone has it?', body: 'Your own order, hidden and pinned sections, card sizes and spacing for this page are forgotten.', confirm: 'Reset the page' })) return
+    if (!await ask({ title: t('Put this page back as everyone has it?'), body: t('Your own order, hidden and pinned sections, card sizes and spacing for this page are forgotten.'), confirm: t('Reset the page') })) return
     setSaving(true)
     try {
       await deletePersonal(url)
       setHistory([])
       setDraft({ rows: draftOf(info).rows.map((r) => ({ ...r, hidden: undefined, pinned: undefined })), density: 'comfortable', cardSize: {}, defaultTab: {} })
-      toast('The page is back as everyone has it', { tone: 'ok' })
+      toast(t('The page is back as everyone has it'), { tone: 'ok' })
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setSaving(false) }
   }
 
   const canMove = allows(info, 'reorder'), canHide = allows(info, 'hide'), canPin = allows(info, 'pin'), canSize = allows(info, 'cardSize')
-  const rows = draft.rows.map((r) => ({ id: r.id, title: r.title, locked: r.locked, hidden: r.hidden, pinned: r.pinned, note: r.empty && !r.hidden ? 'nothing in it now' : undefined }))
+  const rows = draft.rows.map((r) => ({ id: r.id, title: tx(r.title), locked: r.locked, hidden: r.hidden, pinned: r.pinned, note: r.empty && !r.hidden ? t('nothing in it now') : undefined }))
   const pristine = !draft.rows.some((r) => r.hidden || r.pinned) && draft.density === 'comfortable' && !Object.keys(draft.cardSize).length && !Object.keys(draft.defaultTab).length && same({ ...draft, rows: [] }, { ...draftOf(undefined), rows: [] })
   return (
-    <Sheet title={`Customise ${doc.page.title || 'this page'}`} onClose={onClose} className="sdui-customise"
+    <Sheet title={doc.page.title ? t('Customise {page}', { page: tx(doc.page.title) }) : t('Customise this page')} onClose={onClose} className="sdui-customise"
       actions={<>
-        <Button variant="ghost" onClick={undo} disabled={!history.length || saving}>Undo</Button>
-        <Button variant="ghost" onClick={reset} disabled={saving || (pristine && !history.length)}>Reset</Button>
-        <Button variant="primary" onClick={onClose}>Done</Button>
+        <Button variant="ghost" onClick={undo} disabled={!history.length || saving}>{t('Undo')}</Button>
+        <Button variant="ghost" onClick={reset} disabled={saving || (pristine && !history.length)}>{t('Reset')}</Button>
+        <Button variant="primary" onClick={onClose}>{t('Done')}</Button>
       </>}>
-      <p className="muted sdui-customise-lede">This is only for your profile, on every device. {canMove ? 'Drag a section by its handle, or use the arrows. ' : ''}Changes are saved as you make them.</p>
+      <p className="muted sdui-customise-lede">{canMove ? t('This is only for your profile, on every device. Drag a section by its handle, or use the arrows. Changes are saved as you make them.') : t('This is only for your profile, on every device. Changes are saved as you make them.')}</p>
       {allows(info, 'density') && (
-        <div className="nav-custom-opt"><span id="sdui-density">Spacing</span>
-          <Segmented label="Spacing" value={draft.density} onChange={(v) => change(setDensity(draft, v), `Spacing: ${v}`)}
-            options={[{ value: 'compact', label: 'Compact' }, { value: 'comfortable', label: 'Comfortable' }, { value: 'spacious', label: 'Spacious' }]} />
+        <div className="nav-custom-opt"><span id="sdui-density">{t('Spacing')}</span>
+          <Segmented label={t('Spacing')} value={draft.density} onChange={(v) => change(setDensity(draft, v), t('Spacing: {choice}', { choice: tx(DENSITY[v] || v) }))}
+            options={[{ value: 'compact', label: t('Compact') }, { value: 'comfortable', label: t('Comfortable') }, { value: 'spacious', label: t('Spacious') }]} />
         </div>
       )}
-      {allows(info, 'defaultTab') && tabSets.map((t) => (
-        <div className="nav-custom-opt" key={t.id}><span>Open on</span>
-          <Select aria-label="The tab this page opens on" value={draft.defaultTab[t.id] || ''} onChange={(e) => change(setDefaultTab(draft, t.id, e.target.value))}
-            options={[{ value: '', label: 'The page’s own choice' }, ...t.tabs.map((x) => ({ value: x.id, label: x.label }))]} />
+      {allows(info, 'defaultTab') && tabSets.map((set) => (
+        <div className="nav-custom-opt" key={set.id}><span>{t('Open on')}</span>
+          <Select aria-label={t('The tab this page opens on')} value={draft.defaultTab[set.id] || ''} onChange={(e) => change(setDefaultTab(draft, set.id, e.target.value))}
+            options={[{ value: '', label: t('The page’s own choice') }, ...set.tabs.map((x) => ({ value: x.id, label: x.label }))]} />
         </div>
       ))}
       {rows.length > 0 && (canMove || canHide || canPin || canSize) && (
-        <ArrangeList rows={rows} label="Sections of this page, in order" canMove={canMove} canHide={canHide} canPin={canPin}
+        <ArrangeList rows={rows} label={t('Sections of this page, in order')} canMove={canMove} canHide={canHide} canPin={canPin}
           onMove={(id, to) => change(move(draft, id, to))}
-          onHidden={(id, hidden) => change(setHidden(draft, id, hidden), hidden ? 'Hidden' : 'Shown')}
-          onPinned={(id, pinned) => change(setPinned(draft, id, pinned), pinned ? 'Pinned to the top' : 'Unpinned')}
+          onHidden={(id, hidden) => change(setHidden(draft, id, hidden), hidden ? t('Hidden') : t('Shown'))}
+          onPinned={(id, pinned) => change(setPinned(draft, id, pinned), pinned ? t('Pinned to the top') : t('Unpinned'))}
           extra={(r) => (canSize && withCards.has(r.id) && !r.hidden
-            ? <Select inputSize="sm" aria-label={`Card size for ${r.title}`} value={draft.cardSize[r.id] || 'm'} onChange={(e) => change(setCardSize(draft, r.id, e.target.value))}
-                options={['s', 'm', 'l'].map((s) => ({ value: s, label: SIZE_NAMES[s] + ' cards' }))} />
+            ? <Select inputSize="sm" aria-label={t('Card size for {name}', { name: r.title })} value={draft.cardSize[r.id] || 'm'} onChange={(e) => change(setCardSize(draft, r.id, e.target.value))}
+                options={['s', 'm', 'l'].map((s) => ({ value: s, label: t(SIZE_NAMES[s]) }))} />
             : null)} />
       )}
     </Sheet>

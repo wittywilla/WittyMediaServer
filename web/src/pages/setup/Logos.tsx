@@ -8,6 +8,7 @@ import { IconCheck } from '../../icons'
 import { Button, LoadError, Spinner } from '../../ui'
 import { LogoConsentWords } from '../settings/MetadataOptional'
 import { LaterNote, StepActions, StepHead, type StepProps } from './parts'
+import { t } from '../../i18n'
 
 // One agreement, the same one Settings asks for, covering consoles, game studios, film studios, TV
 // networks and channels. No logo comes with the server or in any package. They download only after a yes.
@@ -26,23 +27,23 @@ export function Logos({ info, next, back }: StepProps) {
       next()
     } catch (e: any) { setErr(e.message); setBusy(false) }
   }
-  const head = <StepHead title="Logos for consoles, studios and networks" lead="Would you like real logos on your cards, instead of plain names? This is an optional download, and it’s up to you. Nothing changes if you say no." />
-  if (failed) return <section>{head}<LoadError what="This question" onRetry={load} /><StepActions back={back}><Button variant="primary" size="big" onClick={next}>Skip for now</Button></StepActions></section>
+  const head = <StepHead title={t('Logos for consoles, studios and networks')} lead={t('Would you like real logos on your cards, instead of plain names? This is an optional download, and it’s up to you. Nothing changes if you say no.')} />
+  if (failed) return <section>{head}<LoadError what={t('This question')} onRetry={load} /><StepActions back={back}><Button variant="primary" size="big" onClick={next}>{t('Skip for now')}</Button></StepActions></section>
   if (consent === null) return <section>{head}<Spinner /></section>
   return (
     <section>
       {head}
-      {consent === 'yes' && <p className="oobe-added su-gap-under"><IconCheck size={16} /> You’ve said yes. Logos are downloading as your libraries are scanned.</p>}
+      {consent === 'yes' && <p className="oobe-added su-gap-under"><IconCheck size={16} /> {t('You’ve said yes. Logos are downloading as your libraries are scanned.')}</p>}
       <div className="su-consent">
-        <h2 className="oobe-type-head">About these pictures and who owns them</h2>
+        <h2 className="oobe-type-head">{t('About these pictures and who owns them')}</h2>
         <LogoConsentWords />
       </div>
       <LegalNote kind="logos" newTab className="su-gap" />
       {err && <div className="error su-gap" role="alert">{err}</div>}
       <LaterNote info={info} />
       <StepActions back={back}>
-        <Button busy={busy} onClick={() => answer(false)}>No thanks, use plain names</Button>
-        <Button variant="primary" size="big" busy={busy} onClick={() => answer(true)}>I understand: download logos</Button>
+        <Button busy={busy} onClick={() => answer(false)}>{t('No thanks, use plain names')}</Button>
+        <Button variant="primary" size="big" busy={busy} onClick={() => answer(true)}>{t('I understand: download logos')}</Button>
       </StepActions>
     </section>
   )

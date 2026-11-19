@@ -11,34 +11,40 @@ export type FxId =
   | 'musicBass' | 'musicTreble' | 'pocket'
 export type Fx = Record<FxId, number>
 
+// Labels are marked with tk() and translated where they're shown; fxValue takes the app's t() (English here, so the tests need
+// nothing else). No i18n import: node tests load this file.
+const tk = <S extends string>(english: S): S => english
+type Say = (english: string, vars?: Record<string, string | number | null | undefined>) => string
+const english: Say = (s, v) => s.replace(/\{(\w+)\}/g, (m, k: string) => (v && v[k] != null ? String(v[k]) : m))
+
 type Control = { id: FxId; label: string; min: number; max: number; step: number; unit: string; help: string }
 export type FxGroup = { title: string; controls: Control[] }
 
 // Every control, in the order the panel shows them. Off is each one's default, so a song sounds
 // as it was made until someone changes something.
 export const FX_GROUPS: FxGroup[] = [
-  { title: 'Voice tone', controls: [
-    { id: 'lowCut', label: 'Low cut', min: 20, max: 400, step: 10, unit: 'Hz', help: 'Takes out rumble and breath below this' },
-    { id: 'bass', label: 'Warmth', min: -12, max: 12, step: 1, unit: 'dB', help: 'The low end of the voice' },
-    { id: 'presence', label: 'Presence', min: -12, max: 12, step: 1, unit: 'dB', help: 'Brings the words forward' },
-    { id: 'air', label: 'Air', min: -12, max: 12, step: 1, unit: 'dB', help: 'Brightness and breath on top' },
+  { title: tk('Voice tone'), controls: [
+    { id: 'lowCut', label: tk('Low cut'), min: 20, max: 400, step: 10, unit: 'Hz', help: tk('Takes out rumble and breath below this') },
+    { id: 'bass', label: tk('Warmth'), min: -12, max: 12, step: 1, unit: 'dB', help: tk('The low end of the voice') },
+    { id: 'presence', label: tk('Presence'), min: -12, max: 12, step: 1, unit: 'dB', help: tk('Brings the words forward') },
+    { id: 'air', label: tk('Air'), min: -12, max: 12, step: 1, unit: 'dB', help: tk('Brightness and breath on top') },
   ] },
-  { title: 'Voice dynamics and place', controls: [
-    { id: 'compress', label: 'Compression', min: 0, max: 100, step: 5, unit: '%', help: 'Evens out loud and quiet lines' },
-    { id: 'pan', label: 'Pan', min: -100, max: 100, step: 5, unit: '', help: 'Left or right of centre' },
-    { id: 'double', label: 'Doubling', min: 0, max: 100, step: 5, unit: '%', help: 'A second, slightly late voice, for a fuller sound' },
+  { title: tk('Voice dynamics and place'), controls: [
+    { id: 'compress', label: tk('Compression'), min: 0, max: 100, step: 5, unit: '%', help: tk('Evens out loud and quiet lines') },
+    { id: 'pan', label: tk('Pan'), min: -100, max: 100, step: 5, unit: '', help: tk('Left or right of centre') },
+    { id: 'double', label: tk('Doubling'), min: 0, max: 100, step: 5, unit: '%', help: tk('A second, slightly late voice, for a fuller sound') },
   ] },
-  { title: 'Voice echo and reverb', controls: [
-    { id: 'echo', label: 'Echo', min: 0, max: 100, step: 5, unit: '%', help: 'How loud the echo is' },
-    { id: 'echoTime', label: 'Echo time', min: 60, max: 900, step: 20, unit: 'ms', help: 'How long before it comes back' },
-    { id: 'echoRepeats', label: 'Echo repeats', min: 0, max: 80, step: 5, unit: '%', help: 'How much each echo echoes again' },
-    { id: 'reverb', label: 'Reverb', min: 0, max: 100, step: 5, unit: '%', help: 'The sound of a room' },
-    { id: 'room', label: 'Room size', min: 0.3, max: 5, step: 0.1, unit: 's', help: 'From a small room to a hall' },
+  { title: tk('Voice echo and reverb'), controls: [
+    { id: 'echo', label: tk('Echo'), min: 0, max: 100, step: 5, unit: '%', help: tk('How loud the echo is') },
+    { id: 'echoTime', label: tk('Echo time'), min: 60, max: 900, step: 20, unit: 'ms', help: tk('How long before it comes back') },
+    { id: 'echoRepeats', label: tk('Echo repeats'), min: 0, max: 80, step: 5, unit: '%', help: tk('How much each echo echoes again') },
+    { id: 'reverb', label: tk('Reverb'), min: 0, max: 100, step: 5, unit: '%', help: tk('The sound of a room') },
+    { id: 'room', label: tk('Room size'), min: 0.3, max: 5, step: 0.1, unit: 's', help: tk('From a small room to a hall') },
   ] },
-  { title: 'Background Music', controls: [
-    { id: 'musicBass', label: 'Bass', min: -12, max: 12, step: 1, unit: 'dB', help: 'The low end of the music' },
-    { id: 'musicTreble', label: 'Treble', min: -12, max: 12, step: 1, unit: 'dB', help: 'The top of the music' },
-    { id: 'pocket', label: 'Room for the voice', min: 0, max: 12, step: 1, unit: 'dB', help: 'Dips the music where voices sit, so the voice comes through' },
+  { title: tk('Background Music'), controls: [
+    { id: 'musicBass', label: tk('Bass'), min: -12, max: 12, step: 1, unit: 'dB', help: tk('The low end of the music') },
+    { id: 'musicTreble', label: tk('Treble'), min: -12, max: 12, step: 1, unit: 'dB', help: tk('The top of the music') },
+    { id: 'pocket', label: tk('Room for the voice'), min: 0, max: 12, step: 1, unit: 'dB', help: tk('Dips the music where voices sit, so the voice comes through') },
   ] },
 ]
 
@@ -52,14 +58,14 @@ export const FX_OFF: Fx = {
 
 // Starting points; any control can be moved after choosing one.
 export const FX_PRESETS: { id: string; name: string; fx: Partial<Fx> }[] = [
-  { id: 'off', name: 'As recorded', fx: {} },
-  { id: 'clear', name: 'Clear voice', fx: { lowCut: 100, presence: 4, air: 2, compress: 40, pocket: 4 } },
-  { id: 'studio', name: 'Studio', fx: { lowCut: 80, bass: 1, presence: 3, air: 3, compress: 55, reverb: 18, room: 1.1, double: 15 } },
-  { id: 'hall', name: 'Concert hall', fx: { lowCut: 80, presence: 2, compress: 30, reverb: 45, room: 3.6 } },
-  { id: 'stadium', name: 'Stadium', fx: { lowCut: 100, presence: 3, compress: 50, echo: 25, echoTime: 420, echoRepeats: 35, reverb: 40, room: 4.5 } },
-  { id: 'slapback', name: 'Slapback echo', fx: { lowCut: 90, presence: 2, compress: 35, echo: 35, echoTime: 120, echoRepeats: 10 } },
-  { id: 'radio', name: 'Old radio', fx: { lowCut: 380, bass: -8, presence: 8, air: -12, compress: 70 } },
-  { id: 'duet', name: 'Duet spread', fx: { double: 60, pan: -30, reverb: 15, room: 1.4 } },
+  { id: 'off', name: tk('As recorded'), fx: {} },
+  { id: 'clear', name: tk('Clear voice'), fx: { lowCut: 100, presence: 4, air: 2, compress: 40, pocket: 4 } },
+  { id: 'studio', name: tk('Studio'), fx: { lowCut: 80, bass: 1, presence: 3, air: 3, compress: 55, reverb: 18, room: 1.1, double: 15 } },
+  { id: 'hall', name: tk('Concert hall'), fx: { lowCut: 80, presence: 2, compress: 30, reverb: 45, room: 3.6 } },
+  { id: 'stadium', name: tk('Stadium'), fx: { lowCut: 100, presence: 3, compress: 50, echo: 25, echoTime: 420, echoRepeats: 35, reverb: 40, room: 4.5 } },
+  { id: 'slapback', name: tk('Slapback echo'), fx: { lowCut: 90, presence: 2, compress: 35, echo: 35, echoTime: 120, echoRepeats: 10 } },
+  { id: 'radio', name: tk('Old radio'), fx: { lowCut: 380, bass: -8, presence: 8, air: -12, compress: 70 } },
+  { id: 'duet', name: tk('Duet spread'), fx: { double: 60, pan: -30, reverb: 15, room: 1.4 } },
 ]
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
@@ -96,9 +102,9 @@ export function decodeFx(text: string | null | undefined): Fx {
 }
 export const encodeFx = (fx: Fx) => JSON.stringify(cleanFx(fx))
 
-export function fxValue(c: Pick<Control, 'unit' | 'id'>, v: number): string {
-  if (c.id === 'pan') return v === 0 ? 'Centre' : `${Math.abs(v)}% ${v < 0 ? 'left' : 'right'}`
-  if (c.id === 'lowCut' && v <= 20) return 'Off'
+export function fxValue(c: Pick<Control, 'unit' | 'id'>, v: number, t: Say = english): string {
+  if (c.id === 'pan') return v === 0 ? t('Centre') : v < 0 ? t('{n}% left', { n: Math.abs(v) }) : t('{n}% right', { n: Math.abs(v) })
+  if (c.id === 'lowCut' && v <= 20) return t('Off')
   if (c.unit === 'dB') return `${v > 0 ? '+' : ''}${v} dB`
   if (c.unit === 's') return `${v.toFixed(1)} s`
   return `${v}${c.unit === '%' ? '%' : c.unit ? ' ' + c.unit : ''}`

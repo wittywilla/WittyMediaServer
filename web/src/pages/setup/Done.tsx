@@ -9,6 +9,8 @@ import { Button, Spinner } from '../../ui'
 import { AddProfile } from '../Profiles'
 import { PortSetting, useNetwork } from '../../components/PortSetting'
 import { describeOutcome, updateChoiceFrom, type Outcome, type StepInfo } from './plan'
+import { Fill } from './parts'
+import { language, list, t, tn, tx } from '../../i18n'
 
 // The last page says what's really so, from the server, rather than what was pressed along the way.
 async function readOutcome(): Promise<Outcome> {
@@ -19,7 +21,7 @@ async function readOutcome(): Promise<Outcome> {
     api.get<ListingStatus>('/listings/status').catch(() => null),
     api.get<ModuleReport>('/modules').catch(() => null),
   ])
-  const names = new Intl.DisplayNames(undefined, { type: 'region' })
+  const names = new Intl.DisplayNames([language()], { type: 'region' })
   return {
     libraries: libs.map((l) => l.name),
     // What was added: what's part of the server was never a choice.
@@ -51,20 +53,20 @@ export function Done({ steps, onFinish }: { steps: StepInfo[]; onFinish: (to?: s
   // Addresses other devices at home can open. This one may only be "localhost".
   const here = /^(localhost|127\.|\[::1\])/.test(location.hostname) || location.hostname.endsWith('.localhost') ? '' : location.origin
   const addrs = here ? [here] : lan || []
-  const lines = outcome ? describeOutcome(outcome, steps) : []
-  const where = (id: string) => steps.find((s) => s.id === id)?.later?.where
+  const lines = outcome ? describeOutcome(outcome, steps, { t, tn, list }) : []
+  const where = (id: string) => tx(steps.find((s) => s.id === id)?.later?.where)
   const finish = (to?: string) => { setBusy(true); onFinish(to) }
   return (
     <section className="oobe-done">
       <div className="oobe-check" aria-hidden="true"><IconCheck size={44} /></div>
-      <h1>You’re all set</h1>
+      <h1>{t('You’re all set')}</h1>
       <p className="lead">
         {outcome?.libraries.length
-          ? `${outcome.libraries.length === 1 ? 'Your library is' : `Your ${outcome.libraries.length} libraries are`} being scanned now. Titles and posters appear as each one is found.`
-          : 'You can add your first library any time in Settings, Libraries.'}
+          ? tn('Your library is being scanned now. Titles and posters appear as each one is found.', 'Your {count} libraries are being scanned now. Titles and posters appear as each one is found.', outcome.libraries.length)
+          : t('You can add your first library any time in Settings, Libraries.')}
       </p>
       {!outcome ? <Spinner /> : (
-        <ul className="su-summary" aria-label="What you chose">
+        <ul className="su-summary" aria-label={t('What you chose')}>
           {lines.map((l) => (
             <li key={l.text} className={l.on ? 'on' : ''}>
               {l.on ? <IconCheck size={16} /> : <IconInfo size={16} />}
@@ -76,33 +78,33 @@ export function Done({ steps, onFinish }: { steps: StepInfo[]; onFinish: (to?: s
       <div className="oobe-next">
         <div className="oobe-next-card">
           <IconTv size={22} />
-          <b>Watch on every screen at home</b>
+          <b>{t('Watch on every screen at home')}</b>
           {addrs.length > 0
-            ? <><span>On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:</span>{addrs.slice(0, 2).map((a) => <code key={a}>{a}</code>)}</>
-            : <span>Right now this server only answers on this computer. To use it from your TV or phone, set <code>listen</code> to <code>:{net.view?.port || 9797}</code> where it’s set (its config file, <code>-listen</code> or <code>WMS_LISTEN</code>) and restart it.</span>}
+            ? <><span>{t('On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:')}</span>{addrs.slice(0, 2).map((a) => <code key={a}>{a}</code>)}</>
+            : <span><Fill text={t('Right now this server only answers on this computer. To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.')} parts={{ listen: <code>listen</code>, port: <code>:{net.view?.port || 9797}</code>, flag: <code>-listen</code>, env: <code>WMS_LISTEN</code> }} /></span>}
           {net.view && (portOpen
             ? <PortSetting view={net.view} onSaved={net.setView} compact />
-            : <span className="su-port">Port {net.view.next}{net.view.next !== net.view.port && ' after a restart'}. <Button size="sm" variant="ghost" onClick={() => setPortOpen(true)}>Change the port</Button></span>)}
-          <small className="oobe-disclaimer">{remote ? <><b>{remote.subject}.</b> {remote.away}. </> : 'Your server runs in your home, so for now it works only on your home network. '}To watch away from home, choose how in Settings, Remote Access when you’re ready.</small>
+            : <span className="su-port">{net.view.next !== net.view.port ? t('Port {port} after a restart.', { port: String(net.view.next) }) : t('Port {port}.', { port: String(net.view.next) })} <Button size="sm" variant="ghost" onClick={() => setPortOpen(true)}>{t('Change the port')}</Button></span>)}
+          <small className="oobe-disclaimer">{remote ? <><b>{tx(remote.subject)}.</b> {tx(remote.away)}. </> : `${t('Your server runs in your home, so for now it works only on your home network.')} `}{t('To watch away from home, choose how in Settings, Remote Access when you’re ready.')}</small>
         </div>
         <div className="oobe-next-card">
           <IconUsers size={22} />
-          <b>Add the family</b>
-          <span>{kidsAdded ? 'Kids profile added. Add more in Settings, Profiles.' : 'A Kids profile only shows titles for their age.'}</span>
-          {!kidsAdded && <Button size="sm" variant="ghost" onClick={() => setAddKids(true)}>Add a Kids profile</Button>}
+          <b>{t('Add the family')}</b>
+          <span>{kidsAdded ? t('Kids profile added. Add more in Settings, Profiles.') : t('A Kids profile only shows titles for their age.')}</span>
+          {!kidsAdded && <Button size="sm" variant="ghost" onClick={() => setAddKids(true)}>{t('Add a Kids profile')}</Button>}
         </div>
         <div className="oobe-next-card">
           <IconPlug size={22} />
-          <b>Also here when you want them</b>
-          <span><b>Library transcoding</b> converts your files ahead of time, so they play anywhere without the server working as hard. It rewrites your files, so it stays off until you turn it on in Settings, Library transcoding.</span>
-          <span><b>TV channels</b> are made from your libraries in one press, on the guide’s Channels page (<b>Edit channels</b>), once they’ve been scanned.</span>
-          <span><b>Live TV</b> from a tuner box, a TV card or a provider’s playlist: <b>Add live TV</b> in Settings, Channels &amp; tuners walks you through it, finding what it can and taking the rest by hand.</span>
+          <b>{t('Also here when you want them')}</b>
+          <span><Fill text={t('{name} converts your files ahead of time, so they play anywhere without the server working as hard. It rewrites your files, so it stays off until you turn it on in Settings, Library transcoding.')} parts={{ name: <b>{t('Library transcoding')}</b> }} /></span>
+          <span><Fill text={t('{name} are made from your libraries in one press, on the guide’s Channels page ({button}), once they’ve been scanned.')} parts={{ name: <b>{t('TV channels')}</b>, button: <b>{t('Edit channels')}</b> }} /></span>
+          <span><Fill text={t('{name} from a tuner box, a TV card or a provider’s playlist: {button} in Settings, Channels & tuners walks you through it, finding what it can and taking the rest by hand.')} parts={{ name: <b>{t('Live TV')}</b>, button: <b>{t('Add live TV')}</b> }} /></span>
         </div>
       </div>
       {addKids && <AddProfile admin initialKind="kids" onClose={() => setAddKids(false)} onDone={() => { setAddKids(false); setKidsAdded(true) }} />}
       <div className="oobe-actions oobe-finish">
-        <Button size="big" busy={busy} onClick={() => finish('/settings')}>Open Settings</Button>
-        <Button variant="primary" size="big" busy={busy} autoFocus onClick={() => finish()}>Start watching</Button>
+        <Button size="big" busy={busy} onClick={() => finish('/settings')}>{t('Open Settings')}</Button>
+        <Button variant="primary" size="big" busy={busy} autoFocus onClick={() => finish()}>{t('Start watching')}</Button>
       </div>
     </section>
   )

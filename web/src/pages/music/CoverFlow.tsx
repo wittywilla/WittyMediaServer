@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { IconLeft, IconRight } from '../../icons'
+import { t } from '../../i18n'
 
 // Covers in a row with one in front, the others turned away either side, and each with its
 // reflection. A swipe, a press on a side cover, or the arrow keys bring another to the front;
@@ -25,7 +26,7 @@ export default function CoverFlow<T>({ covers, onChange, onOpen, tall, fallback 
   if (!covers.length) return null
   const shown = covers.map((c, i) => ({ c, i })).filter(({ i }) => Math.abs(i - at) <= REACH)
   return (
-    <div className={'cf' + (tall ? ' tall' : '')} role="group" aria-roledescription="carousel" aria-label="Covers"
+    <div className={'cf' + (tall ? ' tall' : '')} role="group" aria-roledescription={t('carousel')} aria-label={t('Covers')}
       onPointerDown={(e) => { start.current = { x: e.clientX, y: e.clientY }; dragged.current = false }}
       onPointerUp={(e) => {
         const s = start.current
@@ -43,7 +44,7 @@ export default function CoverFlow<T>({ covers, onChange, onOpen, tall, fallback 
           const d = i - at
           return (
             <button key={c.key} type="button" ref={d === 0 ? front : undefined} className={'cf-cover' + (d === 0 ? ' front' : '')} style={{ '--d': d, '--a': Math.abs(d), zIndex: 5 - Math.abs(d) } as React.CSSProperties}
-              tabIndex={d === 0 ? 0 : -1} aria-hidden={d === 0 ? undefined : true} aria-label={d === 0 ? `Open ${c.label}` : undefined}
+              tabIndex={d === 0 ? 0 : -1} aria-hidden={d === 0 ? undefined : true} aria-label={d === 0 ? t('Open {title}', { title: c.label }) : undefined}
               onClick={() => { if (dragged.current) return; if (d === 0) onOpen(c); else go(i) }}>
               <span className="cf-art">{c.url ? <img src={c.url} alt="" draggable={false} /> : fallback(c)}</span>
               {c.url && <span className="cf-reflect" aria-hidden="true"><img src={c.url} alt="" draggable={false} /></span>}
@@ -52,8 +53,8 @@ export default function CoverFlow<T>({ covers, onChange, onOpen, tall, fallback 
         })}
       </div>
       {covers.length > 1 && <>
-        <button type="button" className="cf-step left" disabled={at === 0} onClick={() => { go(at - 1); front.current?.focus({ preventScroll: true }) }} aria-label="Previous cover"><IconLeft /></button>
-        <button type="button" className="cf-step right" disabled={at === covers.length - 1} onClick={() => { go(at + 1); front.current?.focus({ preventScroll: true }) }} aria-label="Next cover"><IconRight /></button>
+        <button type="button" className="cf-step left" disabled={at === 0} onClick={() => { go(at - 1); front.current?.focus({ preventScroll: true }) }} aria-label={t('Previous cover')}><IconLeft /></button>
+        <button type="button" className="cf-step right" disabled={at === covers.length - 1} onClick={() => { go(at + 1); front.current?.focus({ preventScroll: true }) }} aria-label={t('Next cover')}><IconRight /></button>
       </>}
     </div>
   )

@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '../components/common'
+import { t, tx } from '../i18n'
 import { IconMore } from '../icons'
 import { sduiIcon } from '../sdui/render/icons'
 import { useMenu } from '../shell/useNav'
@@ -15,15 +16,15 @@ export default function More() {
   const list = useMemo(() => moreTabs(menu.all), [menu.all])
   return (
     <div className="tvm-page">
-      <h1 className="tvm-title">More</h1>
+      <h1 className="tvm-title">{t('More')}</h1>
       {list.length === 0
-        ? <EmptyState icon={<IconMore />} title="Nothing more here" text="Everything in the menu is on the bar above." />
+        ? <EmptyState icon={<IconMore />} title={t('Nothing more here')} text={t('Everything in the menu is on the bar above.')} />
         : (
           <div className="tvm-lib-grid" data-nav-group>
-            {list.map((t) => (
-              <Link key={t.id} to={t.path} className="tvm-lib">
-                <span className="tvm-lib-ic" aria-hidden="true">{sduiIcon(t.icon)}</span>
-                <span className="tvm-lib-txt"><b>{t.label}</b></span>
+            {list.map((tab) => (
+              <Link key={tab.id} to={tab.path} className="tvm-lib">
+                <span className="tvm-lib-ic" aria-hidden="true">{sduiIcon(tab.icon)}</span>
+                <span className="tvm-lib-txt"><b>{tx(tab.label)}</b></span>
               </Link>
             ))}
           </div>

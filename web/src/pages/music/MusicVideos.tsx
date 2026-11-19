@@ -8,6 +8,7 @@ import { IconAudio, IconChannels } from '../../icons'
 import { LoadMore, VideoTile } from '../creators/parts'
 import { artistLink, Shelf } from './parts'
 import type { MusicVideoCard } from './links'
+import { num, t, tn } from '../../i18n'
 import '../../creators.css'
 
 // The Music videos section of a music library: the videos of every music video library
@@ -45,19 +46,19 @@ function useMusicVideos(search: string) {
 export function MusicVideosTab({ lib }: { lib: Library }) {
   const [q, setQ] = useState('')
   const [search, setSearch] = useState('')
-  useEffect(() => { const t = setTimeout(() => setSearch(q.trim()), 250); return () => clearTimeout(t) }, [q])
+  useEffect(() => { const timer = setTimeout(() => setSearch(q.trim()), 250); return () => clearTimeout(timer) }, [q])
   // In artist order from the server, each tile naming its artist: most artists have one or
   // two videos, so a heading each would leave the page mostly empty.
   const { items, more, loadMore } = useMusicVideos(search)
   return (
     <>
       <div className="mh-filters">
-        {items && <span className="count">{items.length.toLocaleString()}{more ? '+' : ''} {items.length === 1 ? 'video' : 'videos'}</span>}
+        {items && <span className="count">{more ? t('{count}+ videos', { count: num(items.length) }) : tn('{count} video', '{count} videos', items.length, { count: num(items.length) })}</span>}
         <div className="grow" />
-        <input className="input mh-find" type="search" aria-label="Find a music video" placeholder="Find a video or an artist…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input className="input mh-find" type="search" aria-label={t('Find a music video')} placeholder={t('Find a video or an artist…')} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
       {!items ? <Spinner /> : items.length === 0
-        ? <EmptyState icon={<IconChannels />} title={search ? 'Nothing matches that' : 'No music videos yet'} text={search ? '' : 'Add a library of the kind Music videos & concerts, and its videos appear here by artist.'} />
+        ? <EmptyState icon={<IconChannels />} title={search ? t('Nothing matches that') : t('No music videos yet')} text={search ? '' : t('Add a library of the kind Music videos & concerts, and its videos appear here by artist.')} />
         : <div className="cr-grid mh-videos">{items.map((v) => <MusicVideoTile key={v.id} v={v} lib={lib} />)}</div>}
       <LoadMore more={more} onMore={loadMore} />
     </>
@@ -71,7 +72,7 @@ export function MusicVideoTile({ v, lib }: { v: MusicVideoCard; lib: Library }) 
       <VideoTile v={v} to={`/watch/${v.id}`} />
       {v.song && (
         <Link className="mh-video-song" to={v.song.libraryId === lib.id && v.song.album ? `/album/${lib.id}?artist=${encodeURIComponent(v.song.artist)}&album=${encodeURIComponent(v.song.album)}` : artistLink(v.song.libraryId, v.song.artist)}>
-          <IconAudio size={14} /> <span>{v.song.album ? `On ${v.song.album}` : 'In your music'}</span>
+          <IconAudio size={14} /> <span>{v.song.album ? t('On {album}', { album: v.song.album }) : t('In your music')}</span>
         </Link>
       )}
     </div>
@@ -84,7 +85,7 @@ export function MusicVideosShelf({ lib }: { lib: Library }) {
   useEffect(() => { api.get<Page>('/music/videos?limit=12&sort=latest').then((r) => setItems(r.videos)).catch(() => setItems([])) }, [])
   if (!items?.length) return null
   return (
-    <Shelf title="Music videos" to={`/library/${lib.id}?tab=videos`}>
+    <Shelf title={t('Music videos')} to={`/library/${lib.id}?tab=videos`}>
       <div className="ch-shelf-row mh-video-row">{items.map((v) => <MusicVideoTile key={v.id} v={v} lib={lib} />)}</div>
     </Shelf>
   )

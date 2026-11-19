@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, ApiError, mediaUrl, serverBase, getToken, type QualityView } from '../../api'
 import { parseCatchupKey, type TvSet } from './guideLogic'
+import { date, t } from '../../i18n'
 
 // What the TV pages talk to the server about. See docs/CHANNELS.md.
 
@@ -217,15 +218,15 @@ export const setFavourite = (key: string, on: boolean) => (on ? api.put(`/tv/fav
 export const canOfferRecord = (ch: { canRecord?: boolean } | null | undefined, p: Programme | null | undefined, now: number): boolean =>
   ch?.canRecord === true && p?.kind === 'broadcast' && p.end > now
 
-export const fmtClock = (u: number) => new Date(u * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-export const fmtDay = (u: number) => new Date(u * 1000).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
-export const fmtSpan = (p: Programme) => `${fmtClock(p.start)} to ${fmtClock(p.end)}`
+export const fmtClock = (u: number) => date(u * 1000, { hour: 'numeric', minute: '2-digit' })
+export const fmtDay = (u: number) => date(u * 1000, { weekday: 'short', month: 'short', day: 'numeric' })
+export const fmtSpan = (p: Programme) => t('{start} to {end}', { start: fmtClock(p.start), end: fmtClock(p.end) })
 // "1h 28m left": how long, in the fewest words that are still exact enough.
 export function fmtLeft(sec: number): string {
   const m = Math.max(1, Math.round(sec / 60))
-  if (m < 60) return `${m} min`
+  if (m < 60) return t('{n} min', { n: m })
   const h = Math.floor(m / 60)
-  return m % 60 ? `${h}h ${m % 60}m` : `${h}h`
+  return m % 60 ? t('{h}h {m}m', { h, m: m % 60 }) : t('{h}h', { h })
 }
 export function fmtTimecode(sec: number): string {
   const s = Math.max(0, Math.round(sec)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
@@ -242,11 +243,11 @@ export function parseTimecode(text: string): number | null {
 export function dayWord(u: number, now: number): string {
   const day = (x: number) => { const d = new Date(x * 1000); d.setHours(0, 0, 0, 0); return d.getTime() / 1000 }
   const diff = Math.round((day(u) - day(now)) / 86400)
-  if (diff === 0) return new Date(u * 1000).getHours() >= 17 ? 'Tonight' : 'Today'
-  if (diff === 1) return 'Tomorrow'
-  if (diff === -1) return 'Yesterday'
-  return new Date(u * 1000).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+  if (diff === 0) return new Date(u * 1000).getHours() >= 17 ? t('Tonight') : t('Today')
+  if (diff === 1) return t('Tomorrow')
+  if (diff === -1) return t('Yesterday')
+  return fmtDay(u)
 }
-export const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-export const fullDay = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+// The days of the week from Sunday, in the app's language: 1 January 2023 was a Sunday.
+export const dayNames = (style: 'short' | 'long') => [0, 1, 2, 3, 4, 5, 6].map((i) => date(new Date(2023, 0, 1 + i), { weekday: style }))
 

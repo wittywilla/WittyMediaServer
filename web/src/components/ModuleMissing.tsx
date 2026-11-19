@@ -7,6 +7,7 @@ import SpecPage from '../spec/SpecPage'
 import { INSTALL, moduleMissingSpec, stillMissing } from '../spec/specs/moduleMissing'
 import { olderOf } from '../pages/settings/store/olderServer'
 import { useOlderAsk } from '../pages/settings/store/OlderServerDialog'
+import { list, t } from '../i18n'
 
 // What a page shows when the module behind it isn't on this server: what's missing and what it
 // would add, and for an admin a button that installs it, with no restart. Never a broken screen.
@@ -66,9 +67,9 @@ export function ModuleMissing({ ids, what, onReady }: { ids: string[]; what?: st
       if (old) {
         const yes = await older.ask(old)
         if (old.every((o) => yes.includes(o.module))) {
-          try { await api.post(`/modules/${id}/add`, { confirmOlder: true }) } catch (x) { setErr(x instanceof ApiError ? x.message : 'That module couldn’t be installed.') }
-        } else setErr(`Not installed: no version of ${old.map((o) => o.name).join(', ')} for this server is published yet.`)
-      } else setErr(e instanceof ApiError ? e.message : 'That module couldn’t be installed.')
+          try { await api.post(`/modules/${id}/add`, { confirmOlder: true }) } catch (x) { setErr(x instanceof ApiError ? x.message : t('That module couldn’t be installed.')) }
+        } else setErr(t('Not installed: no version of {names} for this server is published yet.', { names: list(old.map((o) => o.name)) }))
+      } else setErr(e instanceof ApiError ? e.message : t('That module couldn’t be installed.'))
     } finally { setAdding(false) }
   }
 

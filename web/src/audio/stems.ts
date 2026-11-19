@@ -5,6 +5,7 @@ import { canRoute, openGraph, type SoundGraph } from './sound'
 import { drifted, startPlan, streamedParts, streamStep, type Route, type Stem } from './stemMix'
 import { FxChain } from './fxChain'
 import type { Fx } from './voiceFx'
+import { t } from '../i18n'
 
 // What plays a song's parts, whichever way it does it.
 // setRoutes: how much of each part goes to the voice's chain and to the music's (stemMix.routesFor); setFx: the voice
@@ -80,16 +81,16 @@ export class StemSet implements StemPlayer {
   // long song or another speed (StreamedStems). Throws when any part can't be had: the
   // caller keeps the normal track.
   static async open(el: HTMLAudioElement, stems: Stem[], signal: AbortSignal): Promise<StemPlayer> {
-    if (!canRoute(el)) throw new Error('The parts can\'t be played here, as the server is on a different address from this page.')
+    if (!canRoute(el)) throw new Error(t('The parts can’t be played here, as the server is on a different address from this page.'))
     const g = await openGraph()
-    if (!g) throw new Error('This browser wouldn\'t start its audio engine.')
+    if (!g) throw new Error(t('This browser wouldn’t start its audio engine.'))
     if (streamedParts(el.playbackRate, el.duration)) {
-      if (!g.route(el)) throw new Error('This browser wouldn\'t start its audio engine.')
+      if (!g.route(el)) throw new Error(t('This browser wouldn’t start its audio engine.'))
       return StreamedStems.start(g, el, stems, signal)
     }
     const list = await Promise.all(stems.map((s) => fetchSound(g.ctx, s.url, signal)))
     if (signal.aborted) throw new DOMException('gone', 'AbortError')
-    if (!g.route(el)) throw new Error('This browser wouldn\'t start its audio engine.')
+    if (!g.route(el)) throw new Error(t('This browser wouldn’t start its audio engine.'))
     return new StemSet(g, el, new Map(stems.map((s, i) => [s.id, list[i]])))
   }
 

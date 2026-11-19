@@ -5,6 +5,7 @@ import { api, mediaUrl } from '../api'
 import { IconClose, IconFile } from '../icons'
 import type { useLyrics } from './lyrics'
 import { WebLink } from '../components/WebLink'
+import { t } from '../i18n'
 
 // Something to read while it plays: the words, at your own pace, and whatever came with the
 // album. A plain page that a keyboard or a remote can scroll, apart from the following lyrics.
@@ -42,9 +43,9 @@ export function ReadPanel({ itemId, extras, ly, onClose }: { itemId: number; ext
   return (
     <div className="np-side">
       <div className="np-side-head">
-        <h3>{shown ? shown.name : 'Read'}</h3>
-        {shown && <button type="button" className="np-chip small" onClick={() => setShown(null)}>Back</button>}
-        <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Close"><IconClose /></button>
+        <h3>{shown ? shown.name : t('Read')}</h3>
+        {shown && <button type="button" className="np-chip small" onClick={() => setShown(null)}>{t('Back')}</button>}
+        <button type="button" className="mp-ibtn" onClick={onClose} aria-label={t('Close')}><IconClose /></button>
       </div>
       {/* It holds only text, so it's made a stop of its own for arrows and Page Down. */}
       <div className="np-read" tabIndex={0} role="document">
@@ -62,11 +63,11 @@ export function ReadPanel({ itemId, extras, ly, onClose }: { itemId: number; ext
                 ))}
               </ul>
             )}
-            {ly.loading && <p className="np-hint">Looking for the words…</p>}
+            {ly.loading && <p className="np-hint">{t('Looking for the words…')}</p>}
             {words
               ? <pre className="np-read-text">{words}</pre>
-              : !ly.loading && extras.length === 0 && <p className="np-hint">Nothing to read for this one yet: no words were found, and no booklet is beside the album. A PDF or a text file in the album's folder appears here.</p>}
-            {ly.lyrics?.sourceName && words && <p className="np-credit">Words from {ly.lyrics.creditUrl ? <WebLink href={ly.lyrics.creditUrl}>{ly.lyrics.sourceName}</WebLink> : ly.lyrics.sourceName}.</p>}
+              : !ly.loading && extras.length === 0 && <p className="np-hint">{t('Nothing to read for this one yet: no words were found, and no booklet is beside the album. A PDF or a text file in the album’s folder appears here.')}</p>}
+            {ly.lyrics?.sourceName && words && <p className="np-credit">{t('Words from')} {ly.lyrics.creditUrl ? <WebLink href={ly.lyrics.creditUrl}>{ly.lyrics.sourceName}</WebLink> : ly.lyrics.sourceName}.</p>}
           </>
         )}
       </div>

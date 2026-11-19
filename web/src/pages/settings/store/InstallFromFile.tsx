@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useId, useRef, useState } from 'react'
-import { api, ApiError, fmtDateTime, getToken, serverBase } from '../../../api'
+import { api, ApiError, getToken, serverBase } from '../../../api'
+import { date, t } from '../../../i18n'
 import { IconFile } from '../../../icons'
 import { toast } from '../../../state'
 import { Button, Dialog, Progress } from '../../../ui'
@@ -40,20 +41,20 @@ function upload(p: Picked, onProgress: (sent: number, total: number) => void, si
     // A small file goes in one piece with no progress event: once it's all sent, say so, so the
     // page says the server is checking it rather than 0%.
     x.upload.onload = () => { const n = p.archive?.size || 1; onProgress(n, n) }
-    x.onerror = () => reject(new ApiError(0, 'Can’t reach your server. Check that it’s running and try again.'))
+    x.onerror = () => reject(new ApiError(0, t('Can’t reach your server. Check that it’s running and try again.')))
     x.onabort = () => reject(new DOMException('Stopped', 'AbortError'))
     x.onload = () => {
       let data: any = null
       try { data = x.responseText ? JSON.parse(x.responseText) : null } catch { data = { error: x.responseText } }
       if (x.status >= 200 && x.status < 300 && data?.token) resolve(data as UploadResult)
-      else reject(new ApiError(x.status, data?.error || x.statusText || 'The server didn’t accept the file.', data))
+      else reject(new ApiError(x.status, data?.error || x.statusText || t('The server didn’t accept the file.'), data))
     }
     signal.addEventListener('abort', () => x.abort())
     x.send(form)
   })
 }
 
-export function InstallFromFile({ onInstalled, label = 'Install from a file…', variant = 'default' }: { onInstalled: () => void; label?: string; variant?: 'default' | 'primary' }) {
+export function InstallFromFile({ onInstalled, label = t('Install from a file…'), variant = 'default' }: { onInstalled: () => void; label?: string; variant?: 'default' | 'primary' }) {
   const [open, setOpen] = useState(false)
   const btn = useRef<HTMLButtonElement>(null)
   return (
@@ -85,7 +86,7 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
   const send = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!p.archive || stage.at === 'uploading') return
-    if (p.archive.size > MAX) { setErr(`${p.archive.name} is ${mb(p.archive.size)}. A module’s archive can be at most 512 MB.`); return }
+    if (p.archive.size > MAX) { setErr(t('{file} is {size}. A module’s archive can be at most 512 MB.', { file: p.archive.name, size: mb(p.archive.size) })); return }
     setErr('')
     const ctl = new AbortController(); stop.current = ctl
     setStage({ at: 'uploading', sent: 0, total: p.archive.size })
@@ -99,10 +100,10 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
     } finally { stop.current = null }
   }
   const discard = async () => {
-    const t = token.current
+    const tok = token.current
     token.current = ''
     setStage({ at: 'choose' })
-    if (t) { try { await api.del(`/module-uploads/${encodeURIComponent(t)}`); toast('The uploaded file was discarded') } catch { /* it expires by itself */ } }
+    if (tok) { try { await api.del(`/module-uploads/${encodeURIComponent(tok)}`); toast(t('The uploaded file was discarded')) } catch { /* it expires by itself */ } }
   }
   const install = async (body: OverrideBody | { password: string; code: string }) => {
     try {
@@ -112,14 +113,14 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
       if (x instanceof ApiError && (x.status === 404 || x.status === 410)) {
         token.current = ''
         setInstalling(null); setStage({ at: 'choose' })
-        setErr('This upload has expired (each one is kept for 30 minutes). Choose the file again.')
+        setErr(t('This upload has expired (each one is kept for 30 minutes). Choose the file again.'))
         return
       }
       throw x
     }
     installed.current = true
-    const name = stage.at === 'found' ? stage.r.name || stage.r.id || 'The module' : 'The module'
-    toast(`${name} is being installed`)
+    const name = stage.at === 'found' ? stage.r.name || stage.r.id || t('The module') : t('The module')
+    toast(t('{name} is being installed', { name }))
     onInstalled()
     onClose()
   }
@@ -132,34 +133,34 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
   // The go-ahead opens over this dialog, which stays open beneath it: replacing it would close
   // it, and with it the Back entry and the upload this dialog holds.
   const next = installing === 'override' && v?.need && r
-    ? <OverrideDialog id={r.id || ''} name={r.name || r.id || 'This module'} need={v.need} onSubmit={install} onClose={() => setInstalling(null)} />
+    ? <OverrideDialog id={r.id || ''} name={r.name || r.id || t('This module')} need={v.need} onSubmit={install} onClose={() => setInstalling(null)} />
     : installing === 'password' && r
       ? <ConfirmOwner onClose={() => setInstalling(null)} ask={{
-        title: `Install ${r.name || r.id}?`, action: 'Install',
-        body: <p>This changes which code runs on this server, so it asks for your password.</p>,
+        title: t('Install {name}?', { name: r.name || r.id }), action: t('Install'),
+        body: <p>{t('This changes which code runs on this server, so it asks for your password.')}</p>,
         run: (password, code) => install({ password, code }),
       }} />
       : null
 
   return (<>
-    <Dialog title="Install a module from a file" size="md" onClose={onClose}
+    <Dialog title={t('Install a module from a file')} size="md" onClose={onClose}
       actions={stage.at === 'found' ? <>
-        <Button variant="ghost" onClick={discard}>Discard</Button>
-        {v!.state !== 'refused' && <Button variant={v!.state === 'override' ? 'danger' : 'primary'} onClick={() => setInstalling(v!.state === 'override' ? 'override' : 'password')}>Install…</Button>}
+        <Button variant="ghost" onClick={discard}>{t('Discard')}</Button>
+        {v!.state !== 'refused' && <Button variant={v!.state === 'override' ? 'danger' : 'primary'} onClick={() => setInstalling(v!.state === 'override' ? 'override' : 'password')}>{t('Install…')}</Button>}
       </> : <>
-        <Button variant="ghost" onClick={() => { stop.current?.abort(); onClose() }}>{stage.at === 'uploading' ? 'Stop' : 'Cancel'}</Button>
-        <Button variant="primary" type="submit" form={uid + 'f'} disabled={!p.archive} busy={stage.at === 'uploading'}>Upload and check</Button>
+        <Button variant="ghost" onClick={() => { stop.current?.abort(); onClose() }}>{stage.at === 'uploading' ? t('Stop') : t('Cancel')}</Button>
+        <Button variant="primary" type="submit" form={uid + 'f'} disabled={!p.archive} busy={stage.at === 'uploading'}>{t('Upload and check')}</Button>
       </>}>
       {stage.at !== 'found' && (
         <form id={uid + 'f'} className="up-form" onSubmit={send}>
           <SpecPage embedded page={installChoose({
             archive: p.archive?.name || '', sums: p.sums?.name || '', sig: p.sig?.name || '', key: p.key, error: err,
-            uploading: stage.at === 'uploading' ? (pct < 100 ? `Uploading ${p.archive?.name}: ${pct}%` : 'Uploaded. The server is checking it…') : '',
+            uploading: stage.at === 'uploading' ? (pct < 100 ? t('Uploading {file}: {percent}%', { file: p.archive?.name, percent: pct }) : t('Uploaded. The server is checking it…')) : '',
           })} onField={(id, val) => {
             if (id === 'key') setP((x) => ({ ...x, key: String(val) }))
             else if (val instanceof File) { setP((x) => ({ ...x, [id]: val })); if (id === 'archive') setErr('') }
           }} />
-          {stage.at === 'uploading' && <Progress label={`Uploading ${p.archive?.name}`} value={pct < 100 ? stage.sent : undefined} max={stage.total} />}
+          {stage.at === 'uploading' && <Progress label={t('Uploading {file}', { file: p.archive?.name })} value={pct < 100 ? stage.sent : undefined} max={stage.total} />}
         </form>
       )}
 
@@ -168,7 +169,7 @@ function UploadDialog({ onClose, onInstalled }: { onClose: () => void; onInstall
           <SpecPage embedded page={installFound({
             title: v.title, refusal: r.refusal, facts: v.facts, signature: v.signature, fingerprint: r.fingerprint, statusNote: r.statusNote,
             permissions: v.permissions, problems: v.problems.map((x) => x.text), overrideNote: v.state === 'override',
-            keptUntil: expires && v.state !== 'refused' ? fmtDateTime(expires.getTime()) : undefined,
+            keptUntil: expires && v.state !== 'refused' ? date(expires, { dateStyle: 'medium', timeStyle: 'short' }) : undefined,
           })} before={<h3 ref={found} tabIndex={-1} className="up-title">{v.title}</h3>} />
         </div>
       )}

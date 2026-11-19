@@ -289,7 +289,7 @@ input[type=range] { accent-color: var(--accent); }
 /* ---------------------------------------------------------------- layout */
 .app { display: flex; min-height: 100%; }
 .sidebar {
-  width: var(--sidebar); flex: none; background: var(--bg-2); border-right: 1px solid var(--border); padding: var(--sp-3);
+  width: var(--sidebar); flex: none; background: var(--bg-2); border-inline-end: 1px solid var(--border); padding: var(--sp-3);
   position: sticky; top: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 2px; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin;
 }
 /* A server can have a long name of its own: it wraps here rather than being cut off. */
@@ -378,7 +378,8 @@ input[type=range] { accent-color: var(--accent); }
 
 @media (max-width: 900px) {
   /* Mobile: the sidebar is a slide-in drawer. */
-  .app .sidebar, .app:not(.nav-open) .sidebar { display: flex; position: fixed; left: 0; top: 0; transform: translateX(-100%); transition: transform var(--dur-3) var(--ease-out); z-index: var(--z-drawer); visibility: hidden; }
+  .app .sidebar, .app:not(.nav-open) .sidebar { display: flex; position: fixed; inset-inline-start: 0; top: 0; transform: translateX(-100%); transition: transform var(--dur-3) var(--ease-out); z-index: var(--z-drawer); visibility: hidden; }
+  [dir="rtl"] .app .sidebar, [dir="rtl"] .app:not(.nav-open) .sidebar { transform: translateX(100%); }
   .app.nav-open .sidebar { transform: none; box-shadow: var(--e-3); visibility: visible; }
   .app.nav-open .backdrop-dim { display: block; position: fixed; inset: 0; background: var(--overlay); z-index: var(--z-scrim); animation: fade-in var(--dur-2) ease-out; }
 }

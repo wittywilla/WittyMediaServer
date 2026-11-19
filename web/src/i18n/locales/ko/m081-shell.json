@@ -1,0 +1,16 @@
+{
+  "Episode number": "에피소드 번호",
+  "Episode {episode}": "{episode}화",
+  "Episodes {episodes}": "{episodes}화",
+  "Last episode": "마지막 에피소드",
+  "Season number": "시즌 번호",
+  "Show episodes as": "에피소드 보기 방식",
+  "Special {episode}": "스페셜 {episode}",
+  "Specials {episodes}": "스페셜 {episodes}",
+  "S{season} · E{episode}": "시즌 {season} · {episode}화",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "그래픽 칩을 사용하면 프로세서 작업의 일부만으로 동영상을 변환할 수 있습니다. 서버가 시작될 때 각각을 테스트하며, 컴퓨터에 없는 것은 회색으로 표시되고, 작동하는 것은 직접 고르기 전까지 모두 선택되어 있습니다. 선택된 것 중 작동하는 첫 번째 것이 사용되며, 가능한 경우 화면은 디코딩부터 인코딩까지 칩에 머뭅니다. 아무것도 선택하지 않으면 모두 소프트웨어로 처리하며, 크기 대비 화질은 가장 좋지만 프로세서를 가장 많이 씁니다.",
+  "{left} of {count} left": {
+    "other": "{count}개 중 {left}개 남음"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

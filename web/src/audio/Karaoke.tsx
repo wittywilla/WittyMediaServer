@@ -14,6 +14,7 @@ import { VoiceFxPanel } from './VoiceFxPanel'
 import { isOff } from './voiceFx'
 import { KAR_PARTS } from './stemMix'
 import type { PlayerView } from './types'
+import { num, t, tx } from '../i18n'
 
 // Karaoke. Big words that fill in as they're sung, a count-in before each line after a
 // break, the next line waiting below, the server's karaoke version with the voice turned
@@ -136,35 +137,35 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
 
   const it = p.current!
   const firstAt = lines[0]?.t ?? 0
-  const wordsChoice = <Segmented label="Words" value={lines.length ? mode : 'read'} onChange={setMode} options={[{ value: 'follow', label: 'Follow along', disabled: !lines.length }, { value: 'read', label: 'Read' }]} />
+  const wordsChoice = <Segmented label={t('Words')} value={lines.length ? mode : 'read'} onChange={setMode} options={[{ value: 'follow', label: t('Follow along'), disabled: !lines.length }, { value: 'read', label: t('Read') }]} />
   const behindChoice = (choice || (cover && onCoverBeside)) ? (
     <div className="kar-choice">
-      {choice && <><span className="kar-choice-l">Behind the words</span>{choice}</>}
-      {cover && onCoverBeside && <button type="button" className={'kar-chip kar-cover-chip' + (coverBeside ? ' on' : '')} aria-pressed={coverBeside} onClick={() => onCoverBeside(!coverBeside)}>Album art beside the words</button>}
+      {choice && <><span className="kar-choice-l">{t('Behind the words')}</span>{choice}</>}
+      {cover && onCoverBeside && <button type="button" className={'kar-chip kar-cover-chip' + (coverBeside ? ' on' : '')} aria-pressed={coverBeside} onClick={() => onCoverBeside(!coverBeside)}>{t('Album art beside the words')}</button>}
     </div>
   ) : null
   const tools = (
     <>
       <KaraokeStemsControl k={stems} hide={hide} />
-      {!hide.includes('key') && <div className="kar-stepper" role="group" aria-label="Key">
-        <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label="Lower key">−</button>
-        <span aria-live="polite">Key {p.sound.keyShift > 0 ? '+' : ''}{p.sound.keyShift}</span>
-        <button type="button" onClick={() => setKey(p.sound.keyShift + 1)} disabled={p.sound.keyShift >= 6} aria-label="Raise key">+</button>
+      {!hide.includes('key') && <div className="kar-stepper" role="group" aria-label={t('Musical key')}>
+        <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label={t('Lower key')}>−</button>
+        <span aria-live="polite">{t('Key {n}', { n: (p.sound.keyShift > 0 ? '+' : '') + p.sound.keyShift })}</span>
+        <button type="button" onClick={() => setKey(p.sound.keyShift + 1)} disabled={p.sound.keyShift >= 6} aria-label={t('Raise key')}>+</button>
       </div>}
-      {!hide.includes('timing') && <div className="kar-stepper" role="group" aria-label="Timing of the words">
-        <button type="button" onClick={() => setOffset(offset - 100)} aria-label="Words sooner">−</button>
-        <span aria-live="polite">Words {offset === 0 ? 'on time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(1)} s`}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' (by listening)' : ''}</span>
-        <button type="button" onClick={() => setOffset(offset + 100)} aria-label="Words later">+</button>
+      {!hide.includes('timing') && <div className="kar-stepper" role="group" aria-label={t('Timing of the words')}>
+        <button type="button" onClick={() => setOffset(offset - 100)} aria-label={t('Words sooner')}>−</button>
+        <span aria-live="polite">{offset === 0 ? t('Words on time') : t('Words {n} s', { n: (offset > 0 ? '+' : '') + num(offset / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' ' + t('(by listening)') : ''}</span>
+        <button type="button" onClick={() => setOffset(offset + 100)} aria-label={t('Words later')}>+</button>
       </div>}
-      {!hide.includes('fx') && <button type="button" className={'kar-chip kar-fx-btn' + (fxOpen || !isOff(stems.fx) ? ' on' : '')} aria-expanded={fxOpen} onClick={() => { setSheet(false); if (advancedHere()) setFxOpen(!fxOpen); else setWalled(true) }} title="Echo, reverb, tone and more, for the voice and the music">Voice settings</button>}
+      {!hide.includes('fx') && <button type="button" className={'kar-chip kar-fx-btn' + (fxOpen || !isOff(stems.fx) ? ' on' : '')} aria-expanded={fxOpen} onClick={() => { setSheet(false); if (advancedHere()) setFxOpen(!fxOpen); else setWalled(true) }} title={t('Echo, reverb, tone and more, for the voice and the music')}>{t('Voice settings')}</button>}
       {onHide && (
-        <Pop up label={hide.length ? `Controls shown: ${KAR_PARTS.length - hide.length} of ${KAR_PARTS.length}` : 'Choose the controls shown'} className={'np-chip-pop kar-show' + (hide.length ? ' on' : '')} icon={<span>Controls</span>}>
+        <Pop up label={hide.length ? t('Controls shown: {shown} of {total}', { shown: KAR_PARTS.length - hide.length, total: KAR_PARTS.length }) : t('Choose the controls shown')} className={'np-chip-pop kar-show' + (hide.length ? ' on' : '')} icon={<span>{t('Controls')}</span>}>
           {() => (
-            <div className="mp-menu" role="menu" aria-label="Controls shown">
-              <span className="mp-menu-note">Show these controls</span>
+            <div className="mp-menu" role="menu" aria-label={t('Controls shown')}>
+              <span className="mp-menu-note">{t('Show these controls')}</span>
               {KAR_PARTS.map((c) => {
                 const shown = !hide.includes(c.id)
-                return <button type="button" key={c.id} role="menuitemcheckbox" aria-checked={shown} className={shown ? 'on' : ''} onClick={() => onHide(shown ? [...hide, c.id] : hide.filter((h) => h !== c.id))}>{c.label}</button>
+                return <button type="button" key={c.id} role="menuitemcheckbox" aria-checked={shown} className={shown ? 'on' : ''} onClick={() => onHide(shown ? [...hide, c.id] : hide.filter((h) => h !== c.id))}>{tx(c.label)}</button>
               })}
             </div>
           )}
@@ -173,14 +174,14 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
     </>
   )
   return (
-    <div className="kar" ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`Karaoke: ${it.title}`} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => root.current?.focus({ preventScroll: true })) }}>
+    <div className="kar" ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={t('Karaoke: {title}', { title: it.title })} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => root.current?.focus({ preventScroll: true })) }}>
       <div className="kar-bg" aria-hidden="true" />
       {behind}
       <header className="kar-top">
         <div className="kar-song"><b>{it.title}</b><span>{it.artist || it.albumArtist}</span></div>
         {!phone && wordsChoice}
-        {!phone && <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label="Fill the screen (F)" title="Fill the screen (F)"><IconFull /></button>}
-        <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Leave karaoke (Esc)" title="Leave karaoke (Esc)"><IconClose /></button>
+        {!phone && <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label={t('Fill the screen (F)')} title={t('Fill the screen (F)')}><IconFull /></button>}
+        <button type="button" className="mp-ibtn" onClick={onClose} aria-label={t('Leave karaoke (Esc)')} title={t('Leave karaoke (Esc)')}><IconClose /></button>
       </header>
       {!phone && behindChoice}
 
@@ -188,17 +189,17 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
         {sideCover && (coverArt ? <div className="kar-cover kar-cover-art" aria-hidden="true">{coverArt}</div> : <img className="kar-cover" src={sideCover} alt="" draggable={false} decoding="async" />)}
         <div className="kar-lyrics">
         {mode === 'read' && readWords ? <pre className="kar-read" tabIndex={0}>{readWords}</pre>
-          : !lyrics || loading ? <p className="kar-msg">Looking for the words…</p>
+          : !lyrics || loading ? <p className="kar-msg">{t('Looking for the words…')}</p>
           : lines.length === 0 ? (
             <div className="kar-msg">
-              <p>{lyrics.plain ? 'These words have no times, so they can\'t follow the music yet.' : 'No words for this song.'}</p>
+              <p>{lyrics.plain ? t('These words have no times, so they can’t follow the music yet.') : t('No words for this song.')}</p>
               {lyrics.plain && <pre className="kar-plain" tabIndex={0}>{lyrics.plain}</pre>}
-              <p className="kar-sub">A timed <code>.lrc</code> file beside the song gives karaoke what it needs, or use Lyrics, then Fix, then Tap along. <HelpLink to="lyrics-karaoke#adding-your-own-lyrics" newTab>How to add your own</HelpLink></p>
+              <p className="kar-sub">{t('A timed .lrc file beside the song gives karaoke what it needs, or use Lyrics, then Fix, then Tap along.')} <HelpLink to="lyrics-karaoke#adding-your-own-lyrics" newTab>{t('How to add your own')}</HelpLink></p>
             </div>
           ) : (
             <>
               <div className={'kar-count' + (count ? ' on' : '')} aria-hidden="true">{count > 0 && <span key={count}>{count}</span>}</div>
-              {index < 0 && <p className="kar-wait">{firstAt > 5000 ? 'Get ready…' : ''}</p>}
+              {index < 0 && <p className="kar-wait">{firstAt > 5000 ? t('Get ready…') : ''}</p>}
               <p className="kar-now" aria-live="off">
                 {nowLine && nowLine.text
                   ? words.map((w, i) => <span key={index + '-' + i} className="kar-word" ref={(el) => { wordEls.current[i] = el }} data-word={w.text}>{w.text}</span>)
@@ -211,37 +212,37 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
         </div>
       </main>
 
-      <footer className="kar-bar" role="toolbar" aria-label="Karaoke controls">
-        <button type="button" className="mp-ibtn" onClick={() => goLine(-1)} aria-label="Previous line"><IconPrev /></button>
-        <button type="button" className="kar-play" onClick={p.toggle} aria-label={p.playing ? 'Pause' : 'Play'}>{p.playing ? <IconPause size={30} /> : <IconPlay size={30} />}</button>
-        <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label="Next line"><IconNext /></button>
+      <footer className="kar-bar" role="toolbar" aria-label={t('Karaoke controls')}>
+        <button type="button" className="mp-ibtn" onClick={() => goLine(-1)} aria-label={t('Previous line')}><IconPrev /></button>
+        <button type="button" className="kar-play" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause size={30} /> : <IconPlay size={30} />}</button>
+        <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label={t('Next line')}><IconNext /></button>
         {phone
-          ? <button type="button" className="kar-chip kar-sheet-btn" aria-haspopup="dialog" aria-expanded={sheet} onClick={() => setSheet(true)}><IconSliders size={20} /> Mix and more</button>
+          ? <button type="button" className="kar-chip kar-sheet-btn" aria-haspopup="dialog" aria-expanded={sheet} onClick={() => setSheet(true)}><IconSliders size={20} /> {t('Mix and more')}</button>
           : <><span className="kar-rule" aria-hidden="true" />{tools}</>}
       </footer>
       {walled && <UseAComputer what="Voice settings" onClose={() => setWalled(false)} />}
       {phone && sheet && (
         <div className="kar-sheet-backdrop" onClick={() => setSheet(false)}>
-          <div className="kar-sheet" role="dialog" aria-modal="true" aria-label="Mix and more" onClick={(e) => e.stopPropagation()}>
+          <div className="kar-sheet" role="dialog" aria-modal="true" aria-label={t('Mix and more')} onClick={(e) => e.stopPropagation()}>
             <div className="kar-sheet-head">
-              <h3>Mix and more</h3>
-              <button type="button" className="mp-ibtn" onClick={() => setSheet(false)} aria-label="Close"><IconClose /></button>
+              <h3>{t('Mix and more')}</h3>
+              <button type="button" className="mp-ibtn" onClick={() => setSheet(false)} aria-label={t('Close')}><IconClose /></button>
             </div>
             <div className="kar-sheet-tools">{tools}</div>
-            <div className="kar-sheet-row"><span className="kar-choice-l">Words</span>{wordsChoice}</div>
+            <div className="kar-sheet-row"><span className="kar-choice-l">{t('Words')}</span>{wordsChoice}</div>
             {behindChoice}
-            <button type="button" className="kar-chip" onClick={() => { setSheet(false); fullscreen() }}><IconFull size={18} /> Fill the screen</button>
+            <button type="button" className="kar-chip" onClick={() => { setSheet(false); fullscreen() }}><IconFull size={18} /> {t('Fill the screen')}</button>
           </div>
         </div>
       )}
       {fxOpen && <VoiceFxPanel fx={stems.fx} onFx={stems.setFx} ready={stems.active} quick={stems.answer?.mix === 'blend'} onClose={() => { setFxOpen(false); root.current?.querySelector<HTMLElement>('.kar-fx-btn')?.focus({ preventScroll: true }) }} />}
       <p className="kar-note">
-        {p.soundNote || (stems.waiting ? '' : stems.note) || (p.sound.keyShift !== 0 ? 'A changed key can warble a little on long notes.'
-          : lines.length > 0 && !timedWords ? 'Lines are timed; the fill within a line is an estimate.' : ' ')}
+        {p.soundNote || (stems.waiting ? '' : stems.note) || (p.sound.keyShift !== 0 ? t('A changed key can warble a little on long notes.')
+          : lines.length > 0 && !timedWords ? t('Lines are timed; the fill within a line is an estimate.') : ' ')}
       </p>
       {/* The keys karaoke answers, said as the player says its own (they were there, but nowhere to be seen). */}
       <p className="np-hints kar-hints" aria-hidden="true">
-        <kbd>Esc</kbd> back · <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> previous or next line · <kbd>V</kbd> voice on or off · <kbd>−</kbd> <kbd>+</kbd> key · <kbd>[</kbd> <kbd>]</kbd> words sooner or later · <kbd>F</kbd> full screen
+        <kbd>Esc</kbd> {t('back')} · <kbd>{t('Space')}</kbd> {t('play or pause')} · <kbd>←</kbd> <kbd>→</kbd> {t('previous or next line')} · <kbd>V</kbd> {t('voice on or off')} · <kbd>−</kbd> <kbd>+</kbd> {t('key')} · <kbd>[</kbd> <kbd>]</kbd> {t('words sooner or later')} · <kbd>F</kbd> {t('full screen')}
       </p>
     </div>
   )

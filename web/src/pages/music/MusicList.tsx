@@ -12,19 +12,20 @@ import { musicTab } from './musicRoute'
 import { coverUrl, shuffledCopy } from './parts'
 import { useMusic, useMusicPages } from './store'
 import { AlbumCard, PageShape, PlayButton, Shelf, TrackTable } from './ui'
+import { num, t, tk, tn, tx } from '../../i18n'
 
 // A list of songs as a playlist page: Liked songs and the other lists the library makes
 // itself, all songs, a playlist of yours, or a genre. A header with a cover or a coloured
 // tile, the play button, and the songs (only the rows near the screen are drawn).
 
 const VIEWS: Record<string, { name: string; sub: string; hue: number }> = {
-  '': { name: 'All songs', sub: 'Every song in this library', hue: 200 },
-  liked: { name: 'Liked songs', sub: 'Everything you’ve pressed the heart on', hue: 255 },
-  played: { name: 'Most played', sub: 'Your favourites, by how often you play them', hue: 150 },
-  recent: { name: 'Played lately', sub: 'What you’ve been listening to', hue: 25 },
-  added: { name: 'Newest', sub: 'What came to this library most recently', hue: 320 },
+  '': { name: tk('All songs'), sub: tk('Every song in this library'), hue: 200 },
+  liked: { name: tk('Liked songs'), sub: tk('Everything you’ve pressed the heart on'), hue: 255 },
+  played: { name: tk('Most played'), sub: tk('Your favourites, by how often you play them'), hue: 150 },
+  recent: { name: tk('Played lately'), sub: tk('What you’ve been listening to'), hue: 25 },
+  added: { name: tk('Newest'), sub: tk('What came to this library most recently'), hue: 320 },
 }
-const SORTS: [string, string][] = [['title', 'Title'], ['artist', 'Artist'], ['album', 'Album'], ['year', 'Year'], ['added', 'Date added'], ['runtime', 'Length']]
+const SORTS: [string, string][] = [['title', tk('Title')], ['artist', tk('Artist')], ['album', tk('Album')], ['year', tk('Year')], ['added', tk('Date added')], ['runtime', tk('Length')]]
 
 type Collection = { collection: { id: number; name: string; kind: string; description?: string }; items: Item[] }
 
@@ -39,7 +40,7 @@ export default function MusicList({ lib }: { lib: Library }) {
   // Finding within the list, typed here and kept out of the address.
   const [find, setFind] = useState('')
   const [search, setSearch] = useState('')
-  useEffect(() => { const t = setTimeout(() => setSearch(find.trim()), 250); return () => clearTimeout(t) }, [find])
+  useEffect(() => { const wait = setTimeout(() => setSearch(find.trim()), 250); return () => clearTimeout(wait) }, [find])
   let url: string | null = null
   if (tab === 'songs') {
     const u = new URLSearchParams({ library: String(lib.id) })
@@ -54,10 +55,10 @@ export default function MusicList({ lib }: { lib: Library }) {
   const found = tab === 'playlist' ? coll.data?.items.filter((i) => i.kind === 'audio' && (!search || i.title.toLowerCase().includes(search.toLowerCase()))) : songs.data
   const failed = tab === 'playlist' ? coll.failed : songs.failed
   const facts = tab === 'playlist'
-    ? { name: coll.data?.collection.name || 'Playlist', sub: coll.data?.collection.kind === 'smart' ? 'Smart playlist' : 'Playlist', hue: (Number(listId) * 67) % 360, kind: 'Playlist' }
-    : tab === 'genre' ? { name: genre || 'Genre', sub: 'Genre', hue: 30, kind: 'Genre' }
-      : { ...(VIEWS[view] || VIEWS['']), kind: 'Playlist' }
-  if (failed) return <EmptyState icon={<IconAudio />} title="That list wouldn't load" text="It may have been removed, or the server didn't answer." />
+    ? { name: coll.data?.collection.name || t('Playlist'), sub: coll.data?.collection.kind === 'smart' ? t('Smart playlist') : t('Playlist'), hue: (Number(listId) * 67) % 360, kind: t('Playlist') }
+    : tab === 'genre' ? { name: genre || t('Genre'), sub: t('Genre'), hue: 30, kind: t('Genre') }
+      : (() => { const v = VIEWS[view] || VIEWS['']; return { name: tx(v.name), sub: tx(v.sub), hue: v.hue, kind: t('Playlist') } })()
+  if (failed) return <EmptyState icon={<IconAudio />} title={t('That list wouldn’t load')} text={t('It may have been removed, or the server didn’t answer.')} />
   const items = found || []
   const total = items.reduce((s, t) => s + t.runtimeSec, 0)
   const cover = tab === 'playlist' ? items.find((t) => t.poster)?.id : undefined
@@ -67,25 +68,25 @@ export default function MusicList({ lib }: { lib: Library }) {
     <div className="mus-page mus-list">
       <ListHeader art={cover ? coverUrl(cover) : ''} title={facts.name} kind={facts.kind}
         tile={<span className="mus-tile big" style={{ '--h': facts.hue } as React.CSSProperties} aria-hidden="true">{view === 'liked' ? <IconHeartOn /> : <b>{facts.name[0]}</b>}</span>}>
-        <p className="mus-byline">{facts.sub}{found ? ` · ${items.length.toLocaleString()}${songs.more ? '+' : ''} ${items.length === 1 ? 'song' : 'songs'}${total ? ' · ' + fmtRuntime(total) : ''}` : ''}</p>
+        <p className="mus-byline">{facts.sub}{found ? ' · ' + tn('{count} song', '{count} songs', items.length, { count: num(items.length) + (songs.more ? '+' : '') }) + (total ? ' · ' + fmtRuntime(total) : '') : ''}</p>
       </ListHeader>
       <ActionBar title={facts.name}>
         <PlayButton big tvFirst label={facts.name} playing={mine && audio.playing} onPlay={() => (mine ? audio.toggle() : items.length ? audio.play(items, 0, 'music') : undefined)} />
-        <button type="button" className="mus-icon" aria-label={`Shuffle ${facts.name}`} title="Shuffle" disabled={!items.length} onClick={() => audio.play(shuffledCopy(items), 0, 'music')}><IconShuffle /></button>
+        <button type="button" className="mus-icon" aria-label={t('Shuffle {title}', { title: facts.name })} title={t('Shuffle')} disabled={!items.length} onClick={() => audio.play(shuffledCopy(items), 0, 'music')}><IconShuffle /></button>
         <span className="mus-grow" />
-        <label className="mus-find"><IconSearch size={18} /><input type="search" value={find} onChange={(e) => setFind(e.target.value)} placeholder="Find in this list" aria-label="Find in this list" /></label>
+        <label className="mus-find"><IconSearch size={18} /><input type="search" value={find} onChange={(e) => setFind(e.target.value)} placeholder={t('Find in this list')} aria-label={t('Find in this list')} /></label>
         {sortable && (
-          <select className="select sm" aria-label="Sort songs" value={sort || 'title'} onChange={(e) => { const p = new URLSearchParams(params); p.set('sort', e.target.value); setParams(p, { replace: true }) }}>
-            {SORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          <select className="select sm" aria-label={t('Sort songs')} value={sort || 'title'} onChange={(e) => { const p = new URLSearchParams(params); p.set('sort', e.target.value); setParams(p, { replace: true }) }}>
+            {SORTS.map(([k, l]) => <option key={k} value={k}>{tx(l)}</option>)}
           </select>
         )}
       </ActionBar>
       {!found ? <PageShape kind="list" /> : items.length === 0 ? (
-        <p className="mus-none">{search ? 'Nothing in this list matches that.' : view === 'liked' ? 'Songs you like will be here. Press the heart on any song.' : view === 'played' || view === 'recent' ? 'Nothing played yet.' : 'No songs here yet.'}</p>
+        <p className="mus-none">{search ? t('Nothing in this list matches that.') : view === 'liked' ? t('Songs you like will be here. Press the heart on any song.') : view === 'played' || view === 'recent' ? t('Nothing played yet.') : t('No songs here yet.')}</p>
       ) : <TrackTable items={items} label={facts.name} showArt showAlbum numbers="index" onPlay={(i) => audio.play(items, i, 'music')} />}
-      {tab === 'genre' && genreAlbums && genreAlbums.length > 0 && <Shelf title={`${genre} albums`}>{genreAlbums.slice(0, 30).map((a) => <AlbumCard key={a.artist + '|' + a.title} libId={lib.id} a={a} />)}</Shelf>}
-      {tab === 'playlist' && <p className="mus-more-link"><Link to={`/collections/${listId}`}>Edit this playlist</Link></p>}
-      {tab === 'songs' && !view && <p className="mus-more-link"><Link to={musicTab(lib.id, 'library')}>Back to your library</Link></p>}
+      {tab === 'genre' && genreAlbums && genreAlbums.length > 0 && <Shelf title={t('{genre} albums', { genre })}>{genreAlbums.slice(0, 30).map((a) => <AlbumCard key={a.artist + '|' + a.title} libId={lib.id} a={a} />)}</Shelf>}
+      {tab === 'playlist' && <p className="mus-more-link"><Link to={`/collections/${listId}`}>{t('Edit this playlist')}</Link></p>}
+      {tab === 'songs' && !view && <p className="mus-more-link"><Link to={musicTab(lib.id, 'library')}>{t('Back to your library')}</Link></p>}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { type Item } from './api'
 import { useAudio, type AudioMode } from './audio/player'
 import { IconAudio, IconBook, IconPlay } from './icons'
+import { t } from './i18n'
 import { useApp } from './state'
 
 // useOpenItem: the main action for any item, worded for what it is:
@@ -15,11 +16,11 @@ export function useOpenItem() {
   const started = (it: Item) => !!it.progress?.resumeSec
   return {
     label(it: Item): string {
-      if (it.kind === 'book') return started(it) ? 'Continue reading' : 'Read'
-      if (it.kind === 'audio') return started(it) ? 'Continue listening' : 'Listen'
-      if (it.kind === 'game') return 'Play'
-      if (it.kind === 'cd-image') return started(it) ? 'Continue the disc' : 'Insert disc'
-      return started(it) ? 'Resume' : 'Play'
+      if (it.kind === 'book') return started(it) ? t('Continue reading') : t('Read')
+      if (it.kind === 'audio') return started(it) ? t('Continue listening') : t('Listen')
+      if (it.kind === 'game') return t('Play')
+      if (it.kind === 'cd-image') return started(it) ? t('Continue the disc') : t('Insert disc')
+      return started(it) ? t('Resume') : t('Play')
     },
     icon(it: Item) {
       return it.kind === 'book' ? <IconBook /> : it.kind === 'audio' ? <IconAudio /> : <IconPlay />

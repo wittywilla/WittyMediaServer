@@ -9,6 +9,7 @@ import { useTvMode } from '../../tvmode/mode'
 import { musicTab } from './musicRoute'
 import { useMusic } from './store'
 import { AlbumCard, ArtistCard, PageShape, Shelf, TrackTable } from './ui'
+import { t } from '../../i18n'
 
 // Search inside Music: what you type stays in the address, so Back comes back to the same
 // answers. Nothing typed, it's the genres to browse.
@@ -20,13 +21,13 @@ export default function MusicSearch({ lib }: { lib: Library }) {
   const term = (params.get('q') || '').trim()
   // The address follows the typing a moment later, replacing itself so Back isn't a letter at a time.
   useEffect(() => {
-    const t = setTimeout(() => {
+    const wait = setTimeout(() => {
       if (q.trim() === term) return
       const p = new URLSearchParams(params)
       if (q.trim()) p.set('q', q.trim()); else p.delete('q')
       setParams(p, { replace: true })
     }, 250)
-    return () => clearTimeout(t)
+    return () => clearTimeout(wait)
   }, [q]) // eslint-disable-line react-hooks/exhaustive-deps
   const enc = encodeURIComponent(term)
   const songs = useMusic<Item[]>(term ? `/music/songs?library=${lib.id}&search=${enc}&limit=50` : null)
@@ -41,30 +42,30 @@ export default function MusicSearch({ lib }: { lib: Library }) {
     <div className="mus-page mus-search">
       <form className="mus-search-box" role="search" onSubmit={(e) => { e.preventDefault(); (document.activeElement as HTMLElement)?.blur?.() }}>
         <IconSearch />
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="What do you want to listen to?" aria-label="Search music" autoFocus={!tv} data-tv-first />
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('What do you want to listen to?')} aria-label={t('Search music')} autoFocus={!tv} data-tv-first />
       </form>
       {!term ? (
         <section aria-labelledby="mus-browse">
-          <h2 id="mus-browse" className="mus-h2">Browse all</h2>
-          {!genres ? <PageShape kind="grid" /> : genres.length === 0 ? <p className="mus-muted">Your music has no genres in its tags yet.</p> : (
+          <h2 id="mus-browse" className="mus-h2">{t('Browse all')}</h2>
+          {!genres ? <PageShape kind="grid" /> : genres.length === 0 ? <p className="mus-muted">{t('Your music has no genres in its tags yet.')}</p> : (
             <div className="mus-browse">
               {genres.map((g, i) => <Link key={g} className="mus-genre big" style={{ '--h': (i * 47) % 360 } as React.CSSProperties} to={musicTab(lib.id, 'genre', '&genre=' + encodeURIComponent(g))}>{g}</Link>)}
             </div>
           )}
         </section>
       ) : nothing ? (
-        <p className="mus-none" role="status">Nothing found for “{term}”. Check the spelling, or try fewer words.</p>
+        <p className="mus-none" role="status">{t('Nothing found for “{term}”. Check the spelling, or try fewer words.', { term })}</p>
       ) : (
         <>
           {!songs.data ? <PageShape kind="list" /> : songs.data.length > 0 && (
             <section aria-labelledby="mus-found-songs">
-              <h2 id="mus-found-songs" className="mus-h2">Songs</h2>
-              <TrackTable items={songs.data.slice(0, 50)} label="Songs found" showArt showAlbum numbers="index" onPlay={(i) => audio.play(songs.data!, i, 'music')} />
+              <h2 id="mus-found-songs" className="mus-h2">{t('Songs')}</h2>
+              <TrackTable items={songs.data.slice(0, 50)} label={t('Songs found')} showArt showAlbum numbers="index" onPlay={(i) => audio.play(songs.data!, i, 'music')} />
             </section>
           )}
-          {foundArtists.length > 0 && <Shelf title="Artists">{foundArtists.map((a) => <ArtistCard key={a.name} libId={lib.id} a={a} />)}</Shelf>}
-          {albums.data && albums.data.length > 0 && <Shelf title="Albums">{albums.data.slice(0, 30).map((a) => <AlbumCard key={a.artist + '|' + a.title} libId={lib.id} a={a} />)}</Shelf>}
-          <p className="mus-sr" role="status">{songs.data && albums.data ? `${songs.data.length} songs, ${foundArtists.length} artists and ${albums.data.length} albums found` : ''}</p>
+          {foundArtists.length > 0 && <Shelf title={t('Artists')}>{foundArtists.map((a) => <ArtistCard key={a.name} libId={lib.id} a={a} />)}</Shelf>}
+          {albums.data && albums.data.length > 0 && <Shelf title={t('Albums')}>{albums.data.slice(0, 30).map((a) => <AlbumCard key={a.artist + '|' + a.title} libId={lib.id} a={a} />)}</Shelf>}
+          <p className="mus-sr" role="status">{songs.data && albums.data ? t('Found: {songs} songs, {artists} artists and {albums} albums', { songs: songs.data.length, artists: foundArtists.length, albums: albums.data.length }) : ''}</p>
         </>
       )}
     </div>

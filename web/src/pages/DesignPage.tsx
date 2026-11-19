@@ -9,17 +9,19 @@ import {
   Skeleton, SkeletonGrid, Spinner, Switch, Tabs, Textarea, Tooltip, ask, toast, type Column,
 } from '../ui'
 import { Placeholder } from '../components/common'
+import { t, tk, tx } from '../i18n'
 
 // Every shared part in one place, in whatever theme is in use, for administrators
 // (/design). Look here first when something in the design changes. docs/DESIGN.md
 // is the written version of this page.
 
-const SECTIONS = ['Colour', 'Type', 'Buttons', 'Fields', 'Choices', 'Overlays', 'Messages', 'Cards', 'States', 'Progress', 'Tables']
+// The English names are the anchors; they're shown with tx().
+const SECTIONS = [tk('Colour'), tk('Type'), tk('Buttons'), tk('Fields'), tk('Choices'), tk('Overlays'), tk('Messages'), tk('Cards'), tk('States'), tk('Progress'), tk('Tables')]
 
 function Part({ title, note, children }: { title: string; note?: ReactNode; children: ReactNode }) {
   return (
     <section className="ds-part" id={title.toLowerCase()} aria-labelledby={'ds-' + title}>
-      <h2 id={'ds-' + title}>{title}</h2>
+      <h2 id={'ds-' + title}>{tx(title)}</h2>
       {note && <p className="ds-note">{note}</p>}
       {children}
     </section>
@@ -38,10 +40,10 @@ const FILMS: Film[] = [
   { id: 2, title: 'North of Nowhere', year: 2004, size: 4.1 },
   { id: 3, title: 'A Quiet Harbour', year: 2023, size: 12.7 },
 ]
-const COLUMNS: Column<Film>[] = [
-  { key: 'title', header: 'Title', cell: (f) => f.title, sort: (a, b) => a.title.localeCompare(b.title) },
-  { key: 'year', header: 'Year', cell: (f) => f.year, sort: (a, b) => a.year - b.year },
-  { key: 'size', header: 'Size', align: 'end', cell: (f) => `${f.size} GB`, sort: (a, b) => a.size - b.size },
+const columns = (): Column<Film>[] => [
+  { key: 'title', header: t('Title'), cell: (f) => f.title, sort: (a, b) => a.title.localeCompare(b.title) },
+  { key: 'year', header: t('Year'), cell: (f) => f.year, sort: (a, b) => a.year - b.year },
+  { key: 'size', header: t('Size'), align: 'end', cell: (f) => t('{size} GB', { size: f.size }), sort: (a, b) => a.size - b.size },
 ]
 
 export default function DesignPage() {
@@ -49,8 +51,8 @@ export default function DesignPage() {
   const [sw, setSw] = useState(true)
   const [seg, setSeg] = useState<'day' | 'week' | 'month'>('week')
   const [tab, setTab] = useState<'one' | 'two' | 'three'>('one')
-  const [chips, setChips] = useState<string[]>(['Comedy'])
-  const [tags, setTags] = useState(['Kids', 'Family'])
+  const [chips, setChips] = useState<string[]>([tk('Comedy')])
+  const [tags, setTags] = useState([tk('Kids'), tk('Family')])
   const [dialog, setDialog] = useState(false)
   const [sheet, setSheet] = useState(false)
   const [name, setName] = useState('')
@@ -58,111 +60,111 @@ export default function DesignPage() {
   const toggleChip = (c: string) => setChips((l) => (l.includes(c) ? l.filter((x) => x !== c) : [...l, c]))
   return (
     <div className="ds-page">
-      <header className="toolbar"><h1>Design system</h1><span className="count">Every shared part, in the theme in use</span></header>
-      <nav className="ds-toc" aria-label="On this page">{SECTIONS.map((s) => <a key={s} href={'#' + s.toLowerCase()}>{s}</a>)}</nav>
+      <header className="toolbar"><h1>{t('Design system')}</h1><span className="count">{t('Every shared part, in the theme in use')}</span></header>
+      <nav className="ds-toc" aria-label={t('On this page')}>{SECTIONS.map((s) => <a key={s} href={'#' + s.toLowerCase()}>{tx(s)}</a>)}</nav>
 
-      <Part title="Colour" note="Set by the theme. Hover, selected and tinted colours are worked out from these.">
+      <Part title={tk('Colour')} note={t('Set by the theme. Hover, selected and tinted colours are worked out from these.')}>
         <div className="ds-swatches">{SWATCHES.map((c) => <div key={c} className="ds-swatch"><i data-swatch={c} style={{ background: `var(--${c})` }} /><code>--{c}</code></div>)}</div>
       </Part>
 
-      <Part title="Type" note="One scale, in rem, so it follows the reader's own text size and grows at ten feet.">
-        {TYPE.map((t) => <div key={t} className="ds-type" style={{ fontSize: `var(--text-${t})` }}><code>--text-{t}</code> Fetching a film from the shelf</div>)}
+      <Part title={tk('Type')} note={t('One scale, in rem, so it follows the reader’s own text size and grows at ten feet.')}>
+        {TYPE.map((sz) => <div key={sz} className="ds-type" style={{ fontSize: `var(--text-${sz})` }}><code>--text-{sz}</code> {t('Fetching a film from the shelf')}</div>)}
       </Part>
 
-      <Part title="Buttons" note="One primary per view: the accent means “do this next”.">
-        <Row label="Variants"><Button variant="primary">Primary</Button><Button>Default</Button><Button variant="ghost">Ghost</Button><Button variant="danger">Danger</Button></Row>
-        <Row label="Sizes"><Button size="sm">Small</Button><Button>Medium</Button><Button size="big">Large</Button></Row>
-        <Row label="With icons"><Button variant="primary" icon={<IconPlay />}>Play</Button><Button icon={<IconDownload />}>Download</Button><LinkButton to="/" variant="ghost" icon={<IconFilm />}>A link</LinkButton></Row>
-        <Row label="States"><Button disabled>Disabled</Button><Button busy>Saving</Button></Row>
-        <Row label="Icon only"><IconButton label="Edit"><IconEdit /></IconButton><IconButton label="Search" round variant="default"><IconSearch /></IconButton><IconButton label="Delete" variant="danger"><IconTrash /></IconButton><IconButton label="Refresh" size="sm"><IconRefresh /></IconButton></Row>
-        <Row label="Hint"><Tooltip text="Tooltips appear on hover and on keyboard or remote focus"><Button>Hover or focus me</Button></Tooltip></Row>
+      <Part title={tk('Buttons')} note={t('One primary per view: the accent means “do this next”.')}>
+        <Row label={t('Variants')}><Button variant="primary">{t('Primary')}</Button><Button>{t('Default')}</Button><Button variant="ghost">{t('Ghost')}</Button><Button variant="danger">{t('Danger')}</Button></Row>
+        <Row label={t('Sizes')}><Button size="sm">{t('Small')}</Button><Button>{t('Medium')}</Button><Button size="big">{t('Large')}</Button></Row>
+        <Row label={t('With icons')}><Button variant="primary" icon={<IconPlay />}>{t('Play')}</Button><Button icon={<IconDownload />}>{t('Download')}</Button><LinkButton to="/" variant="ghost" icon={<IconFilm />}>{t('A link')}</LinkButton></Row>
+        <Row label={t('States')}><Button disabled>{t('Disabled')}</Button><Button busy>{t('Saving')}</Button></Row>
+        <Row label={t('Icon only')}><IconButton label={t('Edit')}><IconEdit /></IconButton><IconButton label={t('Search')} round variant="default"><IconSearch /></IconButton><IconButton label={t('Delete')} variant="danger"><IconTrash /></IconButton><IconButton label={t('Refresh')} size="sm"><IconRefresh /></IconButton></Row>
+        <Row label={t('Hint')}><Tooltip text={t('Tooltips appear on hover and on keyboard or remote focus')}><Button>{t('Hover or focus me')}</Button></Tooltip></Row>
       </Part>
 
-      <Part title="Fields" note="Field joins the label, hint and error to its control for screen readers.">
+      <Part title={tk('Fields')} note={t('Field joins the label, hint and error to its control for screen readers.')}>
         <div className="ds-form">
-          <Field label="Name" hint="As it appears on the home page"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Movies" /></Field>
-          <Field label="Folder" required error="That folder doesn't exist"><Input defaultValue="/media/nowhere" /></Field>
-          <Field label="Kind"><Select defaultValue="movies" options={[{ value: 'movies', label: 'Movies' }, { value: 'shows', label: 'TV shows' }]} /></Field>
-          <Field label="Notes"><Textarea rows={2} defaultValue="Anything to remember" /></Field>
-          <Field label="Disabled"><Input disabled defaultValue="Can't be changed" /></Field>
+          <Field label={t('Name')} hint={t('As it appears on the home page')}><Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Movies')} /></Field>
+          <Field label={t('Folder')} required error={t('That folder doesn’t exist')}><Input defaultValue="/media/nowhere" /></Field>
+          <Field label={t('Kind')}><Select defaultValue="movies" options={[{ value: 'movies', label: t('Movies') }, { value: 'shows', label: t('TV shows') }]} /></Field>
+          <Field label={t('Notes')}><Textarea rows={2} defaultValue={t('Anything to remember')} /></Field>
+          <Field label={t('Disabled')}><Input disabled defaultValue={t('Can’t be changed')} /></Field>
         </div>
-        <Row label="Switch"><Switch checked={sw} onChange={setSw} label="Example switch" /><Switch checked={false} disabled onChange={() => {}} label="Disabled switch" /></Row>
+        <Row label={t('Switch')}><Switch checked={sw} onChange={setSw} label={t('Example switch')} /><Switch checked={false} disabled onChange={() => {}} label={t('Disabled switch')} /></Row>
       </Part>
 
-      <Part title="Choices" note="Arrow keys move within each; at the ends they carry on to what's beside it.">
-        <Row label="Segmented"><Segmented label="Range" value={seg} onChange={setSeg} options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} /></Row>
-        <Tabs label="Example tabs" value={tab} onChange={setTab} items={[{ value: 'one', label: 'Overview' }, { value: 'two', label: 'Cast' }, { value: 'three', label: 'Files' }]} />
-        <Row label="Chips"><Chips label="Genres">{['Comedy', 'Drama', 'Horror'].map((c) => <Chip key={c} selected={chips.includes(c)} onClick={() => toggleChip(c)}>{c}</Chip>)}</Chips></Row>
-        <Row label="Removable"><Chips label="Tags">{tags.map((t) => <Chip key={t} removeLabel={`Remove ${t}`} onRemove={() => setTags(tags.filter((x) => x !== t))}>{t}</Chip>)}</Chips></Row>
+      <Part title={tk('Choices')} note={t('Arrow keys move within each; at the ends they carry on to what’s beside it.')}>
+        <Row label={t('Segmented')}><Segmented label={t('Range')} value={seg} onChange={setSeg} options={[{ value: 'day', label: t('Day') }, { value: 'week', label: t('Week') }, { value: 'month', label: t('Month') }]} /></Row>
+        <Tabs label={t('Example tabs')} value={tab} onChange={setTab} items={[{ value: 'one', label: t('Overview') }, { value: 'two', label: t('Cast') }, { value: 'three', label: t('Files') }]} />
+        <Row label={t('Chips')}><Chips label={t('Genres')}>{[tk('Comedy'), tk('Drama'), tk('Horror')].map((c) => <Chip key={c} selected={chips.includes(c)} onClick={() => toggleChip(c)}>{tx(c)}</Chip>)}</Chips></Row>
+        <Row label={t('Removable')}><Chips label={t('Tags')}>{tags.map((tag) => <Chip key={tag} removeLabel={t('Remove {name}', { name: tx(tag) })} onRemove={() => setTags(tags.filter((x) => x !== tag))}>{tx(tag)}</Chip>)}</Chips></Row>
       </Part>
 
-      <Part title="Overlays" note="Rendered into the page's top layer, so nothing can cover or clip them. Escape or Back closes; focus goes back.">
+      <Part title={tk('Overlays')} note={t('Rendered into the page’s top layer, so nothing can cover or clip them. Escape or Back closes; focus goes back.')}>
         <Row>
-          <Button onClick={() => setDialog(true)}>Open a dialog</Button>
-          <Button onClick={() => setSheet(true)}>Open a sheet</Button>
-          <Button onClick={async () => { toast((await ask({ title: 'Remove this library?', body: 'Your files stay where they are; only the server forgets them.', confirm: 'Remove', danger: true })) ? 'Removed' : 'Kept') }}>Ask a question</Button>
-          <Menu label="Example menu" align="start" trigger={(p) => <Button {...p} icon={<IconMore />}>Open a menu</Button>} items={[
-            { key: 'h', kind: 'heading', label: 'Library' },
-            { key: 'scan', label: 'Scan now', icon: <IconRefresh />, onSelect: () => toast('Scanning') },
-            { key: 'set', label: 'Settings', icon: <IconSettings />, to: '/settings', hint: 'A link in a menu' },
+          <Button onClick={() => setDialog(true)}>{t('Open a dialog')}</Button>
+          <Button onClick={() => setSheet(true)}>{t('Open a sheet')}</Button>
+          <Button onClick={async () => { toast((await ask({ title: t('Remove this library?'), body: t('Your files stay where they are; only the server forgets them.'), confirm: t('Remove'), danger: true })) ? t('Removed') : t('Kept')) }}>{t('Ask a question')}</Button>
+          <Menu label={t('Example menu')} align="start" trigger={(p) => <Button {...p} icon={<IconMore />}>{t('Open a menu')}</Button>} items={[
+            { key: 'h', kind: 'heading', label: t('Library') },
+            { key: 'scan', label: t('Scan now'), icon: <IconRefresh />, onSelect: () => toast(t('Scanning')) },
+            { key: 'set', label: t('Settings'), icon: <IconSettings />, to: '/settings', hint: t('A link in a menu') },
             { key: 's', kind: 'separator' },
-            { key: 'del', label: 'Remove', icon: <IconTrash />, danger: true, onSelect: () => toast('Removed') },
-            { key: 'off', label: 'Not available', disabled: true },
+            { key: 'del', label: t('Remove'), icon: <IconTrash />, danger: true, onSelect: () => toast(t('Removed')) },
+            { key: 'off', label: t('Not available'), disabled: true },
           ]} />
         </Row>
-        {dialog && <Dialog title="A dialog" description="It takes the keyboard while it's open." onClose={() => setDialog(false)} actions={<><Button variant="ghost" onClick={() => setDialog(false)}>Cancel</Button><Button variant="primary" onClick={() => setDialog(false)}>Save</Button></>}><Field label="Anything"><Input autoFocus /></Field></Dialog>}
-        {sheet && <Sheet title="A sheet" onClose={() => setSheet(false)} actions={<Button variant="primary" onClick={() => setSheet(false)}>Done</Button>}><p>Beside the page on wide screens, up from the bottom on phones.</p></Sheet>}
+        {dialog && <Dialog title={t('A dialog')} description={t('It takes the keyboard while it’s open.')} onClose={() => setDialog(false)} actions={<><Button variant="ghost" onClick={() => setDialog(false)}>{t('Cancel')}</Button><Button variant="primary" onClick={() => setDialog(false)}>{t('Save')}</Button></>}><Field label={t('Anything')}><Input autoFocus /></Field></Dialog>}
+        {sheet && <Sheet title={t('A sheet')} onClose={() => setSheet(false)} actions={<Button variant="primary" onClick={() => setSheet(false)}>{t('Done')}</Button>}><p>{t('Beside the page on wide screens, up from the bottom on phones.')}</p></Sheet>}
       </Part>
 
-      <Part title="Messages" note="A toast for what has just happened; a notice for what stays true.">
-        <Row label="Toasts">
-          <Button onClick={() => toast('Library saved')}>Plain</Button>
-          <Button onClick={() => toast('Saved', { tone: 'ok' })}>Done</Button>
-          <Button onClick={() => toast('That didn’t work', { tone: 'danger' })}>Failed</Button>
-          <Button onClick={() => toast('Theme removed', { action: { label: 'Undo', run: () => toast('Restored') } })}>With an action</Button>
+      <Part title={tk('Messages')} note={t('A toast for what has just happened; a notice for what stays true.')}>
+        <Row label={t('Toasts')}>
+          <Button onClick={() => toast(t('Library saved'))}>{t('Plain')}</Button>
+          <Button onClick={() => toast(t('Saved'), { tone: 'ok' })}>{t('Done')}</Button>
+          <Button onClick={() => toast(t('That didn’t work'), { tone: 'danger' })}>{t('Failed')}</Button>
+          <Button onClick={() => toast(t('Theme removed'), { action: { label: t('Undo'), run: () => toast(t('Restored')) } })}>{t('With an action')}</Button>
         </Row>
         <div className="ds-stack">
-          <Notice title="New here">A notice stays on the page until it no longer applies.</Notice>
-          <Notice tone="ok">The last scan found everything.</Notice>
-          <Notice tone="warn" title="Running low" action={<Button size="sm">Look</Button>}>The disk has 2 GB left.</Notice>
-          <Notice tone="danger" title="Couldn’t reach the tuner">Check that it’s switched on.</Notice>
+          <Notice title={t('New here')}>{t('A notice stays on the page until it no longer applies.')}</Notice>
+          <Notice tone="ok">{t('The last scan found everything.')}</Notice>
+          <Notice tone="warn" title={t('Running low')} action={<Button size="sm">{t('Look')}</Button>}>{t('The disk has {size} left.', { size: t('{size} GB', { size: 2 }) })}</Notice>
+          <Notice tone="danger" title={t('Couldn’t reach the tuner')}>{t('Check that it’s switched on.')}</Notice>
         </div>
       </Part>
 
-      <Part title="Cards" note="Poster cards move with the pointer or remote: see Settings, Appearance.">
-        <Row label="Card"><Card title="A card" desc="A surface one step up from the page." actions={<IconButton label="More" size="sm"><IconMore /></IconButton>}><p className="ds-note">Anything goes in it.</p></Card></Row>
-        <Shelf title="A shelf" to="/" toLabel="See all">
-          {['The Lantern Keeper', 'North of Nowhere', 'A Quiet Harbour', 'Glass Mountain', 'Paper Tide', 'Second Summer', 'Hollow Bay', 'The Long Road'].map((t, i) => (
-            <PosterCard key={t} to="/" title={t} sub={String(2000 + i * 3)} name={t} art={<Placeholder title={t} />} progress={i === 1 ? 40 : undefined} badges={i === 2 ? <span className="badge seen" role="img" aria-label="Watched"><IconCheck /></span> : undefined} />
+      <Part title={tk('Cards')} note={t('Poster cards move with the pointer or remote: see Settings, Appearance.')}>
+        <Row label={t('Card')}><Card title={t('A card')} desc={t('A surface one step up from the page.')} actions={<IconButton label={t('More')} size="sm"><IconMore /></IconButton>}><p className="ds-note">{t('Anything goes in it.')}</p></Card></Row>
+        <Shelf title={t('A shelf')} to="/" toLabel={t('See all')}>
+          {['The Lantern Keeper', 'North of Nowhere', 'A Quiet Harbour', 'Glass Mountain', 'Paper Tide', 'Second Summer', 'Hollow Bay', 'The Long Road'].map((title, i) => (
+            <PosterCard key={title} to="/" title={title} sub={String(2000 + i * 3)} name={title} art={<Placeholder title={title} />} progress={i === 1 ? 40 : undefined} badges={i === 2 ? <span className="badge seen" role="img" aria-label={t('Watched')}><IconCheck /></span> : undefined} />
           ))}
         </Shelf>
-        <Row label="Shapes">
-          <PosterCard shape="wide" onClick={() => toast('Chosen')} title="Wide, for episodes" sub="A button, not a link" art={<Placeholder title="wide" />} />
-          <PosterCard shape="square" onClick={() => toast('Chosen')} title="Square, for albums" art={<Placeholder title="square" />} />
+        <Row label={t('Shapes')}>
+          <PosterCard shape="wide" onClick={() => toast(t('Chosen'))} title={t('Wide, for episodes')} sub={t('A button, not a link')} art={<Placeholder title="wide" />} />
+          <PosterCard shape="square" onClick={() => toast(t('Chosen'))} title={t('Square, for albums')} art={<Placeholder title="square" />} />
         </Row>
       </Part>
 
-      <Part title="States" note="Every page has these three besides ready: loading, empty and failed.">
-        <Row label="Loading"><Spinner /><div className="ds-skel"><Skeleton w="60%" h="1.25rem" /><Skeleton lines={3} /><Skeleton w={48} h={48} round /></div></Row>
+      <Part title={tk('States')} note={t('Every page has these three besides ready: loading, empty and failed.')}>
+        <Row label={t('Loading')}><Spinner /><div className="ds-skel"><Skeleton w="60%" h="1.25rem" /><Skeleton lines={3} /><Skeleton w={48} h={48} round /></div></Row>
         <SkeletonGrid count={4} />
         <div className="ds-states">
-          <EmptyState icon={<IconFilm />} title="No films yet" text="Add a folder of films to get started." action={<Button variant="primary" icon={<IconPlus />}>Add a library</Button>} />
-          <LoadError what="This page" onRetry={() => toast('Trying again')} />
+          <EmptyState icon={<IconFilm />} title={t('No films yet')} text={t('Add a folder of films to get started.')} action={<Button variant="primary" icon={<IconPlus />}>{t('Add a library')}</Button>} />
+          <LoadError what={t('This page')} onRetry={() => toast(t('Trying again'))} />
         </div>
       </Part>
 
-      <Part title="Progress">
+      <Part title={tk('Progress')}>
         <div className="ds-stack">
-          <Progress label="Scanning, known" value={40} showValue />
-          <Progress label="Done" value={100} tone="ok" showValue />
-          <Progress label="Almost full" value={86} tone="warn" showValue />
-          <Progress label="Working" />
+          <Progress label={t('Scanning, known')} value={40} showValue />
+          <Progress label={t('Done')} value={100} tone="ok" showValue />
+          <Progress label={t('Almost full')} value={86} tone="warn" showValue />
+          <Progress label={t('Working')} />
         </div>
-        <Row label="Ring"><ProgressRing label="Forty percent" value={40} /><ProgressRing label="Working" /><ProgressRing label="Big" value={75} size={40} /></Row>
+        <Row label={t('Ring')}><ProgressRing label={t('Forty percent')} value={40} /><ProgressRing label={t('Working')} /><ProgressRing label={t('Big')} value={75} size={40} /></Row>
       </Part>
 
-      <Part title="Tables" note="Sort from the header. On phones each row stacks, with the column's name beside each value.">
-        <Card flush><DataTable caption="Example films" columns={COLUMNS} rows={FILMS} rowKey={(f) => f.id} initialSort={{ key: 'year', desc: true }} /></Card>
+      <Part title={tk('Tables')} note={t('Sort from the header. On phones each row stacks, with the column’s name beside each value.')}>
+        <Card flush><DataTable caption={t('Example films')} columns={columns()} rows={FILMS} rowKey={(f) => f.id} initialSort={{ key: 'year', desc: true }} /></Card>
       </Part>
     </div>
   )

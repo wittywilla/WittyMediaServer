@@ -9,6 +9,7 @@ import { clockOffset, type ClockSample } from '../player/sync'
 import { toast } from '../state'
 import { maySeek, newSeekMemo, partyStep, positionAt, seekAim, seekLanded, shouldAdvance, type Listing, type PartyState, type QueueEdit } from './partyLogic'
 import { call, readEvents, sleep, steadyNow } from './stream'
+import { t, tk, tx } from '../i18n'
 
 export { positionAt, type PartyState }
 export type PartyMember = { id: string; userId: number; name: string; host: boolean; you?: boolean; state: 'ready' | 'loading' | 'buffering' | 'lagging' | 'away' | 'blocked' | 'time-up'; rttMs: number }
@@ -24,7 +25,7 @@ export type PartyListing = Listing
 export type PartyInfo = { enabled: boolean; canCreate: boolean; canJoin?: boolean; rooms: PartyListing[]; limits?: { queue?: number; members?: number; invites?: number; codeLength?: number } }
 
 export const MEMBER_WORDS: Record<PartyMember['state'], string> = {
-  ready: 'Ready', loading: 'Loading', buffering: 'Buffering', lagging: 'Catching up', away: 'Away', blocked: 'Can’t watch this one', 'time-up': 'Out of screen time',
+  ready: tk('Ready'), loading: tk('Loading'), buffering: tk('Buffering'), lagging: tk('Catching up'), away: tk('Away'), blocked: tk('Can’t watch this one'), 'time-up': tk('Out of screen time'),
 }
 
 const ROOM_KEY = 'wms.party.room'
@@ -71,7 +72,7 @@ function gone(why?: string) {
   resumed = false
   remember('')
   publish()
-  if (why) toast(why)
+  if (why) toast(tx(why))
 }
 
 async function ping(ctl: AbortController) {
@@ -95,9 +96,9 @@ async function pings(ctl: AbortController) {
 }
 
 const CLOSED: Record<string, string> = {
-  closed: 'The watch party has ended.', removed: 'You were removed from the watch party.', 'signed-out': 'The watch party ended for this device.',
-  'server-stopping': 'The server is restarting, which ends the watch party.',
-  'feature-off': 'Watch parties have been turned off for this profile.',
+  closed: tk('The watch party has ended.'), removed: tk('You were removed from the watch party.'), 'signed-out': tk('The watch party ended for this device.'),
+  'server-stopping': tk('The server is restarting, which ends the watch party.'),
+  'feature-off': tk('Watch parties have been turned off for this profile.'),
 }
 
 async function listen(ctl: AbortController) {
@@ -266,7 +267,7 @@ export function usePartySync(media: React.RefObject<HTMLMediaElement | null>, it
     const quiet = (fn: () => void) => { quietUntil = performance.now() + 700; fn() }
     const mine = () => { const cur = currentParty(); return cur && cur.id === roomId && !cur.blocked && cur.state.itemId === itemId ? cur : null }
     const notYours = () => {
-      if (Date.now() - toldOff > 8000) { toldOff = Date.now(); toast('Only the host controls this watch party.') }
+      if (Date.now() - toldOff > 8000) { toldOff = Date.now(); toast(t('Only the host controls this watch party.')) }
     }
 
     let startTimer: ReturnType<typeof setTimeout> | undefined
@@ -333,12 +334,12 @@ export function usePartySync(media: React.RefObject<HTMLMediaElement | null>, it
     // Reaching the end, or having loaded, is acted on at once rather than at the next tick.
     const soon = ['ended', 'canplay', 'seeked'] as const
     soon.forEach((e) => v.addEventListener(e, tick))
-    const t = setInterval(tick, 500)
+    const timer = setInterval(tick, 500)
     // And at once when the room changes, rather than up to half a second later.
     const unsubscribe = subscribe(tick)
     tick()
     return () => {
-      clearInterval(t)
+      clearInterval(timer)
       clearTimeout(startTimer)
       unsubscribe()
       v.removeEventListener('pause', onPause)
@@ -358,7 +359,7 @@ export function usePartySync(media: React.RefObject<HTMLMediaElement | null>, it
   const controls = (): PartyRoom | null => {
     const cur = currentParty()
     if (!cur) return null
-    if (!cur.canControl) { toast('Only the host controls this watch party.'); return null }
+    if (!cur.canControl) { toast(t('Only the host controls this watch party.')); return null }
     return cur
   }
   const seek = (t: number) => {

@@ -6,6 +6,7 @@ import { IconDownload, IconLock, IconPlus } from '../icons'
 import { api, getToken, mediaUrl, serverBase } from '../api'
 import BrandDialog from '../components/BrandDialog'
 import { Brand, BrandMark } from '../components/common'
+import { num, t, tk, tx } from '../i18n'
 import { toast, useApp } from '../state'
 import { applyTheme, AUTO_THEME, currentLook, loadThemeOverrides, currentThemeId, CUSTOM_THEME, deviceTheme, setCustomThemeCss, setDeviceTheme, type ThemeMeta } from '../theme'
 import NavCustomize from '../shell/NavCustomize'
@@ -54,10 +55,10 @@ function ThemeScene({ colors, radius, preview, big }: { colors?: Record<string, 
   if (radius !== undefined) vars['--radius'] = radius + 'px'
   return (
     <span className={'theme-scene' + (big ? ' big' : '')} style={vars as CSSProperties} aria-hidden="true">
-      <span className="ts-bar"><i className="ts-dot" /><span className="ts-link on">Home</span><span className="ts-link">Movies</span>{big && <><span className="ts-link">Shows</span><span className="ts-link">Music</span></>}</span>
+      <span className="ts-bar"><i className="ts-dot" /><span className="ts-link on">{t('Home')}</span><span className="ts-link">{t('Movies')}</span>{big && <><span className="ts-link">{t('Shows')}</span><span className="ts-link">{t('Music')}</span></>}</span>
       <span className="ts-body">
         <span className="ts-posters"><i /><i /><i />{big && <><i /><i /><i /></>}</span>
-        <span className="ts-text"><b>Title</b><small>A line of detail</small><span className="btn primary sm">Play</span></span>
+        <span className="ts-text"><b>{t('Title')}</b><small>{t('A line of detail')}</small><span className="btn primary sm">{t('Play')}</span></span>
       </span>
     </span>
   )
@@ -75,26 +76,26 @@ function ColourMaker({ start, admin, inUse, onDevice, onServer }: { start: Maker
   return (
     <div className="theme-maker">
       <div className="form full">
-        <Field label="Name"><Input value={i.name} maxLength={40} onChange={(e) => set({ name: e.target.value })} /></Field>
-        <div className="nav-custom-opt"><span>Light or dark</span>
-          <Segmented label="Light or dark" value={i.scheme} onChange={(scheme) => set({ scheme })} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }]} />
+        <Field label={t('Name')}><Input value={i.name} maxLength={40} onChange={(e) => set({ name: e.target.value })} /></Field>
+        <div className="nav-custom-opt"><span>{t('Light or dark')}</span>
+          <Segmented label={t('Light or dark')} value={i.scheme} onChange={(scheme) => set({ scheme })} options={[{ value: 'dark', label: t('Dark') }, { value: 'light', label: t('Light') }]} />
         </div>
         <div className="theme-maker-colours">
-          <Field label="Accent" hint="Buttons and highlights"><Input className="theme-colour" type="color" value={i.accent} onChange={(e) => set({ accent: e.target.value })} /></Field>
-          <Field label="Background tint" hint="A hint of colour in the page"><Input className="theme-colour" type="color" value={i.tint} onChange={(e) => set({ tint: e.target.value })} /></Field>
+          <Field label={t('Accent')} hint={t('Buttons and highlights')}><Input className="theme-colour" type="color" value={i.accent} onChange={(e) => set({ accent: e.target.value })} /></Field>
+          <Field label={t('Background tint')} hint={t('A hint of colour in the page')}><Input className="theme-colour" type="color" value={i.tint} onChange={(e) => set({ tint: e.target.value })} /></Field>
         </div>
-        <div className="nav-custom-opt"><span>Corners</span>
-          <Segmented label="Corners" value={i.corners} onChange={(corners) => set({ corners })} options={[{ value: 'square', label: 'Crisp' }, { value: 'soft', label: 'Soft' }, { value: 'round', label: 'Round' }]} />
+        <div className="nav-custom-opt"><span>{t('Corners')}</span>
+          <Segmented label={t('Corners')} value={i.corners} onChange={(corners) => set({ corners })} options={[{ value: 'square', label: t('Crisp') }, { value: 'soft', label: t('Soft') }, { value: 'round', label: t('Round') }]} />
         </div>
         <div className="panel-actions">
-          <Button variant="primary" disabled={!i.name.trim() || (inUse && !changed)} onClick={() => onDevice(i)}>{inUse && !changed ? 'In use on this device' : 'Use on this device'}</Button>
-          {admin && <Button disabled={!i.name.trim()} onClick={() => onServer(i)}>Add for everyone</Button>}
-          {changed && <Button variant="ghost" onClick={() => setI(start)}>Undo changes</Button>}
+          <Button variant="primary" disabled={!i.name.trim() || (inUse && !changed)} onClick={() => onDevice(i)}>{inUse && !changed ? t('In use on this device') : t('Use on this device')}</Button>
+          {admin && <Button disabled={!i.name.trim()} onClick={() => onServer(i)}>{t('Add for everyone')}</Button>}
+          {changed && <Button variant="ghost" onClick={() => setI(start)}>{t('Undo changes')}</Button>}
         </div>
       </div>
       <div className="theme-maker-preview">
         <ThemeScene colors={themeColors(made)} radius={made.radius} big />
-        {made.adjusted && <Notice>Your accent was adjusted a little so the words on it stay readable.</Notice>}
+        {made.adjusted && <Notice>{t('Your accent was adjusted a little so the words on it stay readable.')}</Notice>}
       </div>
     </div>
   )
@@ -123,7 +124,7 @@ export default function AppearanceSettings() {
   // The server is asked again, so the scene and finish are this theme's, not the last one's.
   const useHere = (id: string) => { if (required) return; setDeviceTheme(id); setMine(id); applyTheme(id || serverTheme); void loadThemeOverrides() }
   const makeDefault = async (id: string) => {
-    try { await api.put('/settings', { theme: id }); setServerTheme(id); toast('Everyone starts with this theme now', { tone: 'ok' }) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
+    try { await api.put('/settings', { theme: id }); setServerTheme(id); toast(t('Everyone starts with this theme now'), { tone: 'ok' }) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
   const upload = async (f: File, mineOnly = false) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
@@ -131,27 +132,27 @@ export default function AppearanceSettings() {
     if (tok) headers.Authorization = 'Bearer ' + tok
     const res = await fetch(`${serverBase()}/api/${mineOnly ? 'themes/mine' : 'themes'}?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers, body: f, credentials: 'same-origin' })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) { toast(data.error || 'That theme couldn’t be installed', { tone: 'danger' }); return }
-    toast(`“${data.name}” is installed`, { tone: 'ok' })
+    if (!res.ok) { toast(data.error || t('That theme couldn’t be installed'), { tone: 'danger' }); return }
+    toast(t('“{name}” is installed', { name: data.name }), { tone: 'ok' })
     load()
   }
-  const remove = async (t: ThemeMeta) => {
-    if (!await ask({ title: `Remove “${t.name}”?`, body: 'Its ZIP is deleted from the server’s themes folder.', confirm: 'Remove theme', danger: true })) return
-    try { await api.del(`/themes/${t.id}`); if (mine === t.id) useHere(''); load() } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
+  const remove = async (th: ThemeMeta) => {
+    if (!await ask({ title: t('Remove “{name}”?', { name: th.name }), body: t('Its ZIP is deleted from the server’s themes folder.'), confirm: t('Remove theme'), danger: true })) return
+    try { await api.del(`/themes/${th.id}`); if (mine === th.id) useHere(''); load() } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
   const madeForDevice = (i: MakerInput) => {
     setCustomThemeCss(themeCss(i))
     setCustom(i).catch(() => { /* it's still on this device */ })
     useHere(CUSTOM_THEME)
-    toast(`“${i.name}” is your theme on this device`, { tone: 'ok' })
+    toast(t('“{name}” is your theme on this device', { name: i.name }), { tone: 'ok' })
   }
   const madeForServer = async (i: MakerInput) => {
-    const t = makeTheme(i)
+    const made = makeTheme(i)
     try {
-      const meta = await api.post<ThemeMeta>('/themes/custom', { name: i.name, scheme: i.scheme, colors: t.vars, radius: t.radius })
+      const meta = await api.post<ThemeMeta>('/themes/custom', { name: i.name, scheme: i.scheme, colors: made.vars, radius: made.radius })
       await load()
       useHere(meta.id)
-      toast(`“${meta.name}” is on the server`, { tone: 'ok' })
+      toast(t('“{name}” is on the server', { name: meta.name }), { tone: 'ok' })
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
   const customMade = custom && makeTheme(custom)
@@ -160,24 +161,24 @@ export default function AppearanceSettings() {
   // What the large preview shows: the theme being looked at, or the one in use.
   const shown = peek ?? (mine === AUTO_THEME || mine === CUSTOM_THEME ? mine : active)
   const shownTheme = themes.find((t) => t.id === shown)
-  const shownName = shown === AUTO_THEME ? 'Automatic' : shown === CUSTOM_THEME ? custom?.name || 'Your own' : shownTheme?.name || ''
+  const shownName = shown === AUTO_THEME ? t('Automatic') : shown === CUSTOM_THEME ? custom?.name || t('Your own') : shownTheme?.name || ''
   const peeking = peek !== null && peek !== (mine || active)
   const hover = (id: string) => ({ onMouseEnter: () => setPeek(id), onFocus: () => setPeek(id) })
 
   return (
     <>
-      <Section id="theme" title="Theme" desc={required ? <><IconLock /> {lockText(required)}. It can’t be changed here: an administrator changes it in <Link to="/settings/pages/layouts">Pages &amp; menu, Looks</Link>.</> : mine
-        ? <>This device has its own theme. <button type="button" className="linkish" onClick={() => useHere('')}>Follow the server’s</button></>
-        : 'This device follows the server’s theme. Choosing one here changes this device only.'}>
+      <Section id="theme" title={tk('Theme')} desc={required ? <><IconLock /> {lockText(required)}. {t('It can’t be changed here: an administrator changes it in')} <Link to="/settings/pages/layouts">{t('Pages & menu, Looks')}</Link>.</> : mine
+        ? <>{t('This device has its own theme.')} <button type="button" className="linkish" onClick={() => useHere('')}>{t('Follow the server’s')}</button></>
+        : t('This device follows the server’s theme. Choosing one here changes this device only.')}>
         <div className="theme-stage">
           {shown === AUTO_THEME
             ? <span className="theme-scene-pair big" aria-hidden="true"><ThemeScene colors={colorsOf('default')} radius={10} big /><ThemeScene colors={colorsOf('light')} radius={10} big /></span>
             : shown === CUSTOM_THEME && customMade
               ? <ThemeScene colors={themeColors(customMade)} radius={customMade.radius} big />
               : <ThemeScene colors={shownTheme?.colors} radius={shownTheme?.radius} preview={shownTheme?.preview} big />}
-          {shownName && <p className="theme-stage-caption"><b>{shownName}</b> <span className="muted">{peeking ? 'Preview. Choose it to use it.' : required ? 'Required, so this is what this device wears' : 'In use on this device'}</span></p>}
+          {shownName && <p className="theme-stage-caption"><b>{shownName}</b> <span className="muted">{peeking ? t('Preview. Choose it to use it.') : required ? t('Required, so this is what this device wears') : t('In use on this device')}</span></p>}
         </div>
-        <div className="theme-grid" role="radiogroup" aria-label="Themes" onMouseLeave={() => setPeek(null)}
+        <div className="theme-grid" role="radiogroup" aria-label={t('Themes')} onMouseLeave={() => setPeek(null)}
           onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPeek(null) }}>
           <div className={'theme-card' + (mine === AUTO_THEME ? ' active' : '')} {...hover(AUTO_THEME)}>
             <button type="button" className="theme-pick" role="radio" aria-checked={mine === AUTO_THEME} onClick={() => useHere(AUTO_THEME)}>
@@ -185,21 +186,21 @@ export default function AppearanceSettings() {
                 <ThemeScene colors={colorsOf('default')} radius={10} />
                 <ThemeScene colors={colorsOf('light')} radius={10} />
               </span>
-              <span className="theme-name">Automatic</span>
-              <span className="muted">Light or dark, as this device is set.</span>
+              <span className="theme-name">{t('Automatic')}</span>
+              <span className="muted">{t('Light or dark, as this device is set.')}</span>
             </button>
           </div>
-          {themes.map((t) => (
-            <div key={t.id} className={'theme-card' + (t.id === active ? ' active' : '')} {...hover(t.id)}>
-              <button type="button" className="theme-pick" role="radio" aria-checked={t.id === active} onClick={() => useHere(t.id)}>
-                <ThemeScene colors={t.colors} radius={t.radius} preview={t.preview} />
-                <span className="theme-name">{t.name}{t.id === fallback && <span className="pill">default</span>}</span>
-                <span className="muted">{t.description || (t.author ? 'by ' + t.author : '')}</span>
+          {themes.map((th) => (
+            <div key={th.id} className={'theme-card' + (th.id === active ? ' active' : '')} {...hover(th.id)}>
+              <button type="button" className="theme-pick" role="radio" aria-checked={th.id === active} onClick={() => useHere(th.id)}>
+                <ThemeScene colors={th.colors} radius={th.radius} preview={th.preview} />
+                <span className="theme-name">{th.name}{th.id === fallback && <span className="pill">{t('default')}</span>}</span>
+                <span className="muted">{th.description || (th.author ? t('by {name}', { name: th.author }) : '')}</span>
               </button>
               <div className="theme-actions">
-                {admin && t.id !== fallback && <Button size="sm" variant="ghost" onClick={() => makeDefault(t.id)}>Make default</Button>}
-                {admin && !t.builtin && <Button size="sm" variant="danger" onClick={() => remove(t)}>Remove</Button>}
-                <a className="btn sm ghost square theme-dl" href={mediaUrl(`/api/themes/${t.id}/download`)} aria-label={`Download the ${t.name} theme`} title="Download, as a starting point for your own"><IconDownload /></a>
+                {admin && th.id !== fallback && <Button size="sm" variant="ghost" onClick={() => makeDefault(th.id)}>{t('Make default')}</Button>}
+                {admin && !th.builtin && <Button size="sm" variant="danger" onClick={() => remove(th)}>{t('Remove')}</Button>}
+                <a className="btn sm ghost square theme-dl" href={mediaUrl(`/api/themes/${th.id}/download`)} aria-label={t('Download the {name} theme', { name: th.name })} title={t('Download, as a starting point for your own')}><IconDownload /></a>
               </div>
             </div>
           ))}
@@ -208,23 +209,23 @@ export default function AppearanceSettings() {
               <button type="button" className="theme-pick" role="radio" aria-checked={mine === CUSTOM_THEME} onClick={() => { setCustomThemeCss(themeCss(custom)); useHere(CUSTOM_THEME) }}>
                 <ThemeScene colors={themeColors(customMade)} radius={customMade.radius} />
                 <span className="theme-name">{custom.name}</span>
-                <span className="muted">Made by you, for this device.</span>
+                <span className="muted">{t('Made by you, for this device.')}</span>
               </button>
-              <div className="theme-actions"><Button size="sm" variant="ghost" onClick={() => jumpTo('colours')}>Change its colours</Button></div>
+              <div className="theme-actions"><Button size="sm" variant="ghost" onClick={() => jumpTo('colours')}>{t('Change its colours')}</Button></div>
             </div>
           )}
         </div>
         <div className="panel-actions">
-          <Button icon={<IconPlus />} onClick={() => jumpTo('colours')}>Make your own</Button>
+          <Button icon={<IconPlus />} onClick={() => jumpTo('colours')}>{t('Make your own')}</Button>
           {<>
-            <input ref={fileRef} type="file" accept=".zip,application/zip" hidden aria-label="Theme ZIP" onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f, !admin); e.target.value = '' }} />
-            <Button variant="ghost" disabled={!!required} onClick={() => fileRef.current?.click()}>Import a theme…</Button>
+            <input ref={fileRef} type="file" accept=".zip,application/zip" hidden aria-label={t('Theme ZIP')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f, !admin); e.target.value = '' }} />
+            <Button variant="ghost" disabled={!!required} onClick={() => fileRef.current?.click()}>{t('Import a theme…')}</Button>
           </>}
-          <Link className="small-note" to="/help/themes">How themes work</Link>
+          <Link className="small-note" to="/help/themes">{t('How themes work')}</Link>
         </div>
       </Section>
-      <Section title="Colours" desc="Make a theme of your own from a few colours, and see it as you go. Every colour is checked as it’s made, so text stays easy to read. WittyTV has colours of its own, further down.">
-        <ColourMaker key={custom ? 'mine' : 'fresh'} start={custom || FRESH_MAKER} admin={admin} inUse={mine === CUSTOM_THEME} onDevice={madeForDevice} onServer={madeForServer} />
+      <Section title={tk('Colours')} desc={t('Make a theme of your own from a few colours, and see it as you go. Every colour is checked as it’s made, so text stays easy to read. WittyTV has colours of its own, further down.')}>
+        <ColourMaker key={custom ? 'mine' : 'fresh'} start={custom || { ...FRESH_MAKER, name: t('My theme') }} admin={admin} inUse={mine === CUSTOM_THEME} onDevice={madeForDevice} onServer={madeForServer} />
       </Section>
       <LayoutSection />
       <MotionSection />
@@ -235,10 +236,10 @@ export default function AppearanceSettings() {
       {/* A profile's own choice. An administrator has it under Playback, a page the others don't get. */}
       {!admin && <AutoSkipSection />}
       {admin && (
-        <Section id="name" title="Name and logo" desc="Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.">
+        <Section id="name" title={tk('Name and logo')} desc={t('Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.')}>
           <div className="brand-now">
             <div className="brand"><BrandMark /><Brand name={brandName} /></div>
-            <Button onClick={() => setNaming(true)}>Edit name and logo…</Button>
+            <Button onClick={() => setNaming(true)}>{t('Edit name and logo…')}</Button>
           </div>
           {naming && <BrandDialog onClose={() => setNaming(false)} />}
         </Section>
@@ -251,7 +252,10 @@ export default function AppearanceSettings() {
 // server; "As the server sets it" follows the administrator's choice. An administrator can require one, and it then
 // shows locked with who set it.
 type ExperienceCard = { id: string; name: string; tagline?: string; theme?: string; preview?: { bg: string; surface: string; accent: string }; nav: Record<string, string>; wire?: WireMap }
-const lockText = (r: { by?: string; scope: string }) => `Required by ${r.by || 'an administrator'}${r.scope === 'everyone' ? ' for everyone' : r.scope === 'kids' ? ' for kids profiles' : ''}`
+const lockText = (r: { by?: string; scope: string }) => {
+  const name = r.by || t('an administrator')
+  return r.scope === 'everyone' ? t('Required by {name} for everyone', { name }) : r.scope === 'kids' ? t('Required by {name} for kids profiles', { name }) : t('Required by {name}', { name })
+}
 
 // The look on this device, in two pages: first the layout (each look's wireframe as a phone shows it), then its
 // colours (the chosen layout large, in the theme being tried, and every theme drawn in it). "Use this" keeps both.
@@ -281,13 +285,13 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
       if (!lockedLook && layout !== choice.current) await api.put(lookPath(), { experience: layout })
       if (!lockedTheme) { setDeviceTheme(colour === serverTheme ? '' : colour); applyTheme(colour) }
       bump(); void loadThemeOverrides()
-      announce(`Look: ${picked?.name || layout}, colours: ${themes.find((t) => t.id === colour)?.name || colour}`)
+      announce(t('Look: {look}, colours: {colours}', { look: picked?.name || layout, colours: themes.find((x) => x.id === colour)?.name || colour }))
       setPage(1)
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy('') }
   }
   const followServer = async () => {
     setBusy('server')
-    try { await api.del(lookPath()); bump(); void loadThemeOverrides(); announce('Look: as the server sets it') } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy('') }
+    try { await api.del(lookPath()); bump(); void loadThemeOverrides(); announce(t('Look: as the server sets it')) } catch (e) { toast((e as Error).message, { tone: 'danger' }) } finally { setBusy('') }
   }
   const importZip = async (f: File) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
@@ -295,7 +299,7 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
     if (tok) headers.Authorization = 'Bearer ' + tok
     const res = await fetch(`${serverBase()}/api/themes/mine?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers, body: f, credentials: 'same-origin' })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) { toast(data.error || 'That theme couldn’t be installed', { tone: 'danger' }); return }
+    if (!res.ok) { toast(data.error || t('That theme couldn’t be installed'), { tone: 'danger' }); return }
     await loadThemes()
     if (data.id) setColour(data.id)
   }
@@ -306,33 +310,33 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
     const shown = themes.find((t) => t.id === colour)
     return (
       <>
-        <h3 className="look-step">Choose colours</h3>
+        <h3 className="look-step">{t('Choose colours')}</h3>
         <figure className="look-colours-big">
           <LayoutThumb wire={picked?.wire} formFactor={here} colours={shown?.preview} />
-          <figcaption><b>{shown?.name || colour}</b>{picked ? ` with ${picked.name}` : ''}</figcaption>
+          <figcaption><b>{shown?.name || colour}</b>{picked ? ' ' + t('with {name}', { name: picked.name }) : ''}</figcaption>
         </figure>
-        <div className="layout-opts look-opts" role="radiogroup" aria-label="Colours">
-          {themes.map((t) => (
-            <button key={t.id} type="button" role="radio" aria-checked={t.id === colour} disabled={lockedTheme} className={'layout-opt' + (t.id === colour ? ' on' : '')} onClick={() => { setColour(t.id); applyTheme(t.id) }}>
-              <LayoutThumb wire={picked?.wire} formFactor={here} colours={t.preview} />
-              <b>{t.name}</b>
+        <div className="layout-opts look-opts" role="radiogroup" aria-label={t('Colours')}>
+          {themes.map((th) => (
+            <button key={th.id} type="button" role="radio" aria-checked={th.id === colour} disabled={lockedTheme} className={'layout-opt' + (th.id === colour ? ' on' : '')} onClick={() => { setColour(th.id); applyTheme(th.id) }}>
+              <LayoutThumb wire={picked?.wire} formFactor={here} colours={th.preview} />
+              <b>{th.name}</b>
             </button>
           ))}
         </div>
         <div className="panel-actions">
-          <input ref={file} type="file" accept=".zip,application/zip" hidden aria-label="Theme ZIP" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importZip(f); e.target.value = '' }} />
-          <Button variant="ghost" disabled={lockedTheme} onClick={() => file.current?.click()}>Import a theme…</Button>
-          <Button variant="ghost" onClick={() => { applyTheme(deviceTheme() || serverTheme); setPage(1) }}>Back</Button>
-          <Button variant="primary" busy={busy === 'save'} onClick={() => void useThis()}>Use this</Button>
+          <input ref={file} type="file" accept=".zip,application/zip" hidden aria-label={t('Theme ZIP')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void importZip(f); e.target.value = '' }} />
+          <Button variant="ghost" disabled={lockedTheme} onClick={() => file.current?.click()}>{t('Import a theme…')}</Button>
+          <Button variant="ghost" onClick={() => { applyTheme(deviceTheme() || serverTheme); setPage(1) }}>{t('Back')}</Button>
+          <Button variant="primary" busy={busy === 'save'} onClick={() => void useThis()}>{t('Use this')}</Button>
         </div>
       </>
     )
   }
   return (
     <>
-      <h3 className="look-step">Choose a layout</h3>
-      {lockedLook && <p className="small-note" role="status"><IconLock /> {lockText(choice.required!)}. An administrator changes it in <Link to="/settings/pages/layouts">Pages &amp; menu, Looks</Link>.</p>}
-      <div className="layout-opts look-opts" role="radiogroup" aria-label="Layout on this device">
+      <h3 className="look-step">{t('Choose a layout')}</h3>
+      {lockedLook && <p className="small-note" role="status"><IconLock /> {lockText(choice.required!)}. {t('An administrator changes it in')} <Link to="/settings/pages/layouts">{t('Pages & menu, Looks')}</Link>.</p>}
+      <div className="layout-opts look-opts" role="radiogroup" aria-label={t('Layout on this device')}>
         {options.map((o) => {
           const c = cards.find((x) => x.id === o.value)
           const on = layout === o.value
@@ -346,12 +350,12 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
       </div>
       <div className="panel-actions">
         {lockedTheme
-          ? <Button variant="primary" busy={busy === 'save'} disabled={lockedLook} onClick={() => void useThis()}>Continue</Button>
-          : <Button variant="primary" onClick={() => setPage(2)}>Next</Button>}
+          ? <Button variant="primary" busy={busy === 'save'} disabled={lockedLook} onClick={() => void useThis()}>{t('Continue')}</Button>
+          : <Button variant="primary" onClick={() => setPage(2)}>{t('Next')}</Button>}
       </div>
       {!lockedLook && (
-        <Row label="As the server sets it" desc={current ? 'This device has a look of its own. Go back to the one the server gives everyone.' : 'This device follows the server’s look.'}>
-          <Button size="sm" variant="ghost" disabled={!current || !!busy} onClick={() => void followServer()}>Use the server’s</Button>
+        <Row label={t('As the server sets it')} desc={current ? t('This device has a look of its own. Go back to the one the server gives everyone.') : t('This device follows the server’s look.')}>
+          <Button size="sm" variant="ghost" disabled={!current || !!busy} onClick={() => void followServer()}>{t('Use the server’s')}</Button>
         </Row>
       )}
     </>
@@ -362,9 +366,9 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
 function LayoutSection() {
   const menu = useMenu()
   return (
-    <Section title="Look" desc={<>How the app looks and is laid out on this device: where the menu is, how pages are drawn, its finish and type. Choose a layout, then its colours. Kept for you on this device; your other devices keep their own. Rearrange a page with <b>Customise this page</b> at its foot.</>}>
+    <Section title={tk('Look')} desc={<>{t('How the app looks and is laid out on this device: where the menu is, how pages are drawn, its finish and type. Choose a layout, then its colours. Kept for you on this device; your other devices keep their own.')} {t('Rearrange a page with')} <b>{t('Customise this page')}</b> {t('at its foot.')}</>}>
       {menu.experiences && <ServerLookRows choice={menu.experiences} />}
-      <Row label="Edit layout" desc="Move the menu, the server’s name, search, the Dock and the spotlight, or hide what you don’t use: for you on this device, or for everyone."><Button onClick={() => window.dispatchEvent(new Event(LAYOUT_EVENT))}>Edit layout…</Button></Row>
+      <Row label={t('Edit layout')} desc={t('Move the menu, the server’s name, search, the Dock and the spotlight, or hide what you don’t use: for you on this device, or for everyone.')}><Button onClick={() => window.dispatchEvent(new Event(LAYOUT_EVENT))}>{t('Edit layout…')}</Button></Row>
       <NavCustomize />
       <DensityRow />
     </Section>
@@ -374,10 +378,10 @@ function LayoutSection() {
 // How closely things are spaced on this device.
 function DensityRow() {
   const d = useDensity()
-  const names: Record<Density, string> = { comfortable: 'Comfortable', compact: 'Compact', spacious: 'Spacious' }
+  const names: Record<Density, string> = { comfortable: t('Comfortable'), compact: t('Compact'), spacious: t('Spacious') }
   return (
-    <Row label="Spacing" desc="How closely things sit on this device. Compact fits more on the screen; spacious gives everything room. Touch screens keep their full-size buttons.">
-      <Segmented label="Spacing" value={d} onChange={(v) => setDensity(v as Density)} options={DENSITIES.map((v) => ({ value: v, label: names[v] }))} />
+    <Row label={t('Spacing')} desc={t('How closely things sit on this device. Compact fits more on the screen; spacious gives everything room. Touch screens keep their full-size buttons.')}>
+      <Segmented label={t('Spacing')} value={d} onChange={(v) => setDensity(v as Density)} options={DENSITIES.map((v) => ({ value: v, label: names[v] }))} />
     </Row>
   )
 }
@@ -390,15 +394,15 @@ function MotionSection() {
   const go = useNavigate()
   const blocked = tiltBlocked()
   return (
-    <Section title="Motion and big screens">
-      <Row label="Moving posters" desc={<>Movie and show posters lean toward the pointer, or settle in as a remote reaches them. {blocked ? `Off here: ${blocked}` : 'Follows you to your other devices.'}</>}>
-        <Switch label="Moving posters" checked={tilt && !blocked} disabled={!!blocked} onChange={(on) => setTilt(on).catch(() => toast('Could not save that', { tone: 'danger' }))} />
+    <Section title={tk('Motion and big screens')}>
+      <Row label={t('Moving posters')} desc={<>{t('Movie and show posters lean toward the pointer, or settle in as a remote reaches them.')} {blocked ? t('Off here: {reason}', { reason: tx(blocked) }) : t('Follows you to your other devices.')}</>}>
+        <Switch label={t('Moving posters')} checked={tilt && !blocked} disabled={!!blocked} onChange={(on) => setTilt(on).catch(() => toast(t('Could not save that'), { tone: 'danger' }))} />
       </Row>
-      <Row label="Moving backgrounds" desc="A song, album or title that has a canvas plays it behind the page: a short, silent, looping video. Off shows the still artwork. It's also left out when this device is set to reduce motion or save data, and away from home when streams are limited. Follows you to your other devices.">
-        <Switch label="Moving backgrounds" checked={canvases} onChange={(on) => setCanvases(on).catch(() => toast('Could not save that', { tone: 'danger' }))} />
+      <Row label={t('Moving backgrounds')} desc={t("A song, album or title that has a canvas plays it behind the page: a short, silent, looping video. Off shows the still artwork. It's also left out when this device is set to reduce motion or save data, and away from home when streams are limited. Follows you to your other devices.")}>
+        <Switch label={t('Moving backgrounds')} checked={canvases} onChange={(on) => setCanvases(on).catch(() => toast(t('Could not save that'), { tone: 'danger' }))} />
       </Row>
-      <Row label="TV mode" desc="Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device.">
-        <Switch label="TV mode" checked={tv} onChange={(on) => { setTvMode(on); if (on) go('/') }} />
+      <Row label={t('TV mode')} desc={t('Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device.')}>
+        <Switch label={t('TV mode')} checked={tv} onChange={(on) => { setTvMode(on); if (on) go('/') }} />
       </Row>
     </Section>
   )
@@ -410,23 +414,23 @@ function PlayerSection() {
   const [v, setV] = useState(globalView)
   const set = (p: Partial<ViewPrefs>) => { setGlobalView(p); setV((x) => ({ ...x, ...p })) }
   return (
-    <Section title="Player" desc="How videos look while they play, on this device. A disc or video you’ve set differently from the player’s own menu keeps its own.">
-      <Row label="Control bar" desc="Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.">
-        <Segmented label="Control bar" value={v.controls} onChange={(controls) => set({ controls })}
-          options={[{ value: 'auto', label: 'Automatic' }, { value: 'detailed', label: 'Detailed' }, { value: 'simple', label: 'Simple' }]} />
+    <Section title={tk('Player')} desc={t('How videos look while they play, on this device. A disc or video you’ve set differently from the player’s own menu keeps its own.')}>
+      <Row label={t('Control bar')} desc={t('Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.')}>
+        <Segmented label={t('Control bar')} value={v.controls} onChange={(controls) => set({ controls })}
+          options={[{ value: 'auto', label: t('Automatic') }, { value: 'detailed', label: t('Detailed') }, { value: 'simple', label: t('Simple') }]} />
       </Row>
-      <Row label="Seek bar" desc="The timeline under the picture."><Switch label="Seek bar" checked={v.seekBar} onChange={(seekBar) => set({ seekBar })} /></Row>
-      <Row label="Chapter marks" desc="Where chapters start, on the timeline."><Switch label="Chapter marks" checked={v.chapterMarks} onChange={(chapterMarks) => set({ chapterMarks })} /></Row>
-      <Row label="Hide the controls after">
-        <Segmented label="Hide the controls after" value={String(v.hideAfter)} onChange={(s) => set({ hideAfter: Number(s) })}
-          options={[{ value: '2', label: '2 s' }, { value: '3.5', label: '3.5 s' }, { value: '6', label: '6 s' }, { value: '0', label: 'Never' }]} />
+      <Row label={t('Seek bar')} desc={t('The timeline under the picture.')}><Switch label={t('Seek bar')} checked={v.seekBar} onChange={(seekBar) => set({ seekBar })} /></Row>
+      <Row label={t('Chapter marks')} desc={t('Where chapters start, on the timeline.')}><Switch label={t('Chapter marks')} checked={v.chapterMarks} onChange={(chapterMarks) => set({ chapterMarks })} /></Row>
+      <Row label={t('Hide the controls after')}>
+        <Segmented label={t('Hide the controls after')} value={String(v.hideAfter)} onChange={(s) => set({ hideAfter: Number(s) })}
+          options={[{ value: '2', label: t('{n} s', { n: num(2) }) }, { value: '3.5', label: t('{n} s', { n: num(3.5) }) }, { value: '6', label: t('{n} s', { n: num(6) }) }, { value: '0', label: t('Never') }]} />
       </Row>
-      <Row label="Picture" desc="Fit shows all of it, with black bars where the shapes differ. Fill zooms in to fill the screen.">
-        <Segmented label="Picture" value={v.picture} onChange={(picture) => set({ picture })} options={[{ value: 'fit', label: 'Fit' }, { value: 'fill', label: 'Fill screen' }]} />
+      <Row label={t('Picture')} desc={t('Fit shows all of it, with black bars where the shapes differ. Fill zooms in to fill the screen.')}>
+        <Segmented label={t('Picture')} value={v.picture} onChange={(picture) => set({ picture })} options={[{ value: 'fit', label: t('Fit') }, { value: 'fill', label: t('Fill screen') }]} />
       </Row>
-      <Row label="Disc subtitle size" desc="Subtitles drawn by DVDs and Blu-rays.">
-        <Segmented label="Disc subtitle size" value={String(v.subtitleSize)} onChange={(s) => set({ subtitleSize: Number(s) })}
-          options={[{ value: '0.8', label: 'S' }, { value: '1', label: 'M' }, { value: '1.25', label: 'L' }, { value: '1.5', label: 'XL' }]} />
+      <Row label={t('Disc subtitle size')} desc={t('Subtitles drawn by DVDs and Blu-rays.')}>
+        <Segmented label={t('Disc subtitle size')} value={String(v.subtitleSize)} onChange={(s) => set({ subtitleSize: Number(s) })}
+          options={[{ value: '0.8', label: t('S') }, { value: '1', label: t('M') }, { value: '1.25', label: t('L') }, { value: '1.5', label: t('XL') }]} />
       </Row>
     </Section>
   )

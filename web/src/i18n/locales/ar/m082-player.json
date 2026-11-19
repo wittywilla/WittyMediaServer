@@ -1,0 +1,17 @@
+{
+  "Control bar": "شريط التحكم",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "المفصّل يضع كل زر على الشريط. البسيط يُبقي الصورة واضحة: التشغيل والتخطي في المنتصف، والباقي (الصوت والترجمة والجودة والسرعة والمشاهد) في قائمة خيارات واحدة. التلقائي بسيط على الهاتف أو الجهاز اللوحي ومفصّل على شاشة أعرض.",
+  "Detailed": "مفصّل",
+  "Back to options": "العودة إلى الخيارات",
+  "Mono": "أحادي",
+  "Styled text": "نص منسّق",
+  "Keep playing in a corner": "متابعة التشغيل في الزاوية",
+  "{count} watching": {
+    "zero": "لا أحد يشاهد",
+    "one": "شخص واحد يشاهد",
+    "two": "شخصان يشاهدان",
+    "few": "{count} أشخاص يشاهدون",
+    "many": "{count} شخصًا يشاهدون",
+    "other": "{count} شخص يشاهدون"
+  }
+}

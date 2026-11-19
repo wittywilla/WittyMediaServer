@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { useApp } from '../../state'
 import { currentLook } from '../../theme'
 import { chooseTheme, contrast, FALLBACK_APP, FONT_STACKS, isHex, readableOn, SHAPES, themeById, themeTokens, upgradeSaved, type AppColours, type Colours, type Font, type OwnerLook, type Saved, type Shape, type Slot, type Suggestion, type ThemeId, type Tokens } from './tvThemes'
+import { t, tk, tx } from '../../i18n'
 
 // How WittyTV looks for this viewer, on every TV screen. It's their own, kept with their account
 // so it follows them from device to device. What they haven't chosen comes from the app theme's
@@ -49,8 +50,8 @@ const SETTINGS: Required<Pick<Saved, 'density' | 'hours' | 'nowLine' | 'progress
 }
 
 // The sizes the preview snaps to, and their names. Any size between works too.
-export const PREVIEW_SIZES = [{ w: 220, name: 'Small' }, { w: 320, name: 'Medium' }, { w: 460, name: 'Large' }, { w: 640, name: 'Extra large' }, { w: 880, name: 'Huge' }]
-export const previewSizeName = (w: number) => PREVIEW_SIZES.find((s) => Math.abs(s.w - w) < 8)?.name || `${Math.round(w)} pixels`
+export const PREVIEW_SIZES = [{ w: 220, name: tk('Small') }, { w: 320, name: tk('Medium') }, { w: 460, name: tk('Large') }, { w: 640, name: tk('Extra large') }, { w: 880, name: tk('Huge') }]
+export const previewSizeName = (w: number) => tx(PREVIEW_SIZES.find((s) => Math.abs(s.w - w) < 8)?.name) || t('{count} pixels', { count: Math.round(w) })
 
 const EVENT = 'wms-tv-look'
 const OLD_KEY = 'wms.tv.look'

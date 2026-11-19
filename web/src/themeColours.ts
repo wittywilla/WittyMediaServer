@@ -8,6 +8,8 @@
 // so the page can say what a colour does while it is still being typed. The server has the
 // last word: its answer after saving is what the page shows from then on.
 
+const tk = <S extends string>(english: S): S => english // marks text translated where it's shown (no i18n import: node tests load this file)
+
 export type Colours = Record<string, string>
 
 // ---- The colours a theme has ----
@@ -19,46 +21,46 @@ export type TokenGroup = { id: string; title: string; tokens: TokenInfo[] }
 // says which names it takes (the built-in themes' `colors`); a name it has that isn't here
 // yet is listed under "Other" by tokenGroups, so nothing it accepts is out of reach.
 export const TOKEN_GROUPS: TokenGroup[] = [
-  { id: 'surfaces', title: 'Surfaces', tokens: [
-    { name: 'bg', label: 'Page', hint: 'The page background' },
-    { name: 'bg2', label: 'Panels', hint: 'Side menu, panels and dialogs' },
-    { name: 'bg3', label: 'Cards and fields', hint: 'Fields, cards and tiles' },
-    { name: 'bg4', label: 'Hovered cards', hint: 'A card or field under the pointer, chip outlines' },
+  { id: 'surfaces', title: tk('Surfaces'), tokens: [
+    { name: 'bg', label: tk('Page'), hint: tk('The page background') },
+    { name: 'bg2', label: tk('Panels'), hint: tk('Side menu, panels and dialogs') },
+    { name: 'bg3', label: tk('Cards and fields'), hint: tk('Fields, cards and tiles') },
+    { name: 'bg4', label: tk('Hovered cards'), hint: tk('A card or field under the pointer, chip outlines') },
   ] },
-  { id: 'text', title: 'Text', tokens: [
-    { name: 'fg', label: 'Main text', hint: 'Titles and everything you read' },
-    { name: 'fg2', label: 'Secondary text', hint: 'Meta lines, overviews, inactive tabs' },
-    { name: 'fg3', label: 'Hints', hint: 'Hints, captions and section labels' },
-    { name: 'onImage', label: 'Text over pictures', hint: 'Words and icons on artwork' },
+  { id: 'text', title: tk('Text'), tokens: [
+    { name: 'fg', label: tk('Main text'), hint: tk('Titles and everything you read') },
+    { name: 'fg2', label: tk('Secondary text'), hint: tk('Meta lines, overviews, inactive tabs') },
+    { name: 'fg3', label: tk('Hints'), hint: tk('Hints, captions and section labels') },
+    { name: 'onImage', label: tk('Text over pictures'), hint: tk('Words and icons on artwork') },
   ] },
-  { id: 'accent', title: 'Accent', tokens: [
-    { name: 'accent', label: 'Accent', hint: 'Primary buttons, progress bars, selected items' },
-    { name: 'accentHover', label: 'Accent, hovered', hint: 'An accent button under the pointer or pressed' },
-    { name: 'accentFg', label: 'Text on the accent', hint: 'The words and icons on an accent button' },
-    { name: 'accentText', label: 'Links', hint: 'The accent as words: links and highlighted text' },
-    { name: 'focus', label: 'Focus ring', hint: 'The outline around what a keyboard or remote is on' },
-    { name: 'brandAccent', label: 'Name highlight', hint: 'The highlighted part of the server’s name' },
+  { id: 'accent', title: tk('Accent'), tokens: [
+    { name: 'accent', label: tk('Accent'), hint: tk('Primary buttons, progress bars, selected items') },
+    { name: 'accentHover', label: tk('Accent, hovered'), hint: tk('An accent button under the pointer or pressed') },
+    { name: 'accentFg', label: tk('Text on the accent'), hint: tk('The words and icons on an accent button') },
+    { name: 'accentText', label: tk('Links'), hint: tk('The accent as words: links and highlighted text') },
+    { name: 'focus', label: tk('Focus ring'), hint: tk('The outline around what a keyboard or remote is on') },
+    { name: 'brandAccent', label: tk('Name highlight'), hint: tk('The highlighted part of the server’s name') },
   ] },
-  { id: 'status', title: 'Status', tokens: [
-    { name: 'danger', label: 'Danger', hint: 'Errors and delete buttons' },
-    { name: 'ok', label: 'Success', hint: 'Messages that something worked' },
-    { name: 'warn', label: 'Warning', hint: 'Warnings and the rating star' },
+  { id: 'status', title: tk('Status'), tokens: [
+    { name: 'danger', label: tk('Danger'), hint: tk('Errors and delete buttons') },
+    { name: 'ok', label: tk('Success'), hint: tk('Messages that something worked') },
+    { name: 'warn', label: tk('Warning'), hint: tk('Warnings and the rating star') },
   ] },
-  { id: 'lines', title: 'Lines', tokens: [
-    { name: 'border', label: 'Hairlines', hint: 'Lines around panels, lists and tiles' },
-    { name: 'borderStrong', label: 'Strong lines', hint: 'Lines that need to show more' },
-    { name: 'controlLine', label: 'Field outlines', hint: 'Outlines of fields and switches' },
+  { id: 'lines', title: tk('Lines'), tokens: [
+    { name: 'border', label: tk('Hairlines'), hint: tk('Lines around panels, lists and tiles') },
+    { name: 'borderStrong', label: tk('Strong lines'), hint: tk('Lines that need to show more') },
+    { name: 'controlLine', label: tk('Field outlines'), hint: tk('Outlines of fields and switches') },
   ] },
-  { id: 'shades', title: 'Shades', tokens: [
-    { name: 'hover', label: 'Hover shade', hint: 'Laid over a thing under the pointer' },
-    { name: 'pressed', label: 'Pressed shade', hint: 'Laid over a thing being pressed' },
-    { name: 'accentSoft', label: 'Selected row', hint: 'The tint behind a selected row' },
-    { name: 'accentLine', label: 'Selected outline', hint: 'The line around a selected thing' },
-    { name: 'okSoft', label: 'Success tint', hint: 'Behind a success message' },
-    { name: 'warnSoft', label: 'Warning tint', hint: 'Behind a warning' },
-    { name: 'dangerSoft', label: 'Danger tint', hint: 'Behind an error' },
-    { name: 'scrim', label: 'Plate over pictures', hint: 'Behind words drawn on artwork' },
-    { name: 'overlay', label: 'Behind dialogs', hint: 'The dimmed page behind a dialog' },
+  { id: 'shades', title: tk('Shades'), tokens: [
+    { name: 'hover', label: tk('Hover shade'), hint: tk('Laid over a thing under the pointer') },
+    { name: 'pressed', label: tk('Pressed shade'), hint: tk('Laid over a thing being pressed') },
+    { name: 'accentSoft', label: tk('Selected row'), hint: tk('The tint behind a selected row') },
+    { name: 'accentLine', label: tk('Selected outline'), hint: tk('The line around a selected thing') },
+    { name: 'okSoft', label: tk('Success tint'), hint: tk('Behind a success message') },
+    { name: 'warnSoft', label: tk('Warning tint'), hint: tk('Behind a warning') },
+    { name: 'dangerSoft', label: tk('Danger tint'), hint: tk('Behind an error') },
+    { name: 'scrim', label: tk('Plate over pictures'), hint: tk('Behind words drawn on artwork') },
+    { name: 'overlay', label: tk('Behind dialogs'), hint: tk('The dimmed page behind a dialog') },
   ] },
 ]
 
@@ -73,7 +75,7 @@ export function tokenGroups(serverTokens: Iterable<string>): TokenGroup[] {
   const have = new Set(serverTokens)
   const out = TOKEN_GROUPS.map((g) => ({ ...g, tokens: g.tokens.filter((t) => have.has(t.name)) })).filter((g) => g.tokens.length > 0)
   const other = [...have].filter((n) => !KNOWN.has(n) && /^[a-z][A-Za-z0-9]*$/.test(n)).sort()
-  if (other.length) out.push({ id: 'other', title: 'Other', tokens: other.map((name) => ({ name, label: name, hint: 'A colour this theme has' })) })
+  if (other.length) out.push({ id: 'other', title: tk('Other'), tokens: other.map((name) => ({ name, label: name, hint: tk('A colour this theme has') })) })
   return out
 }
 
@@ -86,7 +88,7 @@ const hex2 = (n: number) => n.toString(16).toUpperCase().padStart(2, '0')
 const num = (s: string) => (/^(\d+\.?\d*|\.\d+)$/.test(s) ? Number(s) : NaN)
 
 // What the server says when a value isn't one, so the field says the same before and after saving.
-export const NOT_A_COLOUR = 'not a colour (#rrggbb, #rrggbbaa or rgb()/rgba())'
+export const NOT_A_COLOUR = tk('not a colour (#rrggbb, #rrggbbaa or rgb()/rgba())')
 
 // normalizeColour turns the forms the server takes (#rgb, #rgba, #rrggbb, #rrggbbaa, rgb(),
 // rgba(), and the words transparent, black and white) into #RRGGBB or #RRGGBBAA, the way the

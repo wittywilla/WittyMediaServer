@@ -13,6 +13,7 @@ import SpecPage from '../../spec/SpecPage'
 import { discSpec, pastSpec, storageSpec } from '../../spec/specs/diagnoser'
 import './diagnoser.css'
 import { Tabs } from '../../ui/Choice'
+import { num, t, tk, tn, tx } from '../../i18n'
 
 // WittyDiagnoser, the disk diagnoser: checks a DVD or Blu-ray, or the folders the
 // server uses, and says in plain words what it found. It only reads, and the
@@ -32,12 +33,16 @@ type Listing = { path: string; parent: string | null; roots?: { name: string; pa
 
 const POLL_MS = 1500
 const active = (j?: Job | null) => !!j && (j.state === 'queued' || j.state === 'running')
-const gb = (n = 0) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : `${Math.max(1, Math.round(n / (1 << 20)))} MB`)
+const gb = (n = 0) => (n >= 1 << 30 ? `${num(n / (1 << 30), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} GB` : `${num(Math.max(1, Math.round(n / (1 << 20))))} MB`)
 
 function countsLine(c: Job['counts']) {
   const n = (k: Severity) => c?.[k] || 0
-  const part = (k: Severity, one: string, many: string) => (n(k) ? `${n(k)} ${n(k) === 1 ? one : many}` : '')
-  return [part('problem', 'problem', 'problems'), part('warn', 'warning', 'warnings'), part('info', 'note', 'notes'), part('ok', 'thing fine', 'things fine')].filter(Boolean).join(', ') || 'Nothing to report'
+  return [
+    n('problem') ? tn('{count} problem', '{count} problems', n('problem')) : '',
+    n('warn') ? tn('{count} warning', '{count} warnings', n('warn')) : '',
+    n('info') ? tn('{count} note', '{count} notes', n('info')) : '',
+    n('ok') ? tn('{count} thing fine', '{count} things fine', n('ok')) : '',
+  ].filter(Boolean).join(', ') || t('Nothing to report')
 }
 
 export default function Diagnoser() {
@@ -56,9 +61,9 @@ export default function Diagnoser() {
 
   return (
     <>
-      <PageHead title="WittyDiagnoser" desc={<>The disk diagnoser: checks your discs and your drives, and changes nothing. Pick a DVD, Blu-ray or CD image, or the folders the server uses, and it says what it finds in plain words. It never gets around copy protection. To fix the server’s own data, use <Link to="/settings/repair">Repair</Link>.</>} />
-      <Tabs label="What to check" value={tab} onChange={setTab} panelId="dgn-panel" items={[{ value: 'disc', label: 'A disc' }, { value: 'storage', label: 'Storage' }]} />
-      <div id="dgn-panel" role="tabpanel" aria-label={tab === 'disc' ? 'A disc' : 'Storage'}>
+      <PageHead title={tk('WittyDiagnoser')} desc={<>{t('The disk diagnoser: checks your discs and your drives, and changes nothing. Pick a DVD, Blu-ray or CD image, or the folders the server uses, and it says what it finds in plain words. It never gets around copy protection.')} {t('To fix the server’s own data, use')} <Link to="/settings/repair">{t('Repair')}</Link>.</>} />
+      <Tabs label={t('What to check')} value={tab} onChange={setTab} panelId="dgn-panel" items={[{ value: 'disc', label: t('A disc') }, { value: 'storage', label: t('Storage') }]} />
+      <div id="dgn-panel" role="tabpanel" aria-label={tab === 'disc' ? t('A disc') : t('Storage')}>
         {tab === 'disc' ? <DiscChoice onStarted={started} /> : <StorageChoice onStarted={started} />}
       </div>
       <div ref={panel} className="dgn-anchor">
@@ -126,15 +131,15 @@ function DiscBrowser({ onPick }: { onPick: (path: string) => void }) {
   return (
     <div className="dgn-browser">
       <div className="dgn-browser-head">
-        {at && <button type="button" className="btn sm" onClick={() => go(upTo)}><IconUp /> {list?.parent ? 'Up' : 'All places'}</button>}
-        <span className="mono dgn-where">{at || 'Your libraries and the data folder'}</span>
+        {at && <button type="button" className="btn sm" onClick={() => go(upTo)}><IconUp /> {list?.parent ? t('Up') : t('All places')}</button>}
+        <span className="mono dgn-where">{at || t('Your libraries and the data folder')}</span>
       </div>
-      {err && <div className="error dgn-err" role="alert">{err} {at && <button type="button" className="btn sm" onClick={() => go('')}>Back to the start</button>}</div>}
+      {err && <div className="error dgn-err" role="alert">{err} {at && <button type="button" className="btn sm" onClick={() => go('')}>{t('Back to the start')}</button>}</div>}
       {!err && !list && <div className="dgn-browser-empty"><Spinner /></div>}
       {list && (
         <ul className="dgn-entries" ref={ul}>
           {showRoots && list.roots!.map((r) => (
-            <li key={r.path}><button type="button" className="dgn-entry" onClick={() => go(r.path)}><IconDrive size={18} /><span className="dgn-entry-name">{r.name}</span><small>{r.kind === 'data' ? 'Data folder' : 'Library'}</small></button></li>
+            <li key={r.path}><button type="button" className="dgn-entry" onClick={() => go(r.path)}><IconDrive size={18} /><span className="dgn-entry-name">{r.name}</span><small>{r.kind === 'data' ? t('Data folder') : t('Library')}</small></button></li>
           ))}
           {!showRoots && list.entries.map((e) => {
             const disc = e.dir ? e.disc : e.kind === 'disc' ? 'image' : ''
@@ -143,16 +148,16 @@ function DiscBrowser({ onPick }: { onPick: (path: string) => void }) {
                 <button type="button" className={'dgn-entry' + (disc ? ' disc' : '')} onClick={() => (disc ? onPick(e.path) : go(e.path))}>
                   {disc ? <IconDisc size={18} /> : e.dir ? <IconFolder size={18} /> : <IconFile size={18} />}
                   <span className="dgn-entry-name">{e.name}</span>
-                  <small>{e.disc === 'dvd' ? 'DVD folder: choose' : e.disc === 'bluray' ? 'Blu-ray folder: choose' : e.kind === 'disc' ? `${gb(e.size)}: choose` : ''}</small>
+                  <small>{e.disc === 'dvd' ? t('DVD folder: choose') : e.disc === 'bluray' ? t('Blu-ray folder: choose') : e.kind === 'disc' ? t('{size}: choose', { size: gb(e.size) }) : ''}</small>
                 </button>
               </li>
             )
           })}
-          {!showRoots && list.entries.length === 0 && <li className="dgn-browser-empty">No folders or disc images here.</li>}
-          {showRoots && !list.roots!.length && <li className="dgn-browser-empty">Add a library first, under Libraries.</li>}
+          {!showRoots && list.entries.length === 0 && <li className="dgn-browser-empty">{t('No folders or disc images here.')}</li>}
+          {showRoots && !list.roots!.length && <li className="dgn-browser-empty">{t('Add a library first, under Libraries.')}</li>}
         </ul>
       )}
-      {list?.truncated && <p className="set-row-desc dgn-trunc">This folder holds too much to list in full.</p>}
+      {list?.truncated && <p className="set-row-desc dgn-trunc">{t('This folder holds too much to list in full.')}</p>}
     </div>
   )
 }
@@ -217,32 +222,32 @@ function JobPanel({ id, onChanged }: { id: string; onChanged: () => void }) {
     setStopping(true)
     try { setJob(await api.del<Job>(`/diagnose/jobs/${encodeURIComponent(id)}`)) } catch (e: any) { toast(e.message); setStopping(false) }
   }
-  if (err && !job) return <Section title="This check"><div className="error" role="alert">{err}</div></Section>
+  if (err && !job) return <Section title={tk('This check')}><div className="error" role="alert">{err}</div></Section>
   if (!job) return <div className="dgn-browser-empty"><Spinner /></div>
   const when = job.finished ? fmtDateTime(job.finished) : ''
   // Spoken when it changes: the words, never each percent.
-  const said = job.state === 'queued' ? `Waiting for another check to finish${job.position ? ` (number ${job.position} in line)` : ''}.`
-    : job.state === 'running' ? (stopping ? 'Stopping…' : job.phase || 'Working…')
-    : job.state === 'cancelled' ? `Stopped. ${countsLine(job.counts)}.`
-    : `Finished. ${countsLine(job.counts)}.`
+  const said = job.state === 'queued' ? (job.position ? t('Waiting for another check to finish (number {position} in line).', { position: job.position }) : t('Waiting for another check to finish.'))
+    : job.state === 'running' ? (stopping ? t('Stopping…') : tx(job.phase) || t('Working…'))
+    : job.state === 'cancelled' ? t('Stopped. {counts}.', { counts: countsLine(job.counts) })
+    : t('Finished. {counts}.', { counts: countsLine(job.counts) })
   const report = (format: string) => `/diagnose/jobs/${encodeURIComponent(id)}/report?format=${format}${hide ? '&redact=1' : ''}`
   return (
-    <Section title={job.subject + (job.kind === 'storage' ? ' checked' : '')} desc={job.label && !running ? `Label on the disc: ${job.label}` : when ? `Checked ${when}` : undefined}
-      actions={running && <button type="button" className="btn sm" onClick={cancel} disabled={stopping}>Cancel</button>}>
+    <Section title={job.kind === 'storage' ? t('{subject} checked', { subject: tx(job.subject) }) : job.subject} desc={job.label && !running ? t('Label on the disc: {label}', { label: job.label }) : when ? t('Checked {when}', { when }) : undefined}
+      actions={running && <button type="button" className="btn sm" onClick={cancel} disabled={stopping}>{t('Cancel')}</button>}>
       <p className="dgn-phase" role="status" aria-live="polite">{said}</p>
-      {running && <progress className="dgn-bar" max={1} value={job.fraction} aria-label="How far along the check is" />}
-      {job.state === 'cancelled' && <p className="set-row-desc">You stopped this check, so this is only what it found up to then.</p>}
+      {running && <progress className="dgn-bar" max={1} value={job.fraction} aria-label={t('How far along the check is')} />}
+      {job.state === 'cancelled' && <p className="set-row-desc">{t('You stopped this check, so this is only what it found up to then.')}</p>}
       <div className="dgn-cards">
         {(job.findings || []).map((f, i) => <FindingCard key={i} f={f} />)}
       </div>
       {job.saved && (
         <div className="dgn-download">
-          <Row label="Hide disc name and file names" desc="For a copy to send to someone. Reports never hold full paths or anything from the disc itself.">
-            <Switch checked={hide} onChange={setHide} label="Hide disc name and file names" />
+          <Row label={t('Hide disc name and file names')} desc={t('For a copy to send to someone. Reports never hold full paths or anything from the disc itself.')}>
+            <Switch checked={hide} onChange={setHide} label={t('Hide disc name and file names')} />
           </Row>
           <div className="dgn-download-btns">
-            <DownloadButton className="btn" path={report('txt')} name={`${id}.txt`}>Download report</DownloadButton>
-            <DownloadButton className="btn ghost" path={report('json')} name={`${id}.json`}>As JSON</DownloadButton>
+            <DownloadButton className="btn" path={report('txt')} name={`${id}.txt`}>{t('Download report')}</DownloadButton>
+            <DownloadButton className="btn ghost" path={report('json')} name={`${id}.json`}>{t('As JSON')}</DownloadButton>
           </div>
         </div>
       )}
@@ -253,8 +258,8 @@ function JobPanel({ id, onChanged }: { id: string; onChanged: () => void }) {
 // ---------------------------------------------------------------- past reports
 
 function PastReports({ jobs, err, current, onOpen, onRetry }: { jobs: Job[] | null; err: string; current: string; onOpen: (id: string) => void; onRetry: () => void }) {
-  if (err) return <div className="error dgn-err" role="alert">{err} <button type="button" className="btn sm" onClick={onRetry}>Try again</button></div>
+  if (err) return <div className="error dgn-err" role="alert">{err} <button type="button" className="btn sm" onClick={onRetry}>{t('Try again')}</button></div>
   if (!jobs) return <div className="dgn-browser-empty"><Spinner /></div>
   const list = jobs.map((j) => ({ id: j.id, kind: j.kind, subject: j.subject, running: active(j), state: j.state, worst: j.worst, finished: j.finished ? fmtDateTime(j.finished) : undefined }))
-  return <SpecPage embedded page={pastSpec(list, current, WORDS)} handled={new Set(jobs.map((j) => 'job:' + j.id))} onAction={(id) => onOpen(id.slice(4))} />
+  return <SpecPage embedded page={pastSpec(list, current, Object.fromEntries(Object.entries(WORDS).map(([k, w]) => [k, tx(w)])) as typeof WORDS)} handled={new Set(jobs.map((j) => 'job:' + j.id))} onAction={(id) => onOpen(id.slice(4))} />
 }

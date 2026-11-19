@@ -36,6 +36,7 @@ import { TopBar } from './shell/TopBar'
 import { Scene } from './ui/Scene'
 import { frameFor } from './shell/navModel'
 import { useMedia, useMenu, useNavMigration, useNavPrefs } from './shell/useNav'
+import { IconTv } from './icons'
 import { backToTvMode, cameFromTvMode, forgetTvReturn, useTvMode } from './tvmode/mode'
 import RemoteHost from './remote/RemoteHost'
 
@@ -331,9 +332,10 @@ function TvReturnBar() {
   if (!shown) return null
   return (
     <div className="legal-ack-bar tv-return-bar" role="region" aria-label="TV mode">
-      <p>You left TV mode to change this page.</p>
+      <IconTv aria-hidden="true" />
+      <p>You left TV mode to change this page. Go back when you're done.</p>
       <button className="btn sm primary" onClick={() => { setShown(false); backToTvMode() }}>Back to TV mode</button>
-      <button className="btn sm" onClick={() => { setShown(false); forgetTvReturn() }}>Stay here</button>
+      <button className="btn sm ghost" onClick={() => { setShown(false); forgetTvReturn() }}>Stay out of TV mode</button>
     </div>
   )
 }

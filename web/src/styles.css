@@ -810,6 +810,10 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .legal-foot { margin: var(--section-gap) 0 0; }
 .content:has(.legal-note:not(.legal-foot)) .legal-foot, .content:has(.set-shell) .legal-foot { display: none; }
 .legal-ack-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border-bottom: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); }
+/* After Leave TV mode (App.tsx, docs/TV-MODE.md): the message and its two buttons together, in the middle. */
+.tv-return-bar { justify-content: center; }
+.tv-return-bar p { margin: 0; }
+.tv-return-bar svg { width: 18px; height: 18px; color: var(--accent-text); }
 .legal-ack-bar p { flex: 1 1 32ch; margin: 0; max-width: 80ch; line-height: 1.5; }
 /* Unencrypted connections from away: stays until the setting goes. */
 .plain-away-bar { background: var(--danger-soft); border-bottom: 2px solid var(--danger); color: var(--fg); }

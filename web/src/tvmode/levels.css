@@ -1,51 +1,120 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Copyright (C) 2026 WittyWilla and contributors */
-/* What a television shows in place of a screen it doesn't offer (OnAComputer.tsx, docs/TV-MODE.md). Sizes are
-   TV mode's (tvmode.css); off TV mode the same card is drawn at the website's own sizes. */
+/* What TV mode shows in place of a screen it doesn't offer (OnAComputer.tsx, docs/TV-MODE.md): the card, the banner of a
+   screen shown read only, a part's note and the dialog. Sizes are TV mode's (tvmode.css), scoped to the card and the
+   banner; a note and a dialog keep the page's own sizes, so they sit quietly among the rows around them. */
 
-.tvl-page { display: flex; flex-direction: column; gap: var(--sp-8); padding-block: var(--sp-6); }
+/* ------------------------------------------------------------------ the card: a screen a TV doesn't offer */
+.tvl-page { display: flex; flex-direction: column; justify-content: center; gap: var(--sp-8); min-height: 60vh; padding-block: var(--sp-6); }
+.tvl-page.tvl-viewing { justify-content: flex-start; min-height: 0; }
 
 .tvl-card {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-10); align-items: center;
-  padding: var(--sp-8); border-radius: var(--r-xl);
+  width: 100%; max-width: 1180px; margin-inline: auto; padding: var(--sp-8); border-radius: var(--r-xl);
   background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--card-shadow);
 }
-.tvl-text { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
-.tvl-title { margin: 0; font-size: var(--page-title); }
-.tvl-note { margin: 0; font-size: var(--text-lg); }
-.tvl-addr { margin: 0; font-family: var(--font-mono); color: var(--accent-text); overflow-wrap: anywhere; }
-.tvl-now { margin: 0; padding: var(--sp-4) var(--sp-6); list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); border-radius: var(--r-lg); background: var(--accent-soft); }
+/* A computer's card has no QR code: one column, as wide as its words need. */
+.tvl-card.tvl-computer { grid-template-columns: minmax(0, 1fr); max-width: 760px; }
+.tvl-text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4); min-width: 0; }
+.tvl-eyebrow { display: inline-flex; align-items: center; gap: var(--sp-2); margin: 0; color: var(--accent-text); font-size: var(--text-sm); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.tvl-eyebrow-ic { display: inline-grid; place-items: center; width: 1.8em; height: 1.8em; border-radius: var(--r-sm); background: var(--accent-soft); }
+.tvl-eyebrow-ic svg { width: 1.1em; height: 1.1em; }
+.tvl-title { margin: 0; font-size: var(--page-title); line-height: 1.1; }
+.tvl-note { margin: 0; max-width: 34em; font-size: var(--text-lg); line-height: 1.4; }
 .tvl-follow { margin: 0; color: var(--fg-2); }
-.tvl-actions { display: flex; gap: var(--sp-4); margin-top: var(--sp-2); }
-.tvl-qr { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); color: var(--fg-2); }
+.tvl-actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-2); }
+
+/* What is set now: a quiet panel with its label, only as wide as its lines. */
+.tvl-now { display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3) var(--sp-5); border-radius: var(--r-md); background: var(--bg-3); border-left: 3px solid var(--accent); }
+.tvl-now-label { color: var(--fg-2); font-size: var(--text-xs); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.tvl-now ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); }
+
+/* The QR code, with the address it holds under it: the same thing, in words. */
+.tvl-qr { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); max-width: 300px; color: var(--fg-2); text-align: center; }
+.tvl-qr figcaption { display: flex; flex-direction: column; gap: var(--sp-1); }
 .tvl-qr .rem-qr { border-radius: var(--r-md); }
+.tvl-addr { font-family: var(--font-mono); color: var(--accent-text); overflow-wrap: normal; word-break: normal; }
+.tvl-qr .tvl-addr { font-size: var(--text-sm); }
+
+/* ------------------------------------------------------------------ a screen shown read only */
+.tvl-banner {
+  display: flex; align-items: center; gap: var(--sp-5); width: 100%; max-width: 1180px; margin-inline: auto; padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-lg); background: var(--bg-2); border: 1px solid var(--border);
+}
+.tvl-banner-ic, .tvl-part-ic { flex: none; display: grid; place-items: center; width: 2.4em; height: 2.4em; border-radius: var(--r-md); background: var(--accent-soft); color: var(--accent-text); }
+.tvl-banner-ic svg, .tvl-part-ic svg { width: 1.3em; height: 1.3em; }
+.tvl-banner-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
+.tvl-banner-title { margin: 0; font-size: var(--text-lg); }
+.tvl-banner-text p { margin: 0; color: var(--fg-2); }
+.tvl-banner .tvl-actions { margin: 0; flex: none; }
 
 .tvl-view { border: 0; margin: 0; padding: 0; min-width: 0; display: contents; }
 .tvl-view :is(section, .set-card):focus-visible { outline: 3px solid var(--accent); outline-offset: var(--sp-1); }
+/* Controls that can't be used here look it, so nobody reaches for them. */
+.tvl-view :is(input, select, textarea, button):disabled,
+.tvl-view :is(label, [role=switch], [role=radiogroup], .ui-switch, .segmented):has(:disabled),
+.tvl-view :disabled + * { opacity: .5; }
+
+/* ------------------------------------------------------------------ a part of a screen, and the dialog */
+.tvl-part {
+  display: flex; align-items: center; gap: var(--sp-3) var(--sp-4); flex-wrap: wrap; flex: 1 1 100%; width: 100%; margin-block: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--bg-3); color: var(--fg-2); font-size: var(--text-sm);
+}
+.tvl-part-ic { width: 2em; height: 2em; }
+.tvl-part-text { flex: 1 1 18em; margin: 0; line-height: 1.45; }
+.tvl-part-text b { color: var(--fg); }
+.tvl-part .tvl-addr { white-space: nowrap; }
 
 .tvl-dialog { display: flex; gap: var(--sp-6); align-items: center; }
 .tvl-dialog p { margin: 0 0 var(--sp-3); }
+.tvl-dialog .tvl-addr { font-size: var(--text-sm); }
 
-.tvl-part { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); align-items: baseline; padding: var(--sp-4) var(--sp-5); border-radius: var(--r-lg); background: var(--accent-soft); }
-
-html.tv-mode .tvl-page { gap: calc(var(--tvu) * 48); padding: 0; }
-html.tv-mode .tvl-card { gap: calc(var(--tvu) * 80); padding: calc(var(--tvu) * 64); border-radius: var(--tvm-r-tile); }
+/* ------------------------------------------------------------------ TV mode's sizes, for the card and the banner */
+html.tv-mode .tvl-page { gap: calc(var(--tvu) * 48); min-height: calc(100vh - var(--tvm-safe-y) * 2 - var(--tvu) * 160); padding: 0; }
+html.tv-mode .tvl-page.tvl-viewing { min-height: 0; }
+html.tv-mode .tvl-card { max-width: calc(var(--tvu) * 1400); gap: calc(var(--tvu) * 80); padding: calc(var(--tvu) * 64); border-radius: var(--tvm-r-tile); }
+html.tv-mode .tvl-card.tvl-computer { max-width: calc(var(--tvu) * 1000); }
+html.tv-mode .tvl-text { gap: calc(var(--tvu) * 24); }
+html.tv-mode .tvl-eyebrow { font-size: var(--tvm-caption); }
 html.tv-mode .tvl-title { font-size: var(--tvm-pagetitle); }
-html.tv-mode .tvl-note { font-size: var(--tvm-title); }
-html.tv-mode .tvl-addr { font-size: var(--tvm-body); }
-html.tv-mode .tvl-now, html.tv-mode .tvl-follow, html.tv-mode .tvl-part { font-size: var(--tvm-body); }
-html.tv-mode .tvl-qr { font-size: var(--tvm-caption); }
-html.tv-mode .tvl-qr .rem-qr { width: calc(var(--tvu) * 360); height: calc(var(--tvu) * 360); }
+html.tv-mode .tvl-note { font-size: var(--tvm-body); }
+html.tv-mode .tvl-card :is(.tvl-now, .tvl-follow) { font-size: var(--tvm-caption); }
+html.tv-mode .tvl-now-label { font-size: calc(var(--tvu) * 20); }
+html.tv-mode .tvl-qr { max-width: calc(var(--tvu) * 420); font-size: var(--tvm-caption); }
+html.tv-mode .tvl-qr .tvl-addr { font-size: calc(var(--tvu) * 22); }
+html.tv-mode .tvl-qr .rem-qr { width: calc(var(--tvu) * 320); height: calc(var(--tvu) * 320); }
+html.tv-mode .tvl-banner { max-width: calc(var(--tvu) * 1400); gap: calc(var(--tvu) * 32); padding: calc(var(--tvu) * 28) calc(var(--tvu) * 36); font-size: var(--tvm-caption); }
+html.tv-mode .tvl-banner-title { font-size: var(--tvm-title); }
 
 @media (max-width: 700px) {
   .tvl-card { grid-template-columns: 1fr; }
+  .tvl-banner { flex-wrap: wrap; }
 }
 
-/* Settings on a television: its menu is the page (SettingsPage.tsx), across the screen. */
+/* ------------------------------------------------------------------ Settings in TV mode */
+/* Its menu is a page of its own (SettingsPage.tsx), across the screen; each section then has the whole width, with
+   TV mode's Back for the way out, instead of a squeezed menu beside it. */
 html.tv-mode .set-shell.tv-menu { display: block; }
 html.tv-mode .set-shell.tv-menu .set-main { display: none; }
 html.tv-mode .set-shell.tv-menu .set-nav { position: static; width: auto; max-width: none; max-height: none; }
-/* A view screen in Settings: the page alone under the card, without the Settings menu beside it. */
-.tvl-view .set-shell { display: block; }
-.tvl-view .set-nav, .tvl-view .set-back { display: none; }
 html.tv-mode .set-shell.tv-menu .set-nav-hint { display: block; color: var(--fg-2); font-size: var(--text-sm); font-weight: 400; }
+html.tv-mode .set-shell:not(.tv-menu) { display: block; max-width: calc(var(--tvu) * 1400); margin-inline: auto; }
+html.tv-mode .set-shell:not(.tv-menu) :is(.set-nav, .set-back) { display: none; }
+/* A screen shown read only: the page alone under the banner, in the same column as it. */
+.tvl-view .set-shell { display: block; width: 100%; }
+.tvl-view :is(.set-nav, .set-back) { display: none; }
+/* A row that leads to such a screen says so, as a small label before its description. */
+.tvl-chip { display: inline-block; margin-right: var(--sp-2); padding: 0 var(--sp-2); border-radius: var(--r-full); background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+
+/* Settings pages and this dialog are written for a computer. In TV mode the rest of the app sizes each button for a
+   remote (tvmode.css), which left these pages with huge buttons beside small words. Here they keep the computer's
+   proportions, and the whole page is drawn larger instead, so it reads from across the room and still looks like
+   itself. */
+html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) .btn { min-height: var(--control-h); padding: 0 var(--sp-4); border-radius: var(--r-md); font-size: var(--text-md); gap: var(--sp-2); }
+html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) .btn svg { width: 1.15em; height: 1.15em; }
+html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) .btn.sm { min-height: var(--control-h-sm); padding: 0 var(--sp-3); font-size: var(--text-sm); }
+html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) :is(.btn.icon, .btn.square) { width: var(--control-h); padding: 0; }
+html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) .btn.sm:is(.icon, .square) { width: var(--control-h-sm); }
+html.tv-mode .set-shell { zoom: 1.35; }
+html.tv-mode .set-shell:not(.tv-menu), html.tv-mode .set-shell.tv-menu { max-width: calc(var(--tvu) * 1040); margin-inline: auto; }
+html.tv-mode .ui-dialog:has(.tvl-dialog) { zoom: 1.3; }

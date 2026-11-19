@@ -232,26 +232,30 @@ func (t *streamTracker) served(w http.ResponseWriter, r *http.Request, itemID in
 	if itemID == 0 {
 		key = hlsKey(u.ID, hlsID)
 	}
-	t.mu.Lock()
-	st := t.byHLS[hlsKey(u.ID, hlsID)]
-	if hlsID == "" || st == nil {
-		st = t.live[key]
-	}
-	if st == nil {
-		st = &liveStream{key: key}
-		st.view = StreamView{ID: logging.NewID("play"), UserID: u.ID, User: u.Name, ItemID: itemID, Decision: "direct", Reasons: []string{}, StartedAt: time.Now().Unix(), Where: clientFrom(r).Where.String()}
-		if hlsID != "" {
-			st.view.Decision = "transcode"
-			if sess := t.s.HLS.Get(hlsID); sess != nil {
-				st.view.Title = filepath.Base(sess.Spec.Source)
-				if sess.Spec.CopyVideo {
-					st.view.Decision = "remux"
-				}
-			}
-			t.byHLS[hlsKey(u.ID, hlsID)] = st
+	find := func() *liveStream {
+		st := t.byHLS[hlsKey(u.ID, hlsID)]
+		if hlsID == "" || st == nil {
+			st = t.live[key]
 		}
-		t.live[key] = st
-		t.startedLocked()
+		return st
+	}
+	t.mu.Lock()
+	st := find()
+	if st == nil {
+		// Nobody noted this playback first. What it is gets looked up without the lock held,
+		// and only this once: the requests after it find the entry.
+		t.mu.Unlock()
+		title, decision := t.describe(r, itemID, hlsID)
+		t.mu.Lock()
+		if st = find(); st == nil {
+			st = &liveStream{key: key}
+			st.view = StreamView{ID: logging.NewID("play"), UserID: u.ID, User: u.Name, ItemID: itemID, Title: title, Decision: decision, Reasons: []string{}, StartedAt: time.Now().Unix(), Where: clientFrom(r).Where.String()}
+			if hlsID != "" {
+				t.byHLS[hlsKey(u.ID, hlsID)] = st
+			}
+			t.live[key] = st
+			t.startedLocked()
+		}
 	}
 	t.mu.Unlock()
 	st.lastSeen.Store(time.Now().Unix())
@@ -260,6 +264,34 @@ func (t *streamTracker) served(w http.ResponseWriter, r *http.Request, itemID in
 		st.inFlight.Add(-1)
 		st.lastSeen.Store(time.Now().Unix())
 	}
+}
+
+// describe names a stream nobody noted, and says how it is sent: by its item's title (from the
+// address, or the HLS session's item), else the file's name.
+func (t *streamTracker) describe(r *http.Request, itemID int64, hlsID string) (title, decision string) {
+	decision = "direct"
+	var source string
+	if hlsID != "" {
+		decision = "transcode"
+		if sess := t.s.HLS.Get(hlsID); sess != nil {
+			source = sess.Spec.Source
+			if sess.Spec.CopyVideo {
+				decision = "remux"
+			}
+			if itemID == 0 {
+				itemID = sess.Spec.ItemID
+			}
+		}
+	}
+	if itemID > 0 && t.s.Store != nil {
+		if it, err := t.s.Store.Item(r.Context(), itemID); err == nil {
+			title = it.Title
+		}
+	}
+	if title == "" && source != "" {
+		title = filepath.Base(source)
+	}
+	return title, decision
 }
 
 type countingWriter struct {

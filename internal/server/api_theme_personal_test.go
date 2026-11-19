@@ -50,12 +50,12 @@ func TestThemePrecedence(t *testing.T) {
 		wantTokens, wantModule          string
 		wantModuleTint, wantTokensFocus bool
 	}{
-		{name: "the module's own colours over the pack", wantTokens: "#7955FF", wantModule: moduleOwn},
+		{name: "the module's own colours over the pack", wantTokens: "#6334FF", wantModule: moduleOwn},
 		{name: "global under the module", admin: true, wantTokens: global, wantModule: moduleOwn},
 		{name: "the administrator's for the module over its own", admin: true, adminMod: true, wantTokens: global, wantModule: moduleAdmin},
 		{name: "the profile's own over everything the administrator set", admin: true, adminMod: true, mine: true, wantTokens: personal, wantModule: personal},
 		{name: "the profile's own for the module over its own", admin: true, adminMod: true, mine: true, mineMod: true, wantTokens: personal, wantModule: personalMod},
-		{name: "the profile's own for the module alone", mineMod: true, wantTokens: "#7955FF", wantModule: personalMod},
+		{name: "the profile's own for the module alone", mineMod: true, wantTokens: "#6334FF", wantModule: personalMod},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			ts, admin, adult, _ := sduiAccounts(t)
@@ -300,11 +300,11 @@ func TestBrandColouringSurvivesTheThemeEngine(t *testing.T) {
 			}
 		}
 	}
-	check("the theme's", "#9174FF")
+	check("the theme's", "#9271FF")
 	// A global accent: the name follows the accent as text worked out from it.
 	ts.do(t, "PUT", "/api/theme/global", admin, map[string]any{"tokens": map[string]string{"accent": "#2E7D32"}})
 	g := getTheme(t, ts, adult)
-	if g.Tokens["brandAccent"] == "#9174FF" || g.Tokens["brandAccent"] != g.Tokens["accentText"] {
+	if g.Tokens["brandAccent"] == "#9271FF" || g.Tokens["brandAccent"] != g.Tokens["accentText"] {
 		t.Fatalf("brandAccent didn't follow the accent: %s / %s", g.Tokens["brandAccent"], g.Tokens["accentText"])
 	}
 	check("global accent", g.Tokens["accentText"])

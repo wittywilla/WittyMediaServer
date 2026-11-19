@@ -148,7 +148,7 @@ Design 2 gives every theme a ten-foot look, set in `theme.css` and written into 
 |---|---|---|
 | `--tv-ring-color` | `--fg` | the focus ring across the room. 4.5:1 on every surface and 3:1 on raised fills (`--bg-4`) |
 | `--tv-text` | `--fg` | body text a step stronger for distance (10% toward white on dark themes, toward black on light ones). 7:1 on every surface |
-| `--hero-scrim` | `.72` | how strong the dark scrim behind hero text is, 0 to 1: strong enough that white text still reads over the brightest picture (4.5:1) |
+| `--hero-scrim` | `.8` | how solid the scrim behind words over a picture is (the Home billboard, a title's header), 0 to 1. The scrim is the theme's own page colour (`--bg`): light under dark words on a light theme, dark under light words on a dark one. It must be solid enough that `--fg` and `--fg-2` read at 4.5:1 over it when the picture under it is white and when it is black, and is best kept at .9 or less so the picture still shows |
 
 `scripts/theme-contrast.py` checks all of it, and `--focus` on the surfaces too. The accent is not checked as the thing
 behind a focus ring: a ring sits a gap away from what it surrounds, so the surface shows between them (a control
@@ -168,7 +168,7 @@ You can also copy the ZIP into the server's `themes` folder and reload the page.
 
 | Install | Themes folder |
 |---|---|
-| Windows | `%LOCALAPPDATA%\WittyMediaServer\themes` |
+| Windows | `themes` in the [data folder](DATA-FOLDER.md): `Documents\WittyMediaServer\themes` by default, `%LOCALAPPDATA%\WittyMediaServer\themes` before 0.8.1-alpha |
 | macOS | `~/Library/Application Support/WittyMediaServer/themes` |
 | Linux, your own account | `~/.local/share/wittymediaserver/themes` |
 | Linux package, as a service | `/var/lib/wittymediaserver/themes` |
@@ -306,7 +306,7 @@ Set these in `:root`. Hover, selected and tinted shades are worked out from them
 
 ## For developers
 
-`python scripts/theme-contrast.py` checks the built-in themes against the contrast rules, and `--fix` adjusts them. `scripts/design-tokens.py` writes `colors`, `radius`, `shape` and `type` in `theme.json` for the built-ins, from their CSS and the stylesheet's defaults, which are written out as ZIPs at start-up when their `version` changes.
+`python scripts/theme-contrast.py` checks the built-in themes against the contrast rules, and `--fix` adjusts them. With a scene, every text colour (`--fg`, `--fg-2`, `--fg-3`, `--accent-text`) must also read at 4.5:1 on the scene's colours, along its gradients and its hill with the radial light over them, since the scene stays put and any words can scroll over any part of it; `--fix` moves only the scene colours that fall short until `--fg` and `--fg-2` read (lighter on a light theme, darker on a dark one, keeping their hue), then the fainter `--fg-3` and `--accent-text` toward the text until they read too. `web/scripts/test-contrast.mjs` (`npm run test:contrast`) measures the page as drawn, in every theme and look on a running test server: each line of text against the pixels under it, with glass, the scene and gradients included, and the billboard's and title header's words over a white, a black and a checkered picture in place of the backdrop. `scripts/design-tokens.py` writes `colors`, `radius`, `shape` and `type` in `theme.json` for the built-ins, from their CSS and the stylesheet's defaults, which are written out as ZIPs at start-up when their `version` changes.
 
 Theme files need no sign-in: `GET /api/themes`, `GET /api/themes/<id>/theme.css`, `GET /api/themes/<id>/<file>`, `GET /api/themes/<id>/tokens.json` and `GET /api/themes/<id>/download`. Making a theme on the server is `POST /api/themes/custom` (administrators), which accepts only plain `#rrggbb` colours. See [Client API](CLIENT-API.md#themes-and-design-data).
 

@@ -141,12 +141,12 @@ export function PartNote({ title, path }: { title: string; path: string }) {
 
 // OnAComputerDialog: for a button that opens an editor (Customise this page, Edit layout, a title's
 // scenes and skips): in TV mode the button stays, and says where to go instead of opening it.
-export function OnAComputerDialog({ part, onClose }: { part: string; onClose: () => void }) {
+export function OnAComputerDialog({ part, title: named, onClose }: { part?: string; title?: string; onClose: () => void }) {
   const loc = useLocation()
   const s = useSummary(undefined)
   const device = tvClient() === 'tvDevice'
   const address = addressOf(loc.pathname, s.addresses)
-  const title = tvPartTitle(part) || 'This'
+  const title = named || (part ? tvPartTitle(part) : '') || 'This'
   const actions = device
     ? <Button variant="primary" data-tv-first onClick={onClose}>OK</Button>
     : <><Button variant="primary" data-tv-first onClick={() => { onClose(); leaveTvMode() }}>Leave TV mode</Button><Button onClick={onClose}>Not now</Button></>

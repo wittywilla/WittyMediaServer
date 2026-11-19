@@ -92,6 +92,11 @@ func planHomeUnix(e *Env, pl *Plan, h string) {
 		pl.keep(data, "it leads out of this person's folder, so it wasn't removed as an administrator")
 	}
 	if conf := filepath.Join(h, ".config", unixName); !other || staysInHome(h, conf) {
+		owner := ""
+		if other {
+			owner = h
+		}
+		planPointer(e, pl, filepath.Join(conf, pointerName), owner, other)
 		planConfigFile(e, pl, filepath.Join(conf, "wms.json"), other)
 	}
 	if other {
@@ -106,6 +111,7 @@ func planHomeUnix(e *Env, pl *Plan, h string) {
 		}
 	}
 	if d := e.Getenv("XDG_CONFIG_HOME"); filepath.IsAbs(d) {
+		planPointer(e, pl, filepath.Join(d, unixName, pointerName), "", false)
 		planConfigFile(e, pl, filepath.Join(d, unixName, "wms.json"), false)
 		if p := filepath.Join(d, "autostart", "wittymediaserver.desktop"); exists(p) {
 			pl.add(fileItem("start at sign-in", p, GroupProgram, false))

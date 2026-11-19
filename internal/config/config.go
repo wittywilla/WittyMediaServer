@@ -82,6 +82,8 @@ type Config struct {
 
 	ConfigFile string // the file that was loaded ("" = none)
 	Portable   bool
+	// DataFrom says where DataDir came from: one of the DataFrom constants (location.go).
+	DataFrom string
 
 	// ListenFrom says where Listen came from: FromFlag, FromEnv, FromConfig, FromSettings or
 	// FromDefault. SettingsFile is the settings.ini that set it, with FromSettings.
@@ -122,21 +124,55 @@ const (
 	FileName    = "wms.json"
 )
 
-// DefaultDataDir is the per-platform data directory used when nothing else is set.
-func DefaultDataDir() string { return defaultDataDir() }
+// DefaultDataDir is the data folder used when no flag, environment variable or config file
+// names one: see resolveDefault.
+func DefaultDataDir() string { d, _, _ := resolveDefault(); return d }
 
-func defaultDataDir() string {
+func defaultDataDir() string { return DefaultDataDir() }
+
+// resolveDefault finds the data folder when nothing on the command line or in a config file
+// names one, and says where it came from. In order:
+//
+//  1. WMS_DATA_DIR
+//  2. /config in a container, and a package's service folder for root: these stay as they were
+//  3. the pointer that setup or Settings wrote (PointerFile), when there is one
+//  4. a data folder with a database in the install folder (the install folder chosen in setup,
+//     on a copy that was carried to another computer without its pointer)
+//  5. the platform's own folder (LegacyDataDir): where every desktop install kept its data
+//     before setup asked, and where a new one starts until setup moves it
+//
+// The error is for a pointer that can't be read or whose folder isn't there: a drive that isn't
+// connected must not quietly become a new, empty server.
+func resolveDefault() (string, string, error) {
 	if v := os.Getenv("WMS_DATA_DIR"); v != "" {
-		return v
+		return v, DataFromEnv, nil
 	}
 	// Containers: a conventional /config volume.
 	if st, err := os.Stat("/config"); err == nil && st.IsDir() && runtime.GOOS != "windows" {
-		return "/config"
+		return "/config", DataFromContainer, nil
 	}
 	// Root using the command line of a packaged server means the service's library, not one of its own.
 	if d := serviceDataDir(); d != "" {
-		return d
+		return d, DataFromService, nil
 	}
+	p, err := ReadPointer()
+	if err != nil {
+		return platformDataDir(), DataFromDefault, err
+	}
+	if p != nil {
+		if !dirExists(p.DataDir) {
+			return p.DataDir, DataFromPointer, fmt.Errorf("WittyMediaServer's data folder, %s, isn't there. If it's on a drive that isn't connected, connect it and start again. To start again with no data instead, delete %s", p.DataDir, PointerFile())
+		}
+		return p.DataDir, DataFromPointer, nil
+	}
+	if d := InstallDataDir(); exists(filepath.Join(d, "wms.db")) {
+		return d, DataFromInstall, nil
+	}
+	return platformDataDir(), DataFromDefault, nil
+}
+
+// platformDataDir is the platform's own data folder.
+func platformDataDir() string {
 	switch runtime.GOOS {
 	case "windows":
 		if v := os.Getenv("LOCALAPPDATA"); v != "" {
@@ -338,9 +374,9 @@ func ParseOnly(args []string) (*Config, error) {
 		return b
 	}
 
-	dataDef := defaultDataDir()
+	dataDef, dataFrom, dataErr := resolveDefault()
 	if portable && os.Getenv("WMS_DATA_DIR") == "" {
-		dataDef = filepath.Join(base, "data")
+		dataDef, dataFrom, dataErr = filepath.Join(base, "data"), DataFromPortable, nil
 	}
 	maxDef := 4
 	if f.MaxTranscodes > 0 {
@@ -383,6 +419,21 @@ func ParseOnly(args []string) (*Config, error) {
 	fs.IntVar(&c.MaxConnections, "max-connections", connDef, "maximum connections open at once, for the whole server (WMS_MAX_CONNECTIONS)")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
+	}
+	dataGiven := false
+	fs.Visit(func(fl *flag.Flag) { dataGiven = dataGiven || fl.Name == "data" })
+	switch {
+	case dataGiven:
+		c.DataFrom = DataFromFlag
+	case os.Getenv("WMS_DATA_DIR") != "":
+		c.DataFrom = DataFromEnv
+	case f.DataDir != "":
+		c.DataFrom = DataFromConfig
+	default:
+		if dataErr != nil {
+			return nil, dataErr
+		}
+		c.DataFrom = dataFrom
 	}
 	if err := c.resolveListen(fs, f); err != nil {
 		return nil, err

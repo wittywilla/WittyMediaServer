@@ -302,6 +302,12 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/logs/save` | Admin | A note of at most 500 characters |
 | `GET /api/logs/bundle` | Admin | Days, redaction |
 | `GET /api/logs/bundle/preview` | Admin | Days, redaction |
+| `GET /api/data-location` | Admin | Nothing further |
+| `POST /api/data-location` | Admin | Only a folder set by setup, Settings or nobody moves. Full path; another computer's folder needs the server's own screen or `-allow-network-paths`; refuses a folder that isn't empty, overlaps the data or program folder, or has no room. Moves at the next start |
+| `POST /api/data-location/check` | Admin | The same checks, changing nothing |
+| `DELETE /api/data-location/request` | Admin | Nothing further |
+| `POST /api/data-location/old/delete` | Admin | Own password, and a code with two-factor sign-in. Deletes only what the move copied out of the old folder |
+| `GET /api/data-location/progress` | Admin | Nothing further. While a move runs, the port answers only this, with two numbers |
 | `GET /api/reset` | Admin | Nothing further |
 | `POST /api/reset` | Admin | Types RESET. Own password, and a code with two-factor sign-in. Folder layout checked |
 | `POST /api/reset/restore` | Admin | Own password, and a code with two-factor sign-in. Copy name |
@@ -652,7 +658,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/media/{id}/canvas/file` | Signed-in; ticket; address token | limits. As the canvas: only a file the listing would name. Type from its name, MP4 or WebM only. Inert content policy. Limit for viewers away from home |
 | `PUT /api/media/{id}/canvas` | Admin | Song, video or disc. At most 30 MB, MP4 or WebM by its first bytes. Written whole into the server's images folder under a name made from the item's number and a hash of its path, never beside the media; links on the way refused |
 | `DELETE /api/media/{id}/canvas` | Admin | Removes only an upload, a plain file in the server's own folder |
-| `POST /api/media/{id}/canvas/generate` | Admin | A video that is a file inside a library. Start and length by form, 2 to 15 seconds, inside the video. Queues one FFmpeg job at low priority, 16 waiting at most; written into the server's images folder, never beside the media, at most 30 MB |
+| `POST /api/media/{id}/canvas/generate` | Admin | Song, video or disc. Cut from its own video, or from `fromId`, a video the administrator can see that is a file inside a library. Start and length by form, 2 to 15 seconds, inside the video. Queues one FFmpeg job at low priority, 16 waiting at most; written into the server's images folder, never beside the media, at most 30 MB |
+| `PUT /api/media/{id}/canvas/source` | Admin | Song, video or disc. A clip of at most 512 MB, MP4/MOV or WebM by its first bytes, written into the server's images folder only until the canvas is cut from it (one FFmpeg job, as generate), then deleted |
+| `PUT /api/media/{id}/canvas/loop` | Admin | The item has a canvas. Start and end in milliseconds, at least half a second apart, inside the canvas; kept beside the upload with the canvas's ETag, and ignored once the canvas changes |
+| `DELETE /api/media/{id}/canvas/loop` | Admin | Removes only the loop file in the server's own folder |
 | `GET /api/media/{id}/stems` | Signed-in | limits. A song. Uploads in the server's own folder, and files beside the song inside a library once links are followed, plain files only, 5000 entries a folder at most |
 | `GET /api/media/{id}/stems/{stem}` | Signed-in; ticket; address token | limits. Stem is one of a fixed list of names, never used as a path. Only a file the listing would name, or for `full` the song itself opened through the library. Type from its name. Inert content policy. Limit for viewers away from home |
 | `PUT /api/media/{id}/stems/{stem}` | Admin | A song. Stem is one of a fixed list of names. At most 200 MB, audio by its first bytes (an MP4 for multitrack). Written whole into the server's images folder, never beside the media; links on the way refused |

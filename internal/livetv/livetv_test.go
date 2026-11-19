@@ -199,12 +199,18 @@ func TestRecordingRawStream(t *testing.T) {
 	m.AfterRecording = func(p string) { finished <- p }
 	ctx := context.Background()
 	now := time.Now().Unix()
+	// The same airing twice is refused. Done on an airing hours away, so the scheduler (which
+	// Schedule wakes) can't start and finish the first one before the second is asked for.
+	later := now + 7200
+	if _, err := m.Schedule(ctx, ch[0].ID, 1, "News", "", later, later+60); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Schedule(ctx, ch[0].ID, 1, "News", "", later, later+30); err == nil {
+		t.Fatal("a second recording of the same airing should be refused")
+	}
 	r, err := m.Schedule(ctx, ch[0].ID, 1, `News: "Late" / Edition`, "Part 1", now, now+5)
 	if err != nil {
 		t.Fatal(err)
-	}
-	if _, err := m.Schedule(ctx, ch[0].ID, 1, "News", "", now, now+1); err == nil {
-		t.Fatal("a second recording of the same airing should be refused")
 	}
 	m.startDue(ctx)
 	select {

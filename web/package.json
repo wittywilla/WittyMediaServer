@@ -15,6 +15,7 @@
     "test:keys": "node scripts/test-keys.mjs",
     "test:tv": "node scripts/test-tv-themes.mjs",
     "test:quality": "node scripts/test-quality-menu.mjs",
+    "test:contrast": "node scripts/test-contrast.mjs",
     "test:tv-levels": "node scripts/test-tv-levels.mjs"
   },
   "dependencies": {

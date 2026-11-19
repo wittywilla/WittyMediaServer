@@ -123,7 +123,7 @@ An empty one goes with the rest. A silent removal and `apt purge` leave these if
 | The installer's choices | `Software\WittyWilla\WittyMediaServer`, in `HKCU` and `HKLM`, and `Software\WittyWilla` once it's empty |
 | Shortcuts | The Start menu and desktop, for you and for everyone |
 | The command on the path | The installer's entry in `PATH` |
-| If you say yes: your data | `%LOCALAPPDATA%\WittyMediaServer`, `C:\ProgramData\WittyMediaServer`, a `data` folder beside a portable copy, and whichever folder `WMS_DATA_DIR` or the service's settings name |
+| If you say yes: your data | The folder first-time setup chose (`Documents\WittyMediaServer` by default, named in `%APPDATA%\WittyMediaServer\data-location.json`), `%LOCALAPPDATA%\WittyMediaServer`, `C:\ProgramData\WittyMediaServer`, a `data` folder beside a portable copy, and whichever folder `WMS_DATA_DIR` or the service's settings name |
 | If you say yes: settings | `%APPDATA%\WittyMediaServer\wms.json`, or a `wms.json` in the program's folder |
 
 ## macOS
@@ -146,7 +146,7 @@ Dragging the app to the Trash only removes the app, and leaves the service and e
 | Starting at sign-in | `~/Library/LaunchAgents/com.wittywilla.wittymediaserver.tray.plist` |
 | The installer's record | `com.wittywilla.wittymediaserver.app` and `.service`, in `pkgutil` |
 | An older copy | `/opt/wittymediaserver` |
-| If you say yes: your data | `~/Library/Application Support/WittyMediaServer`, or the folder the service names |
+| If you say yes: your data | The folder first-time setup chose (`~/Documents/WittyMediaServer` by default), `~/Library/Application Support/WittyMediaServer`, or the folder the service names |
 | If you say yes: caches and preferences | In `~/Library`: `Caches/com.wittywilla.wittymediaserver`, `Preferences/com.wittywilla.wittymediaserver.plist`, `Saved Application State/com.wittywilla.wittymediaserver.savedState`, `Logs/WittyMediaServer`, `HTTPStorages/com.wittywilla.wittymediaserver`, `WebKit/com.wittywilla.wittymediaserver` |
 
 ## Linux
@@ -181,7 +181,7 @@ If you say yes to your data, it removes:
 
 - `/var/lib/wittymediaserver`, or the folder the service names
 - `/etc/wittymediaserver/wms.json`
-- for you, and for everyone when run with `sudo`: `~/.local/share/wittymediaserver`, `~/.config/wittymediaserver/wms.json`
+- for you, and for everyone when run with `sudo`: `~/.local/share/wittymediaserver`, `~/.config/wittymediaserver/wms.json`, and the folder `~/.config/wittymediaserver/data-location.json` names (`~/Documents/WittyMediaServer` by default)
 - for you, if you set them: the same folders under `XDG_DATA_HOME` and `XDG_CONFIG_HOME`
 - the `wms` account
 
@@ -292,7 +292,7 @@ Then delete these in File Explorer:
 
 - The program: `C:\Program Files\WittyMediaServer`, `%LOCALAPPDATA%\Programs\WittyMediaServer`
 - Shortcuts, named `WittyMediaServer`: `%APPDATA%\Microsoft\Windows\Start Menu\Programs`, `%ProgramData%\Microsoft\Windows\Start Menu\Programs`, and your desktop and the public desktop
-- Your data, if you want it gone: `%LOCALAPPDATA%\WittyMediaServer`, `%APPDATA%\WittyMediaServer`, `C:\ProgramData\WittyMediaServer`
+- Your data, if you want it gone: the folder `%APPDATA%\WittyMediaServer\data-location.json` names (`Documents\WittyMediaServer` by default), `%LOCALAPPDATA%\WittyMediaServer`, `%APPDATA%\WittyMediaServer`, `C:\ProgramData\WittyMediaServer`
 
 If `wittymediaserver` is still found in new terminals, remove its `bin` folder from `PATH`, under **Edit the system environment variables** in the Start menu.
 

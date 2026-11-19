@@ -58,7 +58,7 @@ Each release also has `SHA256SUMS.txt`, a list of every file's checksum, and `SH
    |---|---|---|
    | Needs an administrator | No | Yes |
    | Program | `%LOCALAPPDATA%\Programs\WittyMediaServer` | `C:\Program Files\WittyMediaServer` |
-   | Library, accounts and settings | `%LOCALAPPDATA%\WittyMediaServer` | Each person's own, or with the service, `C:\ProgramData\WittyMediaServer` |
+   | Library, accounts and settings | Where setup asks: `Documents\WittyMediaServer` by default ([The data folder](DATA-FOLDER.md)) | Each person's own, or with the service, `C:\ProgramData\WittyMediaServer` |
    | **Update now** in Settings | Yes | No: **Download the installer** there, then run it |
    | Can run as a service | No | Yes |
 
@@ -97,7 +97,7 @@ msiexec /i wittymediaserver-<version>-windows-amd64.msi /qn MSIINSTALLPERUSER=""
 2. Go through the installer. It puts **WittyMediaServer** and **Uninstall WittyMediaServer** in Applications, and the `wittymediaserver` command in `/usr/local/bin`.
 3. **Customize** lets you leave out **Run in the background**, which otherwise starts the server when the Mac starts, as the person who installed it, even when nobody is signed in. Without it, the server runs while the app is open.
 
-Your library, accounts and settings are in `~/Library/Application Support/WittyMediaServer`.
+Your library, accounts and settings are where first-time setup asks: `~/Documents/WittyMediaServer` by default, or `~/Library/Application Support/WittyMediaServer` for an install from before 0.8.1-alpha. See [The data folder](DATA-FOLDER.md).
 
 Running a newer `.pkg` updates it in place, and takes over from what the `install.sh` of 0.5.2-alpha or older put in `/opt`, keeping its library.
 

@@ -100,6 +100,7 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `settings-wittyrigs.webp` | Settings, WittyRigs. |
 | `setup-01-welcome.webp` | The first page. Your server can have a name of its own here, and a logo. |
 | `setup-02-account.webp` | This account looks after the server. Everyone else gets a profile later. |
+| `setup-03-data-folder.webp` | Documents is chosen to begin with. The line under the choices says how much room there is. |
 | `setup-04-modules-chosen.webp` | Tick what you want. The folder browser is ticked for you, as it's how you choose a folder from a TV or a phone. |
 | `setup-05-modules-installing.webp` | Each module downloads, and its signature is checked before it goes in. |
 | `setup-06-modules-ready.webp` | If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Modules. |

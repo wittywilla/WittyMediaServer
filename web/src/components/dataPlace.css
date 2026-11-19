@@ -1,0 +1,17 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Choosing where the data is kept (DataPlace.tsx). */
+.dp { display: grid; gap: var(--sp-4); }
+.dp .su-card-text { overflow-wrap: anywhere; }
+.dp-custom { display: grid; gap: var(--sp-3); }
+.dp-custom .input { font-family: var(--font-mono, ui-monospace, monospace); }
+.dp-browse { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.dp-status { display: grid; gap: var(--sp-3); }
+.dp-status:empty { display: none; }
+.dp-ok { margin: 0; color: var(--fg-2); overflow-wrap: anywhere; }
+.dp-progress { display: grid; gap: var(--sp-3); }
+.dp-progress p { margin: 0; }
+.dp-paths { display: grid; gap: var(--sp-1); margin: 0; }
+.dp-paths dt { color: var(--fg-2); font-size: var(--text-sm); }
+.dp-paths dd { margin: 0 0 var(--sp-2); font-family: var(--font-mono, ui-monospace, monospace); overflow-wrap: anywhere; }
+.dp-actions { display: flex; justify-content: flex-end; margin-top: var(--sp-3); }

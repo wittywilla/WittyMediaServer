@@ -1,4 +1,76 @@
-# Mac follow-ups from the Windows and Linux pass
+# Mac follow-ups
+
+Newest first. Everything here needs a Mac. Tick each box as it's done, commit the ticks, and say in the PR what ran.
+Merge nothing, and don't release or tag without the owner's OK. The GitHub issues labelled `mac` point at these
+sections. The apps' Mac items (iPhone, iPad, Apple TV, the macOS desktop app) are in WittyMediaClient's
+`MAC-FOLLOW-UPS.md`, under the same heading.
+
+## 0.8.1-alpha: what the Mac must do
+
+Written 2026-11-19 on the Windows PC, for Claude on the owner's MacBook. Nothing here was run on a Mac. Use the
+server's `v0.8.1-alpha` branch:
+
+```bash
+cd ~/<where the repos are>/WittyMediaServer
+git fetch origin && git switch v0.8.1-alpha && git pull
+(cd web && npm ci && npm run build)
+```
+
+- [ ] **1. The installed service exits with 78 (EX_CONFIG).** CI's macOS job installs the `.pkg` and waits for
+  `http://127.0.0.1:9797/api/health`. Once (PR #482's run, `gh run view 44458269476 -R wittywilla/WittyMediaServer --log-failed`)
+  launchd said the service ended with 78 and it never answered; the same base passed with #496, and #482 changed
+  nothing near it. The server itself never exits with 78 (no `os.Exit(78)` anywhere), so it's launchd's own
+  EX_CONFIG: launchd couldn't start the program as its plist says. Likeliest: `postinstall` bootstraps the service
+  before the helper or its folder is in place, a user or folder the plist names doesn't exist yet on a clean Mac, or
+  the data-location start-up (#473) runs before `WMS_DATA_DIR` applies. On the Mac, as ci.yml's macOS job does:
+
+  ```bash
+  SKIP_WEB=1 scripts/build-release.sh 0.0.0-mac darwin/arm64
+  packaging/macos/build-pkg.sh 0.0.0-mac dist/wittymediaserver-0.0.0-mac-darwin-arm64 arm64 installers
+  sudo installer -pkg installers/wittymediaserver-0.0.0-mac-macos-arm64.pkg -target /
+  sudo launchctl print system/com.wittywilla.wittymediaserver | grep -E "state|last exit|program"
+  curl -fsS http://127.0.0.1:9797/api/health
+  sudo grep -E 'postinstall|preinstall' /var/log/install.log | tail -30
+  ```
+
+  Expected: `state = running` and the health check answers within a minute. Uninstall
+  (`sudo /usr/local/bin/wittymediaserver --uninstall --remove-data --yes`) and install again five times; a 78 even
+  once is the bug. Read `packaging/macos/scripts/service/postinstall` for the order it does things in, fix it on a
+  branch off `v0.8.1-alpha` with an issue, and say in the PR how many installs in a row passed.
+
+- [ ] **2. Where settings and data are kept, on macOS (#473).** Items 8 to 16 of "Data folder choice (WittyMediaServer
+  #471)" below, with a `.pkg` built from `v0.8.1-alpha` (the PR has merged since they were written). Expected results
+  are written there. Also check first-time setup's twelve steps (#508) in Safari and in the menu-bar app's window: the
+  data folder step appears after the account, and every step's pictures load.
+
+- [ ] **3. The graphics chip by default for transcoding (#441, #510).** On a Mac that's VideoToolbox.
+
+  ```bash
+  go build -o /tmp/wms-081/wittymediaserver ./cmd/wittymediaserver
+  /tmp/wms-081/wittymediaserver hardware
+  go test ./internal/ffmpeg ./internal/libtranscode
+  ```
+
+  Expected: `hardware` lists the Apple graphics and `h264_videotoolbox` / `hevc_videotoolbox` as working. Then run the
+  server (`/tmp/wms-081/wittymediaserver serve -data /tmp/wms-081/data -listen 127.0.0.1:19555`), play an HEVC film in
+  Safari with the player's quality menu at 720p, and check Settings → Live transcoding and `GET /api/hls/<id>/work`
+  say the graphics chip does the work. With FFmpeg from Homebrew; note its version. On an Intel Mac, the same.
+
+- [ ] **4. Karaoke on Apple silicon (#436, #478).** No CoreML: Demucs runs on PyTorch's Metal (`mps`), else the processor.
+  Settings → Lyrics and music information → install Demucs. Expected: **Runs on** says Apple graphics (Metal),
+  about 900 MB is fetched into the data folder's `separator/`, and a song's karaoke gets "Separated" within a few
+  minutes. A song that fails on Metal is done again on the processor (check the log, `cat=karaoke`). On an Intel Mac it
+  says the processor. Then **Remove**, and check `separator/` is gone and nothing was left in `~/Library/Python` or
+  the system's Python.
+
+- [ ] **5. `go test` on macOS** for what 0.8.1 changed most: `go test ./internal/config ./internal/datahome ./internal/uninstall ./internal/separator ./internal/server`
+  (the last takes a while). Expected: all pass.
+
+- [ ] **6. Report:** tick these, commit, and close the `mac` issues this section answers.
+
+---
+
+## 0.8.0 (2026-11-15): from the Windows and Linux pass
 
 Written 2026-11-15, after the Windows and Linux pass on the owner's PC (`NEXT-SESSION.md`,
 "Next: Windows and Linux"). Everything below needs a Mac. Nothing here was run on one.

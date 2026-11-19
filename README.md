@@ -218,6 +218,8 @@ To report a security problem, see [SECURITY.md](SECURITY.md).
 
 Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has how to build, test and send a change. Disc engines must stay free of other players' code, because they're written from the public disc formats.
 
+**Working on a Mac?** Start with [MAC-FOLLOW-UPS.md](MAC-FOLLOW-UPS.md), newest section first, and the apps' own list in WittyMediaClient's [MAC-FOLLOW-UPS.md](https://github.com/wittywilla/WittyMediaClient/blob/v0.8.1-alpha/MAC-FOLLOW-UPS.md).
+
 ## Licence and legal
 
 **[GNU Affero General Public License v3.0 (or later)](LICENSE).** Use, change and share WittyMediaServer, commercially or not, under its terms; please keep the attribution in **[NOTICE](NOTICE)**: *"This product includes WittyMediaServer, developed by WittyWilla"*, in your distribution, documentation or About screen. Every Witty module is AGPL-3.0-or-later too. The client apps (WittyMediaClient, WittyMediaPlayer, WittyReader and the smaller apps) are under the GNU General Public License v3.0 or later. Code forked or derived from another project keeps that project's licence and is labelled with it; for example, WittyCouch Host is AGPL-3.0-or-later with its Moonlight-derived parts under the GPL-3.0. A few separate programs have licences of their own, and each is listed in the app and in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).

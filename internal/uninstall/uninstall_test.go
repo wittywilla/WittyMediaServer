@@ -742,7 +742,7 @@ func TestEveryDataFolderIsKnown(t *testing.T) {
 	root := filepath.Join("..", "..")
 	re := regexp.MustCompile(`(?:DataDir|dataDir|\.Data), "([^"]+)"`)
 	// Not names in the data folder.
-	notNames := map[string]bool{"logDir": true}
+	notNames := map[string]bool{"logDir": true, "to": true, "from": true, "last": true} // log and answer keys
 	var missing []string
 	for _, dir := range []string{"internal", "cmd"} {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(p string, d os.DirEntry, err error) error {

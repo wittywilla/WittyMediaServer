@@ -10,7 +10,7 @@ import { ScanControl, scanProgressText, useScanProgress } from '../components/Sc
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { ModuleSettingsView, useModuleSettingsTabs, type ModuleSettingsTab } from '../moduleRegistry'
-import { IconHelp, IconActivity, IconChannels, IconClose, IconDownload, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
+import { IconHelp, IconActivity, IconChannels, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { settingsPageHidden } from '../profileWords'
 import { useMyLimits } from '../myLimits'
@@ -53,6 +53,7 @@ const BackupSettings = lazy(() => import('./settings/Backup'))
 const RepairSettings = lazy(() => import('./settings/Repair'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const NetworkSettings = lazy(() => import('./settings/Network'))
+const DataFolderSettings = lazy(() => import('./settings/DataFolder'))
 const ModuleSettingsList = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsList })))
 const ModuleSettingsPage = lazy(() => import('./settings/ModuleSettings').then((m) => ({ default: m.ModuleSettingsPage })))
 const Security = lazy(() => import('./settings/Security'))
@@ -92,6 +93,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'transcoding', label: 'Live transcoding', icon: <IconFilm />, admin: true, hint: 'While someone watches: quality, hardware and formats' },
     { to: 'library-transcoding', label: 'Library transcoding', icon: <IconFilm />, admin: true, hint: 'Convert files ahead of time, and connect Tdarr' },
     { to: 'network', label: 'Network', icon: <IconNetwork />, admin: true, hint: 'The port this server answers on at home' },
+    { to: 'data-folder', label: 'Data folder', icon: <IconDrive />, admin: true, hint: 'Where settings, the database and artwork are kept, and moving them' },
     { to: 'remote', label: 'Remote Access', icon: <IconGlobe />, admin: true, hint: 'Reaching your server away from home' },
   ] },
   { title: 'You', pages: [
@@ -234,6 +236,7 @@ export default function SettingsPage() {
           <Route path="sharing" element={<SharingSettings />} />
           <Route path="logs" element={<><PageHead title="WittyLog" desc="What the server records and for how long, and the logs as a ZIP to share, sanitized if you want. Nothing is ever sent anywhere." /><Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><LogSettings /></Suspense></>} />
           <Route path="network" element={<Suspense fallback={null}><NetworkSettings /></Suspense>} />
+          <Route path="data-folder" element={<Suspense fallback={null}><DataFolderSettings /></Suspense>} />
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
           <Route path="activity" element={<Suspense fallback={null}><ActivitySettings /></Suspense>} />

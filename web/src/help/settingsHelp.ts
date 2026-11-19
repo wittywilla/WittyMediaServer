@@ -18,6 +18,7 @@ export const settingsHelp: Record<string, string> = {
   transcoding: 'transcoding',
   'library-transcoding': 'library-transcoding',
   network: 'config#the-port',
+  'data-folder': 'data-folder',
   remote: 'remote',
   users: 'accounts',
   security: 'accounts',

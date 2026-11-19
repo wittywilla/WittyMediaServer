@@ -72,20 +72,32 @@ Karaoke is a big display for singing, made to read from across a room: the words
 
 It needs timed lyrics. Without times it shows the words and says so. Use a timed `.lrc` file, or **Tap along**, below.
 
+### The first screen
+
+Karaoke opens on the words, with play and the previous and next line under them, **Guide voice**, **Mix**, **Voice settings** and **Controls**. It always starts with the singer's voice out, in the quick version and the separated one alike, whatever was used last time: **Guide voice** (or V) brings them back quietly, and takes them out again.
+
+**Behind the words** chooses what fills the screen behind them: the album art, its Canvas video, or the visualizer. With the visualizer, its styles (**Bars**, **Waves**, **Drift** and **More**) are beside it: the same choice as in Now playing, so changing it in one changes it in the other.
+
+The top row and **Behind the words** step aside when nothing is being done, so the words have the screen. On a computer they come back when the mouse moves and go a few seconds after it stops. On a phone or tablet they start hidden: tap the screen to show them, and tap again (or wait) to hide them. On a TV they start hidden, and the first press of the remote or controller shows them without doing anything else. They stay where they are, only unseen, so the words never move, and a keyboard, a remote or a screen reader still reaches every one of them: a control shows as it's reached.
+
 ### What each control really does
 
-**The Mix** has three sliders: **Voice** turns the singer down, **Background Music** turns everything else down so the voice stands out, and **Track** turns the whole song down. **Voice off** takes the singer out in one press, **Guide voice** keeps them quietly, and **Reset** puts the sliders back. It plays the server's karaoke version of the song ([below](#karaoke-versions-made-for-you)). While that's being made, the Mix is there but still, and says how far along it is.
+**Mix** opens a panel (a sheet over the lower half of a phone's screen) with the levels, **Key**, the timing of the words, **Album art beside the words** and the notes about what's playing. M opens it too. On a phone it also has **Words** (**Follow along** or **Read**), **Voice settings**, **Controls** and **Fill the screen**.
 
-**Album art beside the words** puts the album's cover at the side of the lyrics: at their left on a computer or a TV, and above them, smaller, on a phone held upright. It's off until you choose it, it's kept for your account with the music player's other settings, and a song without a cover shows the words alone. **Behind the words** still chooses what fills the screen behind them.
+**The levels** are three sliders: **Voice** turns the singer down, **Background Music** turns everything else down so the voice stands out, and **Track** turns the whole song down. **Voice off** takes the singer out in one press, **Guide voice** keeps them quietly, and **Reset** puts the sliders back, with the singer out. It plays the server's karaoke version of the song ([below](#karaoke-versions-made-for-you)). While that's being made, the Mix is there but still, and says how far along it is.
 
-**Voice settings** opens a panel of controls for the singer and the music under them, at the side on a computer or a TV and over the lower half of the screen on a phone. Start from a preset (**Clear voice**, **Studio**, **Concert hall**, **Stadium**, **Slapback echo**, **Old radio**, **Duet spread**) or move any of these:
+**Album art beside the words**, in Mix, puts the album's cover at the side of the lyrics: at their left on a computer or a TV, and above them, smaller, on a phone held upright. It's off until you choose it, it's kept for your account with the music player's other settings, and a song without a cover shows the words alone. **Behind the words** still chooses what fills the screen behind them.
+
+**Voice settings** opens a panel for the singer and the music under them, at the side on a computer or a TV and over the lower half of the screen on a phone. It opens on simple presets: choose the voice closest to the singer's, **Female vocal**, **Mid-range vocal** or **Low vocal**, each **High**, **Medium** or **Low**. They're buttons a remote or a game pad moves along with its arrows. Each one shapes the voice for where it sits: the low cut under the lowest notes that voice sings, a little less warmth and more air for high voices, more presence and evening out for low ones, a touch of doubling and room, and a dip in the music where that voice is. **As recorded** turns everything off.
+
+**Advanced**, beside **Presets**, has every control, starting from the preset chosen:
 
 - **Voice tone:** Low cut (takes out rumble and breath), Warmth, Presence (brings the words forward), Air.
 - **Voice dynamics and place:** Compression (evens out loud and quiet lines), Pan, Doubling (a second, slightly late voice).
 - **Voice echo and reverb:** Echo, Echo time, Echo repeats, Reverb, Room size.
 - **Background Music:** Bass, Treble, and Room for the voice, a dip in the music where voices sit.
 
-They're heard straight away, kept for your account on that device, and **Reset** turns them all off. They work on the karaoke version: with a separated one the voice is a part of its own; with the quick version it's what's left of the song without the music, which is close but not exact.
+Moving one says **Your own settings**, and choosing a voice in **Presets** goes back to a preset. They're heard straight away, kept for your account on that device, and **Reset** turns them all off. On a phone, a tablet or a TV, **Advanced** says where to change them (a computer, or outside TV mode) and the presets work as everywhere else. They work on the karaoke version: with a separated one the voice is a part of its own; with the quick version it's what's left of the song without the music, which is close but not exact.
 
 **Controls**, at the end of the bar, chooses which of Voice, Background Music, Track, Key, the timing of the words and the Voice settings button are shown. What you hide is kept for your account, with the music player's other settings.
 
@@ -104,9 +116,9 @@ You don't have to set anything up. The first time someone opens **Karaoke** on a
 - **Voice:** how loud the singer is, from 0 to 100%.
 - **Background Music:** how loud everything but the singer is, every other part together (the music, or drums, bass and the rest for a separated song).
 - **Track:** how loud the whole song is.
-- **Voice off** takes the singer out in one press, and puts them back; **Guide voice** keeps them quietly; **Reset** puts every slider back. The line under them says which version is playing: **Quick version** or **Separated**.
+- **Voice off** takes the singer out in one press, and puts them back; **Guide voice** keeps them quietly; **Reset** puts every slider back. The line under them says which version is playing: **Quick version** or **Separated**. Karaoke starts with the singer out each time.
 
-Where the sliders were is remembered for your account on that device. Lyrics, seeking, pausing and **Key** carry on working. If the parts can't be played, the normal track plays and the line under the controls says why.
+Where the sliders were is remembered for your account on that device. Lyrics, seeking, pausing and **Key** carry on working. If the parts can't be played, the normal track plays and Mix says why.
 
 #### What happens by itself
 
@@ -229,7 +241,8 @@ Apps ask one thing, `GET /api/v1/media/{id}/karaoke`, and play what it says: see
 | Esc | Leave karaoke |
 | Space | Play or pause |
 | ← → | Previous or next line |
-| V | Voice off, or back on |
+| V | Guide voice on or off |
+| M | Open or close Mix |
 | − + | Lower or raise the key |
 | `[` `]` | Words sooner or later |
 | F | Fill the screen |

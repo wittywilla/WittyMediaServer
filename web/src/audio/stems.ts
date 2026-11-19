@@ -33,6 +33,20 @@ function route(ctx: AudioContext, all: Map<string, Sends>, routes: Record<string
   out.gain.setTargetAtTime(volume, now, 0.03)
 }
 
+// A new chain in place of one that has stopped making sound (FxChain.broken), with the parts' sends moved over to it.
+function freshChain(ctx: AudioContext, old: FxChain, all: Iterable<Sends>, out: GainNode, fx: Fx | null): FxChain {
+  old.close()
+  const next = new FxChain(ctx, out)
+  for (const s of all) {
+    try { s.voice.disconnect() } catch { /* not connected */ }
+    try { s.music.disconnect() } catch { /* not connected */ }
+    s.voice.connect(next.voice)
+    s.music.connect(next.music)
+  }
+  if (fx) next.set(fx)
+  return next
+}
+
 // Plays a song's separate parts in place of the song. The song's own <audio> keeps
 // playing, unheard, and stays in charge: lyrics, seeking, pausing, the lock screen and
 // the queue all still follow it. The parts are decoded whole and started together on the
@@ -49,6 +63,7 @@ async function fetchSound(ctx: AudioContext, url: string, signal: AbortSignal): 
 }
 
 export class StemSet implements StemPlayer {
+  private lastFx: Fx | null = null
   private gains = new Map<string, GainNode>()
   private sends = new Map<string, Sends>()
   private fx: FxChain
@@ -96,7 +111,7 @@ export class StemSet implements StemPlayer {
 
   setRoutes(routes: Record<string, Route>, volume: number) { route(this.g.ctx, this.sends, routes, this.out, volume) }
 
-  setFx(fx: Fx) { this.fx.set(fx) }
+  setFx(fx: Fx) { this.lastFx = fx; this.fx.set(fx) }
 
   private stopSources() {
     for (const s of this.sources) { try { s.stop() } catch { /* never started */ } s.disconnect() }
@@ -130,6 +145,7 @@ export class StemSet implements StemPlayer {
 
   private watch() {
     if (this.closed) return
+    if (this.fx.broken()) this.fx = freshChain(this.g.ctx, this.fx, this.sends.values(), this.out, this.lastFx)
     const el = this.el
     const playing = !el.paused && !el.ended && !el.seeking && el.readyState >= 3
     if (playing !== this.running || (playing && drifted(this.startAt, this.startCtx, this.g.ctx.currentTime, el.currentTime))) this.sync()
@@ -153,6 +169,8 @@ export class StemSet implements StemPlayer {
 // part's key at another speed as it does the song's. The song stays in charge, and each part
 // is kept with it by playing a little faster or slower, or by a jump when it's far off.
 class StreamedStems implements StemPlayer {
+  private lastFx: Fx | null = null
+  private checked = 0
   private parts: { el: HTMLAudioElement; gain: GainNode; source: MediaElementAudioSourceNode }[] = []
   private byId = new Map<string, Sends>()
   private out: GainNode
@@ -203,7 +221,7 @@ class StreamedStems implements StemPlayer {
 
   setRoutes(routes: Record<string, Route>, volume: number) { route(this.g.ctx, this.byId, routes, this.out, volume) }
 
-  setFx(fx: Fx) { this.fx.set(fx) }
+  setFx(fx: Fx) { this.lastFx = fx; this.fx.set(fx) }
 
   // The song paused, moved or changed speed: every part does the same.
   private sync() {
@@ -218,7 +236,9 @@ class StreamedStems implements StemPlayer {
   }
 
   private keepUp() {
-    if (this.closed || this.song.paused || this.song.ended) return
+    if (this.closed) return
+    if (++this.checked % 5 === 0 && this.fx.broken()) this.fx = freshChain(this.g.ctx, this.fx, this.byId.values(), this.out, this.lastFx)
+    if (this.song.paused || this.song.ended) return
     for (const { el } of this.parts) {
       if (el.paused || el.seeking) continue
       const step = streamStep(this.song.playbackRate, this.song.currentTime - el.currentTime)

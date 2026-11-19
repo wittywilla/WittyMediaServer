@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { api, mediaUrl } from '../api'
 import { IconClose, IconFile } from '../icons'
 import type { useLyrics } from './lyrics'
@@ -24,7 +24,8 @@ export function useExtras(itemId: number | undefined) {
   return list
 }
 
-export function ReadPanel({ itemId, extras, ly, onClose }: { itemId: number; extras: Extra[]; ly: ReturnType<typeof useLyrics>; onClose: () => void }) {
+// switcher: the same choice as at the top of the lyrics (LyricsPanel), back to the words in time.
+export function ReadPanel({ itemId, extras, ly, onClose, switcher }: { itemId: number; extras: Extra[]; ly: ReturnType<typeof useLyrics>; onClose: () => void; switcher?: ReactNode }) {
   const [shown, setShown] = useState<{ name: string; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -47,6 +48,7 @@ export function ReadPanel({ itemId, extras, ly, onClose }: { itemId: number; ext
         {shown && <button type="button" className="np-chip small" onClick={() => setShown(null)}>{t('Back')}</button>}
         <button type="button" className="mp-ibtn" onClick={onClose} aria-label={t('Close')}><IconClose /></button>
       </div>
+      {switcher && !shown && <div className="np-modes">{switcher}</div>}
       {/* It holds only text, so it's made a stop of its own for arrows and Page Down. */}
       <div className="np-read" tabIndex={0} role="document">
         {error && <p className="np-note" role="alert">{error}</p>}

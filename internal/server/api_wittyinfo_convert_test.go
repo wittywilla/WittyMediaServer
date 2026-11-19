@@ -62,7 +62,7 @@ func TestConvertGatherAndSpread(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if x.Metadata.Title != "Film From NFO" || *x.Metadata.Year != 2001 || x.Metadata.ExternalIDs["tmdb"] != "603" || x.Artwork["poster"] != "images/poster.jpg" ||
+	if x.Metadata.Title != "Film From NFO" || *x.Metadata.Year != 2001 || x.Metadata.ExternalIDs["tmdb"] != "603" || x.Artwork.First("poster") != "images/poster.jpg" ||
 		len(x.Segments) != 2 || len(x.Subtitles) != 1 || x.Subtitles[0].Language != "de" || !x.Subtitles[0].Forced || x.Identity == nil {
 		t.Fatalf("gathered: %+v %+v %+v %+v", x.Metadata, x.Artwork, x.Segments, x.Subtitles)
 	}

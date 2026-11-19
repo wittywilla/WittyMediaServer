@@ -34,6 +34,16 @@ const Format = "wittyinfo"
 // version is still read: what this version knows is used and the rest is kept.
 const Version = 1
 
+// Versions: "version" says which revision of the format a file follows, as a whole number.
+// A reader takes a file of its own version or an older one in full. It takes a newer one
+// for what it knows, keeps the rest unchanged when it writes the file again, and says the
+// file is newer (Newer). A change a reader of the version before could take wrongly, such as
+// a field whose meaning changes, gets a new version; a new optional field doesn't need one.
+// Every version is described in docs/formats/wittyinfo.md.
+
+// Newer says the file follows a later version of the format than this package knows.
+func (x *Info) Newer() bool { return x.Version > Version }
+
 // Ext is the file extension, dot included.
 const Ext = ".wittyinfo"
 
@@ -234,8 +244,7 @@ type Metadata struct {
 	Extra
 }
 
-// Artwork names a picture in the archive for each role: {"poster": "images/poster.jpg"}.
-type Artwork map[string]string
+// Artwork is in artwork.go.
 
 // Playback holds how the video is best played. Players follow what they can.
 type Playback struct {

@@ -10,7 +10,7 @@
 //	wittyinfo check <file>...               check files; every problem is listed
 //	wittyinfo unpack <file> <folder>        unpack, to change manifest.json by hand
 //	wittyinfo pack <folder> <file>          pack again, checked
-//	wittyinfo image <file> <role> <picture> put a poster, backdrop... in it ("-" takes it out)
+//	wittyinfo image [--add] <file> <role> <picture> put a poster, backdrop... in it (--add: another one)
 //	wittyinfo match <file> <video>          does it fit this cut of the video?
 //	wittyinfo edit <video or file>          the editor, in a browser on this computer
 //
@@ -49,8 +49,12 @@ const usage = `wittyinfo makes, checks and edits .wittyinfo files.
   wittyinfo check <file>...                check files; every problem is listed
   wittyinfo unpack <file> <folder>         unpack, to change manifest.json by hand
   wittyinfo pack <folder> <file>           pack again, checked
-  wittyinfo image <file> <role> <picture>  put a picture in it ("-" takes it out);
-                                           roles: poster backdrop logo thumb banner clearart disc square
+  wittyinfo image [--add] <file> <role> <picture>
+                                           put the picture shown for a role; --add puts another
+                                           after it; images/<name> shows that one first;
+                                           -images/<name> takes one out, - takes them all out;
+                                           roles: poster backdrop logo thumb banner clearart disc
+                                           square, and back artist in a .wittyaudio
   wittyinfo match <file> <video>           does it fit this cut of the video?
   wittyinfo edit <video or file>           the editor, in a browser on this computer
   wittyinfo version
@@ -289,6 +293,11 @@ func cmdShow(args []string) error {
 func describe(x *wittyinfo.Info) string {
 	var b strings.Builder
 	w := func(format string, a ...any) { fmt.Fprintf(&b, format, a...) }
+	w("Format: .%s, version %d", x.Format, x.Version)
+	if x.Newer() {
+		w(" (newer than this program's %d: what it doesn't know is kept as it is)", wittyinfo.Version)
+	}
+	w("\n")
 	switch x.ScopeOr() {
 	case wittyinfo.ScopeShow:
 		w("Defaults for every episode of a show\n")
@@ -346,7 +355,13 @@ func describe(x *wittyinfo.Info) string {
 	if len(x.Artwork) > 0 {
 		w("\nPictures\n")
 		for _, k := range sortedKeys(x.Artwork) {
-			w("  %-9s %s (%d KB)\n", k, x.Artwork[k], len(x.Files[x.Artwork[k]])/1024)
+			for i, name := range x.Artwork[k] {
+				role := k
+				if i > 0 {
+					role = ""
+				}
+				w("  %-9s %s (%d KB)\n", role, name, len(x.Files[name])/1024)
+			}
 		}
 	}
 	if len(x.Subtitles) > 0 {
@@ -547,18 +562,28 @@ func walkRoot(root *os.Root, dir string, fn func(name string, b []byte) error) e
 }
 
 func cmdImage(args []string) error {
+	add := len(args) > 0 && args[0] == "--add"
+	if add {
+		args = args[1:]
+	}
 	if len(args) != 3 {
-		return errors.New("usage: wittyinfo image <file> <role> <picture or ->")
+		return errors.New("usage: wittyinfo image [--add] <file> <role> <picture | - | -name>")
 	}
 	x, err := readInfo(args[0])
 	if err != nil {
 		return err
 	}
-	role := args[1]
-	if args[2] == "-" {
-		delete(x.Artwork, role)
-	} else {
-		b, err := os.ReadFile(args[2])
+	role, what := args[1], args[2]
+	var c wittyinfo.ImageChange
+	switch {
+	case what == "-":
+		c = wittyinfo.ImageChange{Remove: true}
+	case strings.HasPrefix(what, "-images/"):
+		c = wittyinfo.ImageChange{Remove: true, Name: what[1:]}
+	case strings.HasPrefix(what, "images/"):
+		c = wittyinfo.ImageChange{First: what}
+	default:
+		b, err := os.ReadFile(what)
 		if err != nil {
 			return err
 		}
@@ -566,9 +591,10 @@ func cmdImage(args []string) error {
 		if ext == "" {
 			return errors.New("the picture has to be a JPEG, PNG or WebP")
 		}
-		if _, err := x.SetImage(role, ext, b); err != nil {
-			return err
-		}
+		c = wittyinfo.ImageChange{Picture: b, Ext: ext, Add: add}
+	}
+	if err := x.ChangeImages(role, c); err != nil {
+		return err
 	}
 	return writeInfo(args[0], x)
 }

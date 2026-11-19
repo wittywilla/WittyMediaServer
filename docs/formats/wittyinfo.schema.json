@@ -16,6 +16,7 @@
       ]
     },
     "version": {
+      "description": "Which revision of the format the file follows, a whole number: 1 for files written to this description. A reader takes a newer version for what it knows and keeps the rest.",
       "type": "integer",
       "minimum": 1
     },
@@ -89,7 +90,21 @@
         ]
       },
       "additionalProperties": {
-        "$ref": "#/$defs/imageMember"
+        "description": "The role's pictures: one name, or a list with the one shown first (32 at most, each once).",
+        "oneOf": [
+          {
+            "$ref": "#/$defs/imageMember"
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/imageMember"
+            }
+          }
+        ]
       }
     },
     "playback": {

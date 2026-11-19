@@ -1811,8 +1811,8 @@ asks for in one call. `{id}` is an item, as in
 | `GET /wittyinfo/{target}/{id}/export` | admin | The `.wittyinfo` archive, as an attachment. |
 | `POST /wittyinfo/{target}/{id}/import` | admin | Body: a `.wittyinfo` (archive or bare manifest), 64 MB at most. Its scope has to fit the target. |
 | `POST /wittyinfo/{target}/{id}/use-anyway` | admin | `{use}`: use a file made for another cut. |
-| `PUT /wittyinfo/{target}/{id}/images/{role}` | admin | Body: a JPEG, PNG or WebP. `role`: `poster`, `backdrop`, `logo`, `thumb`, `banner`, `clearart`, `disc`, `square`. |
-| `DELETE /wittyinfo/{target}/{id}/images/{role}` | admin | Take that picture out. |
+| `PUT /wittyinfo/{target}/{id}/images/{role}` | admin | Body: a JPEG, PNG or WebP, shown for the role in place of the one shown before (the role's other pictures stay). `?add=1` adds it after them instead (32 a role at most). With no body, `?first=<name>` shows that picture (`images/...`) first. `role`: `poster`, `backdrop`, `logo`, `thumb`, `banner`, `clearart`, `disc`, `square`, and `back`, `artist` for music. |
+| `DELETE /wittyinfo/{target}/{id}/images/{role}` | admin | Take the role's pictures out, or with `?name=<name>` that one. |
 | `PUT /wittyinfo/{target}/{id}/subtitles/{name}` | admin | Body: a subtitle file (SRT, WebVTT, ASS or SSA, UTF-8, 2 MB at most), kept as `subtitles/<name>` (`de.forced.srt`). `?language=&forced=1&sdh=1&title=`. The same name replaces it. A video's only. |
 | `DELETE /wittyinfo/{target}/{id}/subtitles/{name}` | admin | Take it out. |
 | `GET /wittyinfo/{target}/{id}/files/{name}` | user | A picture in the file (`images/...`), as `files[].url` names it. |

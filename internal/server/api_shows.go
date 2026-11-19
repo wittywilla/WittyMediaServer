@@ -254,7 +254,7 @@ func (s *Server) handleShowArt(w http.ResponseWriter, r *http.Request) {
 // artCandidate is one choice in the artwork picker.
 type artCandidate struct {
 	URL    string `json:"url"`    // value to store
-	Source string `json:"source"` // local | tmdb | tvdb | current
+	Source string `json:"source"` // local | tmdb | tvdb | current | wittyinfo (the title's own file)
 }
 
 // localImages lists image files in a folder.
@@ -319,6 +319,7 @@ func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
 			cur = sh.Backdrop
 		}
 		add(artCandidate{URL: cur, Source: "current"})
+		add(s.infoCandidates(r, library.InfoTarget{Kind: library.InfoShow, ID: sh.ID}, backdrop)...)
 		add(localImages(sh.Path)...)
 		if t := s.tvSource(r); t != nil {
 			var meta *library.SeriesMeta
@@ -353,6 +354,7 @@ func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
 			cur = it.Backdrop
 		}
 		add(artCandidate{URL: cur, Source: "current"})
+		add(s.infoCandidates(r, library.InfoTarget{Kind: library.InfoItem, ID: it.ID}, backdrop)...)
 		dir := filepath.Dir(it.Path)
 		if it.Kind == "dvd-folder" {
 			dir = it.Path
@@ -514,4 +516,20 @@ func (s *Server) handleDVDSub(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "private, max-age=3600")
 	_, _ = w.Write(png)
+}
+
+// infoCandidates are the pictures a title's own .wittyinfo holds for the role being chosen.
+func (s *Server) infoCandidates(r *http.Request, t library.InfoTarget, backdrop bool) []artCandidate {
+	if s.Scanner == nil {
+		return nil
+	}
+	role := "poster"
+	if backdrop {
+		role = "backdrop"
+	}
+	var out []artCandidate
+	for _, ref := range s.Scanner.InfoPictures(r.Context(), t, role) {
+		out = append(out, artCandidate{URL: ref, Source: "wittyinfo"})
+	}
+	return out
 }

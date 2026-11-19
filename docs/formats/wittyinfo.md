@@ -112,7 +112,7 @@ To edit by hand, unpack it (`wittyinfo unpack`, or any ZIP tool after renaming i
     "genres": ["Drama"],
     "externalIds": { "tmdb": "12345", "imdb": "tt0000000" }
   },
-  "artwork": { "poster": "images/poster.jpg", "backdrop": "images/backdrop.jpg" },
+  "artwork": { "poster": ["images/poster.jpg", "images/poster-2.jpg"], "backdrop": "images/backdrop.jpg" },
   "playback": { "startAt": 8, "audioLanguage": "jpn", "subtitleLanguage": "eng", "subtitleMode": "always" },
   "subtitles": [{ "file": "subtitles/en.forced.srt", "language": "en", "forced": true }],
   "notes": "Anything people want to say about it.",
@@ -129,7 +129,7 @@ millisecond.
 | Field | Meaning |
 | --- | --- |
 | `format` | Always `"wittyinfo"`. |
-| `version` | `1`. A reader uses what it knows of a newer version and keeps the rest. |
+| `version` | Which version of the format the file follows: `1`. See [Versions](#versions). |
 | `scope` | `item` (one film or episode; the default), `season` or `show`. |
 | `season` | The season number, for a season file. |
 | `identity` | Which video it was made for: see [Which cut](#which-cut-it-was-made-for). Item files only. |
@@ -139,7 +139,7 @@ millisecond.
 | `scenes` | Named points, shown in the player's Scenes. Item files only. |
 | `filters` | Content a viewer may want skipped or muted. Item files only. |
 | `metadata` | Details that replace what the server found. |
-| `artwork` | A picture in the archive for each role. |
+| `artwork` | The pictures in the archive for each role, the one shown first. |
 | `playback` | How it plays best. |
 | `subtitles` | Subtitle files in the archive. |
 | `notes` | Free text. |
@@ -205,8 +205,22 @@ given replaces what the server found; those left out don't.
 
 ### Artwork
 
-`{"role": "images/name.ext"}` for `poster`, `backdrop`, `logo`, `thumb` (an episode's
-picture), `banner`, `clearart`, `disc` and `square`. Each names a picture in the archive.
+The pictures for each role: `poster`, `backdrop`, `logo`, `thumb` (an episode's picture),
+`banner`, `clearart`, `disc` and `square` (and `back` and `artist` in a
+[`.wittyaudio`](wittyaudio.md)). A role names one picture in the archive, or a list of them:
+
+```json
+"artwork": {
+  "poster": ["images/poster.jpg", "images/poster-2.jpg", "images/poster-japan.jpg"],
+  "backdrop": "images/backdrop.jpg"
+}
+```
+
+The first in a list is the one shown. The others are there to choose from: the posters of
+other releases, an album's other covers, more backdrops. In WittyMediaServer a title's picture
+chooser offers every one, and the editor can add more, take any out, or show another first.
+A role holds 32 pictures at most, and names each picture once. Writers put a role with one
+picture as its name, so files that have one picture a role read the same everywhere.
 
 ### Playback
 
@@ -372,12 +386,15 @@ A library that already has NFO files and pictures beside its titles can be turne
 `.wittyinfo` files in one go, and back:
 
 - **Gather into .wittyinfo files** takes, for each film and episode, its NFO's details, its
-  pictures (poster, backdrop, logo, clear art, banner, disc art; an episode's thumbnail), the
+  pictures (poster, backdrop, logo, clear art, banner, disc art; an episode's thumbnail; and
+  further ones numbered like `Film-poster-2.jpg` or `fanart2.jpg`, and an `extrafanart` folder
+  where the folder is the film's own), the
   skips in a `.skip.json` or `.edl` and, if asked, its text subtitle files (SRT, WebVTT, ASS,
   SSA). For each show it takes `tvshow.nfo` and the show folder's pictures into `show.wittyinfo`,
   and each season's poster into `seasonNN.wittyinfo`.
 - **Write NFO files and pictures from .wittyinfo files** does the reverse: NFO files and
-  pictures in the usual layout, a `.skip.json` for the skips, and the subtitles named as
+  pictures in the usual layout (further pictures as `Film-poster-2.jpg`, `Film-fanart-2.jpg` and
+  on, never over a file already there), a `.skip.json` for the skips, and the subtitles named as
   players read them (`Film.de.forced.srt`), in the server's language.
 
 What a `.wittyinfo` already says is never replaced by what lies beside it. The old files stay,
@@ -400,13 +417,39 @@ wittyinfo show "Movie (2023).wittyinfo"   # what it holds, in words
 wittyinfo check "Movie (2023).wittyinfo"  # check it; lists every problem
 wittyinfo unpack "Movie (2023).wittyinfo" folder/
 wittyinfo pack folder/ "Movie (2023).wittyinfo"
-wittyinfo image "Movie (2023).wittyinfo" poster poster.jpg
+wittyinfo image "Movie (2023).wittyinfo" poster poster.jpg          # the poster shown
+wittyinfo image --add "Movie (2023).wittyinfo" poster japan.jpg    # another to choose from
+wittyinfo image "Movie (2023).wittyinfo" poster images/poster-2.jpg # show that one first
+wittyinfo image "Movie (2023).wittyinfo" poster -images/poster-2.jpg # take one out
 wittyinfo match "Movie (2023).wittyinfo" "Movie (2023).mkv"
 wittyinfo edit "Movie (2023).mkv"         # the editor, in a browser, on this computer only
 ```
 
 `wittyinfo edit` serves the same editor the server has, on `127.0.0.1` with a one-time key
 in the address, and plays the video for the live preview when the browser can.
+
+## Versions
+
+Every file says which version of the format it follows, as a whole number in `version`, beside
+`format`:
+
+```json
+{ "format": "wittyinfo", "version": 1 }
+```
+
+| Version | What it is |
+|---|---|
+| `1` | This description: segments, scenes, filters, metadata, a list of pictures for each role, playback, subtitles, languages and translations; `.wittyaudio`'s music and lyrics. First released with WittyMediaServer 0.8.1-alpha. |
+
+How readers and writers treat it:
+
+- A file without `version`, or with `0`, isn't read.
+- A reader takes a file of its own version or an older one in full.
+- A reader takes a **newer** file for what it knows, and keeps everything else as it is when
+  it writes the file again, so nothing is lost by opening a file in an older program. It says
+  the file is newer: `wittyinfo show` prints it, the editor shows it, and the server's answers
+  carry `"newer": true`.
+- A writer never lowers a file's version.
 
 ## Changing the format
 

@@ -548,10 +548,14 @@ func (s *Scanner) takeInfo(it *Item, x *wittyinfo.Info) {
 	}
 }
 
-// infoPicture copies a picture out of a .wittyinfo into the artwork cache, named for its
-// content, and gives its "cache:" reference.
+// infoPicture copies the picture shown for a role out of a .wittyinfo into the artwork
+// cache, named for its content, and gives its "cache:" reference.
 func (s *Scanner) infoPicture(x *wittyinfo.Info, role string) string {
-	name := x.Artwork[role]
+	return s.cachePicture(x, x.Artwork.First(role))
+}
+
+// cachePicture copies one picture of a file into the artwork cache.
+func (s *Scanner) cachePicture(x *wittyinfo.Info, name string) string {
 	b := x.Files[name]
 	if name == "" || len(b) == 0 || s.ImagesDir == "" {
 		return ""
@@ -565,6 +569,22 @@ func (s *Scanner) infoPicture(x *wittyinfo.Info, role string) string {
 		}
 	}
 	return "cache:" + out
+}
+
+// InfoPictures gives every picture a title's own file holds for a role, the one shown
+// first, as "cache:" references: what the artwork chooser offers from the file.
+func (s *Scanner) InfoPictures(ctx context.Context, t InfoTarget, role string) []string {
+	x := s.Store.LoadInfo(ctx, t).Info
+	if x == nil {
+		return nil
+	}
+	var out []string
+	for _, name := range x.Artwork[role] {
+		if ref := s.cachePicture(x, name); ref != "" {
+			out = append(out, ref)
+		}
+	}
+	return out
 }
 
 // ------------------------------------------------------------------ languages and shows

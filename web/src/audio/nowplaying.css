@@ -297,8 +297,8 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-lyrics { position: relative; flex: 1; min-width: 0; max-height: 100%; align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(10px, 3vh, 34px); }
 /* The album's cover at the side of the words (a setting): beside them on a wide screen and a TV. */
 .kar-stage.with-cover { padding-block: 12px; }
-/* As tall as the stage allows, up to a size that suits the screen; square, and never over the controls. */
-.kar-cover { flex: none; align-self: stretch; width: auto; height: auto; min-height: 0; max-height: min(42vh, 30vw, 520px); aspect-ratio: 1; object-fit: cover; border-radius: var(--r-lg); box-shadow: var(--np-shadow); }
+/* Always square (#522): one size for both sides, set from the screen, centred beside the words, never stretched. */
+.kar-cover { --kar-cover: min(42vh, 30vw, 520px); flex: none; align-self: center; inline-size: var(--kar-cover); block-size: var(--kar-cover); min-height: 0; max-height: none; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-lg); box-shadow: var(--np-shadow); }
 .kar-stage.with-cover .kar-now { font-size: clamp(1.8rem, min(6.6vh, 4.4vw), 4.8rem); }
 .kar-stage.with-cover .kar-next { font-size: clamp(1.1rem, min(3.2vh, 2.2vw), 2.2rem); }
 .kar-now { margin: 0; max-width: 100%; min-height: 2.3em; font-size: clamp(2rem, 7.4vh, 5.4rem); font-weight: 800; line-height: 1.14; letter-spacing: -.01em; overflow-wrap: anywhere; }
@@ -346,7 +346,7 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
   /* A phone held upright has no room beside the words: the cover goes above them, smaller. */
   .kar-stage.with-cover { flex-direction: column; gap: 16px; }
   .kar-stage.with-cover .kar-lyrics { flex: 1 0 auto; }
-  .kar-cover { align-self: center; width: clamp(96px, 34vw, 150px); max-height: none; border-radius: var(--r-md); }
+  .kar-cover { --kar-cover: clamp(96px, 34vw, 150px); border-radius: var(--r-md); }
   .kar-stage.with-cover .kar-now { font-size: clamp(1.6rem, 7.6vw, 2.3rem); }
   .kar-stage.with-cover .kar-next { font-size: clamp(1rem, 4.6vw, 1.4rem); }
   .kar-now { min-height: 0; font-size: clamp(1.75rem, 8.6vw, 2.6rem); }

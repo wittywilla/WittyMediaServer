@@ -410,7 +410,12 @@ var (
 	pdfCountRe  = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Count\s+(\d{1,6})[^>]{0,400}?/Type\s*/Pages\b`) })
 	pdfTitleRe  = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Title\s*\(((?:[^()\\]|\\.){1,400})\)`) })
 	pdfAuthorRe = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Author\s*\(((?:[^()\\]|\\.){1,400})\)`) })
+	// An /Encrypt entry, as a reference or a dictionary: the file's strings are encrypted too.
+	pdfEncryptRe = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Encrypt\s*(\d+\s+\d+\s+R|<<)`) })
 )
+
+// pdfTail is how much of the end of a PDF is read for its trailer, where /Encrypt usually is.
+const pdfTail = 8 << 10
 
 // readPDFMeta reads what's cheap to find in a PDF: pages, title and author when they
 // aren't in compressed streams, and the first JPEG for a cover, which for a scanned
@@ -436,14 +441,18 @@ func readPDFMeta(it *Item) (cover []byte) {
 	if pages > 0 {
 		it.RuntimeSec = float64(pages)
 	}
-	if m := pdfTitleRe().FindSubmatch(b); m != nil {
-		if t := pdfString(m[1]); t != "" && it.Album == "" {
-			it.Title = t
+	// An encrypted PDF (an owner password: it still opens) keeps its title and author
+	// encrypted. What they decode to here is noise, so the file's name stays.
+	if !pdfEncrypted(f, b) {
+		if m := pdfTitleRe().FindSubmatch(b); m != nil {
+			if t := pdfString(m[1]); t != "" && it.Album == "" {
+				it.Title = t
+			}
 		}
-	}
-	if m := pdfAuthorRe().FindSubmatch(b); m != nil {
-		if a := pdfString(m[1]); a != "" {
-			it.Artist, it.AlbumArtist = a, a
+		if m := pdfAuthorRe().FindSubmatch(b); m != nil {
+			if a := pdfString(m[1]); a != "" {
+				it.Artist, it.AlbumArtist = a, a
+			}
 		}
 	}
 	// The first stream that's a JPEG, by its filter and by its bytes.
@@ -475,13 +484,29 @@ func readPDFMeta(it *Item) (cover []byte) {
 	return nil
 }
 
+// pdfEncrypted says whether a PDF has an /Encrypt entry, in the part already read (head) or in
+// the trailer at the end of a file longer than that.
+func pdfEncrypted(f *os.File, head []byte) bool {
+	if pdfEncryptRe().Match(head) {
+		return true
+	}
+	st, err := f.Stat()
+	if err != nil || st.Size() <= int64(len(head)) {
+		return false
+	}
+	tail := make([]byte, min(pdfTail, st.Size()-int64(len(head))))
+	n, _ := f.ReadAt(tail, st.Size()-int64(len(tail)))
+	return pdfEncryptRe().Match(tail[:n])
+}
+
 // pdfString decodes a PDF literal string; one in UTF-16 stays out rather than garbled.
 func pdfString(b []byte) string {
 	if bytes.HasPrefix(b, []byte("\xFE\xFF")) || bytes.HasPrefix(b, []byte("\\376\\377")) {
 		return ""
 	}
-	s := strings.NewReplacer(`\(`, "(", `\)`, ")", `\\`, `\`, `\n`, " ", `\r`, " ", `\t`, " ").Replace(string(b))
-	if bytes.ContainsAny([]byte(s), "\x00\x01\x02\x03\x04\x05\x06\x07\x08") {
+	s := strings.NewReplacer(`\(`, "(", `\)`, ")", `\\`, `\`, `\n`, " ", `\r`, " ", `\t`, " ", "\n", " ", "\r", " ", "\t", " ").Replace(string(b))
+	// Any other control character means it isn't text: an encrypted or binary string.
+	if strings.IndexFunc(s, func(r rune) bool { return r < 0x20 || r == 0x7F }) >= 0 {
 		return ""
 	}
 	return strings.TrimSpace(strings.ToValidUTF8(s, ""))

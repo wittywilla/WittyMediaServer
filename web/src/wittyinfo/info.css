@@ -30,15 +30,15 @@
 .wi-range.wi-picked { outline: 2px solid var(--fg); outline-offset: 1px; z-index: 2; }
 .wi-range-label { flex: 1; min-width: 0; padding: 0 var(--sp-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-xs); font-weight: 600; pointer-events: none; }
 .wi-handle { flex: none; width: 10px; align-self: stretch; cursor: ew-resize; background: var(--wi-c, var(--accent)); opacity: .9; }
-.wi-handle.start { border-radius: 2px 0 0 2px; }
-.wi-handle.end { border-radius: 0 2px 2px 0; }
+.wi-handle.start { border-radius: var(--r-xs) 0 0 var(--r-xs); }
+.wi-handle.end { border-radius: 0 var(--r-xs) var(--r-xs) 0; }
 .wi-handle:focus-visible, .wi-pin:focus-visible { outline: var(--focus-width) solid var(--fg); outline-offset: 2px; opacity: 1; }
 .wi-ghost { position: absolute; top: 2px; bottom: 2px; border-radius: var(--r-xs); background: color-mix(in oklab, var(--wi-c, var(--fg-3)) 16%, transparent); border: 1px dotted color-mix(in oklab, var(--wi-c, var(--fg-3)) 60%, transparent); pointer-events: none; }
 .wi-row.wi-scenes { --lanes: 1; }
 .wi-pin { position: absolute; top: 2px; bottom: 2px; display: flex; align-items: flex-start; gap: 3px; transform: translateX(-1px); cursor: grab; z-index: 1; min-width: 10px; overflow: hidden; }
 .wi-pin:hover, .wi-pin:focus-visible, .wi-pin.wi-picked { overflow: visible; z-index: 2; }
 .wi-pin:hover b, .wi-pin:focus-visible b, .wi-pin.wi-picked b { background: var(--bg-2); padding-right: 4px; }
-.wi-pin i { width: 3px; align-self: stretch; border-radius: 2px; background: var(--fg-2); }
+.wi-pin i { width: 3px; align-self: stretch; border-radius: var(--r-xs); background: var(--fg-2); }
 .wi-pin b { font-size: var(--text-2xs); font-weight: 600; color: var(--fg-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-top: 2px; }
 .wi-pin.wi-picked i { background: var(--fg); width: 4px; }
 .wi-pin.wi-picked b { color: var(--fg); }
@@ -60,7 +60,7 @@
 .wi-item.wi-picked { border-color: var(--border-strong); background: var(--hover); }
 .wi-item.wi-scene-item { grid-template-columns: 24px minmax(0, 2fr) 92px 92px auto; }
 .wi-item.wi-filter-item { grid-template-columns: minmax(110px, 1fr) minmax(90px, .8fr) 92px 92px minmax(110px, 1fr) auto; }
-.wi-swatch { width: 12px; height: 12px; border-radius: 3px; background: var(--wi-c); border: 1px solid color-mix(in oklab, var(--wi-c) 60%, var(--fg)); display: inline-block; }
+.wi-swatch { width: 12px; height: 12px; border-radius: var(--r-xs); background: var(--wi-c); border: 1px solid color-mix(in oklab, var(--wi-c) 60%, var(--fg)); display: inline-block; }
 .wi-time { width: 100%; font-variant-numeric: tabular-nums; }
 .wi-time[aria-invalid] { border-color: var(--danger); }
 .wi-label { width: 100%; min-width: 0; }
@@ -98,13 +98,13 @@ label.btn { position: relative; cursor: pointer; }
 .wi-scope { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); font-size: var(--text-sm); font-weight: 600; }
 .wi-page { max-width: 1200px; margin: 0 auto; padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3); }
 .wi-page h1 { margin: 0; font-size: var(--text-xl); }
-.wi-preview { position: relative; border-radius: var(--r-md); overflow: hidden; background: #000; }
+.wi-preview { position: relative; border-radius: var(--r-md); overflow: hidden; background: #000; } /* design-ok: a video's letterbox is black on every theme */
 .wi-preview video { display: block; width: 100%; max-height: 50vh; }
-.wi-skip { position: absolute; right: var(--sp-4); bottom: 64px; }
+.wi-skip { position: absolute; right: var(--sp-4); bottom: 64px; } /* design-ok: clears the browser's own video controls, not a bar of ours */
 
 /* ------------------------------------------------------------------ inside the player */
-.wi-player-panel { position: absolute; right: 0; top: 0; bottom: 0; width: min(560px, 100%); z-index: 30; overflow-y: auto; padding: var(--sp-3) var(--sp-4);
-  background: color-mix(in oklab, var(--bg) 94%, transparent); color: var(--fg); border-left: 1px solid var(--border); box-shadow: var(--shadow-3, 0 0 24px rgba(0, 0, 0, .4)); }
+.wi-player-panel { position: absolute; right: 0; top: 0; bottom: 0; width: min(560px, 100%); z-index: var(--z-drawer); overflow-y: auto; padding: var(--sp-3) var(--sp-4);
+  background: color-mix(in oklab, var(--bg) 94%, transparent); color: var(--fg); border-left: 1px solid var(--border); box-shadow: var(--shadow); }
 .wi-player-panel header { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
 .wi-player-panel header h2 { flex: 1; margin: 0; font-size: var(--text-lg); }
 .wi-editor.compact .wi-item { grid-template-columns: 12px minmax(0, 1fr) 80px 80px auto; }

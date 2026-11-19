@@ -195,6 +195,7 @@ func (s *Scanner) importPlaylist(ctx context.Context, lib *Library, c candidate,
 	dir := filepath.Dir(c.path)
 	var ids []int64
 	seen := map[int64]bool{}
+	ownFolder := true // every song is beside the playlist file
 	for _, e := range ParseEntries(f.ID, raw) {
 		p := playlistTarget(dir, e)
 		if p == "" {
@@ -204,15 +205,23 @@ func (s *Scanner) importPlaylist(ctx context.Context, lib *Library, c candidate,
 		if err == nil && !seen[it.ID] {
 			seen[it.ID] = true
 			ids = append(ids, it.ID)
+			ownFolder = ownFolder && filepath.Dir(p) == dir
 		}
+	}
+	// Its file's path in the description says which file it came from: the same name
+	// in another folder is another playlist.
+	from := "Playlist file: " + c.path
+	if len(ids) > 0 && ownFolder {
+		// The track list a rip or a download leaves beside an album ("00-artist-album.m3u"):
+		// the album is already there, so it isn't one of the owner's playlists. One imported
+		// from it before goes.
+		_, err := s.Store.DB.ExecContext(ctx, `DELETE FROM collections WHERE owner_id = ? AND description = ?`, owner, from)
+		return err
 	}
 	if len(ids) == 0 {
 		return nil
 	}
 	name := strings.TrimSuffix(filepath.Base(c.path), filepath.Ext(c.path))
-	// Its file's path in the description says which file it came from: the same name
-	// in another folder is another playlist.
-	from := "Playlist file: " + c.path
 	var id int64
 	switch err := s.Store.DB.QueryRowContext(ctx, `SELECT id FROM collections WHERE owner_id = ? AND description = ? LIMIT 1`, owner, from).Scan(&id); err {
 	case nil:

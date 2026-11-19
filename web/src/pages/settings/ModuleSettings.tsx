@@ -7,7 +7,7 @@
 // profile's own. Each change is saved as it is made; a refusal stays beside its row.
 
 import { useCallback, useEffect, useId, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { announce } from '../../a11y'
 import { api, ApiError } from '../../api'
 import { EmptyState, LoadError, Spinner } from '../../components/common'
@@ -15,15 +15,19 @@ import { IconPlug, IconRight } from '../../icons'
 import { sduiIcon } from '../../sdui/render/icons'
 import { Switch } from '../../ui/Field'
 import { PageHead, Row, Section } from './ui'
+import { useTvMode } from '../../tvmode/mode'
+import { PartNote, tvNote } from '../../tvmode/OnAComputer'
 import { t, tk } from '../../i18n'
 
 type Option = { value: string; label: string }
 export type SettingRow = {
   key?: string; kind: 'bool' | 'enum' | 'int' | 'string' | 'secret' | 'info'; label: string; help?: string
   scope?: 'server' | 'profile'; default?: unknown; options?: Option[]; min?: number; max?: number; unit?: string; maxLength?: number
+  // On a television: view or desktopOnly shows the value without letting it be changed there (docs/TV-MODE.md).
+  tv?: 'full' | 'view' | 'desktopOnly'
 }
 type Group = { title: string; footer?: string; rows: SettingRow[] }
-type SettingsPageDesc = { id: string; title: string; icon?: string; admin?: boolean; groups: Group[] }
+type SettingsPageDesc = { id: string; title: string; icon?: string; admin?: boolean; groups: Group[]; tv?: 'full' | 'view' | 'desktopOnly' }
 export type ModuleSettingsView = { module: string; label: string; pages: SettingsPageDesc[]; values: Record<string, unknown>; secretsSet: string[]; editable: boolean }
 type Listed = { module: string; label: string; icon?: string; url: string }
 
@@ -57,6 +61,8 @@ export function ModuleSettingsList() {
 // One module's settings, every page of it one after another.
 export function ModuleSettingsPage() {
   const { module = '' } = useParams()
+  const tv = useTvMode()
+  const loc = useLocation()
   const [v, setV] = useState<ModuleSettingsView | null>(null)
   const [failed, setFailed] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -91,9 +97,10 @@ export function ModuleSettingsPage() {
       {v.pages.map((p) => (
         <div key={p.id} className="ms-page">
           {v.pages.length > 1 && <h2 className="ms-page-title">{p.title}</h2>}
+          {tv && p.tv && p.tv !== 'full' && <PartNote title={p.title} path={loc.pathname} />}
           {p.groups.map((g, gi) => (
             <Section key={gi} title={g.title} desc={g.footer}>
-              {g.rows.map((r, ri) => <SettingRowView key={r.key || `info-${ri}`} row={r} view={v} busy={busy === r.key} error={r.key ? errors[r.key] : ''} onSave={(value) => void save(r, value)} />)}
+              {g.rows.map((r, ri) => <SettingRowView key={r.key || `info-${ri}`} row={r} view={v} onComputer={tv && ((!!p.tv && p.tv !== 'full') || (!!r.tv && r.tv !== 'full'))} busy={busy === r.key} error={r.key ? errors[r.key] : ''} onSave={(value) => void save(r, value)} />)}
             </Section>
           ))}
         </div>
@@ -111,14 +118,17 @@ export function valueOf(row: SettingRow, values: Record<string, unknown>): unkno
 // canChange: a server row is an administrator's to change; a profile row its own profile's.
 export const canChange = (row: SettingRow, editable: boolean) => row.kind !== 'info' && (row.scope === 'profile' || editable)
 
-function SettingRowView({ row, view, busy, error, onSave }: { row: SettingRow; view: ModuleSettingsView; busy: boolean; error?: string; onSave: (v: unknown) => void }) {
+function SettingRowView({ row, view, busy, error, onSave, onComputer }: { row: SettingRow; view: ModuleSettingsView; busy: boolean; error?: string; onSave: (v: unknown) => void; onComputer?: boolean }) {
   const id = useId()
   const value = valueOf(row, view.values)
-  const editable = canChange(row, view.editable)
+  const allowed = canChange(row, view.editable)
+  // On a television, a row its module keeps for a computer shows its value only (docs/TV-MODE.md).
+  const editable = allowed && !onComputer
   const desc = (
     <>
       {row.help}
-      {!editable && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}{t('Set by an administrator for the whole server.')}</span>}
+      {!allowed && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}{t('Set by an administrator for the whole server.')}</span>}
+      {allowed && onComputer && row.kind !== 'info' && <span className="muted">{row.help ? ' ' : ''}{tvNote()}</span>}
       {error && <span className="error" role="alert" id={id + 'e'}> {error}</span>}
     </>
   )

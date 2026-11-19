@@ -277,9 +277,13 @@ type Catalogue struct {
 	// TVThemes are the WittyTV looks as data, Remote the WittyRemote's keys and which stay
 	// dimmed for each kind of disc, and Music the mini player, visualizer and karaoke controls
 	// (data/*.json): every client draws them from these tables.
-	TVThemes      json.RawMessage `json:"tvThemes"`
-	Remote        json.RawMessage `json:"remote"`
-	Music         json.RawMessage `json:"music"`
+	TVThemes json.RawMessage `json:"tvThemes"`
+	Remote   json.RawMessage `json:"remote"`
+	Music    json.RawMessage `json:"music"`
+	// TVLevels say how much of each screen a television offers (data/tvlevels.json, docs/TV-MODE.md):
+	// "full", "view" (values shown, nothing changed) or "desktopOnly" (a card that says to use a
+	// computer, with the page's address). Screens are matched by address, parts by id.
+	TVLevels      json.RawMessage `json:"tvLevels"`
 	Icons         []string        `json:"icons"`
 	Placeholders  []EnumOption    `json:"placeholders"`
 	Repeats       []EnumOption    `json:"repeats"`

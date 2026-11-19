@@ -167,6 +167,9 @@ type SettingsPage struct {
 	// Settings draws them in its own style with the generic settings-page renderer.
 	Slot   string          `json:"slot,omitempty"`
 	Groups []SettingsGroup `json:"groups"`
+	// TV: how much of the page a television offers (docs/TV-MODE.md). Leave it out for settings a
+	// remote or a controller can change; a console's settings belong on a television.
+	TV string `json:"tv,omitempty"`
 }
 
 // SettingsSlots are the places a module's settings page may declare, and whether each is for
@@ -215,6 +218,9 @@ type SettingRow struct {
 	// Unit follows a number: "MB", "seconds".
 	Unit      string `json:"unit,omitempty"`
 	MaxLength int    `json:"maxLength,omitempty"`
+	// TV: view shows the value on a television without letting it be changed there; desktopOnly
+	// leaves the row out there, with a line that says to use a computer (docs/TV-MODE.md).
+	TV string `json:"tv,omitempty"`
 }
 
 var (
@@ -579,6 +585,9 @@ func ValidateModuleUI(ui *ModuleUI, module string, checks ModuleChecks) []Issue 
 				v.err(p+"/admin", "Set admin to true.", "the %s slot is for administrators, so the page must be an admin page", sp.Slot)
 			}
 		}
+		if !ValidTVLevel(sp.TV) {
+			v.err(p+"/tv", "Use full, view or desktopOnly.", "%q is not a television level", sp.TV)
+		}
 		rows := 0
 		for g := range sp.Groups {
 			grp := &sp.Groups[g]
@@ -589,6 +598,9 @@ func ValidateModuleUI(ui *ModuleUI, module string, checks ModuleChecks) []Issue 
 			for r := range grp.Rows {
 				rows++
 				v.settingRow(&grp.Rows[r], fmt.Sprintf("%s/rows/%d", gp, r), keys, sp.Admin)
+				if !ValidTVLevel(grp.Rows[r].TV) {
+					v.err(fmt.Sprintf("%s/rows/%d/tv", gp, r), "Use full, view or desktopOnly.", "%q is not a television level", grp.Rows[r].TV)
+				}
 			}
 		}
 		if rows == 0 {

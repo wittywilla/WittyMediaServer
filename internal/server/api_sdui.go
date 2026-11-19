@@ -143,6 +143,7 @@ func (s *Server) sduiRoutes(m *http.ServeMux) {
 	m.Handle("PUT /api/sdui/pages/{page}/personal", s.requireUser(s.handleSDUIPersonalPut))
 	m.Handle("DELETE /api/sdui/pages/{page}/personal", s.requireUser(s.handleSDUIPersonalDelete))
 	m.Handle("GET /api/sdui/topshelf", s.requireUser(s.handleSDUITopShelf))
+	m.Handle("GET /api/sdui/tv-summary/{id}", s.requireUser(s.handleTVSummary))
 	s.sduiAdminRoutes(m)
 	s.sduiModuleRoutes(m)
 	s.sduiExperienceRoutes(m)

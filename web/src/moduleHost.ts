@@ -15,6 +15,8 @@ import { CardRouteContext } from './sdui/render/cardRoute'
 import { GameArtContext, GlyphContext, RowLayoutContext, TabsContext } from './sdui/render/glyphs'
 import { setPageRegions, usePageRegions } from './sdui/regions'
 import { useTvMode } from './tvmode/mode'
+import { tvPartLevel, tvScreenFor } from './tvmode/levelTable'
+import { OnAComputer, OnAComputerDialog, PartNote, TvPart, ViewOnly } from './tvmode/OnAComputer'
 import { focusFirst } from './tv'
 import { rememberHost } from './moduleRegistry'
 import { appModules } from './moduleApp'
@@ -62,7 +64,7 @@ const http = {
 }
 
 /** Host features this app offers, and their versions. */
-const offers: Record<string, number> = { web: 5, frames: 1, cards: 1, settings: 1, routes: 1, i18n: 1 }
+const offers: Record<string, number> = { web: 5, frames: 1, cards: 1, settings: 1, routes: 1, i18n: 1, tvLevels: 1 }
 
 /** The host a module's register(host) and its components are given (web host API 5). */
 export function hostFor(module: string) {
@@ -90,6 +92,11 @@ export function hostFor(module: string) {
     LegalNote,
     sdui: { CardRouteContext, GameArtContext, GlyphContext, RowLayoutContext, TabsContext, setPageRegions, usePageRegions },
     input: { focusFirst },
+    /** How much of a screen a television offers (tvLevels 1, docs/TV-MODE.md): the server's table by address
+     * (screenFor) and by part (partLevel), the card that says to use a computer, a part's note and dialog, and a
+     * wrapper that shows its content with the controls off. A module with a frame of its own uses these on its
+     * own screens, so its editors say the same as the app's. */
+    tv: { screenFor: tvScreenFor, partLevel: tvPartLevel, OnAComputer, OnAComputerDialog, PartNote, TvPart, ViewOnly },
     /** The language the app's pages are in (the server's uiLanguage, a BCP 47 tag: 'de', or 'pt-BR' / 'pt-PT'), for a
      *  module to show its own words in.
      *  Offered as has('i18n'). The whole app, modules included, is drawn again when it changes. */

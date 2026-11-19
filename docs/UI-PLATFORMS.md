@@ -39,6 +39,11 @@ also need.
 7. **Touch targets are 40px or more** on a phone or tablet (`--control-h`), 24px on a pointer, with the touch size
    reached by padding, not by drawing a larger control.
 
+8. **Every screen has a TV level.** `full`, `view` or `desktopOnly`, in `pkg/sdui/data/tvlevels.json` (or a page's
+   own `tv`). An editor that needs typing, files, drag handles or many fields is `desktopOnly`: on a television it is
+   the card that says to use the WittyMediaClient app on a computer, or a web browser. Console and controller settings
+   stay `full`. See [TV mode: what a television offers](TV-MODE.md).
+
 ## Checked automatically
 
 - `python scripts/design-check.py` fails on raw colours, font sizes, radii, z-indexes, blur and now `spacing`

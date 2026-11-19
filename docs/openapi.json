@@ -10761,6 +10761,15 @@
               }
             ]
           },
+          "tvLevels": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "tvThemes": {
             "items": {
               "type": "integer"
@@ -10800,6 +10809,7 @@
           "schemaVersion",
           "sources",
           "spacing",
+          "tvLevels",
           "tvThemes"
         ],
         "type": "object"
@@ -12623,6 +12633,9 @@
           "ttlSeconds": {
             "type": "integer"
           },
+          "tv": {
+            "type": "string"
+          },
           "variants": {
             "items": {
               "$ref": "#/components/schemas/SDUIVariant"
@@ -12711,6 +12724,9 @@
             "type": "string"
           },
           "title": {
+            "type": "string"
+          },
+          "tv": {
             "type": "string"
           },
           "variant": {
@@ -40516,6 +40532,69 @@
           }
         ],
         "summary": "Content for a tvOS Top Shelf extension: what this account was watching, up to two rows its modules offer, and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged.",
+        "tags": [
+          "Server-driven UI"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/sdui/tv-summary/{id}": {
+      "get": {
+        "operationId": "getSduiTvSummary",
+        "parameters": [
+          {
+            "description": "A screen's summary in the catalogue's tvLevels: libraries, channels, modules, backup, transcoding or network.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "addresses": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "lines": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "lines",
+                    "addresses"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a television shows in place of an editor it doesn't offer (docs/TV-MODE.md): a few lines of what is set now, only what the account may already see (administrators' screens say nothing to anyone else), and this server's addresses on the home network for the card's QR code, asked from there. Unknown ids answer with no lines.",
         "tags": [
           "Server-driven UI"
         ],

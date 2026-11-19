@@ -547,6 +547,10 @@ A page opened about something is a `custom` page that takes `item`, `name` and `
 
 The `QR` component draws a QR code for a link, for a phone to scan (a room's join link, a pairing address). Its `value` is a route of the app (`/games?join=TIDE-4821`) or an https address; with a source, the first item's `link` is the value and its title the caption (a source whose item has no link gives nothing, and the section is left out: a room's link is the host's alone). The node's props are `value`, `isRoute`, `label` and `size` (s, m, l): when `isRoute` is true the client makes the address absolute with the server's own base address before it encodes it. Clients draw it black on white with a quiet zone of four modules and error correction M whatever the theme, because a scanner needs the contrast; the node takes no focus, and on a desktop the address is shown under it as selectable text.
 
+### What a television offers
+
+A page can say how much of it a television offers: `"tv": "view"` (shown, nothing changed) or `"desktopOnly"` (a card that says to use the WittyMediaClient app on a computer, or a web browser, with the page's address and a QR code of it). The rendered document carries it as `page.tv`. The catalogue's `tvLevels` is the table every client follows for the app's own screens, found by address, and for parts of screens, found by id; a module's settings pages and rows take `tv` too. See [TV mode: what a television offers](TV-MODE.md).
+
 ### Books and search filters
 
 A books library's Books tab has a FilterBar with two more filters: `reading` (Reading, Finished, Not started: what the profile has started, finished or never opened) and `format` (Books, PDFs, Comics), and the grid's `books` source follows them (`filterable`). A book's page can list its formats with the `formats` source (the format that opens and the other files of the same name beside it, with sizes; never paths). On the search page a FilterBar with no target (`narrow`) offers Year and Score; every filterable search section follows them, so a film, show or anime library's results are narrowed by the library's own filters.

@@ -32,6 +32,7 @@ import { LayoutThumb } from '../ui/LayoutThumb'
 import type { WireMap } from '../ui/layoutSpecs'
 import { Row, Section } from './settings/ui'
 import AutoSkipSection from './settings/AutoSkip'
+import { TvPart } from '../tvmode/OnAComputer'
 
 const TvLookSettings = lazy(() => import('./tv/TvLookSettings'))
 const EngineColours = lazy(() => import('./settings/EngineColours'))
@@ -217,21 +218,23 @@ export default function AppearanceSettings() {
         </div>
         <div className="panel-actions">
           <Button icon={<IconPlus />} onClick={() => jumpTo('colours')}>{t('Make your own')}</Button>
-          {<>
+          <TvPart id="appearance.import">
             <input ref={fileRef} type="file" accept=".zip,application/zip" hidden aria-label={t('Theme ZIP')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f, !admin); e.target.value = '' }} />
             <Button variant="ghost" disabled={!!required} onClick={() => fileRef.current?.click()}>{t('Import a theme…')}</Button>
-          </>}
+          </TvPart>
           <Link className="small-note" to="/help/themes">{t('How themes work')}</Link>
         </div>
       </Section>
       <Section title={tk('Colours')} desc={t('Make a theme of your own from a few colours, and see it as you go. Every colour is checked as it’s made, so text stays easy to read. WittyTV has colours of its own, further down.')}>
-        <ColourMaker key={custom ? 'mine' : 'fresh'} start={custom || { ...FRESH_MAKER, name: t('My theme') }} admin={admin} inUse={mine === CUSTOM_THEME} onDevice={madeForDevice} onServer={madeForServer} />
+        <TvPart id="appearance.colours">
+          <ColourMaker key={custom ? 'mine' : 'fresh'} start={custom || { ...FRESH_MAKER, name: t('My theme') }} admin={admin} inUse={mine === CUSTOM_THEME} onDevice={madeForDevice} onServer={madeForServer} />
+        </TvPart>
       </Section>
       <LayoutSection />
       <MotionSection />
       <Suspense fallback={null}><TvLookSettings /></Suspense>
-      {admin && <Suspense fallback={null}><EngineColours /></Suspense>}
-      {personalColours && <Suspense fallback={null}><PersonalColours /></Suspense>}
+      {admin && <TvPart id="appearance.engine-colours"><Suspense fallback={null}><EngineColours /></Suspense></TvPart>}
+      {personalColours && <TvPart id="appearance.personal-colours"><Suspense fallback={null}><PersonalColours /></Suspense></TvPart>}
       <PlayerSection />
       {/* A profile's own choice. An administrator has it under Playback, a page the others don't get. */}
       {!admin && <AutoSkipSection />}
@@ -239,7 +242,7 @@ export default function AppearanceSettings() {
         <Section id="name" title={tk('Name and logo')} desc={t('Shown in the corner, on the sign-in page and in the browser tab. The license notice in Settings, About always remains.')}>
           <div className="brand-now">
             <div className="brand"><BrandMark /><Brand name={brandName} /></div>
-            <Button onClick={() => setNaming(true)}>{t('Edit name and logo…')}</Button>
+            <TvPart id="appearance.brand"><Button onClick={() => setNaming(true)}>{t('Edit name and logo…')}</Button></TvPart>
           </div>
           {naming && <BrandDialog onClose={() => setNaming(false)} />}
         </Section>
@@ -369,7 +372,7 @@ function LayoutSection() {
     <Section title={tk('Look')} desc={<>{t('How the app looks and is laid out on this device: where the menu is, how pages are drawn, its finish and type. Choose a layout, then its colours. Kept for you on this device; your other devices keep their own.')} {t('Rearrange a page with')} <b>{t('Customise this page')}</b> {t('at its foot.')}</>}>
       {menu.experiences && <ServerLookRows choice={menu.experiences} />}
       <Row label={t('Edit layout')} desc={t('Move the menu, the server’s name, search, the Dock and the spotlight, or hide what you don’t use: for you on this device, or for everyone.')}><Button onClick={() => window.dispatchEvent(new Event(LAYOUT_EVENT))}>{t('Edit layout…')}</Button></Row>
-      <NavCustomize />
+      <TvPart id="appearance.layout"><NavCustomize /></TvPart>
       <DensityRow />
     </Section>
   )

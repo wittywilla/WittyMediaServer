@@ -65,7 +65,7 @@ export type Layout = {
   truncated?: boolean
 }
 
-export type PageInfo = { id: string; kind: string; title: string; icon?: string; route?: string; variant?: string; params?: Record<string, string> }
+export type PageInfo = { id: string; kind: string; title: string; icon?: string; route?: string; variant?: string; params?: Record<string, string>; tv?: 'full' | 'view' | 'desktopOnly' }
 
 export type PersonalSection = { id: string; title: string; hidden?: boolean; pinned?: boolean; locked?: boolean; empty?: boolean; cardSize?: string; tabs?: { id: string; label: string }[] }
 

@@ -21,6 +21,8 @@ import { ranked } from '../ui/spatial'
 import BrandDialog from '../components/BrandDialog'
 import { applyPreset, DEVICES, deviceOf, LAYOUT_PRESETS, merged, zoneOf, type DeviceId, type Placement, type Placements, type Region, type Zone } from './layoutModel.ts'
 import './layoutEditor.css'
+import { useTvMode } from '../tvmode/mode'
+import { OnAComputerDialog } from '../tvmode/OnAComputer'
 import { t, tk, tx } from '../i18n'
 
 type Answer = { experience: string; regions: Region[]; placements: Placements; own?: Placements; editable: boolean }
@@ -289,5 +291,8 @@ export function ShellEditorHost() {
     window.addEventListener(LAYOUT_EVENT, on)
     return () => window.removeEventListener(LAYOUT_EVENT, on)
   }, [])
-  return open ? <ShellEditor onClose={() => setOpen(false)} /> : null
+  // On a television the layout is edited on a computer (docs/TV-MODE.md): the button says where.
+  const tv = useTvMode()
+  if (!open) return null
+  return tv ? <OnAComputerDialog part="shell.editor" onClose={() => setOpen(false)} /> : <ShellEditor onClose={() => setOpen(false)} />
 }

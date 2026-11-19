@@ -229,6 +229,9 @@ func validatePage(p *Page, ui *ModuleSet, own bool) []Issue {
 		}
 	}
 	v.regions(p.Regions)
+	if !ValidTVLevel(p.TV) {
+		v.err("/tv", "Use full, view or desktopOnly.", "%q is not a television level", p.TV)
+	}
 	if p.Slot != "" {
 		if _, ok := SettingsSlots[p.Slot]; !ok {
 			v.err("/slot", "Use you.games or people.profile.", "%q is not a place settings pages can go", p.Slot)

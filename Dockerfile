@@ -17,6 +17,8 @@ COPY docs/ /src/docs/
 COPY CHANGELOG.md SECURITY.md /src/
 # The themes' tokens, which the TV layout reads at build time.
 COPY themes/ /src/themes/
+# What a television offers of each screen (docs/TV-MODE.md), shared with the server's SDUI catalogue.
+COPY pkg/sdui/data/ /src/pkg/sdui/data/
 RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS build

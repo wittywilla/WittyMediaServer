@@ -16,6 +16,7 @@ import { focusFirst, OWN_BACK, typing } from '../tv'
 import Libraries from './Libraries'
 import More from './More'
 import { backStep, stepTab, tabPath, tabRootOf, tabsFromMenu, tvKey, type TabId, type TvTab } from './nav'
+import { TvLevelGate } from './TvLevelGate'
 import Search from './Search'
 import You from './You'
 
@@ -163,7 +164,7 @@ export default function TvFrame({ pages }: { pages: ReactNode }) {
             <Route path="/search" element={<SduiRoute fallback={<Search />} />} />
             <Route path="/you" element={<You />} />
             <Route path="/more" element={<More />} />
-            <Route path="*" element={pages} />
+            <Route path="*" element={<TvLevelGate>{pages}</TvLevelGate>} />
           </Routes>
         </Suspense>
         <LegalNote kind="general" className="legal-foot" />

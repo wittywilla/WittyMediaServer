@@ -227,7 +227,7 @@ func Render(page Page, ctx *RenderContext) (Document, error) {
 	}
 
 	doc := Document{Version: SchemaVersion, Catalog: CatalogRevision, Layout: r.l, Root: root, Personal: info,
-		Page: PageInfo{ID: page.ID, Kind: page.Kind, Title: r.fill(page.Title, nil, nil), Icon: page.Icon, Route: r.route(), Variant: variant, Params: r.pageParams()},
+		Page: PageInfo{ID: page.ID, Kind: page.Kind, Title: r.fill(page.Title, nil, nil), Icon: page.Icon, Route: r.route(), Variant: variant, Params: r.pageParams(), TV: page.TV},
 		Meta: Meta{Source: ctx.Source, ConfigRevision: ctx.ConfigRevision, TTLSeconds: r.ttl(), RefreshSec: r.refresh}}
 	if page.Scope != "" {
 		doc.Theme = &ThemeScope{Scope: page.Scope, Tokens: copyTokens(ctx.Scopes[page.Scope])}

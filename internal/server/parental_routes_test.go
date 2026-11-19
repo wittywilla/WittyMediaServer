@@ -110,6 +110,7 @@ var plainRoutes = []string{
 	"GET /api/remote-control",
 	"GET /api/remote-control/devices/{id}/channel",
 	"GET /api/sdui/topshelf",
+	"GET /api/sdui/tv-summary/{id}",
 	// A profile's own layout: like its page arrangements, kept from it by editLayout in the handler.
 	"GET /api/sdui/placements", "PUT /api/sdui/placements", "DELETE /api/sdui/placements", "GET /api/sdui/experiences", "GET /api/sdui/experience", "PUT /api/sdui/experience", "DELETE /api/sdui/experience", "POST /api/themes/mine",
 	// A module's pictures and settings: a module the profile is kept from is 404 in the handler.

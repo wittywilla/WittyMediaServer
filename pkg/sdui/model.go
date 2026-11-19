@@ -59,6 +59,9 @@ type Page struct {
 	// Regions are what the page puts into the shell's own regions while it, or its theme scope, is
 	// showing: the status bar's items and the system dock's actions (docs/SDUI.md, "Shell regions").
 	Regions *PageRegions `json:"regions,omitempty"`
+	// TV says how much of the page a television offers (docs/TV-MODE.md): full (the default), view
+	// (shown, nothing changed) or desktopOnly (a card that says to use a computer, with the address).
+	TV string `json:"tv,omitempty"`
 }
 
 // PageRegions is a page's contribution to the shell: the content of the regions that take any.
@@ -356,6 +359,9 @@ type PageInfo struct {
 	Variant string `json:"variant,omitempty"`
 	// Params are what the page was opened with (library, item, q, ...).
 	Params map[string]string `json:"params,omitempty"`
+	// TV is the page's television level (Page.TV): a renderer on a television draws a page that says
+	// desktopOnly as the card that says to use a computer, and one that says view without its controls.
+	TV string `json:"tv,omitempty"`
 }
 
 // ThemeScope is a theme scope and its colour overrides: token → colour.

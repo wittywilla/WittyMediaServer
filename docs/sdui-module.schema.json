@@ -568,6 +568,9 @@
         "ttlSeconds": {
           "type": "integer"
         },
+        "tv": {
+          "type": "string"
+        },
         "variants": {
           "items": {
             "$ref": "#/$defs/Variant"
@@ -765,6 +768,9 @@
         "scope": {
           "type": "string"
         },
+        "tv": {
+          "type": "string"
+        },
         "unit": {
           "type": "string"
         }
@@ -819,6 +825,9 @@
           "type": "string"
         },
         "title": {
+          "type": "string"
+        },
+        "tv": {
           "type": "string"
         }
       },

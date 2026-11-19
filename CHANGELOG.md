@@ -5,6 +5,15 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Live TV check-up** (#472, with WittyTuner 0.4.4):
+  - **Recording an IPTV channel survives a dropped stream.** A stream that ended early ended the recording, sometimes marked done with half a programme. It's now opened again and added to the same file until the programme's end, and the finished recording says how many times it dropped. HLS channels with WebVTT subtitles or data tracks no longer fail to record.
+  - **Watching survives a blip.** When a channel's stream stops and the first try to open it again fails (a provider's brief refusal), the server tries again after 1, 2, 4 and 8 seconds before telling viewers it stopped.
+  - **Errors in words.** A failed live stream said FFmpeg's own output; it now says what happened (the stream isn't there any more, refused this server, the provider had a problem, couldn't be reached) and what to try. The detail stays in the log.
+  - **Guide matching** sees every name a guide gives a channel (numbers and call signs are often among them) and its icon (wittytv migration 10), and the host API's `GET /tv/guide/ids` says each one's source and how far ahead its listings go.
+  - **`tvg-shift`:** a channel's guide is moved by its playlist's shift, so a "+1" channel shows its programmes an hour later.
+  - **A guide read twice at once** no longer leaves the guide empty: one source's guide is read one at a time.
+  - New page: [Live TV: tuners, IPTV and the guide](docs/LIVE-TV.md), with the demo tuner, big playlists, guide matching and what each error means.
+
 - **Fixed:** first-time setup's Live TV and Games steps were an empty card once their module was installed. The app asked what modules add to it only once, before there was an account, and never again; it now asks again after a refusal, with the server's state, and after the Modules step installs something. A module's step that can't load says so instead of drawing nothing. (#378)
 
 ## 0.8.0-alpha

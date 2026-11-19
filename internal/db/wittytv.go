@@ -154,6 +154,10 @@ var wittyTVMigrations = []string{
 	 DELETE FROM tv_favourites WHERE channel LIKE 'tun-%';
 	 DELETE FROM tv_reminders WHERE channel LIKE 'tun-%';
 	 DELETE FROM tv_set_channels WHERE channel LIKE 'tun-%';`,
+	// 10: every name a guide gives a channel (its display names: name, number, call sign), not only
+	// the first, and its icon, so WittyTuner can match channels on any of them.
+	`ALTER TABLE epg_channels ADD COLUMN aliases TEXT NOT NULL DEFAULT '';
+	 ALTER TABLE epg_channels ADD COLUMN icon TEXT NOT NULL DEFAULT '';`,
 }
 
 func (d *DB) migrateWittyTV(ctx context.Context) error {

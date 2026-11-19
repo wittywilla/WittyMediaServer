@@ -314,7 +314,9 @@ To put one right, open a tuner under **Tuners and IPTV**, and press **Change** b
 
 ## Tuners and IPTV
 
-These need the **WittyTuner** module. No channel lists or stream addresses come with the server, so bring your own. Scanning uses computed band plans, not lists of stations.
+These need the **WittyTuner** module. No channel lists or stream addresses come with the server, so bring your own. Scanning uses computed band plans, not lists of stations. [Live TV: tuners, IPTV and the guide](LIVE-TV.md) goes further: big playlists, guide matching, the demo tuner, and what happens when a stream drops.
+
+**No tuner yet?** **Add a demo tuner** (or **Try a demo tuner** in first-time setup) adds pretend channels and a guide made on the server itself, to try the guide, recording and WittyTV with no hardware and no internet. See [the demo tuner](LIVE-TV.md#try-it-with-no-tuner-the-demo-tuner).
 
 ![The Channels and tuners page in Settings](images/settings-channels.webp)
 *Settings, Channels & tuners, on a server with no tuner attached.*
@@ -337,7 +339,8 @@ On a new server with WittyTuner, first-time setup has a **Live TV** step that op
 
 | Add a tuner | Works on | How far it's been tried |
 |---|---|---|
-| **IPTV playlist (M3U)** | All | Tested with real FFmpeg against local streams |
+| **Demo tuner (built in)**: pretend channels and a guide made on this server | All | Tested with real FFmpeg |
+| **IPTV playlist (M3U)** | All | Tested with real FFmpeg against local streams and public test streams |
 | **IPTV single stream**: HTTP, HLS, RTSP, RTP or UDP | All | Tested with real FFmpeg against local streams |
 | **Network tuner (HDHomeRun-style)** | All | Tried on stand-ins, not real hardware. The scan call isn't in the maker's guide |
 | **SAT>IP** | All | Not tried on hardware |
@@ -373,7 +376,7 @@ A playlist comes from an `http://` or `https://` address, or a file on the serve
 
 ## Guide data
 
-- **XMLTV:** from an address or a file, under **Guide data**, refreshed by itself, gzip included. Matched on guide id, then on the channel's name, and you can set the id for each channel. A playlist's own guide and a backend's are added for you.
+- **XMLTV:** from an address or a file, under **Guide data**, refreshed by itself, gzip included. Channels are matched by guide id, name, call sign and number, forgivingly and with a confidence score; **Match channels to the guide** lists the rest for one-press fixes, and remembers what you choose. See [Matching channels to the guide](LIVE-TV.md#matching-channels-to-the-guide). A playlist's own guide and a backend's are added for you.
 - **Over the air:** DVB EIT and ATSC PSIP, read while a channel is being watched, recorded or scanned. It costs nothing when idle, and only channels recently tuned have this data. It reaches only the channel being watched, not others on its multiplex.
 - **Library channels:** their own schedule.
 
@@ -402,6 +405,7 @@ On **Recordings**, **Change** on a series changes these, and a recording waiting
 - **Recordings come first.** When no tuner is free, a live viewer on that tuner is stopped, with a message. A viewer and a recording don't share one tuner yet.
 - **Disk space.** A recording stops and says so when under 2 GB is left on its disk. Old recordings aren't cleaned up automatically.
 - **Cost.** A raw stream is written straight to disk, using almost no processor. Other sources use FFmpeg copying the stream as it is.
+- **A stream that drops** during a recording is opened again and added to the same file until the programme's end, and the finished recording says how many times it dropped.
 
 ## Encrypted channels
 

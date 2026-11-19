@@ -11,8 +11,9 @@
     msiexec /i x.msi /qn MSIINSTALLPERUSER="" INSTALLSERVICE=1 ADDFIREWALL=1 AUTOSTART="" PORT=8096
 
   PORT is optional. It goes into settings.ini in the data folder, the same file Settings → Network
-  saves in: C:\ProgramData\WittyMediaServer for the service, or the installing account's
-  %LOCALAPPDATA%\WittyMediaServer. Left out, the port stays what it was: an upgrade from a service
+  saves in: C:\ProgramData\WittyMediaServer for the service, or the installing account's own data
+  folder: where first-time setup put it (Documents\WittyMediaServer by default), found the way the
+  server finds it, or %LOCALAPPDATA%\WittyMediaServer before setup has run. Left out, the port stays what it was: an upgrade from a service
   that 0.6 started with -listen carries that port over.
 
   Installed apps shows our own entry in place of the MSI's, because only that can ask whether to
@@ -128,7 +129,7 @@
                  Value="&quot;[BinFolder]wittymediaserver.exe&quot; config port -data &quot;[CommonAppDataFolder]WittyMediaServer&quot; -in-data -port &quot;[PORT]&quot; -from-command [OLDSERVICECMD]" />
     <CustomAction Id="CarryPort" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="no" />
     <SetProperty Action="SetCarryPortUser" Id="CarryPortUser" Before="CarryPortUser" Sequence="execute"
-                 Value="&quot;[BinFolder]wittymediaserver.exe&quot; config port -data &quot;[LocalAppDataFolder]WittyMediaServer&quot; -in-data -port &quot;[PORT]&quot;" />
+                 Value="&quot;[BinFolder]wittymediaserver.exe&quot; config port -in-data -port &quot;[PORT]&quot;" />
     <CustomAction Id="CarryPortUser" DllEntry="WixQuietExec" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" Execute="deferred" Return="ignore" Impersonate="yes" />
 
     <!-- Open the app at the end, if the box stays ticked. -->

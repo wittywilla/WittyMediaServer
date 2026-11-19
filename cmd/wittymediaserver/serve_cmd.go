@@ -28,6 +28,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
 	"github.com/wittywilla/wittymediaserver/internal/cd"
 	"github.com/wittywilla/wittymediaserver/internal/config"
+	"github.com/wittywilla/wittymediaserver/internal/datahome"
 	"github.com/wittywilla/wittymediaserver/internal/db"
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
 	"github.com/wittywilla/wittymediaserver/internal/discovery"
@@ -69,7 +70,37 @@ func cmdServe(args []string) int {
 	if !ok {
 		return code
 	}
-	defer lock.Release()
+	defer func() { lock.Release() }() // the lock a move below ends up with
+	// A move of the data folder waiting from the last run happens before anything else: every
+	// step below opens files in the folder it ends up in.
+	var moveRes *datahome.Result
+	if datahome.Pending(cfg.DataDir) != nil {
+		prog := &datahome.Progress{}
+		stopShowing := showMoving(cfg.Listen, prog)
+		moved, to, res := datahome.Apply(cfg.DataDir, prog)
+		stopShowing()
+		moveRes = res
+		if moved && cfg.WatchStdin {
+			// The tray app holds the old folder's console log open, and shows the old folder in its
+			// menu: it starts again, finds the new folder, and starts this server in it.
+			fmt.Fprintf(os.Stderr, "the data folder was moved from %s to %s (%d files); starting again there\n", res.From, to, res.Files)
+			return update.ExitRestart
+		}
+		if moved {
+			lock.Release()
+			next, err := config.Parse(args)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				return 2
+			}
+			if !datahome.Same(next.DataDir, to) {
+				fmt.Fprintf(os.Stderr, "the data was copied to %s, but this start is told to use %s\n", to, next.DataDir)
+			}
+			if lock, cfg, code, ok, lockWarn = claimDataFolder(next, args); !ok {
+				return code
+			}
+		}
+	}
 	level := slog.LevelInfo
 	switch strings.ToLower(cfg.LogLevel) {
 	case "debug":
@@ -81,6 +112,8 @@ func cmdServe(args []string) int {
 	}
 	logging.FreeSpace = sysinfo.FreeBytes
 
+	// What a first-time setup move couldn't delete from the old folder at the time, as a file in use.
+	datahome.Tidy(cfg.DataDir)
 	// A reset waiting from last time happens first, before anything opens these files.
 	resetDone := reset.Apply(reset.Folders{Data: cfg.DataDir, Program: config.ProgramDir(), Config: cfg.ConfigFile})
 	repairDone := reset.ApplyRepair(cfg.DataDir)
@@ -91,6 +124,7 @@ func cmdServe(args []string) int {
 		fmt.Fprintln(os.Stderr, "data folders:", err)
 		return 1
 	}
+	datahome.WriteReadme(cfg.DataDir)
 	// Armed before anything else can go wrong: a crash from here on leaves a report. It
 	// reads what the last run left before this one's standard error can replace it.
 	crashDir := filepath.Join(cfg.DataDir, "crash")
@@ -131,6 +165,14 @@ func cmdServe(args []string) int {
 	if lockWarn != "" {
 		log.Warn(lockWarn, "cat", "server", "data", cfg.DataDir)
 	}
+	if moveRes != nil {
+		if moveRes.OK {
+			log.Info("the data folder was moved", "cat", "server", "from", moveRes.From, "to", moveRes.To, "files", moveRes.Files, "bytes", moveRes.Bytes)
+		} else {
+			log.Error("the data folder couldn't be moved, so it stays where it was", "cat", "server", "data", cfg.DataDir, "to", moveRes.To, "err", moveRes.Error)
+		}
+	}
+	log.Info("data folder", "cat", "server", "dir", cfg.DataDir, "from", cfg.DataFrom)
 
 	tools, err := ffmpeg.Locate(cfg.FFmpegPath, cfg.FFprobePath)
 	if err != nil {

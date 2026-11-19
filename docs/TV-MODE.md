@@ -80,7 +80,8 @@ Every new screen or editor decides its TV level when it is made:
    `summary` if a line or two of what is set now would help, and implement that summary in
    `internal/server/api_tv_levels.go`.
 3. A button that opens an editor stays on a television and opens `OnAComputerDialog` instead (Customise this page,
-   Edit layout).
+   Edit layout). The walls for advanced settings on phones (`web/src/ui/advanced.tsx`, `UseAComputer`: the Canvas
+   studio, karaoke's voice settings, Advanced quality) show the same dialog in TV mode.
 4. Whatever it sets is kept on the server, per person or per server, never only in the browser, so that a change
    made on a computer reaches the television.
 

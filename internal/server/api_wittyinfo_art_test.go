@@ -62,6 +62,22 @@ func TestInfoSeveralPictures(t *testing.T) {
 	if n != 1 { // the first is the poster in use, offered as "current"
 		t.Errorf("the chooser offers %d pictures from the file: %+v", n, c.Candidates)
 	}
+	// So does the chooser the title's page uses.
+	mc := decode[struct {
+		Candidates []struct {
+			URL   string `json:"url"`
+			Label string `json:"sourceLabel"`
+		} `json:"candidates"`
+	}](t, ts.do(t, "GET", fmt.Sprintf("/api/meta/item/%d/artwork?kind=poster", f.video.ID), f.admin, nil))
+	n = 0
+	for _, x := range mc.Candidates {
+		if x.Label == "The title’s .wittyinfo" {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Errorf("the title's chooser offers %d pictures from the file: %+v", n, mc.Candidates)
+	}
 	if w := ts.do(t, "PUT", u+"/images/poster?first=images/poster-2.png", f.admin, nil); w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}

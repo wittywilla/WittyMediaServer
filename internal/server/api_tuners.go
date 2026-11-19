@@ -488,7 +488,7 @@ func (s *Server) ensureTunerLiveAs(r *http.Request, id int64, key string) (*hls.
 			first = nil
 			if o == nil {
 				var err error
-				if o, err = s.TV.Open(logging.WithSession(ctx, session), id); err != nil {
+				if o, err = reopenLive(logging.WithSession(ctx, session), func(c context.Context) (*livetv.Opened, error) { return s.TV.Open(c, id) }); err != nil {
 					return nil, err
 				}
 			}
@@ -507,6 +507,28 @@ func (s *Server) ensureTunerLiveAs(r *http.Request, id int64, key string) (*hls.
 	}
 	s.TV.RegisterViewer(id, func() { s.HLS.StopLive(key) })
 	return ls, nil
+}
+
+// liveReopenWaits are the pauses before each new try at a channel that stopped while people were
+// watching: an IPTV provider's brief refusal or a network blip shouldn't end it for everyone.
+var liveReopenWaits = []time.Duration{time.Second, 2 * time.Second, 4 * time.Second, 8 * time.Second}
+
+// reopenLive opens a playing channel again after its stream stopped, trying a few times.
+// Encrypted, and the session ending, are final.
+func reopenLive(ctx context.Context, open func(context.Context) (*livetv.Opened, error)) (*livetv.Opened, error) {
+	o, err := open(ctx)
+	for _, wait := range liveReopenWaits {
+		if err == nil || tuner.IsEncrypted(err) || ctx.Err() != nil {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return nil, err
+		case <-time.After(wait):
+		}
+		o, err = open(ctx)
+	}
+	return o, err
 }
 
 // refusalReader turns a scrambled stream into words a person can read.

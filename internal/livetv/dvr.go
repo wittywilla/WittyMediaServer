@@ -101,11 +101,11 @@ func checkPadding(before, after int) error {
 	return nil
 }
 
-// Padding starts recordings early and ends them late, as broadcasts drift.
-const (
-	padBefore = 60
-	padAfter  = 120
-)
+// Padding starts recordings early and ends them late, as broadcasts drift (seconds). A variable
+// only so tests can end a recording on time.
+const padBefore = 60
+
+var padAfter int64 = 120
 
 // sameAiring: two starts this close on one channel are one programme, however its title is spelled.
 const sameAiring = 60
@@ -837,7 +837,8 @@ func (m *Manager) record(r *Recording) {
 			m.AfterRecording(done)
 		}
 	}()
-	defer opened.Release() // first: whoever is told may use the tuner
+	// First: whoever is told may use the tuner. The stream may have been opened again since.
+	defer func() { opened.Release() }()
 	path, err := m.recordPath(r)
 	if err != nil {
 		log.Warn("a recording has nowhere to go", "err", err)
@@ -866,7 +867,8 @@ func (m *Manager) record(r *Recording) {
 			}
 		}
 	}, "cat", "tv")
-	err = m.write(writing, log, opened, path)
+	var gaps int
+	opened, gaps, err = m.writeAll(writing, log, opened, r.ChannelID, path)
 	stopLooking()
 	if outOfRoom.Load() {
 		m.finish(r.ID, "failed", diskFullReason, path)
@@ -902,8 +904,64 @@ func (m *Manager) record(r *Recording) {
 		m.finish(r.ID, "failed", PublicError(err), path)
 		return
 	}
-	m.finish(r.ID, "done", "", path)
+	note := ""
+	if gaps > 0 {
+		note = gapNote(gaps)
+	}
+	m.finish(r.ID, "done", note, path)
 	done = path
+}
+
+// gapNote says that a recording that finished has holes, where its stream dropped.
+func gapNote(gaps int) string {
+	if gaps == 1 {
+		return "The stream dropped once during the recording, so a moment may be missing."
+	}
+	return fmt.Sprintf("The stream dropped %d times during the recording, so moments may be missing.", gaps)
+}
+
+// How soon a recording whose stream dropped tries again, and at most how long it waits between tries.
+var (
+	recordingRetryFirst = 2 * time.Second
+	recordingRetryMax   = 30 * time.Second
+)
+
+// writeAll records until the recording's end (ctx), opening the channel again whenever its stream
+// stops early, as IPTV streams do now and then, and adding to the same file: MPEG-TS can simply
+// be joined. It hands back the stream open at the end, for the caller to let go, and how many
+// times the stream dropped. Encrypted is final, and so is the end of the recording.
+func (m *Manager) writeAll(ctx context.Context, log *slog.Logger, o *Opened, channelID int64, path string) (*Opened, int, error) {
+	gaps := 0
+	appendTo := false
+	for {
+		err := m.write(ctx, log, o, path, appendTo)
+		if ctx.Err() != nil || o.Refusal() != nil || tuner.IsEncrypted(err) || m.stopCtx.Err() != nil {
+			return o, gaps, err
+		}
+		appendTo = true
+		gaps++
+		log.Info("a recording's stream stopped early; opening it again", "err", err, "drops", gaps)
+		o.Release()
+		wait := recordingRetryFirst
+		for {
+			select {
+			case <-ctx.Done():
+				// The recording ended while the stream was away: what was recorded is kept.
+				return o, gaps, nil
+			case <-time.After(wait):
+			}
+			again, oerr := m.Open(ctx, channelID)
+			if oerr == nil {
+				o = again
+				break
+			}
+			if tuner.IsEncrypted(oerr) {
+				return o, gaps, oerr
+			}
+			log.Debug("a recording's stream didn't open again yet", "err", oerr)
+			wait = min(wait*2, recordingRetryMax)
+		}
+	}
 }
 
 // openForRecording takes a tuner, stopping a live viewer if that is the only
@@ -932,8 +990,12 @@ func (m *Manager) openForRecording(ctx context.Context, channelID int64) (*Opene
 	return nil, last
 }
 
-func (m *Manager) write(ctx context.Context, log *slog.Logger, o *Opened, path string) error {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0o644)
+func (m *Manager) write(ctx context.Context, log *slog.Logger, o *Opened, path string, appendTo bool) error {
+	flags := os.O_CREATE | os.O_WRONLY | os.O_EXCL
+	if appendTo {
+		flags = os.O_WRONLY | os.O_APPEND
+	}
+	f, err := os.OpenFile(path, flags, 0o644)
 	if err != nil {
 		return err
 	}
@@ -951,7 +1013,9 @@ func (m *Manager) write(ctx context.Context, log *slog.Logger, o *Opened, path s
 		return errors.New("FFmpeg is needed to record this source")
 	}
 	args := append([]string{"-hide_banner", "-loglevel", "error", "-nostdin"}, o.Stream.Input...)
-	args = append(args, "-map", "0", "-c", "copy", "-f", "mpegts", "pipe:1")
+	// Picture and sound: an HLS stream's WebVTT subtitles or timed data can't be copied into
+	// MPEG-TS, and FFmpeg would refuse the whole recording for them.
+	args = append(args, "-map", "0:v?", "-map", "0:a?", "-c", "copy", "-f", "mpegts", "pipe:1")
 	run, cancel := context.WithCancel(ctx)
 	defer cancel()
 	m.background("recording re-check", func(context.Context) {

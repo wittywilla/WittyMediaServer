@@ -80,7 +80,9 @@ export default function RecordingsPage() {
               <div className="ctv-rec-main">
                 <b>{r.title}</b>{r.sub && <small>{r.sub}</small>}
                 <span>{t('{day}, {start} to {end}', { day: fmtDay(r.start), start: fmtClock(r.start), end: fmtClock(r.stop) })} · {t('Channel {number} {name}', { number: r.number, name: r.channel })}{r.sizeBytes ? ' · ' + fmtSize(r.sizeBytes) : ''}{padText(r.padBefore, r.padAfter)}{r.ruleTitle ? ' · ' + t('Series: {title}', { title: r.ruleTitle }) : ''}</span>
-                {r.error && <span className="ctv-rec-err" role="alert">{tx(r.error)}</span>}
+                {r.error && (r.status === 'done'
+                  ? <span className="muted">{tx(r.error)}</span>
+                  : <span className="ctv-rec-err" role="alert">{tx(r.error)}</span>)}
                 {r.conflict && r.status === 'scheduled' && <span className="ctv-rec-err">{t('No tuner will be free when this starts: another recording or a viewer has them all.')}</span>}
               </div>
               <span className="ctv-rec-status">{tx(STATUS[r.status]) || r.status}</span>

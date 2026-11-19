@@ -70,7 +70,7 @@ export function ScanControl({ lib, progress, scanning, onStarted, size = 'md', v
   className?: string
 }) {
   if (progress || scanning) {
-    return <Button size={size} variant={variant} icon={<IconRefresh />} disabled className={className} aria-live="polite">{scanProgressText(progress)}</Button>
+    return <Button size={size} variant={variant} icon={<IconRefresh />} disabled className={'scan-progress' + (className ? ' ' + className : '')} aria-live="polite">{scanProgressText(progress)}</Button>
   }
   const run = (mode: ScanMode) => { void startScan(lib, mode).then((ok) => { if (ok) onStarted?.(mode) }) }
   return (

@@ -227,6 +227,8 @@ func (s *Scanner) indexEpisode(ctx context.Context, lib *Library, c candidate, t
 		// Numbers someone corrected and anything else locked stay.
 		s.Store.keepLockedItem(ctx, it, existing, meta)
 	}
+	// What someone wrote in a .wittyinfo wins over anything found.
+	s.applyInfo(ctx, it)
 	if it.Poster == "" {
 		if p, err := s.thumbnail(ctx, it); err == nil {
 			it.Poster = p
@@ -377,6 +379,7 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		if before.ID != 0 {
 			keepLockedShow(sh, &before, meta)
 		}
+		s.applyShowInfo(ctx, sh) // what someone wrote in show.wittyinfo wins
 		if err := s.saveShow(ctx, sh, &before); err != nil {
 			return nil, err
 		}
@@ -392,6 +395,7 @@ func (s *Scanner) tvShow(ctx context.Context, lib *Library, ref EpisodeRef, tv *
 		if before.ID != 0 {
 			keepLockedShow(sh, &before, meta)
 		}
+		s.applyShowInfo(ctx, sh) // what someone wrote in show.wittyinfo wins
 		if err := s.saveShow(ctx, sh, &before); err != nil {
 			return nil, err
 		}

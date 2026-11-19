@@ -113,6 +113,38 @@ These save at once, with their own button, not with the dialog's **Save**.
 
 Save or undo your other changes first, because picking a time leaves the dialog. Discs have their own menus, so none of this is offered for them.
 
+### Scenes and skips
+
+**⋯ → Edit scenes and skips** on a film's or an episode's page (or the player's ⋯ menu while it plays) edits the title's `.wittyinfo` ([the format](formats/wittyinfo.md)), which can say much more than the section above and wins over it:
+
+- **Skips**: any number of parts, each an intro, recap, credits, preview, a scene after the credits, an advert break or any other part you name, with a **Skip button**, **Skip by itself** or **Only mark it**. Drag them on the timeline, or type exact times. **This video has no…** stops the season's or show's defaults and anything found by itself from adding a kind. The faint bands on the timeline, and **What plays now**, show what is in force and where it came from.
+- **Scenes**: titles and start times that take the place of the file's chapters in the player's Scenes; **Copy the video's chapters** starts from those.
+- **Content**: what some people may not want to see or hear, and how strong it is. Each profile chooses what to do about it.
+- **Details**, **Pictures**: a title, overview, genres and the rest, and posters, backdrops, logos or episode pictures kept in the file itself. Each kind can hold several: **Add another** puts one more after it, a small picture's **Show this one first** makes it the one shown, and **×** takes it out. The title's picture chooser offers all of them too.
+- **File**: where it is, which cut it was made for, which version of the format it follows, **Export**, **Import…** and **Remove**.
+
+In the player, **Mark start** and **Mark end** set the picked part (or start a new one) at the moment playing; **Frame** steps a frame and **±1 s** moves the part. The player's own skip button tries the parts as they are, before saving. From a title's page, **Preview** saves and opens the player a few seconds before the part.
+
+On a show, **⋯ → Skip defaults for every episode** edits `show.wittyinfo`, or a season's file with **For**.
+
+**Saving** writes the `.wittyinfo` beside the video when **Settings → Metadata → Save information and artwork next to your media** and **Write .wittyinfo and .wittyaudio files next to your media** are both on. Otherwise the server keeps it, and **Export** downloads it to put there by hand; the server's copy wins over a file beside the video until you **Remove** it. A file made for another cut of the video (its length is off by more than a few seconds) isn't used: the editor says so and offers **Use it anyway**.
+
+**Languages** says which language the file is written in and adds translations: each part's and scene's name, the title, overview and the words of a song. Everyone sees the language closest to their own, and the file's own words where nothing is translated. Any language code works, such as `de-AT` or `yue`.
+
+Editing is for a desktop: the web app in a browser on a computer, or the desktop app. In TV mode and the TV apps the entries say **(desktop only)** and explain where to go, because a remote can't place a time to the frame. What you make on a computer plays the same on the TV.
+
+### Songs and albums
+
+A song's **⋯ → Lyrics and details** and an album's **⋯ → Album details and cover** edit its `.wittyaudio` ([the format](formats/wittyaudio.md)), for administrators:
+
+- **Lyrics**: the words line by line. Play the song at the top and press **Line starts now** as each line begins, or type the times; **Paste words to time them** fills the lines from plain text.
+- **Music**: artists, album, track and disc, composers, label, ISRC, tempo and key, moods, and loudness: a gain, where to start and stop playing, and a fade at the end.
+- **Pictures**, **Languages** and **File** work as they do for a film. An album's file holds what every song on it shares; a song's own file wins over it. The song files themselves are never changed.
+
+### Converting a whole library
+
+**Settings → Metadata → Convert a library** (and first-time setup's **Details and artwork** step) gathers the NFO files, posters, skip files, subtitles and `.lrc` lyrics already beside your media into `.wittyinfo` and `.wittyaudio` files, or writes every one back out as those usual files. With WittyPlay installed, game lists, box art and screenshots go into `.wittyplay` files the same way. Each kind has its own progress bar; it waits for any scan to finish first and carries on in **Tasks** if you leave. **Rename the old files with .bak on the end** keeps them out of the way without deleting anything.
+
 ## Bonus features, versions and moving
 
 The **Organise** section:

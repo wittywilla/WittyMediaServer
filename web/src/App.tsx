@@ -50,6 +50,7 @@ const GapsReview = lazy(() => import('./spec/GapsReview'))
 const HelpPage = lazy(() => import('./pages/HelpPage'))
 const HelpPublicPage = lazy(() => import('./pages/HelpPage').then((m) => ({ default: m.HelpPublicPage })))
 const LegalPublicPage = lazy(() => import('./pages/settings/Legal').then((m) => ({ default: m.LegalPublicPage })))
+const WittyinfoStandalone = lazy(() => import('./wittyinfo/StandalonePage'))
 const RadioStationPage = lazy(() => import('./pages/RadioLibrary').then((m) => ({ default: m.RadioStationPage })))
 const WatchPage = lazy(() => import('./pages/creators/WatchPage'))
 const FixMatches = lazy(() => import('./pages/FixMatches'))
@@ -111,6 +112,8 @@ function Shell() {
   useNavMigration()
   // A link someone was sent: no account, no app around it.
   if (loc.pathname.startsWith('/s/')) return <Suspense fallback={null}><Routes><Route path="/s/:token" element={<SharedPage />} /></Routes></Suspense>
+  // The wittyinfo program's editor (cmd/wittyinfo): one file on this computer, no account.
+  if (loc.pathname === '/wittyinfo-editor') return <Suspense fallback={<Spinner />}><WittyinfoStandalone /></Suspense>
   // The Legal page, for anyone: a shared link, the setup wizard and the sign-in screen lead here.
   if (loc.pathname === '/legal') return <Suspense fallback={<Spinner />}><LegalPublicPage /></Suspense>
   // Help, for anyone: stuck at the sign-in page or partway through setup is when it's needed most.

@@ -546,10 +546,24 @@ func sidecarNames(mediaPath, ext string) []string {
 	return []string{trimmed + ext, mediaPath + ext}
 }
 
-// mediaMarkers works out an item's markers from every source, most trusted first.
+// mediaMarkers works out an item's markers from every source, most trusted first: the
+// video's own .wittyinfo (when it was made for this cut), what was set by hand, a .skip.json
+// and an .edl beside it, the season's and the show's .wittyinfo, the file's chapters, what
+// comparing episodes found, and the show's intro.
 func (s *Server) mediaMarkers(ctx context.Context, it *library.Item) mediaextras.Markers {
+	m, _ := s.mediaMarkersAndInfo(ctx, it)
+	return m
+}
+
+// mediaMarkersAndInfo is mediaMarkers with the .wittyinfo files it read.
+func (s *Server) mediaMarkersAndInfo(ctx context.Context, it *library.Item) (mediaextras.Markers, library.ItemInfos) {
 	stored := s.Store.Markers(ctx, it.ID)
+	infos := s.Store.InfosFor(ctx, it)
+	infos.Localize(langFrom(ctx))
 	var layers []mediaextras.Layer
+	if x := infos.UsableItem(); x != nil {
+		layers = append(layers, mediaextras.Layer{Source: mediaextras.SourceWittyinfo, Markers: mediaextras.FromWittyinfo(x)})
+	}
 	if stored.Manual != nil {
 		layers = append(layers, mediaextras.Layer{Source: mediaextras.SourceManual, Markers: *stored.Manual})
 	}
@@ -568,6 +582,12 @@ func (s *Server) mediaMarkers(ctx context.Context, it *library.Item) mediaextras
 				break
 			}
 		}
+	}
+	if x := infos.Season.Info; x != nil {
+		layers = append(layers, mediaextras.Layer{Source: mediaextras.SourceSeasonInfo, Markers: mediaextras.FromWittyinfo(x)})
+	}
+	if x := infos.Show.Info; x != nil {
+		layers = append(layers, mediaextras.Layer{Source: mediaextras.SourceShowInfo, Markers: mediaextras.FromWittyinfo(x)})
 	}
 	var ch mediaextras.Markers
 	if stored.Scanned != nil {
@@ -594,19 +614,17 @@ func (s *Server) mediaMarkers(ctx context.Context, it *library.Item) mediaextras
 		}
 	}
 	m := mediaextras.Merge(layers...)
-	if m.Credits != nil && m.Credits.EndSec <= 0 && it.RuntimeSec > m.Credits.StartSec {
-		m.Credits.EndSec = it.RuntimeSec // "to the end"
-	}
-	return m
+	m.FillEnds(it.RuntimeSec) // "to the end"
+	return m, infos
 }
 
-// GET /api/media/{id}/markers
+// GET /api/media/{id}/markers (?lang= for labels in another language than the viewer's)
 func (s *Server) handleMarkers(w http.ResponseWriter, r *http.Request) {
 	it := s.extrasItem(w, r)
 	if it == nil {
 		return
 	}
-	writeJSON(w, 200, s.mediaMarkers(r.Context(), it))
+	writeJSON(w, 200, s.mediaMarkers(s.withViewerLanguage(r), it))
 }
 
 // markersEdit is the body of PUT /api/media/{id}/markers: a skip file, or reset to go back
@@ -776,7 +794,7 @@ func mediaUploadPath(p string) bool {
 // fillMarkers adds what GET /api/media/{id}/markers knows to a playback answer. An intro
 // set by hand, or in a .skip.json or .edl, replaces the one the chapters gave.
 func (s *Server) fillMarkers(ctx context.Context, it *library.Item, out *playbackResponse) {
-	m := s.mediaMarkers(ctx, it)
+	m, infos := s.mediaMarkersAndInfo(ctx, it)
 	conv := func(r *mediaextras.Range) *playbackIntro {
 		if r == nil || r.EndSec <= r.StartSec {
 			return nil
@@ -792,4 +810,10 @@ func (s *Server) fillMarkers(ctx context.Context, it *library.Item, out *playbac
 			out.Commercials = append(out.Commercials, *c)
 		}
 	}
+	for _, sg := range m.Segments {
+		if sg.EndSec > sg.StartSec {
+			out.Segments = append(out.Segments, sg)
+		}
+	}
+	fillInfo(infos, out)
 }

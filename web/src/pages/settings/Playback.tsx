@@ -7,7 +7,7 @@ import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, useServerSettings } from './ui'
 import { Segmented } from '../../ui'
 import { deviceStreaming, setDeviceStreaming, type DeviceStreaming } from '../../player/streaming'
-import AutoSkipSection from './AutoSkip'
+import AutoSkipSection, { ContentFiltersSection } from './AutoSkip'
 import { QualityLimitsSection } from './StreamQuality'
 import { t, tk } from '../../i18n'
 
@@ -36,6 +36,7 @@ export default function PlaybackSettings() {
       </Section>
 
       <AutoSkipSection />
+      <ContentFiltersSection />
 
       <StreamingSection value={s.remoteStreaming || 'standard'} set={(v) => set('remoteStreaming', v)} />
 

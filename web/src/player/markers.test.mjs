@@ -42,9 +42,45 @@ function play(positions, markers = m, prefs = ALL, where = HOME, state = autoSki
 }
 
 test('the stored choice is off unless it says on', () => {
-  assert.deepEqual(autoSkipPrefs(undefined), { intro: false, recap: false, credits: false, adverts: false })
-  assert.deepEqual(autoSkipPrefs({ intro: true, recap: 'yes', credits: 1, adverts: true }), { intro: true, recap: false, credits: false, adverts: true })
-  assert.deepEqual(autoSkipPrefs('nonsense'), { intro: false, recap: false, credits: false, adverts: false })
+  const none = { intro: false, recap: false, credits: false, adverts: false, preview: false, custom: false }
+  // Following what a .wittyinfo says to skip by itself is on until someone turns it off.
+  assert.deepEqual(autoSkipPrefs(undefined), { ...none, fileAuto: true })
+  assert.deepEqual(autoSkipPrefs({ intro: true, recap: 'yes', credits: 1, adverts: true, fileAuto: false }), { ...none, intro: true, adverts: true, fileAuto: false })
+  assert.deepEqual(autoSkipPrefs('nonsense'), { ...none, fileAuto: true })
+})
+
+// What a .wittyinfo adds: segments with actions, previews, custom parts, a scene after the credits.
+const seg = (kind, startSec, endSec, action = 'button', label) => ({ kind, startSec, endSec, action, source: 'wittyinfo', ...(label ? { label } : {}) })
+
+test('segments give buttons by their action', () => {
+  const m = { segments: [seg('intro', 10, 40), seg('custom', 100, 130, 'button', 'Dream sequence'), seg('preview', 1400, 1430), seg('custom', 200, 210, 'mark')] }
+  assert.deepEqual(skipAt(m, 20, 1500), { kind: 'intro', label: 'Skip intro', to: 40 })
+  assert.deepEqual(skipAt(m, 101, 1500), { kind: 'custom', label: 'Skip dream sequence', to: 130, name: 'Dream sequence' })
+  assert.deepEqual(skipAt(m, 1401, 1500), { kind: 'preview', label: 'Skip preview', to: 1430 })
+  assert.equal(skipAt(m, 205, 1500), null, 'a part only marked has no button')
+  // Overlapping parts: the recap wins over the intro, as before.
+  assert.equal(skipAt({ segments: [seg('intro', 0, 60), seg('recap', 0, 30)] }, 5, 1500).kind, 'recap')
+})
+
+test('skipping the credits stops at a scene after them', () => {
+  const m = { segments: [seg('credits', 1300, 1490), seg('postcredits', 1450, 1490, 'mark')] }
+  // Credits that run to the end still get a button, because something comes after.
+  assert.deepEqual(skipAt(m, 1310, 1490), { kind: 'credits', label: 'Skip credits', to: 1450 })
+  assert.equal(skipAt(m, 1460, 1490), null, 'inside the scene, nothing to skip')
+  // By itself: to the scene, not to the next episode.
+  const { acts } = play([1299, 1300.5, 1301], m, { ...ALL }, { ...HOME, hasNext: true })
+  assert.deepEqual(acts.map((a) => [a.kind, a.to, a.next]), [['credits', 1450, false]])
+})
+
+test('a part the file says to skip by itself is, unless the profile turned that off', () => {
+  const m = { segments: [seg('custom', 100, 130, 'auto', 'Dream sequence'), seg('intro', 10, 40, 'auto')] }
+  const prefs = autoSkipPrefs(null)
+  assert.deepEqual(play([98, 99, 100.5, 101], m, prefs).acts.map((a) => [a.kind, a.to, a.label]), [['custom', 130, 'Skipped dream sequence']])
+  assert.deepEqual(play([98, 99, 100.5, 101], m, { ...prefs, fileAuto: false }).acts, [])
+  // A part with a button is skipped by itself only when the profile asked for its kind.
+  const b = { segments: [seg('preview', 100, 130)] }
+  assert.deepEqual(play([98, 99, 100.5, 101], b, prefs).acts, [])
+  assert.equal(play([98, 99, 100.5, 101], b, { ...prefs, preview: true }).acts.length, 1)
 })
 
 test('playing into a part skips it, once, and only the kinds asked for', () => {

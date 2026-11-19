@@ -952,6 +952,8 @@ func (s *Scanner) index(ctx context.Context, lib *Library, c candidate) error {
 		s.Store.keepLockedItem(ctx, it, existing, meta)
 	}
 	prov.note(it, it.Provider)
+	// What someone wrote in a .wittyinfo wins over anything found.
+	s.applyInfo(ctx, it)
 	// A poster of our own as the last resort.
 	if it.Poster == "" {
 		if p, src, err := s.fallbackPoster(ctx, it); err != nil {

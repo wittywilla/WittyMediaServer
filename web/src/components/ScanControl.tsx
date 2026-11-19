@@ -13,14 +13,28 @@ import './scancontrol.css'
 // out, and one a restart interrupted carries on when the server starts again.
 
 export type ScanMode = 'changes' | 'full'
-// What GET /api/libraries/{id}/scan says of a scan going on.
-export type ScanProgress = { done?: number; found?: number; mode?: ScanMode; resumed?: boolean; phase?: string }
+// What GET /api/libraries/{id}/scan says of a scan going on. total is the phase's own count when it isn't the
+// files found (sorting, finding out), and detail the module's word on what it's working on (a console).
+export type ScanProgress = { done?: number; found?: number; total?: number; mode?: ScanMode; resumed?: boolean; phase?: string; detail?: string }
 
-// scanProgressText: "Scanning: 12,400 of 16,780 files", or "Full rescan: …".
+// scanProgressText: "Scanning: 12,400 of 16,780 files", or "Full rescan: …"; then each later step in its own words, so a
+// scan whose files are all read never sits at 16,780 of 16,780 while the rest goes on.
 export function scanProgressText(p: ScanProgress | null | undefined): string {
   const full = p?.mode === 'full'
+  const detail = p?.detail || ''
+  const total = p?.total ?? 0
+  const n = { done: num(p?.done ?? 0), total: num(total), found: num(p?.found ?? 0), detail }
+  switch (p?.phase) {
+    case 'grouping':
+      if (total <= 0) return t('Sorting what was found…')
+      return detail ? t('Sorting {detail}: {done} of {total}', n) : t('Sorting what was found: {done} of {total}', n)
+    case 'listing':
+      return t('Listing what was found…')
+    case 'describing':
+      return total > 0 ? t('Finding out about what’s new: {done} of {total}', n) : t('Finding out about what’s new…')
+  }
   if (p?.found && p.found > 0) {
-    const n = { done: num(p.done ?? 0), found: num(p.found) }
+    if (detail) return full ? t('Full rescan, {detail}: {done} of {found} files', n) : t('Scanning {detail}: {done} of {found} files', n)
     return full ? t('Full rescan: {done} of {found} files', n) : t('Scanning: {done} of {found} files', n)
   }
   return full ? t('Full rescan…') : t('Scanning…')

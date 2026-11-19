@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "Organizando o que foi encontrado…",
+  "Sorting {detail}: {done} of {total}": "Organizando {detail}: {done} de {total}",
+  "Sorting what was found: {done} of {total}": "Organizando o que foi encontrado: {done} de {total}",
+  "Listing what was found…": "Listando o que foi encontrado…",
+  "Finding out about what’s new: {done} of {total}": "Buscando informações sobre o que é novo: {done} de {total}",
+  "Finding out about what’s new…": "Buscando informações sobre o que é novo…",
+  "Full rescan, {detail}: {done} of {found} files": "Reescaneamento completo, {detail}: {done} de {found} arquivos",
+  "Scanning {detail}: {done} of {found} files": "Escaneando {detail}: {done} de {found} arquivos"
+}

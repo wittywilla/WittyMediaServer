@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "Třídí se nalezené…",
+  "Sorting {detail}: {done} of {total}": "Třídí se {detail}: {done} z {total}",
+  "Sorting what was found: {done} of {total}": "Třídí se nalezené: {done} z {total}",
+  "Listing what was found…": "Zapisuje se nalezené…",
+  "Finding out about what’s new: {done} of {total}": "Zjišťují se údaje o novinkách: {done} z {total}",
+  "Finding out about what’s new…": "Zjišťují se údaje o novinkách…",
+  "Full rescan, {detail}: {done} of {found} files": "Úplné nové prohledání, {detail}: {done} z {found} souborů",
+  "Scanning {detail}: {done} of {found} files": "Prohledává se {detail}: {done} z {found} souborů"
+}

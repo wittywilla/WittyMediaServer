@@ -203,7 +203,7 @@ func TestStuckScanStopsAndReportsKeepOneGoing(t *testing.T) {
 				case <-until:
 					return
 				case <-time.After(StuckAfter / 4):
-					if report && !f.s.ModuleReport("fake", f.lib.ID, 1, 3) {
+					if report && !f.s.ModuleReport("fake", f.lib.ID, 1, 3, "") {
 						t.Error("a report while the module's call is under way wasn't taken")
 					}
 				}
@@ -237,7 +237,7 @@ func TestStuckScanStopsAndReportsKeepOneGoing(t *testing.T) {
 	if lib, _ := f.s.Store.Library(f.ctx, f.lib.ID); lib.ItemCount != 3 {
 		t.Errorf("%d items after a long scan", lib.ItemCount)
 	}
-	if f.s.ModuleReport("fake", f.lib.ID, 1, 3) {
+	if f.s.ModuleReport("fake", f.lib.ID, 1, 3, "") {
 		t.Error("a report with no scan running was taken")
 	}
 }

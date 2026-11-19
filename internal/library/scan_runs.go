@@ -218,7 +218,7 @@ type liveScan struct {
 	waiting int
 	what    string // what it's doing, for when it's stuck
 	module  string // the module whose call is under way, "" for none
-	report  func(done, total int64)
+	report  func(done, total int64, detail string)
 	mode    ScanMode
 	resumed bool
 	cancel  context.CancelCauseFunc
@@ -269,8 +269,8 @@ func (l *liveScan) wait() func() {
 }
 
 // calling marks a module's call under way, saying what it's for: its reports of progress go to
-// report.
-func (l *liveScan) calling(module, what string, report func(done, total int64)) func() {
+// report, with the module's word on what it's working on.
+func (l *liveScan) calling(module, what string, report func(done, total int64, detail string)) func() {
 	if l == nil {
 		return func() {}
 	}
@@ -320,9 +320,10 @@ func liveOf(ctx context.Context) *liveScan {
 func scanMoved(ctx context.Context) { liveOf(ctx).moved() }
 
 // ModuleReport is a module saying how far a scan call it's answering has got (the host API's
-// task "scan-<library>"). It counts as the scan moving, and the scan's task shows it. False
-// when that module isn't scanning that library now.
-func (s *Scanner) ModuleReport(module string, libraryID int64, done, total int64) bool {
+// task "scan-<library>"). It counts as the scan moving, and the scan's task shows it, with
+// detail: what it's working on, in a few words ("" for nothing). False when that module isn't
+// scanning that library now.
+func (s *Scanner) ModuleReport(module string, libraryID int64, done, total int64, detail string) bool {
 	s.mu.Lock()
 	l := s.live[libraryID]
 	s.mu.Unlock()
@@ -337,9 +338,18 @@ func (s *Scanner) ModuleReport(module string, libraryID int64, done, total int64
 	}
 	l.mu.Unlock()
 	if ok && report != nil && done >= 0 && total >= 0 {
-		report(done, total)
+		report(done, total, scanDetail(detail))
 	}
 	return ok
+}
+
+// scanDetail keeps what a module says it's working on to one short line.
+func scanDetail(s string) string {
+	s = strings.Join(strings.Fields(s), " ")
+	if r := []rune(s); len(r) > 80 {
+		s = string(r[:80])
+	}
+	return s
 }
 
 // RunOf is how a library's scan is going now, if one runs or waits to carry on after a restart:

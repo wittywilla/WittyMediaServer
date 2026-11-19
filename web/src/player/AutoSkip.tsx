@@ -43,7 +43,7 @@ export default function AutoSkip({ itemId, video, markers, now, duration, live, 
     setNote(act)
     if (act.next) { setLeft(NEXT_IN); announce(tn('Credits. The next episode starts in {count} second.', 'Credits. The next episode starts in {count} seconds.', NEXT_IN)); return }
     seek(act.to)
-    announce(`${tx(act.label)}.`)
+    announce(`${act.name ? t('Skipped {name}', { name: act.name }) : tx(act.label)}.`)
   }, [now, live, on, markers, raw]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The note goes by itself. While it counts down to the next episode it stays, and a seek
@@ -61,8 +61,8 @@ export default function AutoSkip({ itemId, video, markers, now, duration, live, 
   if (!note || mini) return null
   const undo = () => { seek(note.from); setNote(null); announce(t('Back where it was.')) }
   return (
-    <div className="auto-skip" role="group" aria-label={note.next ? t('Next episode') : tx(note.label)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-      <span>{note.next ? t('Credits · next episode in {count} s', { count: left }) : tx(note.label)}</span>
+    <div className="auto-skip" role="group" aria-label={note.next ? t('Next episode') : note.name ? t('Skipped {name}', { name: note.name }) : tx(note.label)} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+      <span>{note.next ? t('Credits · next episode in {count} s', { count: left }) : note.name ? t('Skipped {name}', { name: note.name }) : tx(note.label)}</span>
       {note.next
         ? <button type="button" className="btn sm" onClick={() => { setNote(null); announce(t('Staying for the credits.')) }}>{t('Watch the credits')}</button>
         : <button type="button" className="btn sm" onClick={undo}>{t('Undo')}</button>}

@@ -210,6 +210,10 @@ func (s *Server) handleMusicLoudness(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 200, known)
 		return
 	}
+	if v, ok := s.infoLoudness(r.Context(), it); ok {
+		writeJSON(w, 200, v) // a .wittyaudio says, and is read fresh: it can change
+		return
+	}
 	var out loudness
 	if !it.IsCDTrack() && !isWeb(it.Path) && s.Tools != nil && s.Tools.FFprobe != "" && s.Store.LibraryFile(r.Context(), it.Path) {
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)

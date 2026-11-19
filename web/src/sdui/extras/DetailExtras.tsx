@@ -13,18 +13,29 @@ import { toast, useApp } from '../../state'
 import { onEpisodeViewChosen, setEpisodeView, useEpisodeView, type EpisodeView } from './episodeView'
 import TitleArtPicker, { appliedOnPage } from '../../components/edit/TitleArtPicker'
 import LegalNote from '../../components/LegalNote'
-import { IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconSettings } from '../../icons'
+import { IconChapters, IconEdit, IconFilm, IconImage, IconMore, IconPlay, IconRefresh, IconSettings } from '../../icons'
+import { sourceWords, usesWittyinfo, type MarkerAnswer } from '../../player/markers'
+import '../../wittyinfo/badge.css'
+import { desktopOnlyWords, editorAllowed } from '../../wittyinfo/desktopOnly'
 import { Menu, type MenuEntry } from '../../ui/Menu'
 import { bump } from '../client'
 import { useModuleItemMenu } from '../../moduleRegistry'
 import type { Document, Node } from '../types'
-import { t, tn } from '../../i18n'
+import { t, tn, tx } from '../../i18n'
 
 const EditDetails = lazy(() => import('../../components/edit/EditDetails'))
 const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
 const TitleExtras = lazy(() => import('../../components/edit/TitleExtras'))
 const CanvasManager = lazy(() => import('../../canvas/CanvasManager'))
 const AlbumCanvasManager = lazy(() => import('../../canvas/AlbumCanvasManager'))
+const InfoDialog = lazy(() => import('../../wittyinfo/InfoDialog'))
+
+// The menu's "Edit scenes and skips": on a computer it opens the editor; in TV mode it says
+// the editor is on desktop only, and where to find it.
+function infoEntry(open: () => void, label = t('Edit scenes and skips')): MenuEntry {
+  if (!editorAllowed()) return { key: 'info', label: t('{label} (desktop only)', { label }), icon: <IconChapters />, onSelect: () => toast(desktopOnlyWords(), { ms: 9000 }) }
+  return { key: 'info', label, icon: <IconChapters />, onSelect: open }
+}
 
 type Target = { target: 'item'; id: number } | { target: 'show'; id: number } | null
 
@@ -68,7 +79,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   const { user } = useApp()
   const tg = targetOf(header)
   const title = useTitle(tg, doc.meta?.etag || '')
-  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas'>('')
+  const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas' | 'info'>('')
   // A disc's own tools (Disc settings, names of its titles) are WittyDisc's, with its player.
   const discItem = tg?.target === 'item' && title && isDisc(title as Item) ? title as Item : null
   const discMenu = useModuleItemMenu(discItem ? 'disc' : null, discItem, !!user?.isAdmin)
@@ -84,6 +95,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
       { key: 'art', label: t('Artwork'), icon: <IconImage />, onSelect: () => setOpen('art') },
       { key: 'edit', label: t('Edit details'), icon: <IconEdit />, onSelect: () => setOpen('edit') },
       ...(item && (item.kind === 'video' || isDisc(item)) ? [{ key: 'canvas', label: t('Canvas'), icon: <IconFilm />, onSelect: () => setOpen('canvas') } as MenuEntry] : []),
+      ...(item && (item.kind === 'video' || isDisc(item)) ? [infoEntry(() => setOpen('info'))] : []),
       ...discMenu.entries.map((e) => ({ key: e.key, label: e.label, icon: e.icon === 'edit' ? <IconEdit /> : <IconSettings />, onSelect: () => discMenu.choose(e) } as MenuEntry)),
       ...(item?.showId == null ? [{ key: 'refresh', label: t('Check for new details'), icon: <IconRefresh />, onSelect: () => setOpen('refresh') } as MenuEntry] : []),
     ]
@@ -95,6 +107,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
           {open === 'edit' && <EditDetails target={tg.target} id={tg.id} start="match" onClose={() => setOpen('')} onChanged={changed} />}
           {open === 'refresh' && <RefreshDialog target={tg.target} id={tg.id} onClose={() => setOpen('')} onChanged={changed} />}
           {discMenu.dialog(changed)}
+          {open === 'info' && item && <InfoDialog target="item" id={item.id} title={item.showTitle ? `${item.showTitle} · ${item.title}` : item.title} onClose={() => setOpen('')} onChanged={changed} />}
           {open === 'canvas' && item && <CanvasManager itemId={item.id} title={item.title} kind={isDisc(item) ? 'disc' : 'video'} runtimeSec={item.runtimeSec} onClose={() => { setOpen(''); changed() }} />}
         </Suspense>
       </>
@@ -107,6 +120,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
     <AtPageEnd>
     <div className="sdui-extras">
       <Credit provider={title.provider} providerId={title.providerId} />
+      {item && (item.kind === 'video' || disc) && <CustomInfoNote itemId={item.id} />}
       {item && (item.width > 0 || item.container || disc) && (
         <div className="facts">
           {item.width > 0 && <div className="fact"><div className="k">{t('Video')}</div><div className="v">{item.width}×{item.height} {codecName(item.videoCodec)}{disc && main ? ` · ${isBluray(item) ? main.standard : ''}` : ''}</div></div>}
@@ -138,7 +152,7 @@ function AtPageEnd({ children }: { children: ReactNode }) {
 // everyone, else the server's default), and for an administrator the same menu as a film's
 // with "Find intros and credits", which compares a season's episodes by ear as a task.
 function ShowTools({ show, admin, onPick, open, close, tg, changed }: {
-  show: Show; admin: boolean; onPick: (w: 'art' | 'edit' | 'refresh') => void; open: string; close: () => void; tg: NonNullable<Target>; changed: () => void
+  show: Show; admin: boolean; onPick: (w: 'art' | 'edit' | 'refresh' | 'info') => void; open: string; close: () => void; tg: NonNullable<Target>; changed: () => void
 }) {
   const key = `show-${show.id}`
   const now = useEpisodeView(key)
@@ -167,7 +181,10 @@ function ShowTools({ show, admin, onPick, open, close, tg, changed }: {
     { key: 'edit', label: t('Edit details'), icon: <IconEdit />, onSelect: () => onPick('edit') },
     { key: 'refresh', label: t('Check for new details'), icon: <IconRefresh />, onSelect: () => onPick('refresh') },
     { key: 'intros', label: t('Find intros and credits'), icon: <IconPlay />, onSelect: () => void findIntros() },
+    infoEntry(() => onPick('info'), t('Skip defaults for every episode')),
   ]
+  const seasons = ((show as Show & { seasons?: number[] }).seasons || []) as number[]
+  const season = Number(new URLSearchParams(location.search).get('season'))
   return (
     <>
       <Menu label={t('Manage this show')} align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost square" aria-label={t('Manage this show')} title={t('Manage this show')}><IconMore /></button>} />
@@ -175,8 +192,37 @@ function ShowTools({ show, admin, onPick, open, close, tg, changed }: {
         {open === 'art' && <TitleArtPicker target={tg.target} id={tg.id} onApplied={appliedOnPage(changed)} onClose={close} />}
         {open === 'edit' && <EditDetails target={tg.target} id={tg.id} start="match" onClose={close} onChanged={changed} />}
         {open === 'refresh' && <RefreshDialog target={tg.target} id={tg.id} onClose={close} onChanged={changed} />}
+        {open === 'info' && <ShowInfo show={show} seasons={seasons} season={season >= 0 && new URLSearchParams(location.search).has('season') ? season : null} close={close} changed={changed} />}
       </Suspense>
     </>
+  )
+}
+
+// The show's seasons, for its skip defaults: one file for the whole show, or one a season.
+function ShowInfo({ show, seasons, season, close, changed }: { show: Show; seasons: number[]; season: number | null; close: () => void; changed: () => void }) {
+  const [list, setList] = useState<number[]>(seasons)
+  useEffect(() => {
+    if (seasons.length) return
+    api.get<{ seasons?: { number: number }[] }>(`/shows/${show.id}`).then((r) => setList((r.seasons || []).map((s) => s.number))).catch(() => {})
+  }, [show.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  return <InfoDialog target="show" id={show.id} title={show.title} seasons={list} season={season != null && season > 0 && list.includes(season) ? season : null} onClose={close} onChanged={changed} />
+}
+
+// CustomInfoNote says when a .wittyinfo decides where this video's skips are, and which one.
+function CustomInfoNote({ itemId }: { itemId: number }) {
+  const [m, setM] = useState<MarkerAnswer | null>(null)
+  useEffect(() => {
+    const stop = new AbortController()
+    api.get<MarkerAnswer>(`/media/${itemId}/markers`, stop.signal).then(setM).catch(() => {})
+    return () => stop.abort()
+  }, [itemId])
+  if (!usesWittyinfo(m)) return null
+  const from = [...new Set(Object.values(m?.sources || {}).filter((s) => s.startsWith('wittyinfo')))].map((s) => tx(sourceWords(s))).join(', ')
+  const parts = (m?.segments || []).filter((s) => s.source.startsWith('wittyinfo')).length
+  return (
+    <p className="wi-note" role="note">
+      <span className="wi-badge file">{t('Custom info')}</span> {tn('{from}: {count} skip, in place of what was found by itself.', '{from}: {count} skips, in place of what was found by itself.', parts, { from: from || '.wittyinfo' })}
+    </p>
   )
 }
 
@@ -195,6 +241,23 @@ function AlbumCanvasTool({ doc }: { doc: Document }) {
     <>
       <button type="button" className="btn ghost" aria-haspopup="dialog" onClick={() => setOpen(true)} title={t('The looping video behind these songs')}><IconFilm /> {t('Canvas')}</button>
       {open && <Suspense fallback={null}><AlbumCanvasManager songs={songs} onClose={() => { setOpen(false); bump() }} /></Suspense>}
+      <AlbumInfoTool songs={songs} />
+    </>
+  )
+}
+
+// An album's .wittyaudio and each song's (details, lyrics, loudness), for an administrator:
+// on desktop only, as the editor is.
+function AlbumInfoTool({ songs }: { songs: { id: number; title: string }[] }) {
+  const [open, setOpen] = useState<{ id: number; title: string; album: boolean } | null>(null)
+  const entries: MenuEntry[] = [
+    infoEntry(() => setOpen({ id: songs[0].id, title: t('Album details'), album: true }), t('Album details and cover')),
+    ...songs.map((s) => ({ ...infoEntry(() => setOpen({ id: s.id, title: s.title, album: false }), t('Lyrics and details: {song}', { song: s.title })), key: 'song-' + s.id })),
+  ]
+  return (
+    <>
+      <Menu label={t('Album and song details')} align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost"><IconChapters /> {t('Details and lyrics')}</button>} />
+      {open && <Suspense fallback={null}><InfoDialog target={open.album ? 'album' : 'item'} song={!open.album} id={open.id} title={open.title} onClose={() => setOpen(null)} onChanged={() => bump()} /></Suspense>}
     </>
   )
 }

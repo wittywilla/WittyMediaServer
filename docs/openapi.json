@@ -4525,6 +4525,9 @@
       },
       "MarkerRange": {
         "properties": {
+          "action": {
+            "type": "string"
+          },
           "endSec": {
             "type": "number"
           },
@@ -4590,6 +4593,15 @@
       },
       "MediaMarkers": {
         "properties": {
+          "absent": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "commercials": {
             "items": {
               "$ref": "#/components/schemas/MarkerRange"
@@ -4609,7 +4621,36 @@
               }
             ]
           },
+          "custom": {
+            "items": {
+              "$ref": "#/components/schemas/MarkerRange"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "intro": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarkerRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "postCredits": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarkerRange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preview": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/MarkerRange"
@@ -4629,6 +4670,42 @@
               }
             ]
           },
+          "segments": {
+            "items": {
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "endSec": {
+                  "type": "number"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "startSec": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "action",
+                "endSec",
+                "kind",
+                "source",
+                "startSec"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "source": {
             "type": "string"
           },
@@ -4644,6 +4721,7 @@
           "credits",
           "intro",
           "recap",
+          "segments",
           "source",
           "sources"
         ],
@@ -7195,6 +7273,16 @@
                 "start": {
                   "type": "number"
                 },
+                "thumbnailAt": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "title": {
                   "type": "string"
                 }
@@ -7803,6 +7891,16 @@
                 "start": {
                   "type": "number"
                 },
+                "thumbnailAt": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
                 "title": {
                   "type": "string"
                 }
@@ -7908,6 +8006,118 @@
           },
           "flattened": {
             "type": "boolean"
+          },
+          "info": {
+            "anyOf": [
+              {
+                "properties": {
+                  "aspectRatio": {
+                    "type": "string"
+                  },
+                  "defaults": {
+                    "type": "boolean"
+                  },
+                  "filters": {
+                    "items": {
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string"
+                        },
+                        "end": {
+                          "type": "number"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "severity": {
+                          "type": "integer"
+                        },
+                        "start": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "category",
+                        "end",
+                        "start"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "language": {
+                    "type": "string"
+                  },
+                  "match": {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "deltaSec": {
+                            "type": "number"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "result": {
+                            "type": "string"
+                          },
+                          "usable": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "result",
+                          "usable"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "origin": {
+                    "type": "string"
+                  },
+                  "startAt": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "volumeDb": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "origin"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "intro": {
             "anyOf": [
@@ -8132,6 +8342,42 @@
           },
           "seek": {
             "type": "string"
+          },
+          "segments": {
+            "items": {
+              "properties": {
+                "action": {
+                  "type": "string"
+                },
+                "endSec": {
+                  "type": "number"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "startSec": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "action",
+                "endSec",
+                "kind",
+                "source",
+                "startSec"
+              ],
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
           },
           "startAtSec": {
             "type": "number"
@@ -15756,6 +16002,146 @@
           "inLibrary",
           "providers",
           "region"
+        ],
+        "type": "object"
+      },
+      "WittyinfoAnswer": {
+        "description": "See docs/formats/wittyinfo.md.",
+        "properties": {
+          "canWrite": {
+            "type": "boolean"
+          },
+          "chapters": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "defaults": {
+            "additionalProperties": {
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "origin": {
+                  "type": "string"
+                },
+                "segments": {
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            },
+            "type": "object"
+          },
+          "durationSec": {
+            "type": "number"
+          },
+          "fileError": {
+            "type": "string"
+          },
+          "fileFound": {
+            "type": "boolean"
+          },
+          "files": {
+            "items": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "integer"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "identity": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "info": {
+            "description": "The manifest in use.",
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "markers": {
+            "$ref": "#/components/schemas/MediaMarkers"
+          },
+          "match": {
+            "properties": {
+              "deltaSec": {
+                "type": "number"
+              },
+              "message": {
+                "type": "string"
+              },
+              "result": {
+                "type": "string"
+              },
+              "usable": {
+                "type": "boolean"
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "origin": {
+            "description": "stored, file or empty.",
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "problems": {
+            "items": {
+              "properties": {
+                "what": {
+                  "type": "string"
+                },
+                "where": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "season": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "info",
+          "origin",
+          "fileFound",
+          "force",
+          "files",
+          "canWrite"
         ],
         "type": "object"
       }
@@ -45964,6 +46350,923 @@
           "Metadata"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/wittyinfo/convert": {
+      "post": {
+        "operationId": "postWittyinfoConvert",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "direction": {
+                    "enum": [
+                      "gather",
+                      "spread"
+                    ]
+                  },
+                  "libraries": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": "array"
+                  },
+                  "retire": {
+                    "type": "boolean"
+                  },
+                  "subtitles": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "direction"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "libraries": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "task": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Started as a task."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Gather NFO files, pictures, skips and subtitles into .wittyinfo files, or write them back out (spread), as a task.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/wittyinfo/convert/counts": {
+      "get": {
+        "operationId": "getWittyinfoConvertCounts",
+        "parameters": [
+          {
+            "description": "Library ids, separated by commas; all films and shows when left out.",
+            "in": "query",
+            "name": "libraries",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "canWrite": {
+                      "type": "boolean"
+                    },
+                    "counts": {
+                      "type": "object"
+                    },
+                    "saveMetadata": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "What there is to convert."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How many titles and shows have NFO files, pictures, skip files or .wittyinfo files beside them.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/wittyinfo/{target}/{id}": {
+      "delete": {
+        "operationId": "deleteWittyinfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "For a show: the season whose file this is.",
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "file",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forget the server's copy; with file=1 also move the file beside the media to .wittyinfo.bak.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "get": {
+        "operationId": "getWittyinfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "For a show: the season whose file this is.",
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A film's, an episode's, a show's or a season's .wittyinfo: the manifest in use, where it came from, whether it fits this cut, its pictures, and what it overrides.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putWittyinfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "For a show: the season whose file this is.",
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "info": {
+                    "description": "The manifest (docs/formats/wittyinfo.schema.json).",
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "info"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the manifest: beside the media when writing there is allowed, else kept by the server. Pictures already in the file are kept.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/wittyinfo/{target}/{id}/export": {
+      "get": {
+        "operationId": "exportWittyinfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "For a show: the season whose file this is.",
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/vnd.wittyinfo+zip": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The archive."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The .wittyinfo in use, as an archive to save.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/wittyinfo/{target}/{id}/files/{name}": {
+      "get": {
+        "operationId": "getWittyinfoFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "For a show: the season whose file this is.",
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The picture."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A picture from the file, to show. Nothing else in it is served.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/wittyinfo/{target}/{id}/images/{role}": {
+      "delete": {
+        "operationId": "deleteWittyinfoImage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "For a show: the season whose file this is.",
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "One picture to take out (images/...); without it, every picture of the role.",
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a role's pictures, or one of them, out of the file.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putWittyinfoImage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "For a show: the season whose file this is.",
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "1: add the picture after the role's others, in place of replacing the one shown.",
+            "in": "query",
+            "name": "add",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "With no body: the picture (images/...) to show first.",
+            "in": "query",
+            "name": "first",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a picture (JPEG, PNG or WebP, 16 MB at most) in the file for a role (poster, backdrop, logo, thumb, banner, clearart, disc, square; back, artist for music): shown in place of the one shown before, or with add=1 after the role's others; with no body, first= shows another first.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/wittyinfo/{target}/{id}/import": {
+      "post": {
+        "operationId": "importWittyinfo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "For a show: the season whose file this is.",
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace the .wittyinfo with one sent as the body (archive or bare manifest, 64 MB at most).",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/wittyinfo/{target}/{id}/subtitles/{name}": {
+      "delete": {
+        "operationId": "deleteWittyinfoSubtitle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a subtitle file out of a video's .wittyinfo.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putWittyinfoSubtitle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "forced",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sdh",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a subtitle file (SRT, WebVTT, ASS or SSA, UTF-8, 2 MB at most) in a video's .wittyinfo as subtitles/\u003cname\u003e.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/wittyinfo/{target}/{id}/use-anyway": {
+      "post": {
+        "operationId": "useWittyinfoAnyway",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "For a show: the season whose file this is.",
+            "in": "query",
+            "name": "season",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "use": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "use"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WittyinfoAnswer"
+                }
+              }
+            },
+            "description": "The .wittyinfo now."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Use a file made for another cut of this video, or stop.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
       }
     }
   },

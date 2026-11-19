@@ -16,8 +16,10 @@ import (
 )
 
 // Markers say where the parts of a video are that people skip: the intro, a recap of
-// earlier episodes, the credits, and adverts left in a recording. They come from, in
-// order of trust: what an administrator set by hand, a <file>.skip.json, a <file>.edl,
+// earlier episodes, the credits, adverts left in a recording, and from a .wittyinfo also a
+// preview of the next episode, a scene after the credits and anything else someone marked.
+// They come from, in order of trust: the video's own .wittyinfo, what an administrator set
+// by hand, a <file>.skip.json, a <file>.edl, the season's and then the show's .wittyinfo,
 // the file's chapter names, what comparing the season's episodes by ear found, and the
 // intro set for the whole show.
 
@@ -27,18 +29,34 @@ const (
 	KindRecap      = "recap"
 	KindCredits    = "credits"
 	KindCommercial = "commercial"
+	// Only a .wittyinfo gives these.
+	KindPreview     = "preview"
+	KindPostCredits = "postcredits"
+	KindCustom      = "custom"
+)
+
+// Actions: what the player does with a range.
+const (
+	ActButton = "button" // a skip button while it plays
+	ActAuto   = "auto"   // skipped by itself when the viewer allows that
+	ActMark   = "mark"   // only shown where it is
 )
 
 // Sources, most trusted first.
 const (
-	SourceManual   = "manual"
-	SourceSkipJSON = "skip.json"
-	SourceEDL      = "edl"
-	SourceChapters = "chapters"
+	// SourceWittyinfo: the video's own .wittyinfo (or the copy kept by the server).
+	SourceWittyinfo = "wittyinfo"
+	SourceManual    = "manual"
+	SourceSkipJSON  = "skip.json"
+	SourceEDL       = "edl"
+	SourceChapters  = "chapters"
 	// SourceDetected: found by comparing the sound of a season's episodes.
 	SourceDetected = "detected"
 	SourceShow     = "show"
 	SourceNone     = "none"
+	// The season's and the show's .wittyinfo: defaults for every episode.
+	SourceSeasonInfo = "wittyinfo-season"
+	SourceShowInfo   = "wittyinfo-show"
 )
 
 // Range is a stretch of a video, in seconds.
@@ -46,6 +64,8 @@ type Range struct {
 	StartSec float64 `json:"startSec"`
 	EndSec   float64 `json:"endSec"`
 	Label    string  `json:"label,omitempty"`
+	// Action: button, auto or mark; empty is a button.
+	Action string `json:"action,omitempty"`
 }
 
 // Markers is what's known about one video.
@@ -54,15 +74,36 @@ type Markers struct {
 	Recap       *Range  `json:"recap"`
 	Credits     *Range  `json:"credits"`
 	Commercials []Range `json:"commercials"`
+	// From a .wittyinfo only.
+	Preview     *Range  `json:"preview,omitempty"`
+	PostCredits *Range  `json:"postCredits,omitempty"`
+	Custom      []Range `json:"custom,omitempty"`
+	// Absent: kinds this video is known to have none of; less trusted sources are not
+	// asked about them.
+	Absent []string `json:"absent,omitempty"`
+	// Segments is every range above as one list in time order, with its kind and source,
+	// for players and editors that show them all.
+	Segments []Segment `json:"segments"`
 	// Source is where the most trusted of these came from (see Sources), "none" for nothing.
 	Source string `json:"source"`
 	// Sources says where each one came from: intro, recap, credits, commercials.
 	Sources map[string]string `json:"sources"`
 }
 
+// Segment is one range of Markers.Segments.
+type Segment struct {
+	Kind     string  `json:"kind"`
+	StartSec float64 `json:"startSec"`
+	EndSec   float64 `json:"endSec"`
+	Label    string  `json:"label,omitempty"`
+	Action   string  `json:"action"`
+	Source   string  `json:"source"`
+}
+
 // Empty says nothing is marked.
 func (m *Markers) Empty() bool {
-	return m == nil || (m.Intro == nil && m.Recap == nil && m.Credits == nil && len(m.Commercials) == 0)
+	return m == nil || (m.Intro == nil && m.Recap == nil && m.Credits == nil && len(m.Commercials) == 0 &&
+		m.Preview == nil && m.PostCredits == nil && len(m.Custom) == 0 && len(m.Absent) == 0)
 }
 
 // ------------------------------------------------------------------ chapter names
@@ -399,30 +440,49 @@ type Layer struct {
 }
 
 // Merge takes each marker from the most trusted layer that has it: give the layers
-// most trusted first. Commercials come whole from one layer, never mixed. Source is the
-// most trusted source anything came from.
+// most trusted first. Lists (commercials, custom) come whole from one layer, never mixed.
+// A layer that says a kind is absent settles it: nothing less trusted gives one. Source is
+// the most trusted source anything came from.
 func Merge(layers ...Layer) Markers {
 	out := Markers{Commercials: []Range{}, Sources: map[string]string{}, Source: SourceNone}
+	settled := map[string]bool{}
+	one := func(kind string, dst **Range, src *Range, layer string) {
+		if settled[kind] || src == nil {
+			return
+		}
+		r := *src
+		*dst, out.Sources[kind], settled[kind] = &r, layer, true
+	}
+	many := func(kind string, dst *[]Range, src []Range, layer string) {
+		if settled[kind] || len(src) == 0 {
+			return
+		}
+		*dst = append([]Range{}, src...)
+		sort.Slice(*dst, func(i, j int) bool { return (*dst)[i].StartSec < (*dst)[j].StartSec })
+		out.Sources[kind], settled[kind] = layer, true
+	}
 	for _, l := range layers {
 		m := l.Markers
-		if out.Intro == nil && m.Intro != nil {
-			r := *m.Intro
-			out.Intro, out.Sources[KindIntro] = &r, l.Source
-		}
-		if out.Recap == nil && m.Recap != nil {
-			r := *m.Recap
-			out.Recap, out.Sources[KindRecap] = &r, l.Source
-		}
-		if out.Credits == nil && m.Credits != nil {
-			r := *m.Credits
-			out.Credits, out.Sources[KindCredits] = &r, l.Source
-		}
-		if len(out.Commercials) == 0 && len(m.Commercials) > 0 {
-			out.Commercials = append([]Range{}, m.Commercials...)
-			sort.Slice(out.Commercials, func(i, j int) bool { return out.Commercials[i].StartSec < out.Commercials[j].StartSec })
-			out.Sources["commercials"] = l.Source
+		one(KindIntro, &out.Intro, m.Intro, l.Source)
+		one(KindRecap, &out.Recap, m.Recap, l.Source)
+		one(KindCredits, &out.Credits, m.Credits, l.Source)
+		one(KindPreview, &out.Preview, m.Preview, l.Source)
+		one(KindPostCredits, &out.PostCredits, m.PostCredits, l.Source)
+		many("commercials", &out.Commercials, m.Commercials, l.Source)
+		many(KindCustom, &out.Custom, m.Custom, l.Source)
+		for _, k := range m.Absent {
+			key := k
+			if k == KindCommercial {
+				key = "commercials"
+			}
+			if !settled[key] {
+				settled[key] = true
+				out.Absent = append(out.Absent, k)
+				out.Sources[key] = l.Source
+			}
 		}
 	}
+	out.Segments = out.segmentList()
 	for _, l := range layers { // the first layer that gave anything
 		for _, src := range out.Sources {
 			if src == l.Source {
@@ -432,4 +492,54 @@ func Merge(layers ...Layer) Markers {
 		}
 	}
 	return out
+}
+
+// segmentList puts every range in one list in time order.
+func (m *Markers) segmentList() []Segment {
+	out := []Segment{}
+	add := func(kind, key string, r *Range) {
+		if r == nil {
+			return
+		}
+		act := r.Action
+		if act == "" {
+			act = ActButton
+			if kind == KindPostCredits {
+				act = ActMark
+			}
+		}
+		out = append(out, Segment{Kind: kind, StartSec: r.StartSec, EndSec: r.EndSec, Label: r.Label, Action: act, Source: m.Sources[key]})
+	}
+	add(KindRecap, KindRecap, m.Recap)
+	add(KindIntro, KindIntro, m.Intro)
+	add(KindCredits, KindCredits, m.Credits)
+	add(KindPreview, KindPreview, m.Preview)
+	add(KindPostCredits, KindPostCredits, m.PostCredits)
+	for i := range m.Commercials {
+		add(KindCommercial, "commercials", &m.Commercials[i])
+	}
+	for i := range m.Custom {
+		add(KindCustom, KindCustom, &m.Custom[i])
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].StartSec < out[j].StartSec })
+	return out
+}
+
+// FillEnds gives a range that runs "to the end" (an end of 0) the video's length.
+func (m *Markers) FillEnds(durationSec float64) {
+	if durationSec <= 0 {
+		return
+	}
+	fix := func(r *Range) {
+		if r != nil && r.EndSec <= 0 && durationSec > r.StartSec {
+			r.EndSec = durationSec
+		}
+	}
+	fix(m.Credits)
+	fix(m.Preview)
+	fix(m.PostCredits)
+	for i := range m.Custom {
+		fix(&m.Custom[i])
+	}
+	m.Segments = m.segmentList()
 }

@@ -35,7 +35,7 @@ export const ART_KINDS: PickerKind[] = [
 ]
 
 // The names of the sources the older artwork route reports by key (shown with tx()).
-export const ART_SOURCE: Record<string, string> = { local: tk('In the folder'), tmdb: 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', anilist: 'AniList', current: tk('In use') }
+export const ART_SOURCE: Record<string, string> = { local: tk('In the folder'), tmdb: 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', anilist: 'AniList', current: tk('In use'), wittyinfo: tk('The title’s .wittyinfo') }
 
 const ADDRESS = /^(https?:\/\/\S+|\/\S.*|[a-zA-Z]:\\.+|\\\\.+)$/
 

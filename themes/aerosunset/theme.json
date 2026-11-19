@@ -3,7 +3,7 @@
   "name": "Aero Sunset",
   "description": "Golden-hour glass, orange to pink to violet.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "4",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -24,11 +24,11 @@
           },
           {
             "at": 50,
-            "color": "#ffa06a"
+            "color": "#ffb488"
           },
           {
             "at": 100,
-            "color": "#d46bb8"
+            "color": "#edb5dd"
           }
         ]
       },
@@ -90,11 +90,11 @@
         "stops": [
           {
             "at": 0,
-            "color": "#e88acb"
+            "color": "#edb4e0"
           },
           {
             "at": 100,
-            "color": "#a54fb8"
+            "color": "#dab9ed"
           }
         ]
       }
@@ -122,12 +122,12 @@
     "bg4": "#edd4c6",
     "fg": "#4a1b3a",
     "fg2": "#7a3d62",
-    "fg3": "#865468",
+    "fg3": "#6e4556",
     "accent": "#b23800",
     "accentHover": "#e06b36",
     "accentFg": "#ffffff",
-    "accentText": "#ae3f0f",
-    "brandAccent": "#ae3f0f",
+    "accentText": "#8f340c",
+    "brandAccent": "#8f340c",
     "danger": "#b8222f",
     "ok": "#116b45",
     "warn": "#8a5300",
@@ -141,7 +141,7 @@
     "okSoft": "#116b4521",
     "warnSoft": "#8a530021",
     "dangerSoft": "#b8222f1c",
-    "focus": "#ae3f0f",
+    "focus": "#8f340c",
     "onImage": "#ffffff",
     "scrim": "#000000ad",
     "overlay": "#14182073"
@@ -204,7 +204,7 @@
   },
   "tv": {
     "ringColor": "#4a1b3a",
-    "heroScrim": 0.78,
+    "heroScrim": 0.89,
     "tvText": "#431834"
   }
 }

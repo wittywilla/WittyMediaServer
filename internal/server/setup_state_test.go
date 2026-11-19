@@ -32,10 +32,10 @@ func TestFirstRunGatesEveryAppRoute(t *testing.T) {
 	}
 	var st SetupState
 	_ = json.Unmarshal(ts.do(t, "GET", "/api/setup/state", "", nil).Body.Bytes(), &st)
-	if st.Complete || len(st.Steps) != 14 || st.Steps[0] != "welcome" || st.Steps[13] != "ready" || !strings.HasSuffix(st.URL, "/setup") {
+	if st.Complete || len(st.Steps) != 12 || st.Steps[0] != "language" || st.Steps[11] != "ready" || !strings.HasSuffix(st.URL, "/setup") {
 		t.Fatalf("state: %+v", st)
 	}
-	// The account is the second step. Its administrator's browser carries on; an app's token doesn't.
+	// The account is the third step. Its administrator's browser carries on; an app's token doesn't.
 	if w := ts.do(t, "POST", "/api/setup", "", map[string]string{"name": "Willow", "password": "correct-horse-1"}); w.Code != 200 && w.Code != 201 {
 		t.Fatalf("setup: %d %s", w.Code, w.Body)
 	}

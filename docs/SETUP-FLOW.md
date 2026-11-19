@@ -226,3 +226,7 @@ change read from its branch), desktop and service-style, desktop and phone width
     pasting have no note.
 16. "Details and artwork" is four pages of unrelated questions in one numbered step, between Libraries and
     the module steps.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

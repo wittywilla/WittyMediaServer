@@ -239,7 +239,8 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .lp-widgets { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
 .lp-widgets i { min-block-size: 3.2rem; border-radius: var(--r-md); background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); }
 .lp-widgets i.wide { grid-column: span 2; }
-.oobe-step.missing > span { opacity: .6; } .oobe-step small { font-size: var(--text-2xs); color: var(--fg-3); }
+/* A step that isn't there yet is quieter, in --fg-3, which every theme keeps readable (not faded, which wasn't). */
+.oobe-step.missing > span { color: var(--fg-3); } .oobe-step small { font-size: var(--text-2xs); color: var(--fg-3); }
 .su-twostep { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
 .su-twostep .ui-field { grid-column: 1 / -1; max-inline-size: 16rem; }
 .su-twostep ol { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-2); font-size: var(--text-md); }

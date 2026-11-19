@@ -614,10 +614,12 @@ func TestFloodSameMessage(t *testing.T) {
 	floodWindow = 200 * time.Millisecond
 	defer func() { floodWindow = old }()
 	l, log := newTest(t)
+	// The other message goes first: the table is hashed with a random seed, and now and then
+	// two messages share a slot, where the second one's arrival starts the first one's count over.
+	log.Warn("something else")
 	for i := 0; i < 5000; i++ {
 		log.Warn("the same thing again")
 	}
-	log.Warn("something else")
 	time.Sleep(250 * time.Millisecond)
 	log.Warn("the same thing again")
 	out := read(t, l)

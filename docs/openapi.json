@@ -33666,6 +33666,51 @@
         "x-wms-auth": "user"
       }
     },
+    "/p2p/relay-check": {
+      "post": {
+        "operationId": "postP2pRelayCheck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "addr": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ask a WittyRelay what it allows before using it: `{addr}` (its multiaddr ending in /p2p/\u003cits ID\u003e). Answers `{ok, offer, allows, error}`; registers nothing.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/p2p/rotate": {
       "post": {
         "operationId": "postP2pRotate",

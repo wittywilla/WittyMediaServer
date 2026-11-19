@@ -35,6 +35,7 @@ Every one in this list is on GitHub under its final name, with its history, so n
 | WittyReader | The standalone reader app |
 | WittyMediaPlayer | The standalone desktop player |
 | WittyMediaClient | The client apps for desktop, Android, Apple and others |
+| WittyRelay | A relay for peer-to-peer connections that anyone can run in Docker, for networks where a device and its server can't connect directly. It carries end-to-end encrypted connections it can't read, and is the base of the planned hosted relay, which is to be free. Images are published only for a version tag. **AGPL-3.0-or-later**. Design in [P2P.md](P2P.md#wittyrelay-and-what-relays-allow) |
 | WittyMediaRemoteMedia | A small program for a NAS (native or Docker) that would give a server read-only access to its media folders. Not built, on purpose: the repository holds the decision and the design (README, docs/DESIGN.md), because the server must first read media through a file-system seam instead of local paths. It is not a module. Until then, mount the share (SMB/NFS) on the server's computer, or run the server on the NAS |
 
 ### To make

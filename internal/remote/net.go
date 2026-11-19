@@ -65,6 +65,8 @@ type Client struct {
 	P2P        bool
 	P2PDevice  string
 	P2PRelayed bool
+	// P2PRelay is the relay's ID on a relayed connection, when it is known.
+	P2PRelay string
 }
 
 // Direct: nothing stands between this server and the client.

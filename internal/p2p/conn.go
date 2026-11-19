@@ -6,9 +6,11 @@ package p2p
 import (
 	"crypto/sha256"
 	"errors"
+	"io"
 	"net"
 	"net/netip"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -23,7 +25,9 @@ type Addr struct {
 	IP      netip.Addr
 	Peer    string // the other end's ID
 	Relayed bool
-	Known   bool // on the server's list of devices
+	// Relay is the relay's ID on a relayed connection, when it is known.
+	Relay string
+	Known bool // on the server's list of devices
 }
 
 func (a *Addr) Network() string { return "p2p" }
@@ -66,15 +70,37 @@ func presentedIP(remote netip.Addr, relayed, known bool, id peer.ID) netip.Addr 
 type streamConn struct {
 	network.Stream
 	local, remote net.Addr
-	bucket        *bucket // nil: no limit
+	bucket        *bucket       // nil: no limit
+	sent          *atomic.Int64 // counts what is written, when not nil
 	onClose       func()
 	once          sync.Once
+	// onError is told when reading or writing fails other than by the end of
+	// the stream: on an app's side, a sign the connection may be dead.
+	onError func()
+}
+
+func (c *streamConn) Read(b []byte) (int, error) {
+	n, err := c.Stream.Read(b)
+	if err != nil && err != io.EOF && c.onError != nil {
+		c.onError()
+	}
+	return n, err
 }
 
 func (c *streamConn) LocalAddr() net.Addr  { return c.local }
 func (c *streamConn) RemoteAddr() net.Addr { return c.remote }
 
-func (c *streamConn) Write(b []byte) (int, error) {
+func (c *streamConn) Write(b []byte) (n int, err error) {
+	if c.sent != nil {
+		defer func() { c.sent.Add(int64(n)) }()
+	}
+	if c.onError != nil {
+		defer func() {
+			if err != nil {
+				c.onError()
+			}
+		}()
+	}
 	if c.bucket == nil {
 		return c.Stream.Write(b)
 	}

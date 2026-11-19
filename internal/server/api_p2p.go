@@ -22,9 +22,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/libp2p/go-libp2p"
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+
 	"github.com/wittywilla/wittymediaserver/internal/p2p"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
@@ -63,6 +65,7 @@ func (s *Server) p2pRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/p2p/status", adm(s.handleP2PStatus))
 	m.Handle("POST /api/p2p/test", adm(s.handleP2PTest))
 	m.Handle("POST /api/p2p/rotate", adm(s.handleP2PRotate))
+	m.Handle("POST /api/p2p/relay-check", adm(s.handleP2PRelayCheck))
 }
 
 // ---------------------------------------------------------------- settings
@@ -83,6 +86,23 @@ type p2pSettings struct {
 	// reached from outside.
 	RelayForOthers bool     `json:"relayForOthers"`
 	StaticRelays   []string `json:"staticRelays"`
+	// ShareKbps and ShareMaxHeight are what this server allows others while
+	// it helps as a community relay: its upload for everyone together, and
+	// the picture size their streams keep to. Both are told to other servers
+	// before they use it.
+	ShareKbps      int `json:"shareKbps"`
+	ShareMaxHeight int `json:"shareMaxHeight"`
+	// OwnRelays are WittyRelays: one the owner runs, or one they were given a
+	// key to. Used before any other relay.
+	OwnRelays []p2pOwnRelay `json:"ownRelays"`
+}
+
+// p2pOwnRelay is a WittyRelay and its access key. The key is never sent back
+// to the page: HasKey says there is one, and a key left empty keeps it.
+type p2pOwnRelay struct {
+	Addr   string `json:"addr"`
+	Key    string `json:"key,omitempty"`
+	HasKey bool   `json:"hasKey,omitempty"`
 }
 
 const (
@@ -96,7 +116,8 @@ const (
 )
 
 func defaultP2P() p2pSettings {
-	return p2pSettings{Layers: p2p.AllLayers(), DevicesOnly: true, RelayKbps: 4000, StaticRelays: []string{}}
+	return p2pSettings{Layers: p2p.AllLayers(), DevicesOnly: true, RelayKbps: 4000, StaticRelays: []string{},
+		ShareKbps: 8000, ShareMaxHeight: 720, OwnRelays: []p2pOwnRelay{}}
 }
 
 func (s *Server) loadP2P(ctx context.Context) p2pSettings {
@@ -109,6 +130,14 @@ func (s *Server) loadP2P(ctx context.Context) p2pSettings {
 	}
 	if c.StaticRelays == nil {
 		c.StaticRelays = []string{}
+	}
+	if c.OwnRelays == nil {
+		c.OwnRelays = []p2pOwnRelay{}
+	}
+	for _, r := range c.OwnRelays {
+		if r.Key != "" {
+			logging.KeepSecret(r.Key)
+		}
 	}
 	return c
 }
@@ -140,6 +169,31 @@ func (c *p2pSettings) validate() error {
 		clean = append(clean, r)
 	}
 	c.StaticRelays = clean
+	if c.ShareKbps != 0 && (c.ShareKbps < 500 || c.ShareKbps > 1_000_000) {
+		return errors.New("what you share as a relay should be between 500 and 1000000 kbit/s, or 0 for no limit")
+	}
+	if c.ShareMaxHeight != 0 && (c.ShareMaxHeight < 144 || c.ShareMaxHeight > 4320) {
+		return errors.New("the picture size through your relay should be between 144 and 4320 lines, or 0 for any")
+	}
+	if len(c.OwnRelays) > 4 {
+		return errors.New("at most 4 WittyRelays")
+	}
+	own := []p2pOwnRelay{}
+	for _, r := range c.OwnRelays {
+		r.Addr, r.Key = strings.TrimSpace(r.Addr), strings.TrimSpace(r.Key)
+		if r.Addr == "" {
+			continue
+		}
+		if _, err := p2p.ParseRelayAddr(r.Addr); err != nil {
+			return fmt.Errorf("WittyRelay %q: %v", r.Addr, err)
+		}
+		if len(r.Key) > 200 {
+			return errors.New("that access key is too long")
+		}
+		r.HasKey = r.Key != ""
+		own = append(own, r)
+	}
+	c.OwnRelays = own
 	if !c.Layers.Relay {
 		c.Layers.HolePunch = false // a hole punch is arranged through a relay
 	}
@@ -158,6 +212,53 @@ type p2pState struct {
 	testing sync.Mutex
 	// tune changes the node's configuration before it starts, for tests.
 	tune func(*p2p.NodeConfig)
+	// nodeRef is node, for what must not wait on mu (the device list, whose
+	// own lock is taken while mu is held).
+	nodeRef atomic.Pointer[p2p.Node]
+	// pairTries limits how often one account makes invites or types in codes:
+	// each makes a way in that waits fifteen minutes.
+	pairTries     *p2p.TryLimit
+	pairTriesOnce sync.Once
+	// relayCheckOpts are added to the relay check's node, for tests.
+	relayCheckOpts []libp2p.Option
+}
+
+// p2pPairAllowed counts a try at making an invite or typing in a code, and
+// answers 429 when the account has made too many lately.
+func (s *Server) p2pPairAllowed(w http.ResponseWriter, r *http.Request) bool {
+	s.p2p.pairTriesOnce.Do(func() { s.p2p.pairTries = p2p.NewTryLimit(10, 10*time.Minute, 4096) })
+	u := userFrom(r)
+	if u == nil || s.p2p.pairTries.Allow(fmt.Sprint(u.ID)) {
+		return true
+	}
+	s.Log.WarnContext(r.Context(), "too many invites or codes from one account", "cat", "p2p", "user", u.Name)
+	writeErr(w, 429, "Too many invites and codes in a short time. Wait a few minutes and try again.")
+	return false
+}
+
+// p2pDevicesChanged tells the node the device list changed, so its
+// WittyRelays hear at once which devices may come through them.
+func (s *Server) p2pDevicesChanged() {
+	if n := s.p2p.nodeRef.Load(); n != nil {
+		n.DevicesChanged()
+	}
+}
+
+// p2pRelayCaps are the limits a relay puts on streams through it: the
+// picture height it asks for, and a data rate (bits/s) that fits through the
+// pacing a stream through it gets, with room for sound and overhead.
+func (s *Server) p2pRelayCaps(relay string) (maxHeight int, bps int64) {
+	n := s.p2p.nodeRef.Load()
+	if n == nil {
+		return 0, 0
+	}
+	if o, ok := n.RelayOffer(relay); ok {
+		maxHeight = o.MaxHeight
+	}
+	if limit := n.RelayStreamLimit(relay); limit > 0 {
+		bps = limit * 85 / 100
+	}
+	return maxHeight, bps
 }
 
 func (s *Server) p2pOn() bool { return s.p2p.on.Load() }
@@ -235,6 +336,7 @@ func (s *Server) StopP2P() {
 
 func (s *Server) stopP2PLocked() {
 	s.p2p.on.Store(false)
+	s.p2p.nodeRef.Store(nil)
 	if s.p2p.node != nil {
 		s.p2p.node.Close()
 		s.p2p.node = nil
@@ -276,7 +378,7 @@ func (s *Server) applyP2P(ctx context.Context) error {
 		Devices: &s.p2p.devices, Enrol: s.p2pEnrol, Handler: s.p2p.handler,
 		Log: s.Log.With("cat", "p2p"),
 		ConnInfo: func(ctx context.Context, a *p2p.Addr) context.Context {
-			return remote.WithP2P(ctx, remote.P2PConn{Addr: a.IP, Device: a.Peer, Relayed: a.Relayed, Known: a.Known})
+			return remote.WithP2P(ctx, remote.P2PConn{Addr: a.IP, Device: a.Peer, Relayed: a.Relayed, Relay: a.Relay, Known: a.Known})
 		},
 	}
 	if s.Logs != nil {
@@ -289,7 +391,20 @@ func (s *Server) applyP2P(ctx context.Context) error {
 	}
 	if cfg.RelayForOthers {
 		l := p2p.DefaultRelayLimits()
+		l.TotalKbps, l.Kbps, l.MaxHeight = cfg.ShareKbps, cfg.ShareKbps, cfg.ShareMaxHeight
+		l.Note = "Another WittyMediaServer owner's home connection."
 		nc.RelayService = &l
+	}
+	for _, r := range cfg.OwnRelays {
+		nc.OwnRelays = append(nc.OwnRelays, p2p.OwnRelay{Addr: r.Addr, Key: r.Key})
+	}
+	nc.Name = s.ServerName(ctx)
+	nc.DeviceIDs = func() []string {
+		var ids []string
+		for _, d := range s.p2p.devices.list() {
+			ids = append(ids, d.ID)
+		}
+		return ids
 	}
 	if s.p2p.tune != nil {
 		s.p2p.tune(&nc)
@@ -299,6 +414,7 @@ func (s *Server) applyP2P(ctx context.Context) error {
 		return fmt.Errorf("starting peer-to-peer connections: %w", err)
 	}
 	s.p2p.node, s.p2p.started = node, cfg
+	s.p2p.nodeRef.Store(node)
 	s.p2p.on.Store(true)
 	return nil
 }
@@ -444,6 +560,7 @@ func (s *Server) p2pAddDevice(ctx context.Context, userID int64, id, name, platf
 	if err := d.ensure(ctx, s); err != nil {
 		return p2pDevice{}, err
 	}
+	defer s.p2pDevicesChanged() // after d.mu is let go: deferred calls run last first
 	name, platform = cleanLabel(name, 60), cleanLabel(platform, 24)
 	if name == "" {
 		name = "A device"
@@ -490,6 +607,7 @@ func (s *Server) p2pRemoveDevice(ctx context.Context, id string) error {
 	if node := s.p2pNode(); node != nil {
 		node.Kick(id)
 	}
+	s.p2pDevicesChanged()
 	return nil
 }
 
@@ -764,6 +882,9 @@ func (s *Server) handleP2PInvite(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, "this profile can't sign devices in")
 		return
 	}
+	if !s.p2pPairAllowed(w, r) {
+		return
+	}
 	var b struct {
 		UserID int64 `json:"userId"`
 		// The inviter's own password (and two-factor code), when the device will be
@@ -854,18 +975,22 @@ type p2pView struct {
 	Error        string          `json:"error,omitempty"`
 	Status       *p2p.Status     `json:"status,omitempty"`
 	Steps        []checkStep     `json:"steps"`
+	Verdict      *p2pVerdict     `json:"verdict,omitempty"`
 	ThirdParties []p2pThirdParty `json:"thirdParties"`
 	Devices      []p2pDevice     `json:"devices"`
 }
 
 func (s *Server) p2pView(r *http.Request, applyErr string) p2pView {
 	cfg := s.loadP2P(r.Context())
+	cfg.OwnRelays = maskRelayKeys(cfg.OwnRelays)
 	v := p2pView{Settings: cfg, Error: applyErr, ThirdParties: p2pThirdParties, Steps: []checkStep{}}
 	v.Devices = s.p2pDeviceViews(r.Context(), userFrom(r), true)
 	if node := s.p2pNode(); node != nil {
 		st := node.Status()
 		v.Running, v.ServerID, v.Status = true, st.ID, &st
 		v.Steps = describeP2P(st, len(v.Devices))
+		vd := verdictP2P(st)
+		v.Verdict = &vd
 	}
 	return v
 }
@@ -883,7 +1008,7 @@ func (s *Server) handleP2PStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	st := node.Status()
-	writeJSON(w, 200, map[string]any{"running": true, "status": st, "steps": describeP2P(st, len(s.p2p.devices.list()))})
+	writeJSON(w, 200, map[string]any{"running": true, "status": st, "steps": describeP2P(st, len(s.p2p.devices.list())), "verdict": verdictP2P(st)})
 }
 
 // PUT /api/p2p/settings: changes any of the settings; the rest stay. Turning
@@ -902,6 +1027,18 @@ func (s *Server) handlePutP2PSettings(w http.ResponseWriter, r *http.Request) {
 	cur := b.p2pSettings
 	if cur.Port == 0 {
 		cur.Port = prev.Port
+	}
+	// A WittyRelay's key isn't sent to the page, so one that comes back empty
+	// for the same relay is the one already kept.
+	for i, r := range cur.OwnRelays {
+		if r.Key != "" {
+			continue
+		}
+		for _, p := range prev.OwnRelays {
+			if strings.TrimSpace(p.Addr) == strings.TrimSpace(r.Addr) && r.HasKey {
+				cur.OwnRelays[i].Key = p.Key
+			}
+		}
 	}
 	if err := cur.validate(); err != nil {
 		writeErr(w, 400, err.Error())
@@ -967,6 +1104,15 @@ func (s *Server) handleP2PRotate(w http.ResponseWriter, r *http.Request) {
 		errText = err.Error()
 	}
 	writeJSON(w, 200, s.p2pView(r, errText))
+}
+
+// maskRelayKeys leaves the keys out, saying only whether there is one.
+func maskRelayKeys(list []p2pOwnRelay) []p2pOwnRelay {
+	out := make([]p2pOwnRelay, 0, len(list))
+	for _, r := range list {
+		out = append(out, p2pOwnRelay{Addr: r.Addr, HasKey: r.Key != ""})
+	}
+	return out
 }
 
 // ---------------------------------------------------------------- in plain words
@@ -1159,7 +1305,7 @@ func (s *Server) handleP2PTest(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Log.InfoContext(ctx, "peer-to-peer connection test finished", "cat", "p2p", "steps", len(steps), "failed", failed,
 		"reachability", st.Reachability, "natUdp", st.NATUDP, "natTcp", st.NATTCP, "relays", len(st.Relays), "portMapped", st.Mapping.On, "mappingProtocol", st.Mapping.Protocol, "sharedAddress", st.Mapping.Shared)
-	writeJSON(w, 200, map[string]any{"steps": steps, "status": st, "layers": describeP2P(st, len(s.p2p.devices.list()))})
+	writeJSON(w, 200, map[string]any{"steps": steps, "status": st, "layers": describeP2P(st, len(s.p2p.devices.list())), "verdict": verdictP2P(st)})
 }
 
 func (s *Server) p2pSelfTest(ctx context.Context, node *p2p.Node) []checkStep {
@@ -1237,4 +1383,124 @@ func (s *Server) p2pSelfTest(ctx context.Context, node *p2p.Node) []checkStep {
 		add("A request", "fail", "The server was reached, but a request over the connection failed: "+err.Error())
 	}
 	return steps
+}
+
+// ---------------------------------------------------------------- the answer in one line
+
+// p2pVerdict is the connection test's answer for someone who doesn't want
+// to read about NAT: what will happen when a device is away from home, and
+// what they can do about it.
+type p2pVerdict struct {
+	State  string   `json:"state"` // ok | warn | fail | wait
+	Title  string   `json:"title"`
+	Detail string   `json:"detail"`
+	Todo   []string `json:"todo"`
+}
+
+// verdictP2P reads the node's status. Nothing in it needs the network.
+func verdictP2P(st p2p.Status) p2pVerdict {
+	var dataRelay *p2p.RelayStatus
+	for i, r := range st.Relays {
+		if r.Community {
+			dataRelay = &st.Relays[i]
+			break
+		}
+	}
+	ownOK, ownBad := 0, ""
+	for _, r := range st.OwnRelays {
+		if r.State == "ok" {
+			ownOK++
+		} else if r.Error != "" && ownBad == "" {
+			ownBad = r.Error
+		}
+	}
+	relayWords := func() string {
+		if dataRelay != nil && dataRelay.Allows != "" {
+			return " It allows: " + strings.ToLower(dataRelay.Allows[:1]) + dataRelay.Allows[1:]
+		}
+		return ""
+	}
+	direct := len(st.Reachable) > 0 || (st.Mapping.Usable() && len(st.Unreachable) == 0)
+	punch := st.NATUDP == "open" || st.NATTCP == "open"
+	strict := (st.NATUDP == "strict" && st.NATTCP != "open") || (st.Mapping.Shared && !punch)
+	haveRelay := dataRelay != nil || ownOK > 0
+	const addRelay = `For those, run your own WittyRelay (a few minutes with Docker: see Remote access, "Your own WittyRelay") and add it under "Your own WittyRelay" below.`
+	v := p2pVerdict{Todo: []string{}}
+	switch {
+	case !st.Layers.Relay && !direct:
+		v = p2pVerdict{State: "warn", Title: "Only direct connections are allowed, and none has worked yet",
+			Detail: "Relays are turned off, so hole punching is too. Devices away from home can only connect if your router forwards a port or lets IPv6 in.",
+			Todo:   []string{"Turn Relays on under Peer-to-peer options. Public relays carry only the introduction; a relay of your own carries more."}}
+	case direct:
+		v = p2pVerdict{State: "ok", Title: "Direct connection works",
+			Detail: "Other computers on the internet connected straight to this server. Your devices will too, from any network.", Todo: []string{}}
+	case punch:
+		v = p2pVerdict{State: "ok", Title: "Direct connection works", Todo: []string{},
+			Detail: "Your router lets a device and this server connect straight to each other (hole punching). That works from most home and mobile networks. A strict network on the device's side (some offices, schools and hotels) can still stop it."}
+		if haveRelay {
+			v.Detail += " On those, your devices go through your relay." + relayWords()
+		} else {
+			v.Todo = append(v.Todo, addRelay)
+		}
+	case strict && haveRelay:
+		v = p2pVerdict{State: "ok", Title: "Connections will go through your relay",
+			Detail: "Your network blocks direct connections from outside, so devices away from home connect through your relay. It can't see what it carries: that's encrypted between the device and this server." + relayWords(),
+			Todo:   []string{"For direct connections as well, turn on UPnP or NAT-PMP in your router's settings, then test again."}}
+	case strict:
+		v = p2pVerdict{State: "warn", Title: "Your network blocks direct connections; we'll use a relay when WittyRelay is available",
+			Detail: "Your router (or your internet provider, if it shares one address between customers) stops devices outside from connecting straight in, and hole punching can't get through it. The public relays only introduce devices; they don't carry films.",
+			Todo: []string{
+				"Look for UPnP or NAT-PMP in your router's settings and turn it on, then test again.",
+				`Or run your own WittyRelay and add it under "Your own WittyRelay" below: see Remote access, "Your own WittyRelay".`,
+				`Or use a private network instead: see Remote access, "The recommended way".`,
+			}}
+	case !st.Layers.DHT && len(st.Relays) == 0 && ownOK == 0:
+		v = p2pVerdict{State: "warn", Title: "Devices can only use addresses they already know",
+			Detail: "The public address book is off and no relay is held, so a device that is away finds this server only at an address it remembers.",
+			Todo:   []string{"Turn the Public address book on under Peer-to-peer options."}}
+	case st.DHTPeers == 0 && len(st.Relays) == 0 && ownOK == 0 && time.Since(time.Unix(st.Started, 0)) > 3*time.Minute:
+		v = p2pVerdict{State: "fail", Title: "This server can't reach the internet for peer-to-peer connections",
+			Detail: "Nothing outside answered: not the public address book, not a relay. A firewall on this computer or the network may block outgoing UDP and TCP.",
+			Todo:   []string{"Check that this computer's firewall lets WittyMediaServer connect out.", "On an office or school network this may not be allowed: use a private network instead."}}
+	default:
+		v = p2pVerdict{State: "wait", Title: "Still finding out", Todo: []string{},
+			Detail: "It takes a few minutes after turning this on for other computers to try connecting to this server. Test again in five minutes."}
+	}
+	if ownBad != "" {
+		v.Todo = append(v.Todo, "Your WittyRelay isn't working: "+ownBad)
+	}
+	return v
+}
+
+// POST /api/p2p/relay-check {addr}: what a WittyRelay allows, before the
+// owner adds it. It asks the relay and nobody else, from a key made for
+// the purpose, and registers nothing.
+func (s *Server) handleP2PRelayCheck(w http.ResponseWriter, r *http.Request) {
+	var b struct {
+		Addr string `json:"addr"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, "expected a JSON body")
+		return
+	}
+	if _, err := p2p.ParseRelayAddr(b.Addr); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if !s.p2p.testing.TryLock() {
+		writeErr(w, 429, "A test is already running.")
+		return
+	}
+	defer s.p2p.testing.Unlock()
+	o, err := p2p.CheckRelay(r.Context(), b.Addr, s.p2p.relayCheckOpts...)
+	s.Log.InfoContext(r.Context(), "a WittyRelay was checked", "cat", "p2p", "by", userFrom(r).Name, "ok", err == nil)
+	if err != nil {
+		res := map[string]any{"ok": false, "error": err.Error()}
+		if o.V != 0 {
+			res["offer"], res["allows"] = o, o.Words()
+		}
+		writeJSON(w, 200, res)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"ok": true, "offer": o, "allows": o.Words()})
 }

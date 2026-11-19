@@ -38,16 +38,24 @@ export function devicesSpec(devices: DeviceLine[], ago: (at?: number) => string)
   return mk('remoteaccess', t('Settings · Remote access'), t('Devices that may connect'), '', sections)
 }
 
-// Who may try, the ways of connecting, relay limit, helping others. Field ids: devicesOnly, layer:<id>, relayKbps, relayForOthers.
-export function optionsSpec(s: { devicesOnly: boolean; layers: Record<LayerId, boolean>; relayKbps: number; relayForOthers: boolean }): SpecPageData {
+// Who may try, the ways of connecting, relay limit, helping others. Field ids: devicesOnly, layer:<id>, relayKbps,
+// relayForOthers, and while helping, shareKbps and shareMaxHeight.
+export function optionsSpec(s: { devicesOnly: boolean; layers: Record<LayerId, boolean>; relayKbps: number; relayForOthers: boolean; shareKbps: number; shareMaxHeight: number }): SpecPageData {
   const rates = [1000, 2000, 4000, 8000, 20000]
   const layers: SpecField[] = LAYERS.map((l) => ({ id: 'layer:' + l.id, kind: 'switch', label: t(l.label), hint: t(l.desc), value: s.layers[l.id], disabled: l.id === 'holePunch' && !s.layers.relay }))
+  const relays: SpecField[] = [
+    { id: 'relayKbps', kind: 'select', label: t('Limit through a relay'), hint: t('A relay is someone else’s internet connection. This is the most this server sends through one; a relay that allows less gets less, and films through it are made to fit. The quality limits further down this page apply as well.'), value: String(s.relayKbps), options: [...rates.map((k) => ({ value: String(k), label: t('{rate} Mbit/s', { rate: k / 1000 }) })), { value: '0', label: t('No limit') }] },
+    { id: 'relayForOthers', kind: 'switch', label: t('Help other servers'), hint: t('While this server can be reached from outside, lets up to 16 other WittyMediaServer owners’ connections pass through it when theirs can’t connect directly. It uses your internet connection, within the limits below, which their servers are told before they use it. You see none of what passes: it is encrypted between their devices and their servers.'), value: s.relayForOthers },
+  ]
+  if (s.relayForOthers) {
+    relays.push(
+      { id: 'shareKbps', kind: 'select', label: t('Upload you share'), hint: t('The most of your internet connection that passes through for everyone together. Each server using it is told this before it does.'), value: String(s.shareKbps), options: [...[2000, 4000, 8000, 20000, 50000].map((k) => ({ value: String(k), label: t('{rate} Mbit/s', { rate: k / 1000 }) })), { value: '0', label: t('No limit') }] },
+      { id: 'shareMaxHeight', kind: 'select', label: t('Picture size through your relay'), hint: t('Servers using your relay make the films they send through it this size or smaller. Smaller pictures use less of your connection.'), value: String(s.shareMaxHeight), options: [...[480, 720, 1080].map((h) => ({ value: String(h), label: t('{height}p', { height: h }) })), { value: '0', label: t('Any size') }] },
+    )
+  }
   return mk('remoteaccess', t('Settings · Remote access'), t('Peer-to-peer options'), '', [
     secF(t('Who may try'), [{ id: 'devicesOnly', kind: 'switch', label: t('Only paired devices'), hint: t('A device that isn’t on the list above gets no answer at all, not even the sign-in page. Leave this on unless you have a reason.'), value: s.devicesOnly }]),
     secF(t('Ways of connecting'), layers),
-    secF(t('Relays'), [
-      { id: 'relayKbps', kind: 'select', label: t('Limit through a relay'), hint: t('A relay is someone else’s internet connection. This is the most this server sends through one; the quality limits further down this page apply as well.'), value: String(s.relayKbps), options: [...rates.map((k) => ({ value: String(k), label: t('{rate} Mbit/s', { rate: k / 1000 }) })), { value: '0', label: t('No limit') }] },
-      { id: 'relayForOthers', kind: 'switch', label: t('Help other servers'), hint: t('While this server can be reached from outside, lets up to 16 other WittyMediaServer owners’ connections pass through it when theirs can’t connect directly. It uses your internet connection (at most 2 GiB per connection), and you see none of what passes: it is encrypted between their devices and their servers.'), value: s.relayForOthers },
-    ]),
+    secF(t('Relays'), relays),
   ])
 }

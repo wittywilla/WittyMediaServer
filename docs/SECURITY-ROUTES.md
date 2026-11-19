@@ -388,6 +388,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/p2p/settings` | Admin | Port, layers, relay limit, own relays (each a multiaddr ending in a valid ID). Turning it on, or letting unlisted devices in, also needs `accept` |
 | `GET /api/p2p/status` | Admin | Nothing further |
 | `POST /api/p2p/test` | Admin | Peer-to-peer connections are on. One test at a time |
+| `POST /api/p2p/relay-check` | Admin | One at a time (shares the connection test's lock); contacts only the address given, from a throwaway key |
 | `POST /api/p2p/rotate` | Admin | The admin's own password (and code), with an attempt limit |
 | `GET /api/sessions` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `DELETE /api/sessions` | Signed-in | own, except the current one |

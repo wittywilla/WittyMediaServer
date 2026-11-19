@@ -24,6 +24,8 @@ type P2PConn struct {
 	// Device is the other end's key, as its ID.
 	Device  string
 	Relayed bool
+	// Relay is the relay's ID on a relayed connection, when it is known.
+	Relay string
 	// Known: the device is on the server's list.
 	Known bool
 }
@@ -53,5 +55,5 @@ func p2pClient(c P2PConn) Client {
 	if !a.IsValid() || (*Policy)(nil).Classify(a) != Internet {
 		a = p2pFallback
 	}
-	return Client{IP: a, Peer: a, Where: Internet, Secure: true, P2P: true, P2PDevice: c.Device, P2PRelayed: c.Relayed}
+	return Client{IP: a, Peer: a, Where: Internet, Secure: true, P2P: true, P2PDevice: c.Device, P2PRelayed: c.Relayed, P2PRelay: c.Relay}
 }

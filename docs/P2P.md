@@ -13,6 +13,9 @@ For developers. This page is the design of the feature that lets an app reach a 
 - [The server's side](#the-servers-side)
 - [The app's side](#the-apps-side)
 - [Joining by a code](#joining-by-a-code)
+- [WittyRelay, and what relays allow](#wittyrelay-and-what-relays-allow)
+- [The answer in one line](#the-answer-in-one-line)
+- [Simulated networks](#simulated-networks)
 - [Browsers](#browsers)
 - [Limits](#limits)
 - [What it costs](#what-it-costs)
@@ -116,6 +119,8 @@ Protocol IDs, all under `/wittymedia/`:
 | `/wittymedia/enrol/1.0.0` | One request and one answer, each a 4-byte big-endian length and that many bytes of JSON (at most 4 kB), then the stream ends |
 | `/wittymedia/join/1.0.0` | Four messages in the same framing as enrolment: see [joining by a code](#joining-by-a-code) |
 | `/wittymedia/relay/1.0.0` | Registered by community relays, and closed as soon as it is opened. Only its presence in the relay's protocol list means anything |
+| `/wittymedia/relay-info/1.0.0` | Answered by every relay that carries whole connections: one `RelayOffer`, in enrolment's framing. See [WittyRelay](#wittyrelay-and-what-relays-allow) |
+| `/wittyrelay/register/1.0.0` | WittyRelay only: a server registers and lists its devices |
 
 Enrolment: `{"v":1,"secret":"…","name":"Kate's phone","platform":"android"}` is answered with `{"ok":true,"code":"123456","serverName":"…","addrs":["/ip4/…"]}` or `{"ok":false,"reason":"wrong|used|expired|too-many-tries|refused|off","error":"…"}`. `code` is an ordinary sign-in code: the app redeems it at `POST /api/v1/pair/redeem` over the new connection, like a code typed on a TV.
 
@@ -199,6 +204,31 @@ What a stranger can do with it. The address book's computers see the lookup key,
 
 What it gives whoever shows the code: a place on the list and a sign-in as the account that typed it (or a Kids or Guest profile it manages). So the same rule as approving a TV at home: signing a device in as an administrator takes the administrator's password again, and the page says to type in only a code you can see on your own device. It needs the address book layer, since that is how the TV finds the server, and says so when it is off (409). Sixteen codes can be waiting at once.
 
+## WittyRelay, and what relays allow
+
+**The gap.** With hole punching defeated on either side (a symmetric NAT, CGNAT on both ends, a network that lets no UDP out) and no community relay, there was no way through. **WittyRelay** ([its own repository](https://github.com/wittywilla/WittyRelay)) fills it: a small Go service, run by the owner or someone they trust in Docker, and later as a hosted service that is planned to be free.
+
+**Why circuit relay v2 and not TURN.** Both ends already speak circuit relay v2; the relayed connection is the same end-to-end encrypted libp2p connection, pinned to the server's key; the apps already switch from a relay to a direct connection the moment hole punching succeeds. TURN would mean a second way of connecting in every app, with credentials of its own, for the same result. WittyRelay is libp2p's relay with what a relay run for other people needs:
+
+| | How |
+|---|---|
+| Servers register | `/wittyrelay/register/1.0.0`: one request (`{v, key, name, devices}`), one answer (`{ok, reason, error, ttlSec, offer}`), in enrolment's framing, at most 64 kB. The server's ID is proved by the connection; the access key (if the relay needs one) goes only over that encrypted stream to the pinned relay ID, and is compared in constant time. Only a registered server holds a place (the relay's `AllowReserve`) |
+| Devices are the server's word | The registration lists the device IDs that may come through; the relay's `AllowConnect` lets only those reach the server. It is renewed every five minutes and at once when the list changes (`Node.DevicesChanged`), and forgotten fifteen minutes after it was last heard. These are the short-lived grants: issued by the server, which is the only one that knows its devices, and pushed rather than carried by the apps, so the apps need nothing new and a removed device loses the relay within minutes |
+| Limits said first | `/wittymedia/relay-info/1.0.0` answers a `RelayOffer` (`internal/p2p/relayinfo.go`): speed per connection and in all, picture height, data and minutes per connection, servers and connections per server, access (open or key), and the operator's name and note. Any relay that carries whole connections answers it, community relays included. A registration's answer carries the same |
+| Speed | The relay paces each relayed connection and all of them together (WittyRelay's `pacingHost`; a community relay paces everything it passes on together through libp2p's relay metrics hook) |
+| Picture size | The relay can't see inside what it carries, so it can only ask. The server keeps to it: `remoteCaps` folds the relay's picture height, and a data rate of 85% of the pace a stream through it gets, into the limits for viewers away from home, for every request over that relay. The pace is the lower of the relay's speed and the server's own `relayKbps` |
+| Place | The server reserves its place on its own WittyRelays itself (`Node.reserve`, renewed with each registration) and announces the circuit addresses, rather than waiting for AutoNAT to say it is private: with the address book off or few peers about, that may never happen |
+
+Settings: `ownRelays` (`[{addr, key}]`, at most 4; the key is never sent back, `hasKey` says there is one), `shareKbps` and `shareMaxHeight` for *Help other servers*. `POST /api/v1/p2p/relay-check {addr}` asks a relay what it allows from a throwaway key, before the owner adds it, and registers nothing. The status has `ownRelays` (`ok | refused | unreachable | wait`, with the offer), each relay's `offer` and `allows`, `offer` (what this server says as a community relay) and `counters`. The app's connection state has `relayKbps`, `relayMaxHeight` and `relayAllows` on a community relay.
+
+## The answer in one line
+
+`verdict` in `GET /api/v1/p2p/settings`, `/status` and the connection test is the page's headline, worked out from the status without asking the network (`verdictP2P`): *Direct connection works* (reached from outside, or a router hole punching works with), *Connections will go through your relay*, *Your network blocks direct connections; we'll use a relay when WittyRelay is available* (a symmetric NAT, or a shared address with no hole punching), *This server can't reach the internet for peer-to-peer connections*, or *Still finding out*, each with what to do.
+
+## Simulated networks
+
+`scripts/p2p-netsim` runs the server's node, apps and a WittyRelay in Linux network namespaces (WSL works): home routers that translate addresses the usual way ("cone") or a new port per destination ("symmetric"), a provider's shared address in front of the server's router, a network with no UDP out, 120 ms ± 30 ms and 3% loss, the app's link dropping for 12 s, the app's outside address changing, and four apps at once. Routers drop what arrives uninvited, as home routers do. Five ordinary nodes stand in for the public network, from which a node learns its outside address. `sudo scripts/p2p-netsim/netsim.sh <bin> <results>`; the header of the script says how to build the two programs. Nothing leaves the namespaces.
+
 ## Browsers
 
 A web page can't open a UDP socket or a raw TCP one, so the web client can't be a node like the apps are. go-libp2p can listen for browsers (WebTransport, WebRTC-direct), but only a server that is *directly reachable* can be dialled that way, a browser can't take part in a hole punch, and the page itself would have to be served from somewhere that isn't the home server, which means infrastructure. So: **from away, peer-to-peer connections need the app.** The desktop app shows the same web interface over the connection. Someone who wants a browser on a computer they can't install the app on needs one of the other ways in [Remote access](REMOTE.md).
@@ -214,6 +244,8 @@ A web page can't open a UDP socket or a raw TCP one, so the web client can't be 
 | The node's memory | 96 MB by libp2p's resource manager on a server, 48 MB in an app |
 | Connections the node keeps | 16–48 on a server, 8–24 in an app; devices and the server are never trimmed |
 | Invites open at once | 16; each 15 minutes, once |
+| Invites and codes made by one account | 10 in 10 minutes |
+| WittyRelays | 4; registration renewed every 5 minutes, forgotten by the relay after 15 |
 | Codes waiting for their device | 16; each 15 minutes, once, and given up after 3 wrong proofs |
 | Enrolment tries | 5 a minute per key, 10 per address, 60 in all |
 | As a community relay | 16 servers, 4 connections each, 2 GiB and 2 hours per connection, 2 places per IP address |
@@ -261,6 +293,7 @@ All of them run with the race detector.
 - **Android on a phone emulator only.** The app uses the connector built from `pkg/wittyconnect/mobile` (WittyMediaClient `android/scripts/build-wittyconnect.sh`; its key sealed with the Android Keystore). Seen against a real server: put on the list at home, the server's address taken away, then reached peer to peer and a film played through the connection. Not tried: a TV or tablet from away, joining by a code, an invite link, leaving the screen while away, or a real device (WittyMediaClient `docs/PLATFORMS.md`). Known to need care: on Android 11 and later Go can't list network interfaces the usual way (the node then learns its addresses from its peers, which is enough to dial out and to be hole-punched, but has not been tried on a real network).
 - **Apple Vision Pro** has no build of the library: the gomobile fork that has tvOS has no visionOS target. The c-archive way in [the app's side](#the-apps-side) would give one.
 - **Joining by a code has only met itself on one machine.** The server and the TV found each other through the public address book in about 70 seconds, both on the same Mac. Between two homes it also needs the hole punch every connection from away needs.
+- **WittyRelay has been run only on simulated networks and in Docker on one machine** (see [Simulated networks](#simulated-networks)), not on a rented server with a device on a real mobile network.
 - **Community relays have nobody offering yet.** The code and its tests are there; a network of them exists only once owners turn "Help other servers" on.
 - **Not tried across two real home routers.** Hole punching is tested through a simulated firewall and the whole path on the public network from one machine (found by ID, connected through a public relay), not between two homes.
 - **IPv6 pinholes by PCP** are only attempted on Linux; elsewhere only UPnP's are.

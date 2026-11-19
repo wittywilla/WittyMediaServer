@@ -423,22 +423,22 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-fx-head h2 { margin: 0; font-size: var(--text-lg); }
 .kar-fx-head .mp-ibtn { background: var(--np-chip); }
 .kar-fx-note { margin: 0; font-size: var(--text-sm); color: var(--np-fg-2); }
-.kar-fx-preset { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; }
+.kar-fx-preset { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); font-weight: 600; }
 .kar-fx-from { flex: 1 1 100%; min-width: 0; font-size: var(--text-sm); color: var(--np-fg-2); }
 .kar-fx-preset .kar-chip { min-height: 44px; }
 /* Presets and Advanced, a switch at the top. */
 .kar-fx-views { justify-self: start; }
-.kar-fx-advanced, .kar-fx-presets { display: grid; gap: 12px; }
+.kar-fx-advanced, .kar-fx-presets { display: grid; gap: var(--sp-3); }
 /* The simple presets: three kinds of voice, each a row of three buttons a remote moves along with its arrows. */
 .kar-fx-lead { margin: 0; font-weight: 600; }
-.kar-fx-voice { margin: 0; padding: 10px 12px 12px; border: 1px solid var(--np-line); border-radius: var(--r-md); display: grid; gap: 8px; }
-.kar-fx-voice legend { padding: 0 8px; font-size: var(--text-sm); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--np-fg-2); }
-.kar-fx-voice-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.kar-fx-voice-row .kar-chip { min-height: 48px; padding: 0 8px; }
-.kar-fx-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.kar-fx-voice { margin: 0; padding: var(--sp-2) var(--sp-3) var(--sp-3); border: 1px solid var(--np-line); border-radius: var(--r-md); display: grid; gap: var(--sp-2); }
+.kar-fx-voice legend { padding: 0 var(--sp-2); font-size: var(--text-sm); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--np-fg-2); }
+.kar-fx-voice-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.kar-fx-voice-row .kar-chip { min-height: 48px; padding: 0 var(--sp-2); }
+.kar-fx-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
 .kar-fx-foot .kar-chip { min-height: 44px; }
 .kar-fx-custom { font-size: var(--text-sm); color: var(--np-fg-2); }
-.kar-fx-wall { padding: 10px 12px; border-radius: var(--r-md); background: var(--np-rule); }
+.kar-fx-wall { padding: var(--sp-3); border-radius: var(--r-md); background: var(--np-rule); }
 .using-controller .kar-fx-voice-row .kar-chip { min-height: 56px; }
 .kar-fx-group { margin: 0; padding: 12px 12px 8px; border: 1px solid var(--np-line); border-radius: var(--r-md); display: grid; gap: 4px; }
 .kar-fx-group legend { padding: 0 8px; font-size: var(--text-sm); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--np-fg-2); }
@@ -529,19 +529,19 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-mixp .kar-mix .kar-level { grid-template-columns: 7.5em minmax(0, 1fr) auto; }
 .kar-mixp .kar-mix-pills { justify-content: flex-start; }
 .kar-mixp .kar-mix-note { text-align: left; }
-.kar-mixp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.kar-mixp-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .kar-mixp-row .kar-chip { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 48px; }
 .kar-mixp-row .kar-chip svg { fill: currentColor; }
 /* The bar's own buttons: an icon and a word, the word dropped where a phone has no room for it. */
-.kar-bar .kar-chip { display: inline-flex; align-items: center; gap: 8px; }
+.kar-bar .kar-chip { display: inline-flex; align-items: center; gap: var(--sp-2); }
 .kar-bar .kar-chip svg { fill: currentColor; flex: none; }
 .kar-busy { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: kar-busy 1.2s ease-in-out infinite; }
 @keyframes kar-busy { 50% { opacity: .25; } }
 @media (max-width: 700px) {
-  .kar-bar { gap: 6px; padding-inline: 8px; }
+  .kar-bar { gap: var(--sp-1); padding-inline: var(--sp-2); }
   .kar-bar .mp-ibtn { width: 46px; height: 46px; }
   .kar-play { width: 58px; height: 58px; }
-  .kar-bar .kar-chip { min-height: 46px; padding: 0 14px; }
+  .kar-bar .kar-chip { min-height: 46px; padding: 0 var(--sp-3); }
 }
 @media (max-width: 420px) {
   .kar-bar .kar-guide { padding: 0; width: 46px; justify-content: center; }

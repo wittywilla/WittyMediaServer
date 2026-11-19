@@ -8,6 +8,7 @@ import { lazy, Suspense, useState } from 'react'
 import { IconUsers } from '../icons'
 import { useParty } from '../remote/party'
 import type { PlayerView } from './types'
+import { t, tn } from '../i18n'
 
 const WatchParty = lazy(() => import('../remote/WatchParty'))
 
@@ -21,7 +22,7 @@ export default function PartyButton({ p }: { p: PlayerView }) {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
     setOpen(true)
   }
-  const label = room ? `Listening party, ${room.members.length} there` : 'Listening party'
+  const label = room ? tn('Listening party, {count} there', 'Listening party, {count} there', room.members.length) : t('Listening party')
   return (
     <>
       <button type="button" className={'mp-ibtn' + (room ? ' on' : '')} aria-haspopup="dialog" aria-label={label} title={label} onClick={show}><IconUsers /></button>

@@ -5,6 +5,7 @@ import { api, type Library } from '../../api'
 import AddLibrary, { GroupingChoice, LibrarySummary, type Grouping } from '../../components/AddLibrary'
 import { Button } from '../../ui'
 import { LaterNote, StepActions, StepHead, type StepProps } from './parts'
+import { t } from '../../i18n'
 
 export function Media({ info, next, back, added, onAdded, refresh }: StepProps & { added: Library[]; onAdded: (l: Library) => void }) {
   // While a kind is chosen (its folder, then following podcasts) the panel has its own Back and
@@ -15,15 +16,15 @@ export function Media({ info, next, back, added, onAdded, refresh }: StepProps &
   const changeGrouping = (g: Grouping) => { setGrouping(g); api.put('/settings', { libraryGrouping: g }).catch(() => {}) }
   return (
     <section>
-      <StepHead title="Where is your media?" lead="Pick a kind of media, then the folder it’s in. Add as many as you like. Each one becomes a library you can browse. Your files stay where they are." />
-      <LibrarySummary libs={added} title="Libraries you’ve made" />
+      <StepHead title={t('Where is your media?')} lead={t('Pick a kind of media, then the folder it’s in. Add as many as you like. Each one becomes a library you can browse. Your files stay where they are.')} />
+      <LibrarySummary libs={added} title={t('Libraries you’ve made')} />
       {!inPanel && added.length > 0 && <GroupingChoice value={grouping} onChange={changeGrouping} />}
       <AddLibrary onAdded={onAdded} onPanel={setInPanel} existing={added} grouping={grouping} setup onChanged={refresh} />
       {!inPanel && (
         <>
           <LaterNote info={info} />
-          <StepActions back={back} note={added.length ? 'Scanning has started in the background. Add another, or continue.' : undefined}>
-            <Button variant={added.length ? 'primary' : 'default'} size="big" onClick={next}>{added.length ? 'Continue' : 'Skip for now'}</Button>
+          <StepActions back={back} note={added.length ? t('Scanning has started in the background. Add another, or continue.') : undefined}>
+            <Button variant={added.length ? 'primary' : 'default'} size="big" onClick={next}>{added.length ? t('Continue') : t('Skip for now')}</Button>
           </StepActions>
         </>
       )}

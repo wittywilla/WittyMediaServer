@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { api, getToken, inMainMenus, serverBase } from '../api'
+import { t, tx } from '../i18n'
 import { IconChart, IconHome, IconLibrary, IconPlug, IconTv, libIcon } from '../icons'
 import { useModulePages } from '../moduleBundles'
 import { setOwnerNavStyle } from '../navPrefs'
@@ -16,6 +17,12 @@ import { getUserPref, setUserPref, useUserPref } from '../ui/userPrefs'
 import { featureOff, useMyLimits } from '../myLimits'
 import type { NavItem, NavPrefs } from './navModel'
 import { foldGames } from './navModel'
+
+// Entries are translated here, once, so every place that draws the menu shows them in the app's language:
+// words from the server, a module's page title and the tk('Games') navModel folds game entries into. A
+// library's entry keeps its name as the owner gave it.
+const isLibraryEntry = (id: string) => /^lib[:-]/.test(id)
+const sayEntry = (it: NavItem): NavItem => (isLibraryEntry(it.id) ? it : { ...it, label: tx(it.label) })
 
 // The main menu. A server with server-driven pages says what is in it, in what order, for
 // this profile on this device (GET /sdui/navigation), and keeps each profile's own order
@@ -153,13 +160,13 @@ export function useMenu(): MenuState {
     const items = srv.nav?.items || []
     const labelled = new Set(items.filter((e) => e.id.startsWith('lib-')).map((e) => e.label.toLowerCase()))
     const fromServer: NavItem[] = items.filter((e) => e.id.startsWith('lib-') || !labelled.has(e.label.toLowerCase())).map((e) => ({ id: e.id, label: e.label, to: e.route, end: e.route === '/', kind: kindOf(e.id), icon: e.icon, placement: e.placement, screen: e.screen, drawer: e.drawer }))
-    const all = placeOwn(foldGames(fromServer), own, srv.personal)
+    const all = placeOwn(foldGames(fromServer), own, srv.personal).map(sayEntry)
     const sections = srv.nav?.personal?.sections || []
     const ownHidden = new Set(srv.personal?.hidden || [])
     const known = new Set(sections.map((s) => s.id))
     const rows = [
-      ...sections.map((s) => ({ id: s.id, title: s.title, hidden: !!s.hidden, fixed: s.id === 'settings' || fromServer.find((x) => x.id === s.id)?.screen === 'settings', item: all.find((x) => x.id === s.id) })),
-      ...own.filter((o) => !known.has(o.id)).map((o) => ({ id: o.id, title: o.label, hidden: ownHidden.has(o.id), fixed: false, item: o })),
+      ...sections.map((s) => ({ id: s.id, title: isLibraryEntry(s.id) ? s.title : tx(s.title), hidden: !!s.hidden, fixed: s.id === 'settings' || fromServer.find((x) => x.id === s.id)?.screen === 'settings', item: all.find((x) => x.id === s.id) })),
+      ...own.filter((o) => !known.has(o.id)).map((o) => ({ id: o.id, title: tx(o.label), hidden: ownHidden.has(o.id), fixed: false, item: o })),
     ]
     // The profile's order places this app's own entries among the server's.
     const order = srv.personal?.order || []
@@ -185,12 +192,12 @@ function useLegacyItems(own: NavItem[]): NavItem[] {
   const noTv = featureOff(useMyLimits(), 'liveTv')
   return useMemo(() => {
     const list: NavItem[] = [
-      { id: 'home', label: 'Home', to: '/', end: true },
-      ...(noTv ? [] : [{ id: 'tv', label: 'TV guide', to: '/tv' }]),
+      { id: 'home', label: t('Home'), to: '/', end: true },
+      ...(noTv ? [] : [{ id: 'tv', label: t('TV guide'), to: '/tv' }]),
       ...libraries.filter(inMainMenus).map((l) => ({ id: 'lib:' + l.id, label: l.name, to: `/library/${l.id}`, kind: l.type })),
     ]
-    if (libraries.length > 0) list.push({ id: 'collections', label: 'Collections', to: '/collections' })
-    return [...list, ...own]
+    if (libraries.length > 0) list.push({ id: 'collections', label: t('Collections'), to: '/collections' })
+    return [...list, ...own.map(sayEntry)]
   }, [libraries, own, noTv])
 }
 

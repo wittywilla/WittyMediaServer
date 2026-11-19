@@ -10,6 +10,7 @@ import { Dialog } from '../ui/Overlay'
 import SpecPage from '../spec/SpecPage'
 import { uploadErrorsSpec } from '../spec/specs/upload'
 import '../gallery.css'
+import { num, t, tn } from '../i18n'
 
 // Upload, for Photos and Vertical videos libraries. Nothing shows for a library with no folder
 // or one set to read-only, where the server would refuse.
@@ -27,7 +28,7 @@ export function UploadButton({ lib, onDone }: { lib: Library; onDone: () => void
       if (r.error) failed.push(r)
     }
     setState(null); setErrors(failed)
-    if (!failed.length) toast(`${files.length} ${files.length === 1 ? 'file' : 'files'} added (${fmtSize(total)})`)
+    if (!failed.length) toast(tn('{count} file added ({size})', '{count} files added ({size})', files.length, { size: fmtSize(total) }))
     onDone()
   }
   const usable = lib.paths.length > 0 && !lib.readOnly
@@ -45,10 +46,10 @@ export function UploadButton({ lib, onDone }: { lib: Library; onDone: () => void
     <>
       <input ref={input} type="file" multiple hidden accept={(lib.type === 'photos' ? 'image/*,' : '') + 'video/*,' + ACCEPT_GALLERY}
         onChange={(e) => { const f = [...(e.target.files || [])]; e.target.value = ''; if (f.length) run(f) }} />
-      <button className="btn sm" disabled={!!state} onClick={() => input.current?.click()}><IconPlus /> {state ? `Uploading ${state.n}/${state.of} (${Math.round(state.pct * 100)}%)` : 'Upload'}</button>
-      {state && <span className="sr-only" role="status">Uploading {state.name}</span>}
+      <button className="btn sm" disabled={!!state} onClick={() => input.current?.click()}><IconPlus /> {state ? t('Uploading {n}/{of} ({percent}%)', { n: num(state.n), of: num(state.of), percent: num(Math.round(state.pct * 100)) }) : t('Upload')}</button>
+      {state && <span className="sr-only" role="status">{t('Uploading {name}', { name: state.name })}</span>}
       {errors.length > 0 && (
-        <Dialog title={<>{errors.length} {errors.length === 1 ? 'file' : 'files'} not added</>} onClose={() => setErrors([])}>
+        <Dialog title={tn('{count} file not added', '{count} files not added', errors.length)} onClose={() => setErrors([])}>
           <SpecPage page={uploadErrorsSpec(errors)} embedded handled={new Set(['close'])} onAction={() => setErrors([])} />
         </Dialog>
       )}

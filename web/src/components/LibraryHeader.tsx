@@ -5,6 +5,7 @@ import { IconMore, IconSortDown, IconSortUp } from '../icons'
 import { IconButton, RowSheet, Rows } from '../ui'
 import { useMedia } from '../shell/useNav'
 import './libraryheader.css'
+import { t, tx } from '../i18n'
 
 // The one header every library page has: a bar that stays in view with its name, how
 // many things are in it, how they're sorted and which way, and under it whatever else the
@@ -36,7 +37,7 @@ export default function LibraryHeader({ title, sub, count, sorts, sort, desc, on
   const phone = useMedia('(max-width: 760px)')
   const [tools, setTools] = useState(false)
   const more = phone && !!actions && (
-    <IconButton label={`More for ${typeof title === 'string' ? title : 'this library'}`} hideTip aria-haspopup="dialog" onClick={() => setTools(true)}><IconMore /></IconButton>
+    <IconButton label={typeof title === 'string' ? t('More for {name}', { name: title }) : t('More for this library')} hideTip aria-haspopup="dialog" onClick={() => setTools(true)}><IconMore /></IconButton>
   )
   return (
     <header className="lh">
@@ -47,14 +48,14 @@ export default function LibraryHeader({ title, sub, count, sorts, sort, desc, on
         </div>
         {sorts && sorts.length > 0 && (
           <div className="lh-sort">
-            <span className="lh-sort-label" id={id}>Sort</span>
+            <span className="lh-sort-label" id={id}>{t('Sort')}</span>
             <div className="lh-sort-list" role="group" aria-labelledby={id} data-nav-group>
               {sorts.map((s) => (
-                <button key={s.key} type="button" className={'lh-sort-btn' + (s.key === sort ? ' on' : '')} aria-pressed={s.key === sort} onClick={() => onSort?.(s.key, !!s.desc)}>{s.label}</button>
+                <button key={s.key} type="button" className={'lh-sort-btn' + (s.key === sort ? ' on' : '')} aria-pressed={s.key === sort} onClick={() => onSort?.(s.key, !!s.desc)}>{tx(s.label)}</button>
               ))}
             </div>
             {onDirection && current && (
-              <IconButton size="sm" onClick={() => onDirection(!desc)} label={desc ? `${current.label}: last to first. Switch to first to last` : `${current.label}: first to last. Switch to last to first`}>
+              <IconButton size="sm" onClick={() => onDirection(!desc)} label={desc ? t('{sort}: last to first. Switch to first to last', { sort: tx(current.label) }) : t('{sort}: first to last. Switch to last to first', { sort: tx(current.label) })}>
                 {desc ? <IconSortDown /> : <IconSortUp />}
               </IconButton>
             )}
@@ -68,7 +69,7 @@ export default function LibraryHeader({ title, sub, count, sorts, sort, desc, on
           {!phone && <div className="lh-actions">{actions}</div>}
         </div>
       )}
-      {tools && phone && <RowSheet title={typeof title === 'string' ? title : 'Library'} onClose={() => setTools(false)}><Rows>{actions}</Rows></RowSheet>}
+      {tools && phone && <RowSheet title={typeof title === 'string' ? title : t('Library')} onClose={() => setTools(false)}><Rows>{actions}</Rows></RowSheet>}
       {children}
     </header>
   )

@@ -12,8 +12,9 @@ import { storeSearchSpec } from '../../../spec/specs/store'
 import { PageHead } from '../ui'
 import { ItemCard } from './ItemCard'
 import { FailureDialog, FailureNotice, SandboxNote, UpdateAllPanel, useStoreView } from './parts'
-import { itemModuleKind, MODULE_KIND_WORDS, MODULE_KINDS, passesExtra, readFilters, STATUS_WORDS, STATUSES } from './overrides'
+import { itemModuleKind, MODULE_KINDS, moduleKindTitle, passesExtra, readFilters, STATUSES, statusTitle } from './overrides'
 import { useFeatures } from '../../../sdui/useSdui'
+import { t, tn } from '../../../i18n'
 import { CATEGORIES, categoryOf, categoryTitle, checkAll, failureOf, matches, platformName, rank, showsRun, type Failure, type StoreItem } from './storeApi'
 
 // The store: find a module by searching or by what it's for, and see at a glance what's installed
@@ -64,7 +65,7 @@ export default function ModuleStore() {
     const n: Record<string, number> = {}
     for (const i of items || []) { const c = categoryOf(i); n[c] = (n[c] || 0) + 1 }
     const list = CATEGORIES.filter((c) => n[c.id]).map((c) => ({ ...c, n: n[c.id] }))
-    if (n.other) list.push({ id: 'other', title: 'Other', n: n.other })
+    if (n.other) list.push({ id: 'other', title: t('Other'), n: n.other })
     return list
   }, [items])
 
@@ -74,33 +75,33 @@ export default function ModuleStore() {
     try {
       const v = await checkAll()
       setView(v)
-      if (v.checkError || v.stores.some((s) => s.problem)) toast('The check didn’t all work. What happened is on the page.')
-      else toast(v.updates ? `${v.updates} ${v.updates === 1 ? 'update' : 'updates'} found` : 'Every module is up to date')
-    } catch (e) { setFailure(failureOf(e, 'The check')) } finally { setChecking(false) }
+      if (v.checkError || v.stores.some((s) => s.problem)) toast(t('The check didn’t all work. What happened is on the page.'))
+      else toast(v.updates ? tn('{count} update found', '{count} updates found', v.updates) : t('Every module is up to date'))
+    } catch (e) { setFailure(failureOf(e, t('The check'))) } finally { setChecking(false) }
   }
 
   const head = (
-    <PageHead title="Module store" desc="Add to what this server can do. Everything here is signed, and nothing runs until you choose it."
+    <PageHead title={t('Module store')} desc={t('Add to what this server can do. Everything here is signed, and nothing runs until you choose it.')}
       actions={<>
-        <LinkButton size="sm" variant="ghost" to="/settings/modules">Installed modules</LinkButton>
-        <LinkButton size="sm" variant="ghost" to="/settings/modules/stores" icon={<IconShield />}>Other stores</LinkButton>
+        <LinkButton size="sm" variant="ghost" to="/settings/modules">{t('Installed modules')}</LinkButton>
+        <LinkButton size="sm" variant="ghost" to="/settings/modules/stores" icon={<IconShield />}>{t('Other stores')}</LinkButton>
       </>} />
   )
-  if (error && !view) return <div className="ms-page st-page">{head}<Notice tone="danger" title={error.title} action={<Button size="sm" onClick={() => reload()}>Try again</Button>}>{error.message}</Notice></div>
+  if (error && !view) return <div className="ms-page st-page">{head}<Notice tone="danger" title={error.title} action={<Button size="sm" onClick={() => reload()}>{t('Try again')}</Button>}>{error.message}</Notice></div>
   if (!view) return <div className="ms-page st-page">{head}<Spinner /></div>
 
   const official = shown.filter((i) => i.official || i.kind === 'server')
   const others = shown.filter((i) => !i.official && i.kind !== 'server')
   const groups = categories.map((c) => ({ ...c, items: official.filter((i) => categoryOf(i) === c.id) })).filter((g) => g.items.length)
   const cards = (list: StoreItem[]) => <div className="st-grid">{list.map((i) => <ItemCard key={i.key} item={i} onChanged={reload} repairRoute={view.repairRoute} />)}</div>
-  const count = `${shown.length} ${shown.length === 1 ? 'module' : 'modules'}`
+  const count = filtered ? tn('{count} module found', '{count} modules found', shown.length) : tn('{count} module', '{count} modules', shown.length)
   const clear = () => { setQ(''); setParams({}, { replace: true }) }
   const broken = view.stores.filter((s) => s.problem)
   const searchPage = storeSearchSpec({
     q, cats: categories.map((c) => ({ id: c.id, title: c.title, n: c.n })), cat, show, updates: view.updates,
-    publishers, publisher, platforms: platforms.map((p) => ({ value: p, label: p === view.platform ? `${platformName(p)} (this server)` : platformName(p) })), platform,
-    kinds: features?.has('module-store-kinds') || kindsHere.length > 0 ? MODULE_KINDS.map((k) => ({ value: k, label: MODULE_KIND_WORDS[k] })) : [],
-    moduleKind, statuses: STATUSES.map((st) => ({ value: st, label: STATUS_WORDS[st].title })), status, checking,
+    publishers, publisher, platforms: platforms.map((p) => ({ value: p, label: p === view.platform ? t('{platform} (this server)', { platform: platformName(p) }) : platformName(p) })), platform,
+    kinds: features?.has('module-store-kinds') || kindsHere.length > 0 ? MODULE_KINDS.map((k) => ({ value: k, label: moduleKindTitle(k) })) : [],
+    moduleKind, statuses: STATUSES.map((st) => ({ value: st, label: statusTitle(st) })), status, checking,
   })
   const searchHandled = handledIds(searchPage)
 
@@ -114,19 +115,19 @@ export default function ModuleStore() {
         onField={(id, v) => { const x = String(v); if (id === 'q') setQ(x); else if (id === 'publisher') set('publisher', x); else if (id === 'platform') set('platform', x); else if (id === 'kind') set('moduleKind', x); else if (id === 'status') set('status', x) }} />
 
       {broken.map((s) => s.official
-        ? <FailureNotice key={s.id} failure={s.problem!} name="The list of modules" repairRoute={view.repairRoute} onRetry={check} />
-        : <Notice key={s.id} tone={s.problem!.kind === 'key-changed' ? 'danger' : 'warn'} title={`${s.name} (${s.host}): ${s.problem!.title}`} action={<LinkButton size="sm" to="/settings/modules/stores">See this store</LinkButton>}>{s.problem!.message}</Notice>
+        ? <FailureNotice key={s.id} failure={s.problem!} name={t('The list of modules')} repairRoute={view.repairRoute} onRetry={check} />
+        : <Notice key={s.id} tone={s.problem!.kind === 'key-changed' ? 'danger' : 'warn'} title={`${s.name} (${s.host}): ${s.problem!.title}`} action={<LinkButton size="sm" to="/settings/modules/stores">{t('See this store')}</LinkButton>}>{s.problem!.message}</Notice>
       )}
-      {view.checkError && !broken.some((s) => s.official) && <Notice tone="warn" title="The last check didn’t work">{view.checkError} Everything keeps working as it is.</Notice>}
+      {view.checkError && !broken.some((s) => s.official) && <Notice tone="warn" title={t('The last check didn’t work')}>{view.checkError} {t('Everything keeps working as it is.')}</Notice>}
 
       {(view.updates > 0 || showsRun(view.run)) && <UpdateAllPanel view={view} onChanged={reload} />}
 
-      <div ref={results} className="st-results" role="region" aria-label="Modules">
-        <p className="st-count" role="status">{filtered ? `${count} found` : count}{filtered && <> · <button type="button" className="st-link" onClick={clear}>Clear search and filters</button></>}</p>
+      <div ref={results} className="st-results" role="region" aria-label={t('Modules')}>
+        <p className="st-count" role="status">{count}{filtered && <> · <button type="button" className="st-link" onClick={clear}>{t('Clear search and filters')}</button></>}</p>
 
         {shown.length === 0 && (
-          <EmptyState icon={<IconSearch />} title="No modules match" text={q ? `Nothing in the store matches “${q}”.` : 'Nothing in the store matches these filters.'}
-            action={<Button onClick={clear}>Clear search and filters</Button>} />
+          <EmptyState icon={<IconSearch />} title={t('No modules match')} text={q ? t('Nothing in the store matches “{q}”.', { q }) : t('Nothing in the store matches these filters.')}
+            action={<Button onClick={clear}>{t('Clear search and filters')}</Button>} />
         )}
 
         {/* Browsing goes by what things are for; once someone's narrowed it down, one list reads better. */}
@@ -139,14 +140,14 @@ export default function ModuleStore() {
 
         {others.length > 0 && (
           <section className="st-shelf st-others" aria-labelledby="st-others-h">
-            <h2 id="st-others-h"><IconShield /> From other stores</h2>
-            <p className="ms-note">Nobody at this project has reviewed these. Each is labelled with the store it comes from. <Link to="/settings/modules/stores">Manage stores</Link> · <HelpLink to="module-store#other-stores">What to know first</HelpLink></p>
+            <h2 id="st-others-h"><IconShield /> {t('From other stores')}</h2>
+            <p className="ms-note">{t('Nobody at this project has reviewed these. Each is labelled with the store it comes from.')} <Link to="/settings/modules/stores">{t('Manage stores')}</Link> · <HelpLink to="module-store#other-stores">{t('What to know first')}</HelpLink></p>
             {cards(others)}
           </section>
         )}
       </div>
 
-      {failure && <FailureDialog failure={failure} name="The store" repairRoute={view.repairRoute} onClose={() => setFailure(null)} />}
+      {failure && <FailureDialog failure={failure} name={t('The store')} repairRoute={view.repairRoute} onClose={() => setFailure(null)} />}
     </div>
   )
 }

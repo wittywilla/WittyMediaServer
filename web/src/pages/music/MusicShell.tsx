@@ -18,6 +18,7 @@ import MusicArtist from './MusicArtist'
 import MusicList from './MusicList'
 import { musicHome, musicTab } from './musicRoute'
 import './mus.css'
+import { t } from '../../i18n'
 
 // Music, laid out as the big streaming apps are: a library panel down the left on wide
 // screens (Home, Search, and your playlists, artists and albums with chips to narrow them),
@@ -28,7 +29,7 @@ import './mus.css'
 // its own way (server-driven) can take these addresses back in musicRoute.ts.
 
 // The pages come with the shell, so moving between them never waits for code.
-const MusicVideosPage = lazy(() => import('./MusicVideos').then((m) => ({ default: ({ lib }: { lib: Library }) => <div className="mus-page"><h1 className="mus-h1">Music videos</h1><m.MusicVideosTab lib={lib} /></div> })))
+const MusicVideosPage = lazy(() => import('./MusicVideos').then((m) => ({ default: ({ lib }: { lib: Library }) => <div className="mus-page"><h1 className="mus-h1">{t('Music videos')}</h1><m.MusicVideosTab lib={lib} /></div> })))
 
 
 export default function MusicShell({ lib }: { lib: Library }) {
@@ -70,12 +71,12 @@ function PhoneTabs({ lib }: { lib: Library }) {
   const [params] = useSearchParams()
   const at = section(loc.pathname, params.get('tab') || '')
   const tabs: [string, string, string, React.ReactNode][] = [
-    ['home', 'Home', musicHome(lib.id), <IconHome key="h" />],
-    ['search', 'Search', musicTab(lib.id, 'search'), <IconSearch key="s" />],
-    ['library', 'Your library', musicTab(lib.id, 'library'), <IconLibrary key="l" />],
+    ['home', t('Home'), musicHome(lib.id), <IconHome key="h" />],
+    ['search', t('Search'), musicTab(lib.id, 'search'), <IconSearch key="s" />],
+    ['library', t('Your library'), musicTab(lib.id, 'library'), <IconLibrary key="l" />],
   ]
   return (
-    <nav className="mus-tabs" aria-label="Music">
+    <nav className="mus-tabs" aria-label={t('Music')}>
       {tabs.map(([id, label, to, icon]) => <Link key={id} to={to} aria-current={at === id ? 'page' : undefined}>{icon}<span>{label}</span></Link>)}
     </nav>
   )
@@ -98,34 +99,34 @@ function Side({ lib }: { lib: Library }) {
   const rows = useMemo<Row[] | null>(() => {
     const out: Row[] = []
     if (kind === '' || kind === 'playlists') {
-      out.push({ key: 'liked', to: musicTab(lib.id, 'songs', '&view=liked'), name: 'Liked songs', sub: 'Playlist', art: '', tile: 'liked' })
-      for (const c of (lists || []).filter((c) => !c.system)) out.push({ key: 'c' + c.id, to: musicTab(lib.id, 'playlist', '&id=' + c.id), name: c.name, sub: c.kind === 'smart' ? 'Smart playlist' : `Playlist · ${c.count}`, art: c.coverId ? sized(coverUrl(c.coverId), fitWidth(48)) : '' })
+      out.push({ key: 'liked', to: musicTab(lib.id, 'songs', '&view=liked'), name: t('Liked songs'), sub: t('Playlist'), art: '', tile: 'liked' })
+      for (const c of (lists || []).filter((c) => !c.system)) out.push({ key: 'c' + c.id, to: musicTab(lib.id, 'playlist', '&id=' + c.id), name: c.name, sub: c.kind === 'smart' ? t('Smart playlist') : t('Playlist · {count}', { count: c.count }), art: c.coverId ? sized(coverUrl(c.coverId), fitWidth(48)) : '' })
     }
-    if (kind === '' || kind === 'artists') for (const a of artists || []) out.push({ key: 'r' + a.name, to: artistLink(lib.id, a.name), name: a.name || 'Unknown artist', sub: 'Artist', art: artistPhoto(lib.id, a.name), round: true })
-    if (kind === '' || kind === 'albums') for (const a of albums || []) out.push({ key: 'a' + a.artist + '|' + a.title, to: albumLink(lib.id, a), name: a.title || 'Unknown album', sub: `Album · ${a.artist || 'Unknown'}`, art: a.coverItem ? sized(coverUrl(a.coverItem), fitWidth(48)) : '' })
+    if (kind === '' || kind === 'artists') for (const a of artists || []) out.push({ key: 'r' + a.name, to: artistLink(lib.id, a.name), name: a.name || t('Unknown artist'), sub: t('Artist'), art: artistPhoto(lib.id, a.name), round: true })
+    if (kind === '' || kind === 'albums') for (const a of albums || []) out.push({ key: 'a' + a.artist + '|' + a.title, to: albumLink(lib.id, a), name: a.title || t('Unknown album'), sub: t('Album · {artist}', { artist: a.artist || t('Unknown') }), art: a.coverItem ? sized(coverUrl(a.coverItem), fitWidth(48)) : '' })
     const q = find.trim().toLowerCase()
     return q ? out.filter((r) => r.name.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q)) : out
   }, [kind, lists, artists, albums, find, lib.id])
   const here = loc.pathname + loc.search
-  const chips: [Kind, string][] = [['playlists', 'Playlists'], ['artists', 'Artists'], ['albums', 'Albums']]
+  const chips: [Kind, string][] = [['playlists', t('Playlists')], ['artists', t('Artists')], ['albums', t('Albums')]]
   return (
-    <aside className="mus-side" aria-label="Music">
+    <aside className="mus-side" aria-label={t('Music')}>
       <nav className="mus-side-nav">
-        <NavLink to={musicHome(lib.id)} end aria-current={at === 'home' ? 'page' : undefined} className={at === 'home' ? 'active' : ''}><IconHome /> Home</NavLink>
-        <NavLink to={musicTab(lib.id, 'search')} aria-current={at === 'search' ? 'page' : undefined} className={at === 'search' ? 'active' : ''}><IconSearch /> Search</NavLink>
+        <NavLink to={musicHome(lib.id)} end aria-current={at === 'home' ? 'page' : undefined} className={at === 'home' ? 'active' : ''}><IconHome /> {t('Home')}</NavLink>
+        <NavLink to={musicTab(lib.id, 'search')} aria-current={at === 'search' ? 'page' : undefined} className={at === 'search' ? 'active' : ''}><IconSearch /> {t('Search')}</NavLink>
       </nav>
       <section className="mus-side-lib" aria-labelledby="mus-yours">
         <div className="mus-side-head">
-          <Link id="mus-yours" to={musicTab(lib.id, 'library')} className={at === 'library' ? 'active' : ''}><IconLibrary /> Your library</Link>
+          <Link id="mus-yours" to={musicTab(lib.id, 'library')} className={at === 'library' ? 'active' : ''}><IconLibrary /> {t('Your library')}</Link>
         </div>
-        <div className="mus-chips" role="group" aria-label="Show only">
-          {kind && <button type="button" className="mus-chip clear" aria-label="Show everything" onClick={() => setKind('')}>✕</button>}
+        <div className="mus-chips" role="group" aria-label={t('Show only')}>
+          {kind && <button type="button" className="mus-chip clear" aria-label={t('Show everything')} onClick={() => setKind('')}>✕</button>}
           {chips.filter(([k]) => !kind || k === kind).map(([k, l]) => <button key={k} type="button" className={'mus-chip' + (kind === k ? ' on' : '')} aria-pressed={kind === k} onClick={() => setKind(kind === k ? '' : k)}>{l}</button>)}
         </div>
-        <input className="mus-side-find" type="search" placeholder="Find in your library" aria-label="Find in your library" value={find} onChange={(e) => setFind(e.target.value)} />
+        <input className="mus-side-find" type="search" placeholder={t('Find in your library')} aria-label={t('Find in your library')} value={find} onChange={(e) => setFind(e.target.value)} />
         <div className="mus-side-list">
-          {!rows || (!artists && !albums && kind !== 'playlists') ? <PageShape kind="list" /> : rows.length === 0 ? <p className="mus-muted mus-side-none">Nothing by that name.</p> : (
-            <VirtualRows items={rows} rowHeight={56} inBox label={kind ? `Your ${kind}` : 'Your library'} render={(r) => (
+          {!rows || (!artists && !albums && kind !== 'playlists') ? <PageShape kind="list" /> : rows.length === 0 ? <p className="mus-muted mus-side-none">{t('Nothing by that name.')}</p> : (
+            <VirtualRows items={rows} rowHeight={56} inBox label={kind === 'albums' ? t('Your albums') : kind === 'artists' ? t('Your artists') : kind === 'playlists' ? t('Your playlists') : t('Your library')} render={(r) => (
               <Link key={r.key} to={r.to} className={'mus-side-row' + (here === r.to ? ' on' : '')} aria-current={here === r.to ? 'page' : undefined} role="listitem">
                 <span className={'mus-side-art' + (r.round ? ' round' : '') + (r.tile ? ' ' + r.tile : '')}>{r.tile === 'liked' ? <IconHeartOn size={18} /> : <Art src={r.art} fallback={<span aria-hidden="true">{r.name[0]}</span>} />}</span>
                 <span className="mus-side-words"><b>{r.name}</b><small>{r.sub}</small></span>

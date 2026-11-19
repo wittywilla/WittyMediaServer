@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { api, fitWidth, fmtTime, posterUrl, sized, type Album, type Artist, type Item } from '../../api'
 import { useAudio } from '../../audio/player'
@@ -12,6 +12,7 @@ import { useTvMode } from '../../tvmode/mode'
 import { albumLink, artistLink, artistPhoto, coverUrl, TrackMenu } from './parts'
 import { prefetch } from './store'
 import { VirtualRows } from './Virtual'
+import { t } from '../../i18n'
 
 // The pieces every Music page is made of: shelves that scroll sideways, cards for albums,
 // artists and playlists with a play button that shows on hover or focus, and the dense list
@@ -33,7 +34,7 @@ async function playFrom(get: () => Promise<Item[]>, play: (items: Item[]) => voi
   try {
     const items = await get()
     if (items.length) play(items)
-    else toast('Nothing to play there yet')
+    else toast(t('Nothing to play there yet'))
   } catch (e) { toast((e as Error).message) }
 }
 
@@ -53,7 +54,7 @@ export function Shelf({ title, to, children, sub }: { title: string; to?: string
     return () => { cancelAnimationFrame(frame); el.removeEventListener('scroll', later); window.removeEventListener('resize', later) }
   }, [])
   const step = (dir: number) => { const el = row.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' }) }
-  const id = 'shelf-' + title.replace(/\W+/g, '-').toLowerCase()
+  const id = 'shelf-' + useId().replace(/\W+/g, '')
   return (
     <section className="mus-shelf" aria-labelledby={id}>
       <div className="mus-shelf-head">
@@ -61,10 +62,10 @@ export function Shelf({ title, to, children, sub }: { title: string; to?: string
         {sub && <span className="mus-muted">{sub}</span>}
         <span className="mus-grow" />
         <span className="mus-shelf-steps" aria-hidden="true">
-          <button type="button" tabIndex={-1} className="mus-round" aria-label="Scroll back" disabled={ends[0]} onClick={() => step(-1)}><IconLeft size={18} /></button>
-          <button type="button" tabIndex={-1} className="mus-round" aria-label="Scroll on" disabled={ends[1]} onClick={() => step(1)}><IconRight size={18} /></button>
+          <button type="button" tabIndex={-1} className="mus-round" aria-label={t('Scroll back')} disabled={ends[0]} onClick={() => step(-1)}><IconLeft size={18} /></button>
+          <button type="button" tabIndex={-1} className="mus-round" aria-label={t('Scroll on')} disabled={ends[1]} onClick={() => step(1)}><IconRight size={18} /></button>
         </span>
-        {to && <Link className="mus-showall" to={to}>Show all</Link>}
+        {to && <Link className="mus-showall" to={to}>{t('Show all')}</Link>}
       </div>
       <div className="mus-shelf-row" ref={row} role="list" data-nav-row>{children}</div>
     </section>
@@ -75,7 +76,7 @@ export function Shelf({ title, to, children, sub }: { title: string; to?: string
 export function PlayButton({ label, onPlay, playing, big, tvFirst }: { label: string; onPlay: () => void | Promise<void>; playing?: boolean; big?: boolean; tvFirst?: boolean }) {
   const [busy, setBusy] = useState(false)
   return (
-    <button type="button" className={'mus-play' + (big ? ' big' : '')} aria-label={playing ? `Pause ${label}` : `Play ${label}`} aria-busy={busy || undefined} data-tv-first={tvFirst || undefined}
+    <button type="button" className={'mus-play' + (big ? ' big' : '')} aria-label={playing ? t('Pause {title}', { title: label }) : t('Play {title}', { title: label })} aria-busy={busy || undefined} data-tv-first={tvFirst || undefined}
       onClick={async (e) => { e.preventDefault(); e.stopPropagation(); setBusy(true); try { await onPlay() } finally { setBusy(false) } }}>
       {playing ? <IconPause /> : <IconPlay />}
     </button>
@@ -85,7 +86,7 @@ export function PlayButton({ label, onPlay, playing, big, tvFirst }: { label: st
 function Cover({ id, title, round }: { id: number; title: string; round?: boolean }) {
   return (
     <span className={'mus-cover' + (round ? ' round' : '')}>
-      <Art src={id ? sized(coverUrl(id), fitWidth(180)) : ''} fallback={<Placeholder title={title || 'Unknown'} />} />
+      <Art src={id ? sized(coverUrl(id), fitWidth(180)) : ''} fallback={<Placeholder title={title || t('Unknown')} />} />
     </span>
   )
 }
@@ -98,10 +99,10 @@ export function AlbumCard({ libId, a, sub }: { libId: number; a: Album; sub?: st
     <div className="mus-card" role="listitem">
       <Link to={to} className="mus-card-link" onPointerEnter={() => prefetch(tracksUrl(libId, a))} onFocus={() => prefetch(tracksUrl(libId, a))}>
         <Cover id={a.coverItem} title={a.title} />
-        <b title={a.title}>{a.title || 'Unknown album'}</b>
+        <b title={a.title}>{a.title || t('Unknown album')}</b>
         <span className="mus-muted">{sub ?? [a.year, a.artist].filter(Boolean).join(' · ')}</span>
       </Link>
-      <span className="mus-card-over"><PlayButton label={a.title || 'this album'} playing={!!mine && audio.playing}
+      <span className="mus-card-over"><PlayButton label={a.title || t('this album')} playing={!!mine && audio.playing}
         onPlay={() => (mine ? audio.toggle() : playFrom(() => api.get<Item[]>(tracksUrl(libId, a)), (t) => audio.play(t, 0, 'music')))} /></span>
     </div>
   )
@@ -113,10 +114,10 @@ export function ArtistCard({ libId, a }: { libId: number; a: Artist }) {
     <div className="mus-card artist" role="listitem">
       <Link to={artistLink(libId, a.name)} className="mus-card-link" onPointerEnter={() => prefetch(artistUrl(libId, a.name))} onFocus={() => prefetch(artistUrl(libId, a.name))}>
         <span className="mus-cover round"><span className="mus-initial" aria-hidden="true">{(a.name || '?')[0]}</span><Art src={artistPhoto(libId, a.name)} /></span>
-        <b title={a.name}>{a.name || 'Unknown artist'}</b>
-        <span className="mus-muted">Artist</span>
+        <b title={a.name}>{a.name || t('Unknown artist')}</b>
+        <span className="mus-muted">{t('Artist')}</span>
       </Link>
-      <span className="mus-card-over"><PlayButton label={a.name || 'this artist'} onPlay={() => playFrom(async () => (await api.get<{ tracks: Item[] }>(artistUrl(libId, a.name))).tracks, (t) => audio.play(t, 0, 'music'))} /></span>
+      <span className="mus-card-over"><PlayButton label={a.name || t('this artist')} onPlay={() => playFrom(async () => (await api.get<{ tracks: Item[] }>(artistUrl(libId, a.name))).tracks, (t) => audio.play(t, 0, 'music'))} /></span>
     </div>
   )
 }
@@ -159,35 +160,35 @@ export function TrackTable({ items, onPlay, showAlbum, showArt, numbers = 'track
   return (
     <div className={'mus-tracks' + (showAlbum ? ' with-album' : '') + (showArt ? ' with-art' : '')}>
       <div className="mus-tr head" aria-hidden="true">
-        <span className="mus-tr-n">#</span><span>Title</span>{showAlbum && <span className="mus-tr-album">Album</span>}<span /><span className="mus-tr-d">Time</span><span />
+        <span className="mus-tr-n">#</span><span>{t('Title')}</span>{showAlbum && <span className="mus-tr-album">{t('Album')}</span>}<span /><span className="mus-tr-d">{t('Time')}</span><span />
       </div>
-      <VirtualRows items={items} rowHeight={rowH} label={label} render={(t, i) => {
-        const on = current?.id === t.id
-        const hearted = liked(t.id)
-        const newDisc = manyDiscs && (i === 0 || (items[i - 1].discNo || 1) !== (t.discNo || 1))
-        const artist = t.artist || t.albumArtist || ''
+      <VirtualRows items={items} rowHeight={rowH} label={label} render={(tr, i) => {
+        const on = current?.id === tr.id
+        const hearted = liked(tr.id)
+        const newDisc = manyDiscs && (i === 0 || (items[i - 1].discNo || 1) !== (tr.discNo || 1))
+        const artist = tr.artist || tr.albumArtist || ''
         return (
-          <div key={t.id + '-' + i} role="listitem" data-row={i} className={'mus-tr' + (on ? ' on' : '') + (on && playing ? ' playing' : '')} onDoubleClick={() => onPlay(i)}
-            data-disc={newDisc ? `Disc ${t.discNo || 1}` : undefined} aria-current={on ? 'true' : undefined}>
+          <div key={tr.id + '-' + i} role="listitem" data-row={i} className={'mus-tr' + (on ? ' on' : '') + (on && playing ? ' playing' : '')} onDoubleClick={() => onPlay(i)}
+            data-disc={newDisc ? t('Disc {n}', { n: tr.discNo || 1 }) : undefined} aria-current={on ? 'true' : undefined}>
             <button type="button" className="mus-tr-play" onKeyDown={(e) => move(e, i)} onClick={() => (on ? toggle() : onPlay(i))}
-              aria-label={on && playing ? `Pause ${t.title}` : `Play ${t.title}${artist ? ', by ' + artist : ''}`}>
-              <span className="mus-tr-n">{numbers === 'track' ? t.track ?? i + 1 : i + 1}</span>
+              aria-label={on && playing ? t('Pause {title}', { title: tr.title }) : artist ? t('Play {title}, by {artist}', { title: tr.title, artist }) : t('Play {title}', { title: tr.title })}>
+              <span className="mus-tr-n">{numbers === 'track' ? tr.track ?? i + 1 : i + 1}</span>
               <span className="mus-tr-icon">{on && playing ? <IconPause size={16} /> : <IconPlay size={16} />}</span>
               {on && playing && <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i>}
             </button>
             <span className="mus-tr-main">
-              {showArt && <span className="mus-tr-art"><Art src={t.poster ? sized(posterUrl(t), fitWidth(48)) : ''} /></span>}
+              {showArt && <span className="mus-tr-art"><Art src={tr.poster ? sized(posterUrl(tr), fitWidth(48)) : ''} /></span>}
               <span className="mus-tr-words">
-                <button type="button" tabIndex={-1} className="mus-tr-title" onClick={() => onPlay(i)}>{t.title}</button>
-                {artist && <Link tabIndex={-1} className="mus-tr-sub" to={artistLink(t.libraryId, t.albumArtist || artist)}>{artist}</Link>}
+                <button type="button" tabIndex={-1} className="mus-tr-title" onClick={() => onPlay(i)}>{tr.title}</button>
+                {artist && <Link tabIndex={-1} className="mus-tr-sub" to={artistLink(tr.libraryId, tr.albumArtist || artist)}>{artist}</Link>}
               </span>
             </span>
-            {showAlbum && <span className="mus-tr-album">{t.album && <Link tabIndex={-1} to={albumLink(t.libraryId, { artist: t.albumArtist || artist, title: t.album })}>{t.album}</Link>}</span>}
-            <button type="button" className={'mus-tr-heart' + (hearted ? ' liked' : '')} aria-pressed={hearted} aria-label={hearted ? `Remove ${t.title} from liked songs` : `Like ${t.title}`} onClick={() => toggleLike(t.id)}>
+            {showAlbum && <span className="mus-tr-album">{tr.album && <Link tabIndex={-1} to={albumLink(tr.libraryId, { artist: tr.albumArtist || artist, title: tr.album })}>{tr.album}</Link>}</span>}
+            <button type="button" className={'mus-tr-heart' + (hearted ? ' liked' : '')} aria-pressed={hearted} aria-label={hearted ? t('Remove {title} from liked songs', { title: tr.title }) : t('Like {title}', { title: tr.title })} onClick={() => toggleLike(tr.id)}>
               {hearted ? <IconHeartOn size={18} /> : <IconHeart size={18} />}
             </button>
-            <span className="mus-tr-d">{t.runtimeSec ? fmtTime(t.runtimeSec) : ''}</span>
-            <TrackMenu t={t} />
+            <span className="mus-tr-d">{tr.runtimeSec ? fmtTime(tr.runtimeSec) : ''}</span>
+            <TrackMenu t={tr} />
           </div>
         )
       }} />
@@ -198,7 +199,7 @@ export function TrackTable({ items, onPlay, showAlbum, showArt, numbers = 'track
 // While a page's first answer comes: its shape, in the page's own colours, not a spinner.
 export function PageShape({ kind }: { kind: 'list' | 'shelves' | 'grid' }) {
   return (
-    <div className={'mus-shape ' + kind} role="status" aria-label="Loading">
+    <div className={'mus-shape ' + kind} role="status" aria-label={t('Loading')}>
       {kind === 'list' && <><span className="mus-shape-head" />{Array.from({ length: 8 }, (_, i) => <span key={i} className="mus-shape-row" />)}</>}
       {kind === 'shelves' && Array.from({ length: 3 }, (_, i) => <span key={i} className="mus-shape-shelf"><i /><i /><i /><i /><i /><i /></span>)}
       {kind === 'grid' && <span className="mus-shape-shelf grid">{Array.from({ length: 12 }, (_, i) => <i key={i} />)}</span>}

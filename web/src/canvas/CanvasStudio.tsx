@@ -12,6 +12,7 @@ import { Button, Dialog, Notice, ask, toast } from '../ui'
 import LoopEditor, { type Range } from './LoopEditor'
 import { GEN_MAX_SEC, GEN_MIN_SEC, SOURCE_WORDS } from './rules'
 import { noteCanvasChanged, useCanvas } from './useCanvas'
+import { num, t, tx } from '../i18n'
 import './canvas.css'
 import './studio.css'
 
@@ -46,7 +47,7 @@ export default function CanvasStudio({ itemId, title, kind, runtimeSec, artist =
   }, [pick?.kind, info?.url])
   useEffect(() => {
     if (!info) return
-    if (hadTask.current && !info.task) { announce(info.error ? 'The canvas couldn\'t be made.' : 'The canvas is ready.'); noteCanvasChanged(itemId); if (!info.error) setPick(null) }
+    if (hadTask.current && !info.task) { announce(info.error ? t('The canvas couldn’t be made.') : t('The canvas is ready.')); noteCanvasChanged(itemId); if (!info.error) setPick(null) }
     hadTask.current = info.task || ''
   }, [info, itemId])
   useEffect(() => () => { if (pick?.kind === 'device') URL.revokeObjectURL(pick.url) }, [pick])
@@ -67,7 +68,7 @@ export default function CanvasStudio({ itemId, title, kind, runtimeSec, artist =
     try {
       if (pick.kind === 'current') {
         await api.put(`/media/${itemId}/canvas/loop`, { startMs: Math.round(range.start * 1000), endMs: Math.round(range.end * 1000) })
-        toast('Loop saved'); noteCanvasChanged(itemId); c.reload(); setPick(null)
+        toast(t('Loop saved')); noteCanvasChanged(itemId); c.reload(); setPick(null)
       } else if (pick.kind === 'device') {
         await sendClip(`/media/${itemId}/canvas/source?startSec=${startSec}&durationSec=${durationSec}&crossfade=${fade ? 1 : 0}`, pick.file, setSent)
         c.reload()
@@ -79,67 +80,67 @@ export default function CanvasStudio({ itemId, title, kind, runtimeSec, artist =
     setBusy(false)
   }
   const remove = async () => {
-    if (!await ask({ title: 'Remove this canvas?', body: 'The still cover shows again. A canvas file beside the media, if there is one, takes its place.', confirm: 'Remove', danger: true })) return
-    api.del(`/media/${itemId}/canvas`).then(() => { toast('Canvas removed'); c.reload(); noteCanvasChanged(itemId) }).catch(failed)
+    if (!await ask({ title: t('Remove this canvas?'), body: t('The still cover shows again. A canvas file beside the media, if there is one, takes its place.'), confirm: t('Remove'), danger: true })) return
+    api.del(`/media/${itemId}/canvas`).then(() => { toast(t('Canvas removed')); c.reload(); noteCanvasChanged(itemId) }).catch(failed)
   }
   const own = info?.source === 'upload' || info?.source === 'generated'
   const cutting = pick && pick.kind !== 'current'
   const tooShort = !!pick && sourceLen > 0 && sourceLen < (pick.kind === 'current' ? 0.5 : GEN_MIN_SEC)
 
   return (
-    <Dialog title="Canvas studio" onClose={onClose} size="wide"
-      description={<>A short, silent video that loops with “{title}”: behind the player, or in the cover’s place. <HelpLink to="music#canvas-a-looping-video-behind-the-song" newTab>About Canvas</HelpLink></>}
+    <Dialog title={t('Canvas studio')} onClose={onClose} size="wide"
+      description={<>{t('A short, silent video that loops with “{title}”: behind the player, or in the cover’s place.', { title })} <HelpLink to="music#canvas-a-looping-video-behind-the-song" newTab>{t('About Canvas')}</HelpLink></>}
       actions={pick ? <>
-        <Button variant="ghost" onClick={() => setPick(null)} disabled={busy}>Back</Button>
-        <Button variant="primary" busy={busy} disabled={busy || !!info?.task || tooShort} onClick={make}>{pick.kind === 'current' ? 'Save the loop' : 'Make the canvas'}</Button>
-      </> : <Button variant="ghost" onClick={onClose}>Done</Button>}>
+        <Button variant="ghost" onClick={() => setPick(null)} disabled={busy}>{t('Back')}</Button>
+        <Button variant="primary" busy={busy} disabled={busy || !!info?.task || tooShort} onClick={make}>{pick.kind === 'current' ? t('Save the loop') : t('Make the canvas')}</Button>
+      </> : <Button variant="ghost" onClick={onClose}>{t('Done')}</Button>}>
       <div className="cs">
         {picker && !pick && picker}
-        {!info && !c.failed && <p className="muted" role="status">Looking…</p>}
+        {!info && !c.failed && <p className="muted" role="status">{t('Looking…')}</p>}
         {c.failed && <Notice tone="danger">{c.failed}</Notice>}
-        {info?.task && <TaskLine id={info.task} label="Cutting the canvas" />}
-        {!info?.task && info?.error && <Notice tone="danger" title="The last one couldn't be made">{info.error}</Notice>}
-        {sent > 0 && sent < 1 && <div className="cs-sending" role="status"><span style={{ width: `${Math.round(sent * 100)}%` }} />Sending the clip… {Math.round(sent * 100)}%</div>}
+        {info?.task && <TaskLine id={info.task} label={t('Cutting the canvas')} />}
+        {!info?.task && info?.error && <Notice tone="danger" title={t('The last one couldn’t be made')}>{info.error}</Notice>}
+        {sent > 0 && sent < 1 && <div className="cs-sending" role="status"><span style={{ width: `${Math.round(sent * 100)}%` }} />{t('Sending the clip… {percent}', { percent: num(sent, { style: 'percent' }) })}</div>}
 
         {info && !pick && (
           <>
-            <section className="cs-now" aria-label="The canvas now">
+            <section className="cs-now" aria-label={t('The canvas now')}>
               {info.available && info.url ? (
                 <>
-                  <video src={mediaUrl(info.url)} muted loop playsInline autoPlay preload="metadata" aria-label={`The canvas for ${title}`} />
+                  <video src={mediaUrl(info.url)} muted loop playsInline autoPlay preload="metadata" aria-label={t('The canvas for {title}', { title })} />
                   <div className="cs-now-facts">
-                    <h3>The canvas now</h3>
-                    <p className="muted">{SOURCE_WORDS[info.source || ''] || ''} {info.width && info.height ? `${info.width}×${info.height}` : ''}{info.durationMs ? ` · ${(info.durationMs / 1000).toFixed(1)} s` : ''}</p>
-                    {info.loopEndMs ? <p className="muted">Loops {(info.loopStartMs! / 1000).toFixed(1)} to {(info.loopEndMs / 1000).toFixed(1)} s.</p> : null}
+                    <h3>{t('The canvas now')}</h3>
+                    <p className="muted">{tx(SOURCE_WORDS[info.source || ''] || '')} {info.width && info.height ? `${info.width}×${info.height}` : ''}{info.durationMs ? ' · ' + t('{n} s', { n: num(info.durationMs / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }) : ''}</p>
+                    {info.loopEndMs ? <p className="muted">{t('Loops {start} to {end} s.', { start: num(info.loopStartMs! / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }), end: num(info.loopEndMs / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}</p> : null}
                     <div className="cs-row">
-                      {canCut && <Button size="sm" onClick={() => choose({ kind: 'current' })}>Set its loop</Button>}
-                      {info.loopEndMs ? <Button size="sm" variant="ghost" onClick={() => api.del(`/media/${itemId}/canvas/loop`).then(() => { c.reload(); noteCanvasChanged(itemId) }).catch(failed)}>Loop all of it</Button> : null}
-                      {own && <Button size="sm" variant="danger" onClick={remove}>Remove</Button>}
+                      {canCut && <Button size="sm" onClick={() => choose({ kind: 'current' })}>{t('Set its loop')}</Button>}
+                      {info.loopEndMs ? <Button size="sm" variant="ghost" onClick={() => api.del(`/media/${itemId}/canvas/loop`).then(() => { c.reload(); noteCanvasChanged(itemId) }).catch(failed)}>{t('Loop all of it')}</Button> : null}
+                      {own && <Button size="sm" variant="danger" onClick={remove}>{t('Remove')}</Button>}
                     </div>
                   </div>
                 </>
-              ) : <p className="cs-empty">“{title}” has no canvas yet. Make one below.</p>}
+              ) : <p className="cs-empty">{t('“{title}” has no canvas yet. Make one below.', { title })}</p>}
             </section>
             {canCut ? <Sources itemId={itemId} kind={kind} artist={artist} title={title} canSelf={!!info.canGenerate} onPick={choose} />
-              : <Notice tone="info">This server can’t cut a canvas: its FFmpeg has no H.264 encoder. You can still put a canvas.mp4 beside the media.</Notice>}
+              : <Notice tone="info">{t('This server can’t cut a canvas: its FFmpeg has no H.264 encoder. You can still put a canvas.mp4 beside the media.')}</Notice>}
           </>
         )}
 
         {pick && sourceLen > 0 && !tooShort && (pick.kind !== 'current' || local) && (
-          <section className="cs-edit" aria-label="Choose the loop">
-            <h3>{pick.kind === 'current' ? 'The part that loops' : pick.kind === 'device' ? pick.file.name : pick.kind === 'server' ? pick.item.title : 'This title’s video'}</h3>
+          <section className="cs-edit" aria-label={t('Choose the loop')}>
+            <h3>{pick.kind === 'current' ? t('The part that loops') : pick.kind === 'device' ? pick.file.name : pick.kind === 'server' ? pick.item.title : t('This title’s video')}</h3>
             <LoopEditor duration={sourceLen} value={range} onChange={setRange}
               min={pick.kind === 'current' ? 0.5 : GEN_MIN_SEC} max={pick.kind === 'current' ? sourceLen : Math.min(GEN_MAX_SEC, sourceLen)} crossfade={!!cutting && fade}
               source={pick.kind === 'device' ? { kind: 'video', url: pick.url }
                 : pick.kind === 'current' ? { kind: 'video', url: local }
                   : { kind: 'frames', frame: frameOf(pick.kind === 'server' ? pick.item.id : itemId) }} />
             {cutting && (
-              <label className="cs-fade"><input type="checkbox" checked={fade} onChange={(e) => setFade(e.target.checked)} /> Blend the end into the start, so the loop has no jump</label>
+              <label className="cs-fade"><input type="checkbox" checked={fade} onChange={(e) => setFade(e.target.checked)} /> {t('Blend the end into the start, so the loop has no jump')}</label>
             )}
-            {pick.kind === 'device' && <p className="muted">The clip is sent to the server, the part between the handles is cut from it, and the clip is deleted.</p>}
+            {pick.kind === 'device' && <p className="muted">{t('The clip is sent to the server, the part between the handles is cut from it, and the clip is deleted.')}</p>}
           </section>
         )}
-        {tooShort && <Notice tone="danger">That video is too short to loop.</Notice>}
+        {tooShort && <Notice tone="danger">{t('That video is too short to loop.')}</Notice>}
       </div>
     </Dialog>
   )
@@ -154,28 +155,28 @@ function Sources({ itemId, kind, artist, title, canSelf, onPick }: { itemId: num
   const [over, setOver] = useState(false)
   const takeFile = (f: File | undefined) => {
     if (!f) return
-    if (f.size > MAX_CLIP) { toast('That clip is too big: up to 512 MB.', { tone: 'danger' }); return }
+    if (f.size > MAX_CLIP) { toast(t('That clip is too big: up to 512 MB.'), { tone: 'danger' }); return }
     const url = URL.createObjectURL(f)
     const v = document.createElement('video')
     v.preload = 'metadata'; v.src = url
     v.onloadedmetadata = () => onPick({ kind: 'device', file: f, url, duration: v.duration })
-    v.onerror = () => { URL.revokeObjectURL(url); toast('This browser can’t open that video. MP4, MOV or WebM works best.', { tone: 'danger' }) }
+    v.onerror = () => { URL.revokeObjectURL(url); toast(t('This browser can’t open that video. MP4, MOV or WebM works best.'), { tone: 'danger' }) }
   }
   return (
-    <section className="cs-new" aria-label="Make a new canvas">
-      <h3>Make a new one</h3>
-      <div className="cs-tabs" role="tablist" aria-label="From">
-        <button type="button" role="tab" aria-selected={tab === 'device'} className={tab === 'device' ? 'on' : ''} onClick={() => setTab('device')}><IconFolder size={18} /> From this device</button>
-        <button type="button" role="tab" aria-selected={tab === 'server'} className={tab === 'server' ? 'on' : ''} onClick={() => setTab('server')}><IconFilm size={18} /> A video on the server</button>
-        {canSelf && <button type="button" role="tab" aria-selected={false} onClick={() => onPick({ kind: 'self' })}><IconFilm size={18} /> {kind === 'video' ? 'This title’s video' : 'Its own video'}</button>}
+    <section className="cs-new" aria-label={t('Make a new canvas')}>
+      <h3>{t('Make a new one')}</h3>
+      <div className="cs-tabs" role="tablist" aria-label={t('From')}>
+        <button type="button" role="tab" aria-selected={tab === 'device'} className={tab === 'device' ? 'on' : ''} onClick={() => setTab('device')}><IconFolder size={18} /> {t('From this device')}</button>
+        <button type="button" role="tab" aria-selected={tab === 'server'} className={tab === 'server' ? 'on' : ''} onClick={() => setTab('server')}><IconFilm size={18} /> {t('A video on the server')}</button>
+        {canSelf && <button type="button" role="tab" aria-selected={false} onClick={() => onPick({ kind: 'self' })}><IconFilm size={18} /> {kind === 'video' ? t('This title’s video') : t('Its own video')}</button>}
       </div>
       {tab === 'device' ? (
         <div className={'cs-drop' + (over ? ' over' : '')} onDragOver={(e) => { e.preventDefault(); setOver(true) }} onDragLeave={() => setOver(false)}
           onDrop={(e) => { e.preventDefault(); setOver(false); takeFile(e.dataTransfer.files?.[0]) }}>
           <input ref={file} type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.m4v,.webm" hidden onChange={(e) => takeFile(e.target.files?.[0])} />
-          <p><b>Drop a video here</b>, or</p>
-          <Button variant="primary" onClick={() => file.current?.click()}>Choose a video…</Button>
-          <p className="muted">MP4, MOV or WebM, up to 512 MB. Only the part you choose is kept.</p>
+          <p>{t('Drop a video here, or')}</p>
+          <Button variant="primary" onClick={() => file.current?.click()}>{t('Choose a video…')}</Button>
+          <p className="muted">{t('MP4, MOV or WebM, up to 512 MB. Only the part you choose is kept.')}</p>
         </div>
       ) : <ServerVideos itemId={itemId} artist={artist} title={title} songs={kind === 'song'} onPick={(item) => onPick({ kind: 'server', item })} />}
     </section>
@@ -189,11 +190,11 @@ function ServerVideos({ itemId, artist, title, songs, onPick }: { itemId: number
   const [found, setFound] = useState<Item[] | null>(null)
   useEffect(() => {
     let live = true
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       api.get<{ items: Item[] } | Item[]>(`/items?kind=video&limit=24&search=${encodeURIComponent(q.trim())}`)
         .then((r) => { if (live) setFound((Array.isArray(r) ? r : r.items).filter((x) => x.id !== itemId)) }).catch(() => { if (live) setFound([]) })
     }, q ? 300 : 0)
-    return () => { live = false; clearTimeout(t) }
+    return () => { live = false; clearTimeout(timer) }
   }, [q, itemId])
   const suggested = useMemo(() => [...(links?.tied || []), ...(links?.suggested || [])].map((l) => l.video), [links])
   const row = (v: { id: number; title: string; runtimeSec: number; artist?: string }, it?: Item) => (
@@ -206,9 +207,9 @@ function ServerVideos({ itemId, artist, title, songs, onPick }: { itemId: number
   )
   return (
     <div className="cs-server">
-      {suggested.length > 0 && <><h4>{`Music videos of “${title}”`}</h4><ul className="cs-vids">{suggested.map((v) => row(v))}</ul></>}
-      <label className="cs-search"><IconSearch size={18} /><input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={songs && artist ? `Search the server’s videos, “${artist}” for one` : 'Search the server’s videos'} aria-label="Search the server’s videos" /></label>
-      {found === null ? <p className="muted" role="status">Looking…</p> : found.length === 0 ? <p className="muted">No videos match.</p> : <ul className="cs-vids">{found.map((it) => row(it, it))}</ul>}
+      {suggested.length > 0 && <><h4>{t('Music videos of “{title}”', { title })}</h4><ul className="cs-vids">{suggested.map((v) => row(v))}</ul></>}
+      <label className="cs-search"><IconSearch size={18} /><input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={songs && artist ? t('Search the server’s videos, “{artist}” for one', { artist }) : t('Search the server’s videos')} aria-label={t('Search the server’s videos')} /></label>
+      {found === null ? <p className="muted" role="status">{t('Looking…')}</p> : found.length === 0 ? <p className="muted">{t('No videos match.')}</p> : <ul className="cs-vids">{found.map((it) => row(it, it))}</ul>}
     </div>
   )
 }
@@ -224,11 +225,11 @@ function sendClip(path: string, f: File, progress: (x: number) => void): Promise
     x.upload.onprogress = (e) => { if (e.lengthComputable) progress(e.loaded / e.total) }
     x.onload = () => {
       if (x.status >= 200 && x.status < 300) { progress(1); done(); return }
-      let m = 'The clip couldn’t be sent.'
+      let m = t('The clip couldn’t be sent.')
       try { m = JSON.parse(x.responseText).error || m } catch { /* plain text */ }
       fail(new Error(m))
     }
-    x.onerror = () => fail(new Error('Can’t reach your server.'))
+    x.onerror = () => fail(new Error(t('Can’t reach your server.')))
     x.send(f)
   })
 }

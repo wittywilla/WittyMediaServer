@@ -12,12 +12,13 @@ import { notInstalledWords, olderFromStore, series } from '../settings/store/old
 import { useOlderAsk } from '../settings/store/OlderServerDialog'
 import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
 import { ADVANCED, offerable, PLAIN_WORDS, RECOMMENDED, updateChoiceFrom, updateSettings, type UpdateChoice } from './plan'
+import { list, t, tn, tx } from '../../i18n'
 
 // What this server is for. Modules aren't part of the server: choosing one downloads it, signed,
 // from the official catalogue, through the store's own install. Nothing's fetched until someone
 // presses the button that says so, and nothing depends on it working.
 
-const kindName = (t: string) => LIB_TYPES.find((x) => x.type === t)?.name || t
+const kindName = (k: string) => tx(LIB_TYPES.find((x) => x.type === k)?.name) || k
 const glyph = (m: StoreItem) => m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />
 // Each module's own icon, the same picture as the catalogue's, from the server itself (web/public/module-icons, drawn
 // by scripts/genicon): nothing is fetched from the internet. A module without one keeps a glyph.
@@ -61,7 +62,7 @@ export function Modules({ info, refresh, next, back }: StepProps) {
     const usual = offered.filter((m) => !ADVANCED.includes(m.id) && !RECOMMENDED.includes(m.id))
     const known = CATEGORIES.map((c) => ({ ...c, modules: usual.filter((m) => m.group === c.id) }))
     const rest = usual.filter((m) => !CATEGORIES.some((c) => c.id === m.group))
-    return [{ id: 'first', title: 'Recommended', modules: offered.filter((m) => RECOMMENDED.includes(m.id)) }, ...known, { id: 'other', title: 'Other', modules: rest }].filter((s) => s.modules.length)
+    return [{ id: 'first', title: t('Recommended'), modules: offered.filter((m) => RECOMMENDED.includes(m.id)) }, ...known.map((k) => ({ ...k, title: tx(k.title) })), { id: 'other', title: t('Other'), modules: rest }].filter((s) => s.modules.length)
   }, [offered])
   const advanced = offered.filter((m) => ADVANCED.includes(m.id))
   // What's recommended starts ticked, once, and can be unticked.
@@ -74,13 +75,13 @@ export function Modules({ info, refresh, next, back }: StepProps) {
   const toggle = (id: string) => setChosen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const picks = offered.filter((m) => chosen.has(m.id) && !ready(m))
   const row = (m: StoreItem) => {
-    const words = PLAIN_WORDS[m.id] || m.summary
-    if (ready(m)) return <TickRow key={m.id} checked disabled icon={icon(m)} title={m.name} text={words} note="Already on this server" />
-    if (cantRun(m)) return <TickRow key={m.id} checked={false} disabled icon={icon(m)} title={m.name} text={words} note={m.fit.why} />
+    const words = tx(PLAIN_WORDS[m.id]) || m.summary
+    if (ready(m)) return <TickRow key={m.id} checked disabled icon={icon(m)} title={m.name} text={words} note={t('Already on this server')} />
+    if (cantRun(m)) return <TickRow key={m.id} checked={false} disabled icon={icon(m)} title={m.name} text={words} note={tx(m.fit.why)} />
     if (onlyOlder(m)) return <TickRow key={m.id} checked={chosen.has(m.id)} onChange={() => toggle(m.id)} icon={icon(m)} title={m.name} text={words}
-      note={`No version for this server is published yet. ${m.name} ${m.version} was made for WittyMediaServer ${series(m.madeFor || '')}, and you’ll be asked before it’s installed.`} />
+      note={t('No version for this server is published yet. {name} {version} was made for WittyMediaServer {series}, and you’ll be asked before it’s installed.', { name: m.name, version: m.version, series: series(m.madeFor || '') })} />
     return <TickRow key={m.id} checked={chosen.has(m.id)} onChange={() => toggle(m.id)} icon={icon(m)} title={m.name} text={words}
-      note={m.libraries?.length ? `Lets you add: ${m.libraries.map(kindName).join(', ')}` : undefined} />
+      note={m.libraries?.length ? t('Lets you add: {kinds}', { kinds: list(m.libraries.map(kindName)) }) : undefined} />
   }
 
   const saveUpdates = async (c: UpdateChoice) => {
@@ -109,19 +110,19 @@ export function Modules({ info, refresh, next, back }: StepProps) {
       const o = olderOnes.find((x) => x.module === m.id)
       const anyway = !!o && yes.includes(m.id)
       if (o && !anyway) {
-        setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: 'skipped', failure: { kind: 'older-server', title: 'Not installed', message: notInstalledWords(o), try: ['Add it later from the module store, once a version made for this server is published.'] } } : x))
-        announce(`${m.name} wasn’t installed`)
+        setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: 'skipped', failure: { kind: 'older-server', title: t('Not installed'), message: notInstalledWords(o), try: [t('Add it later from the module store, once a version made for this server is published.')] } } : x))
+        announce(t('{name} wasn’t installed', { name: m.name }))
         continue
       }
       if (it && !it.fit.ok && !ready(it) && !anyway) {
-        setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: 'failed', failure: { kind: 'other', title: `${m.name} can’t be installed right now`, message: it.fit.why || '', try: [] } } : x))
+        setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: 'failed', failure: { kind: 'other', title: t('{name} can’t be installed right now', { name: m.name }), message: tx(it.fit.why), try: [] } } : x))
         continue
       }
       setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: 'working' } : x))
-      announce(`Installing ${m.name}`)
+      announce(t('Installing {name}', { name: m.name }))
       const r = await installAndWait(m.id, m.name, setLive, { confirmOlder: anyway, askOlder: older.ask })
       setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: r.ok ? 'done' : r.declined ? 'skipped' : 'failed', failure: r.failure } : x))
-      announce(r.ok ? `${m.name} is ready` : `${m.name} didn’t install`)
+      announce(r.ok ? t('{name} is ready', { name: m.name }) : t('{name} didn’t install', { name: m.name }))
     }
     if (stopped.current) return
     await refresh()
@@ -131,18 +132,18 @@ export function Modules({ info, refresh, next, back }: StepProps) {
     requestAnimationFrame(() => done.current?.focus())
   }
 
-  const lead = 'Movies, TV shows and music work straight away. Modules add everything else. Choose what you want and it downloads now. Whatever you don’t choose isn’t downloaded.'
-  if (failed) return <section><StepHead title="What do you want on this server?" lead={lead} /><LoadError what="The list of modules" onRetry={load} /><StepActions back={back}><Button variant="primary" size="big" onClick={next}>Continue without modules</Button></StepActions></section>
-  if (!view) return <section><StepHead title="What do you want on this server?" lead={lead} /><Spinner /></section>
+  const lead = t('Movies, TV shows and music work straight away. Modules add everything else. Choose what you want and it downloads now. Whatever you don’t choose isn’t downloaded.')
+  if (failed) return <section><StepHead title={t('What do you want on this server?')} lead={lead} /><LoadError what={t('The list of modules')} onRetry={load} /><StepActions back={back}><Button variant="primary" size="big" onClick={next}>{t('Continue without modules')}</Button></StepActions></section>
+  if (!view) return <section><StepHead title={t('What do you want on this server?')} lead={lead} /><Spinner /></section>
 
   if (going) {
     const bad = going.filter((g) => g.state === 'failed' || g.state === 'skipped')
     const allDone = !running
     return (
       <section>
-        <StepHead title={allDone ? (bad.length ? 'Some modules didn’t install' : 'Your modules are ready') : 'Installing your modules'}
-          lead={allDone ? (bad.length ? 'Everything else works. You can try again now, or carry on and add these later.' : 'Each one was checked against its signature before it was put to use.') : 'Each one is downloaded and checked before it’s used. You can leave this page open and wait: it takes as long as your connection does.'} />
-        <ul className="su-going" aria-label="Modules being installed">
+        <StepHead title={allDone ? (bad.length ? t('Some modules didn’t install') : t('Your modules are ready')) : t('Installing your modules')}
+          lead={allDone ? (bad.length ? t('Everything else works. You can try again now, or carry on and add these later.') : t('Each one was checked against its signature before it was put to use.')) : t('Each one is downloaded and checked before it’s used. You can leave this page open and wait: it takes as long as your connection does.')} />
+        <ul className="su-going" aria-label={t('Modules being installed')}>
           {going.map((g) => {
             const item = live?.items.find((i) => i.id === g.id)
             const status = view.items.find((i) => i.id === g.id)?.status
@@ -152,8 +153,8 @@ export function Modules({ info, refresh, next, back }: StepProps) {
                 <span className="su-going-mark" aria-hidden="true">{g.state === 'done' ? <IconCheck size={18} /> : g.state === 'failed' || g.state === 'skipped' ? <IconInfo size={18} /> : g.state === 'working' ? <span className="spinner su-spin" /> : null}</span>
                 <span className="su-going-words">
                   <b>{g.name}</b>
-                  <span className="muted">{{ waiting: 'Waiting', working: phase ? `${PHASE[phase] || 'Working'}${item?.total ? `, ${mb(item.done)} of ${mb(item.total)}` : ''}` : 'Starting', done: 'Ready', failed: 'Didn’t install', skipped: 'Not installed' }[g.state]}</span>
-                  {g.state === 'working' && <Progress label={`${g.name}: installing`} value={item?.total ? item.done : undefined} max={item?.total || undefined} />}
+                  <span className="muted">{{ waiting: t('Waiting'), working: phase ? (item?.total ? t('{phase}, {done} of {total}', { phase: tx(PHASE[phase]) || t('Working'), done: mb(item.done), total: mb(item.total) }) : tx(PHASE[phase]) || t('Working')) : t('Starting'), done: t('Ready'), failed: t('Didn’t install'), skipped: t('Not installed') }[g.state]}</span>
+                  {g.state === 'working' && <Progress label={t('{name}: installing', { name: g.name })} value={item?.total ? item.done : undefined} max={item?.total || undefined} />}
                   {g.failure && <span className="su-going-why"><b>{g.failure.title}</b> {g.failure.message} {g.failure.try?.join(' ')}</span>}
                 </span>
               </li>
@@ -162,8 +163,8 @@ export function Modules({ info, refresh, next, back }: StepProps) {
         </ul>
         {allDone && (
           <StepActions>
-            {bad.length > 0 && <Button onClick={() => install(bad)}>Try again</Button>}
-            <Button ref={done} variant="primary" size="big" onClick={next}>{bad.length ? 'Continue without them' : 'Continue'}</Button>
+            {bad.length > 0 && <Button onClick={() => install(bad)}>{t('Try again')}</Button>}
+            <Button ref={done} variant="primary" size="big" onClick={next}>{bad.length ? t('Continue without them') : t('Continue')}</Button>
           </StepActions>
         )}
         {older.dialog}
@@ -173,11 +174,11 @@ export function Modules({ info, refresh, next, back }: StepProps) {
 
   return (
     <section>
-      <StepHead title="What do you want on this server?" lead={lead} />
+      <StepHead title={t('What do you want on this server?')} lead={lead} />
       {checkErr && (
-        <Notice tone="warn" title="The list of modules couldn’t be read">
+        <Notice tone="warn" title={t('The list of modules couldn’t be read')}>
           <p className="su-para">{checkErr}</p>
-          <p className="su-para">Check this computer’s internet connection and try again. You can also carry on without them: movies, TV shows and music still work, and you can add modules later in Settings, Modules.</p>
+          <p className="su-para">{t('Check this computer’s internet connection and try again. You can also carry on without them: movies, TV shows and music still work, and you can add modules later in Settings, Modules.')}</p>
         </Notice>
       )}
       <div className="oobe-mod-groups">
@@ -192,22 +193,22 @@ export function Modules({ info, refresh, next, back }: StepProps) {
       </div>
       {advanced.length > 0 && (
         <details className="su-more" open={advanced.some((m) => chosen.has(m.id) || ready(m))}>
-          <summary><IconDown size={20} /> If you have a gaming PC of your own</summary>
+          <summary><IconDown size={20} /> {t('If you have a gaming PC of your own')}</summary>
           <div className="su-mods">{advanced.map(row)}</div>
         </details>
       )}
-      <h2 className="oobe-sub">When a module has a new version</h2>
-      <ChoiceCards label="When a module has a new version" value={updates} onChange={saveUpdates} cards={[
-        { value: 'ask', title: 'Tell me, and I’ll choose', text: 'Looks online twice a day and shows what’s new. Nothing changes until you say so.' },
-        { value: 'auto', title: 'Install them by themselves', text: 'Keeps your modules up to date without asking. A version that doesn’t work is taken back out by itself.' },
-        { value: 'never', title: 'Only when I check', text: 'Doesn’t look online until you press Check now in Settings, Modules.' },
+      <h2 className="oobe-sub">{t('When a module has a new version')}</h2>
+      <ChoiceCards label={t('When a module has a new version')} value={updates} onChange={saveUpdates} cards={[
+        { value: 'ask', title: t('Tell me, and I’ll choose'), text: t('Looks online twice a day and shows what’s new. Nothing changes until you say so.') },
+        { value: 'auto', title: t('Install them by themselves'), text: t('Keeps your modules up to date without asking. A version that doesn’t work is taken back out by itself.') },
+        { value: 'never', title: t('Only when I check'), text: t('Doesn’t look online until you press Check now in Settings, Modules.') },
       ]} />
-      <p className="muted oobe-hint su-gap">Modules come from the official list on GitHub. Asking for it tells GitHub your internet address, as any download does, and nothing about you or your files. Every module is signed, and this server won’t use one that doesn’t check out.</p>
+      <p className="muted oobe-hint su-gap">{t('Modules come from the official list on GitHub. Asking for it tells GitHub your internet address, as any download does, and nothing about you or your files. Every module is signed, and this server won’t use one that doesn’t check out.')}</p>
       <LaterNote info={info} />
       <StepActions back={back}>
         {picks.length > 0
-          ? <Button variant="primary" size="big" onClick={() => install(picks.map((m) => ({ id: m.id, name: m.name })))}>Download and install {picks.length === 1 ? '1 module' : `${picks.length} modules`}</Button>
-          : <Button variant="primary" size="big" onClick={next}>{offered.some(ready) ? 'Continue' : 'Continue without modules'}</Button>}
+          ? <Button variant="primary" size="big" onClick={() => install(picks.map((m) => ({ id: m.id, name: m.name })))}>{tn('Download and install {count} module', 'Download and install {count} modules', picks.length)}</Button>
+          : <Button variant="primary" size="big" onClick={next}>{offered.some(ready) ? t('Continue') : t('Continue without modules')}</Button>}
       </StepActions>
     </section>
   )

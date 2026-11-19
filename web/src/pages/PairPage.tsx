@@ -12,6 +12,7 @@ import type { SpecPageData } from '../spec/types'
 import { pairAdultsOnlySpec, pairAskSpec, pairDoneSpec, pairEnterSpec, PIN_LENGTH } from '../spec/specs/pair'
 import { isSubmitKey } from '../spec/specs/submit'
 import './pair.css'
+import { t, tn } from '../i18n'
 
 type Invite = { code: string; expiresInSec: number; user: User }
 type Asking = { code: string; device: string; platform: string; ip: string; profiles: { id: number; name: string; kind: string; needsPassword?: boolean }[]; needsPin?: boolean; twoFactor?: boolean }
@@ -61,7 +62,7 @@ export default function PairPage() {
   const pinReady = (!needsPin || pin.length === PIN_LENGTH) && (!needsPassword || (password !== '' && (!twoFactor || otp.trim() !== '')))
   const confirm = needsPassword ? { password, otp: otp.trim() } : {}
   const approve = async () => {
-    if (!pinReady) { setPinErr(needsPin && pin.length !== PIN_LENGTH ? `Type the ${PIN_LENGTH}-digit PIN the TV shows now.` : 'Type your password to sign a device in as an administrator.'); return }
+    if (!pinReady) { setPinErr(needsPin && pin.length !== PIN_LENGTH ? t('Type the {count}-digit PIN the TV shows now.', { count: PIN_LENGTH }) : t('Type your password to sign a device in as an administrator.')); return }
     setErr(''); setPinErr(''); setBusy(true)
     try {
       setDone(await api.post<{ device: string; user: User }>('/pair/approve', needsPin ? { code: asking!.code, userId: who, pin, ...confirm } : { code: asking!.code, userId: who, ...confirm }))
@@ -74,13 +75,13 @@ export default function PairPage() {
       } else if (needsPin && reason === 'wrong-pin') {
         // The question stays open: the PIN changes every 30 seconds, so another try is normal.
         const left = e.data?.triesLeft
-        setPinErr(typeof left === 'number' && left > 0 ? `${e.message} ${left === 1 ? 'One more try' : `${left} more tries`} before the sign-in ends.` : e.message)
+        setPinErr(typeof left === 'number' && left > 0 ? `${e.message} ${tn('One more try before the sign-in ends.', '{count} more tries before the sign-in ends.', left)}` : e.message)
         setPin('')
         refocus.current = 'pin'
       } else if (reason === 'locked') {
-        setErr('Too many wrong PINs were typed, so this sign-in has ended. Start again on the TV.'); setAsking(null)
+        setErr(t('Too many wrong PINs were typed, so this sign-in has ended. Start again on the TV.')); setAsking(null)
       } else if (reason === 'expired' || reason === 'used' || reason === 'not-found' || (e instanceof ApiError && e.status === 410)) {
-        setErr(e.message || 'This sign-in has expired. Start again on the TV.'); setAsking(null)
+        setErr(e.message || t('This sign-in has expired. Start again on the TV.')); setAsking(null)
       } else {
         setErr(e.message); setAsking(null)
       }
@@ -151,7 +152,7 @@ export default function PairPage() {
   return (
     <>
       {body}
-      <p className="muted pair-help"><HelpLink to="apps#sign-in-with-a-code">How signing in with a code works</HelpLink></p>
+      <p className="muted pair-help"><HelpLink to="apps#sign-in-with-a-code">{t('How signing in with a code works')}</HelpLink></p>
     </>
   )
 }

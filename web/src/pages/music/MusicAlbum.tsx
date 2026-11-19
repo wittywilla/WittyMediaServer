@@ -16,6 +16,7 @@ import { artistLink, coverUrl, shuffledCopy } from './parts'
 import { useMusic } from './store'
 import { AlbumCard, PageShape, PlayButton, Shelf, tracksUrl } from './ui'
 import { TrackTable } from './ui'
+import { t, tn } from '../../i18n'
 
 // One album: the cover and its colour at the top, the big play button, and the songs in
 // a dense list. Then other versions of it, and more by the same artist.
@@ -45,9 +46,9 @@ export default function MusicAlbum({ lib }: { lib: Library }) {
     if (discKey) discKey.split(',').forEach((d) => api.get(`/cd/${d}`).catch((e) => { if (!left && (e.status === 404 || e.status === 422)) setGoneDiscs((g) => [...g, Number(d)]) }))
     return () => { left = true }
   }, [discKey])
-  if (failed) return <EmptyState icon={<IconAudio />} title="That album wouldn't load" text="The server didn't answer. Try again in a moment." />
+  if (failed) return <EmptyState icon={<IconAudio />} title={t('That album wouldn’t load')} text={t('The server didn’t answer. Try again in a moment.')} />
   if (!tracks) return <PageShape kind="list" />
-  if (!tracks.length) return <EmptyState icon={<IconAudio />} title="No songs here" text="This album may have been moved or renamed." />
+  if (!tracks.length) return <EmptyState icon={<IconAudio />} title={t('No songs here')} text={t('This album may have been moved or renamed.')} />
   const coverId = tracks.find((t) => t.poster)?.id
   const total = tracks.reduce((s, t) => s + t.runtimeSec, 0)
   const discs = [...new Set(tracks.map((t) => t.cdDisc).filter((d): d is number => !!d))]
@@ -63,39 +64,39 @@ export default function MusicAlbum({ lib }: { lib: Library }) {
   const list = (others || []).filter((a) => a.title !== album)
   const versions = list.filter((a) => baseTitle(a.title) === baseTitle(album))
   const more = list.filter((a) => baseTitle(a.title) !== baseTitle(album))
-  const title = album || 'Unknown album'
+  const title = album || t('Unknown album')
   return (
     <div className="mus-page mus-album">
       <Suspense fallback={null}><AlbumCanvas trackIds={tracks.filter((t) => !t.cdDisc).map((t) => t.id)} /></Suspense>
-      <ListHeader art={coverId ? coverUrl(coverId) : ''} title={title} kind="Album">
+      <ListHeader art={coverId ? coverUrl(coverId) : ''} title={title} kind={t('Album')}>
         <p className="mus-byline">
-          {artist ? <Link to={artistLink(lib.id, artist)} className="mus-by">{artist}</Link> : <span className="mus-by">Unknown artist</span>}
-          {[year, genre, `${tracks.length} ${tracks.length === 1 ? 'song' : 'songs'}`, fmtRuntime(total)].filter(Boolean).map((v) => <span key={String(v)}> · {v}</span>)}
+          {artist ? <Link to={artistLink(lib.id, artist)} className="mus-by">{artist}</Link> : <span className="mus-by">{t('Unknown artist')}</span>}
+          {[year, genre, tn('{count} song', '{count} songs', tracks.length), fmtRuntime(total)].filter(Boolean).map((v) => <span key={String(v)}> · {v}</span>)}
         </p>
       </ListHeader>
       <ActionBar title={title}>
         <PlayButton big tvFirst label={title} playing={mine && audio.playing} onPlay={() => (mine ? audio.toggle() : playTrack(0))} />
-        <button type="button" className="mus-icon" aria-label={`Shuffle ${title}`} title="Shuffle" onClick={() => audio.play(shuffledCopy(tracks), 0, 'music')}><IconShuffle /></button>
-        <button type="button" className={'mus-icon' + (allLiked ? ' liked' : '')} aria-pressed={allLiked} aria-label={allLiked ? 'Remove every song from liked songs' : 'Like every song'} title={allLiked ? 'Liked' : 'Like all'}
+        <button type="button" className="mus-icon" aria-label={t('Shuffle {title}', { title })} title={t('Shuffle')} onClick={() => audio.play(shuffledCopy(tracks), 0, 'music')}><IconShuffle /></button>
+        <button type="button" className={'mus-icon' + (allLiked ? ' liked' : '')} aria-pressed={allLiked} aria-label={allLiked ? t('Remove every song from liked songs') : t('Like every song')} title={allLiked ? t('Liked') : t('Like all')}
           onClick={() => tracks.forEach((t) => { if (audio.liked(t.id) === allLiked) audio.toggleLike(t.id) })}>{allLiked ? <IconHeartOn /> : <IconHeart />}</button>
-        {discs.filter((d) => !goneDiscs.includes(d)).map((d) => <Link key={d} className="mus-icon" to={`/cd/${d}?play=1`} aria-label={discs.length > 1 ? `Insert disc ${discs.indexOf(d) + 1}` : 'Insert the disc'} title="Insert the disc"><IconDisc /></Link>)}
-        <Pop label={`More for ${title}`} icon={<IconMore />} className="mus-icon">
+        {discs.filter((d) => !goneDiscs.includes(d)).map((d) => <Link key={d} className="mus-icon" to={`/cd/${d}?play=1`} aria-label={discs.length > 1 ? t('Insert disc {n}', { n: discs.indexOf(d) + 1 }) : t('Insert the disc')} title={t('Insert the disc')}><IconDisc /></Link>)}
+        <Pop label={t('More for {title}', { title })} icon={<IconMore />} className="mus-icon">
           {(close) => (
             <div className="mp-menu" role="menu">
-              <button type="button" role="menuitem" onClick={() => { audio.playNext(tracks); toast('Plays next'); close() }}><IconPlay size={18} /> Play next</button>
-              <button type="button" role="menuitem" onClick={() => { audio.enqueue(tracks); toast('Added to the queue'); close() }}><IconPlus size={18} /> Add to the queue</button>
-              <button type="button" role="menuitem" onClick={() => { audio.startRadio(tracks[0]); close() }}><IconStation size={18} /> Start a station from this</button>
+              <button type="button" role="menuitem" onClick={() => { audio.playNext(tracks); toast(t('Plays next')); close() }}><IconPlay size={18} /> {t('Play next')}</button>
+              <button type="button" role="menuitem" onClick={() => { audio.enqueue(tracks); toast(t('Added to the queue')); close() }}><IconPlus size={18} /> {t('Add to the queue')}</button>
+              <button type="button" role="menuitem" onClick={() => { audio.startRadio(tracks[0]); close() }}><IconStation size={18} /> {t('Start a station from this')}</button>
               <PlayOnMenuItem source={{ kind: 'item', itemId: tracks[0].id, itemKind: 'audio', title, ...queueOf(tracks.map((t) => t.id), 0) }} onChosen={close} />
-              {user?.isAdmin && tracks.some((t) => !t.cdDisc) && <button type="button" role="menuitem" aria-haspopup="dialog" onClick={() => { setCanvasOpen(true); close() }}>Canvas: the looping video behind these songs…</button>}
-              {artist && <Link role="menuitem" className="mh-menu-link" to={artistLink(lib.id, artist)} onClick={close}>Go to artist</Link>}
+              {user?.isAdmin && tracks.some((t) => !t.cdDisc) && <button type="button" role="menuitem" aria-haspopup="dialog" onClick={() => { setCanvasOpen(true); close() }}>{t('Canvas: the looping video behind these songs…')}</button>}
+              {artist && <Link role="menuitem" className="mh-menu-link" to={artistLink(lib.id, artist)} onClick={close}>{t('Go to artist')}</Link>}
             </div>
           )}
         </Pop>
       </ActionBar>
-      <TrackTable items={tracks} label={`Songs on ${title}`} discs onPlay={playTrack} />
+      <TrackTable items={tracks} label={t('Songs on {title}', { title })} discs onPlay={playTrack} />
       {tracks[0]?.overview && <p className="mus-about">{tracks[0].overview}</p>}
-      {versions.length > 0 && <Shelf title="Other versions">{versions.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={String(a.year || '')} />)}</Shelf>}
-      {more.length > 0 && <Shelf title={`More by ${artist}`} to={artistLink(lib.id, artist)}>{more.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={String(a.year || '')} />)}</Shelf>}
+      {versions.length > 0 && <Shelf title={t('Other versions')}>{versions.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={String(a.year || '')} />)}</Shelf>}
+      {more.length > 0 && <Shelf title={t('More by {artist}', { artist })} to={artistLink(lib.id, artist)}>{more.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={String(a.year || '')} />)}</Shelf>}
       <LegalNote kind="metadata" />
       {canvasOpen && <Suspense fallback={null}><AlbumCanvasManager songs={tracks.filter((t) => !t.cdDisc)} onClose={() => setCanvasOpen(false)} /></Suspense>}
     </div>

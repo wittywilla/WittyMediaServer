@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Brand } from '../components/common'
 import { cornerName } from '../api'
+import { date, t, tx } from '../i18n'
 import { IconExpand, IconHelp, IconReturn } from '../icons'
 import { sduiIcon } from '../sdui/render/icons'
 import { dockCurrent, type DockEntry, type StatusPart } from '../sdui/regions'
@@ -14,7 +15,7 @@ import './regions.css'
 // are, the server's name, the controllers, the time) and a circular system dock. The controllers are the browser's own pads.
 
 function usePads(): string[] {
-  const read = () => Array.from(navigator.getGamepads?.() || []).filter((p): p is Gamepad => !!p && p.connected).map((p) => p.id.replace(/\s*\(.*$/, '').trim() || 'Controller')
+  const read = () => Array.from(navigator.getGamepads?.() || []).filter((p): p is Gamepad => !!p && p.connected).map((p) => p.id.replace(/\s*\(.*$/, '').trim() || t('Controller'))
   const [pads, setPads] = useState<string[]>(read)
   useEffect(() => {
     const on = () => setPads(read())
@@ -25,10 +26,10 @@ function usePads(): string[] {
 }
 
 function useClock(): string {
-  const fmt = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-  const [t, setT] = useState(fmt)
-  useEffect(() => { const id = window.setInterval(() => setT(fmt()), 15000); return () => window.clearInterval(id) }, [])
-  return t
+  const fmt = () => date(new Date(), { hour: 'numeric', minute: '2-digit' })
+  const [time, setTime] = useState(fmt)
+  useEffect(() => { const id = window.setInterval(() => setTime(fmt()), 15000); return () => window.clearInterval(id) }, [])
+  return time
 }
 
 // Real full screen, when the browser allows it: offered on a button, never forced.
@@ -52,18 +53,18 @@ export function StatusBar({ parts, onExit, onHelp }: { parts: StatusPart[]; onEx
   if (!user) return null
   const name = cornerName(user)
   return (
-    <header className="play-status" aria-label="Status">
+    <header className="play-status" aria-label={t('Status')}>
       <div className="play-who">
         <span className="play-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>
-        <span className="play-who-text"><b>{name}</b>{parts.filter((p) => p.kind === 'text' || (p.kind === 'profile' && p.text)).map((p) => <span key={p.id}>{p.text}</span>)}</span>
+        <span className="play-who-text"><b>{name}</b>{parts.filter((p) => p.kind === 'text' || (p.kind === 'profile' && p.text)).map((p) => <span key={p.id}>{tx(p.text)}</span>)}</span>
       </div>
       <div className="play-right">
         {parts.some((p) => p.kind === 'server') && <span className="play-brand"><Brand name={brandName} /></span>}
-        {pads.length > 0 && <ul className="play-pads" aria-label="Controllers">{pads.slice(0, 4).map((p, i) => <li key={i} title={p}><i aria-hidden="true" />P{i + 1}<span className="sr-only"> {p}</span></li>)}</ul>}
+        {pads.length > 0 && <ul className="play-pads" aria-label={t('Controllers')}>{pads.slice(0, 4).map((p, i) => <li key={i} title={p}><i aria-hidden="true" />{t('P{number}', { number: i + 1 })}<span className="sr-only"> {p}</span></li>)}</ul>}
         <time className="play-clock">{time}</time>
-        {onHelp && <button type="button" className="play-sys" onClick={onHelp} aria-label="How to get back to the app" title="How to get back to the app"><IconHelp /></button>}
-        {toggleFull && <button type="button" className="play-sys" onClick={toggleFull} aria-pressed={full} aria-label="Full screen" title={full ? 'Leave full screen' : 'Full screen'}><IconExpand /></button>}
-        {onExit && <button type="button" className="play-sys play-exit" onClick={onExit} aria-label="Return To Server" title="Return to the server's Home (Esc)"><IconReturn /><span className="play-exit-label" aria-hidden="true">Return To Server</span></button>}
+        {onHelp && <button type="button" className="play-sys" onClick={onHelp} aria-label={t('How to get back to the app')} title={t('How to get back to the app')}><IconHelp /></button>}
+        {toggleFull && <button type="button" className="play-sys" onClick={toggleFull} aria-pressed={full} aria-label={t('Full screen')} title={full ? t('Leave full screen') : t('Full screen')}><IconExpand /></button>}
+        {onExit && <button type="button" className="play-sys play-exit" onClick={onExit} aria-label={t('Return To Server')} title={t("Return to the server's Home (Esc)")}><IconReturn /><span className="play-exit-label" aria-hidden="true">{t('Return To Server')}</span></button>}
       </div>
     </header>
   )
@@ -74,11 +75,11 @@ export function SystemDock({ entries }: { entries: DockEntry[] }) {
   if (!entries.length) return null
   const current = dockCurrent(entries, loc.pathname, loc.search)
   return (
-    <nav className="play-dock" aria-label="System">
+    <nav className="play-dock" aria-label={t('System')}>
       {entries.map((e, i) => (
-        <Link key={e.id} to={e.route} className={i === current ? 'on' : ''} aria-current={i === current ? 'page' : undefined} aria-label={e.label}>
+        <Link key={e.id} to={e.route} className={i === current ? 'on' : ''} aria-current={i === current ? 'page' : undefined} aria-label={tx(e.label)}>
           <span className="play-dock-ic" aria-hidden="true">{sduiIcon(e.icon)}</span>
-          <span className="play-dock-label" aria-hidden="true">{e.label}</span>
+          <span className="play-dock-label" aria-hidden="true">{tx(e.label)}</span>
         </Link>
       ))}
     </nav>

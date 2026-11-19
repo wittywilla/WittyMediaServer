@@ -5,13 +5,14 @@ import { Dialog } from './Overlay'
 import { HELP_EVENT } from './KeyHelp.event'
 import { legend, type InputKind } from './inputModel'
 import { useInput } from './useInput'
+import { t, tk, tx } from '../i18n'
 
 // The help for the keys, asked for with ? (or Back and Start together on a pad). It lists the one input model for
 // the input in use, and the keyboard's own shortcuts besides when a keyboard is there.
 
 const KEYBOARD_EXTRA: [string, string][] = [
-  ['/ or Ctrl+K', 'Search'], ['Ctrl+[ and Ctrl+]', 'Previous and next tab'], ['.  or Shift+F10', 'Options for the thing in focus'],
-  ['Ctrl+Shift+L', 'Edit the layout'], ['F6', 'Next area: page, controls, menu'], ['Page Up and Page Down', 'Page through a long list'], ['Home', 'Jump to the top'], ['Esc or Backspace', 'Back'],
+  [tk('/ or Ctrl+K'), tk('Search')], [tk('Ctrl+[ and Ctrl+]'), tk('Previous and next tab')], [tk('.  or Shift+F10'), tk('Options for the thing in focus')],
+  ['Ctrl+Shift+L', tk('Edit the layout')], ['F6', tk('Next area: page, controls, menu')], [tk('Page Up and Page Down'), tk('Page through a long list')], [tk('Home'), tk('Jump to the top')], [tk('Esc or Backspace'), tk('Back')],
 ]
 
 export function KeyHelp() {
@@ -26,10 +27,10 @@ export function KeyHelp() {
   const shown: InputKind = kind === 'touch' ? 'keys' : kind
   const items = legend(shown, family, { scope: 'list' })
   return (
-    <Dialog title="Keys" size="sm" onClose={() => setOpen(false)} className="key-help">
+    <Dialog title={t('Keys')} size="sm" onClose={() => setOpen(false)} className="key-help">
       <dl className="key-help-list">
-        {items.map((i) => <div key={i.action}><dt><kbd>{i.glyph}</kbd></dt><dd>{i.label}</dd></div>)}
-        {shown === 'keys' && KEYBOARD_EXTRA.map(([k, v]) => <div key={k}><dt><kbd>{k}</kbd></dt><dd>{v}</dd></div>)}
+        {items.map((i) => <div key={i.action}><dt><kbd>{tx(i.glyph)}</kbd></dt><dd>{tx(i.label)}</dd></div>)}
+        {shown === 'keys' && KEYBOARD_EXTRA.map(([k, v]) => <div key={k}><dt><kbd>{tx(k)}</kbd></dt><dd>{tx(v)}</dd></div>)}
       </dl>
     </Dialog>
   )

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { reportClient } from '../errorReport'
+import { t } from '../i18n'
 import { IconRefresh } from '../icons'
 
 // The last line of defence: an error while drawing a page would otherwise leave
@@ -23,14 +24,14 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, { 
       <main className="center">
         <div className="empty" role="alert">
           <span className="empty-ic" aria-hidden="true"><IconRefresh /></span>
-          <h1 style={{ margin: '0 0 var(--sp-1)', fontSize: 'var(--text-lg)', color: 'var(--fg)' }}>This page ran into a problem</h1>
-          <p>Reloading usually fixes it. What happened has been noted in your server's log, and nothing was sent anywhere else.</p>
+          <h1 style={{ margin: '0 0 var(--sp-1)', fontSize: 'var(--text-lg)', color: 'var(--fg)' }}>{t('This page ran into a problem')}</h1>
+          <p>{t("Reloading usually fixes it. What happened has been noted in your server's log, and nothing was sent anywhere else.")}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 'var(--sp-2)' }}>
-            <button type="button" className="btn primary" onClick={() => window.location.reload()}>Reload</button>
-            <button type="button" className="btn ghost" onClick={() => window.location.assign('/')}>Go to Home</button>
-            <a className="btn ghost" href="/help/troubleshooting">Troubleshooting</a>
+            <button type="button" className="btn primary" onClick={() => window.location.reload()}>{t('Reload')}</button>
+            <button type="button" className="btn ghost" onClick={() => window.location.assign('/')}>{t('Go to Home')}</button>
+            <a className="btn ghost" href="/help/troubleshooting">{t('Troubleshooting')}</a>
           </div>
-          <p style={{ marginTop: 'var(--sp-3)' }}>Looking after this server, and it keeps happening? <a href="/settings/logs?tab=bundle">Download the logs</a>, sanitized for sharing, for whoever is helping you.</p>
+          <p style={{ marginTop: 'var(--sp-3)' }}>{t('Looking after this server, and it keeps happening?')} <a href="/settings/logs?tab=bundle">{t('Download the logs, sanitized for sharing, for whoever is helping you.')}</a></p>
         </div>
       </main>
     )

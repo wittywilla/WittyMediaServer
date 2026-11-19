@@ -11,6 +11,7 @@ import { toast } from '../state'
 import { leaveParty, partyCommand, partyStepQueue, positionAt, serverNow, useParty, usePartySync } from '../remote/party'
 import { partyKind } from '../remote/partyLogic'
 import type { AudioMode, PlayerView } from './types'
+import { t } from '../i18n'
 
 type Play = (items: Item[], start?: number, mode?: AudioMode, at?: number) => void
 
@@ -54,7 +55,7 @@ export function useMusicParty(view: PlayerView, play: Play): PlayerView {
   const here = !!want && view.current?.id === want
   useEffect(() => {
     if (!key || applied.current !== key || here) return
-    toast('You’ve left the listening party.')
+    toast(t('You’ve left the listening party.'))
     leaveParty()
   }, [key, here])
 
@@ -64,7 +65,7 @@ export function useMusicParty(view: PlayerView, play: Play): PlayerView {
     loaded: () => !!latest.current.view.media()?.getAttribute('src'),
     duration: () => latest.current.view.current?.runtimeSec || 0,
     cheapSeek: () => { const it = latest.current.view.current; return !!it && (!!it.audioDirect || it.videoCodec === 'midi') },
-    blocked: () => toast('Press play to join in with the party.'),
+    blocked: () => toast(t('Press play to join in with the party.')),
   })
 
   // Repeat would start the song again under a room that has moved past its end.
@@ -73,8 +74,8 @@ export function useMusicParty(view: PlayerView, play: Play): PlayerView {
 
   if (!sync.active || !sync.room) return view
   const r = sync.room
-  const hostOnly = () => toast('Only the host controls this watch party.')
-  const fixed = () => toast('A party plays its queue in order, once through. The queue is in the party’s panel.')
+  const hostOnly = () => toast(t('Only the host controls this watch party.'))
+  const fixed = () => toast(t('A party plays its queue in order, once through. The queue is in the party’s panel.'))
   return {
     ...view,
     rate: r.state.rate,

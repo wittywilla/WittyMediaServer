@@ -7,6 +7,7 @@
 // never heard of gets a plain text box.
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { t, tk, tx } from '../../../i18n'
 import { IconClose, IconDown, IconPlus, IconUp } from '../../../icons'
 import { sduiIcon } from '../../../sdui/render/icons'
 import { Button, Chip, Chips, Field as Labelled, IconButton, Input, Menu, Select, Switch, Textarea } from '../../../ui'
@@ -21,7 +22,7 @@ export type IssueView = { issue: Issue; fix: Fix | null; apply?: () => void }
 // What a control may need to know beyond its own property.
 export type FieldCtx = { cat: Catalogue; libraries: LibraryRef[]; pages: PageEntry[]; sections?: Option[] }
 
-const SEVERITY: Record<string, string> = { error: 'Problem', warning: 'Worth a look' }
+const SEVERITY: Record<string, string> = { error: tk('Problem'), warning: tk('Worth a look') }
 
 export function IssueNotes({ issues }: { issues: IssueView[] }) {
   if (!issues.length) return null
@@ -29,10 +30,10 @@ export function IssueNotes({ issues }: { issues: IssueView[] }) {
     <ul className="pe-issues">
       {issues.map((v, i) => (
         <li key={i} className={'pe-issue ' + (v.issue.severity === 'warning' ? 'warn' : 'error')}>
-          <span><strong>{SEVERITY[v.issue.severity] || 'Problem'}:</strong> {v.issue.message}.</span>
+          <span><strong>{t('{severity}:', { severity: tx(SEVERITY[v.issue.severity] || 'Problem') })}</strong> {t('{message}.', { message: tx(v.issue.message) })}</span>
           {v.fix && v.apply
             ? <Button size="sm" onClick={v.apply}>{v.fix.label}</Button>
-            : v.issue.fix && <span className="pe-issue-fix">{v.issue.fix}</span>}
+            : v.issue.fix && <span className="pe-issue-fix">{tx(v.issue.fix)}</span>}
         </li>
       ))}
     </ul>
@@ -53,14 +54,14 @@ function useTyped(field: Field, value: unknown, onChange: (v: unknown) => void):
 }
 
 function variableLabel(v: string): string {
-  if (v === '$each') return 'Each one the section is repeated for ($each)'
-  return `This page’s ${words(v.slice(1)).toLowerCase()} (${v})`
+  if (v === '$each') return t('Each one the section is repeated for ($each)')
+  return t('This page’s {name} ({variable})', { name: tx(words(v.slice(1))).toLowerCase(), variable: v })
 }
 
 function Facts({ field, extra }: { field: Field; extra?: ReactNode }) {
   const facts = [field.limits, field.defaultText, field.only].filter(Boolean)
   if (!field.help && !facts.length && !extra) return null
-  return <>{field.help}{field.help && facts.length > 0 && ' '}{facts.length > 0 && <span className="pe-facts">{facts.join(' · ')}</span>}{extra}</>
+  return <>{tx(field.help)}{field.help && facts.length > 0 && ' '}{facts.length > 0 && <span className="pe-facts">{facts.join(' · ')}</span>}{extra}</>
 }
 
 // The places in the app a "where it leads" box can suggest: the pages, the libraries and the app's own screens.
@@ -69,17 +70,17 @@ function useRoutes(ctx: FieldCtx): Option[] {
     const out: Option[] = []
     for (const p of ctx.pages) {
       const route = pageKindSpec(ctx.cat, p.kind)?.route || ''
-      if (route.includes('{id}')) out.push({ value: route.replace('{id}', p.id), label: p.title })
-      else if (route && !route.includes('{') && !p.match) out.push({ value: route, label: p.title })
+      if (route.includes('{id}')) out.push({ value: route.replace('{id}', p.id), label: tx(p.title) })
+      else if (route && !route.includes('{') && !p.match) out.push({ value: route, label: tx(p.title) })
     }
     for (const l of ctx.libraries) out.push({ value: `/library/${l.id}`, label: l.name })
-    for (const s of navScreens(ctx.cat)) out.push({ value: s.route, label: s.label })
+    for (const s of navScreens(ctx.cat)) out.push({ value: s.route, label: tx(s.label) })
     const seen = new Set<string>()
     return out.filter((o) => !seen.has(o.value) && !!seen.add(o.value))
   }, [ctx.cat, ctx.pages, ctx.libraries])
 }
 
-export function IconPicker({ cat, value, onChange, id, describedBy, none = 'No icon' }: { cat: Catalogue; value: unknown; onChange: (v: unknown) => void; id?: string; describedBy?: string; none?: string }) {
+export function IconPicker({ cat, value, onChange, id, describedBy, none }: { cat: Catalogue; value: unknown; onChange: (v: unknown) => void; id?: string; describedBy?: string; none?: string }) {
   const [open, setOpen] = useState(false)
   const panel = useId()
   const cur = typeof value === 'string' ? value : ''
@@ -87,15 +88,15 @@ export function IconPicker({ cat, value, onChange, id, describedBy, none = 'No i
     <div className="pe-icon">
       <div className="pe-icon-now">
         <button type="button" id={id} className="btn" aria-expanded={open} aria-controls={open ? panel : undefined} aria-describedby={describedBy} onClick={() => setOpen((o) => !o)}>
-          {sduiIcon(cur)}<span>{cur ? words(cur) : none}</span>
+          {sduiIcon(cur)}<span>{cur ? tx(words(cur)) : none ?? t('No icon')}</span>
         </button>
-        {cur && <Button size="sm" variant="ghost" onClick={() => onChange(undefined)}>Clear</Button>}
+        {cur && <Button size="sm" variant="ghost" onClick={() => onChange(undefined)}>{t('Clear')}</Button>}
       </div>
       {open && (
-        <div className="pe-icon-grid" id={panel} role="group" aria-label="Icons" data-nav-group>
+        <div className="pe-icon-grid" id={panel} role="group" aria-label={t('Icons')} data-nav-group>
           {(cat.icons || []).map((name) => (
             <button type="button" key={name} className={'pe-icon-cell' + (name === cur ? ' on' : '')} aria-pressed={name === cur} onClick={() => { onChange(name); setOpen(false) }}>
-              {sduiIcon(name)}<span>{words(name)}</span>
+              {sduiIcon(name)}<span>{tx(words(name))}</span>
             </button>
           ))}
         </div>
@@ -109,7 +110,7 @@ export function IconPicker({ cat, value, onChange, id, describedBy, none = 'No i
 function OrderedChoice({ field, value, onChange, id }: { field: Field; value: unknown; onChange: (v: unknown) => void; id?: string }) {
   const chosen = Array.isArray(value) ? value.map(String) : []
   const left = field.options.filter((o) => !chosen.includes(o.value))
-  const label = (v: string) => field.options.find((o) => o.value === v)?.label || `${v} (not a choice)`
+  const label = (v: string) => tx(field.options.find((o) => o.value === v)?.label) || t('{value} (not a choice)', { value: v })
   const move = (i: number, to: number) => { const next = [...chosen]; const [x] = next.splice(i, 1); next.splice(to, 0, x); onChange(next) }
   return (
     <div className="pe-ordered">
@@ -118,17 +119,17 @@ function OrderedChoice({ field, value, onChange, id }: { field: Field; value: un
           {chosen.map((v, i) => (
             <li key={v + i}>
               <span>{label(v)}</span>
-              <IconButton size="sm" label={`Move ${label(v)} earlier`} disabled={i === 0} onClick={() => move(i, i - 1)}><IconUp /></IconButton>
-              <IconButton size="sm" label={`Move ${label(v)} later`} disabled={i === chosen.length - 1} onClick={() => move(i, i + 1)}><IconDown /></IconButton>
-              <IconButton size="sm" label={`Remove ${label(v)}`} onClick={() => { const next = chosen.filter((_, n) => n !== i); onChange(next.length ? next : undefined) }}><IconClose /></IconButton>
+              <IconButton size="sm" label={t('Move {name} earlier', { name: label(v) })} disabled={i === 0} onClick={() => move(i, i - 1)}><IconUp /></IconButton>
+              <IconButton size="sm" label={t('Move {name} later', { name: label(v) })} disabled={i === chosen.length - 1} onClick={() => move(i, i + 1)}><IconDown /></IconButton>
+              <IconButton size="sm" label={t('Remove {name}', { name: label(v) })} onClick={() => { const next = chosen.filter((_, n) => n !== i); onChange(next.length ? next : undefined) }}><IconClose /></IconButton>
             </li>
           ))}
         </ol>
       )}
       {left.length > 0 && (
-        <Select id={id} inputSize="sm" aria-label={`Add to ${field.label}`} value="" onChange={(e) => { if (e.target.value) onChange([...chosen, e.target.value]) }}>
-          <option value="">{chosen.length ? 'Add another…' : field.hasDefault ? 'The usual ones. Choose your own…' : 'Choose…'}</option>
-          {left.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        <Select id={id} inputSize="sm" aria-label={t('Add to {name}', { name: tx(field.label) })} value="" onChange={(e) => { if (e.target.value) onChange([...chosen, e.target.value]) }}>
+          <option value="">{chosen.length ? t('Add another…') : field.hasDefault ? t('The usual ones. Choose your own…') : t('Choose…')}</option>
+          {left.map((o) => <option key={o.value} value={o.value}>{tx(o.label)}</option>)}
         </Select>
       )}
     </div>
@@ -141,9 +142,9 @@ function AnyOf({ field, value, onChange }: { field: Field; value: unknown; onCha
   const extra = chosen.filter((v) => !field.options.some((o) => o.value === v))
   const toggle = (v: string) => onChange(chosen.includes(v) ? chosen.filter((x) => x !== v) : [...chosen, v])
   return (
-    <Chips label={field.label} className="pe-anyof">
-      {field.options.map((o) => <Chip key={o.value} selected={chosen.includes(o.value)} onClick={() => toggle(o.value)}>{o.label}</Chip>)}
-      {extra.map((v) => <Chip key={v} onRemove={() => toggle(v)} removeLabel={`Remove ${v}`}>{v} (not a choice)</Chip>)}
+    <Chips label={tx(field.label)} className="pe-anyof">
+      {field.options.map((o) => <Chip key={o.value} selected={chosen.includes(o.value)} onClick={() => toggle(o.value)}>{tx(o.label)}</Chip>)}
+      {extra.map((v) => <Chip key={v} onRemove={() => toggle(v)} removeLabel={t('Remove {name}', { name: v })}>{t('{value} (not a choice)', { value: v })}</Chip>)}
     </Chips>
   )
 }
@@ -160,14 +161,14 @@ export function PropField({ field, value, onChange, issues = [], ctx, unordered,
   const labelId = useId()
   const routes = useRoutes(ctx)
   const notes = issues.length ? <IssueNotes issues={issues} /> : undefined
-  const label = <>{field.label}{!field.known && <span className="pe-unknown"> ({field.type})</span>}</>
+  const label = <>{tx(field.label)}{!field.known && <span className="pe-unknown"> ({field.type})</span>}</>
 
   if (field.kind === 'bool') {
     const on = typeof value === 'boolean' ? value : field.defaultValue === true
     return (
       <div className={'pe-bool' + (issues.length ? ' invalid' : '')}>
         <div className="pe-bool-row">
-          <div><div className="ui-field-label" id={labelId}>{field.label}</div><div className="hint"><Facts field={field} /></div></div>
+          <div><div className="ui-field-label" id={labelId}>{tx(field.label)}</div><div className="hint"><Facts field={field} /></div></div>
           <Switch checked={on} labelledBy={labelId} onChange={(v) => onChange(v)} />
         </div>
         {notes}
@@ -176,9 +177,9 @@ export function PropField({ field, value, onChange, issues = [], ctx, unordered,
   }
 
   const insert = field.placeholders && (ctx.cat.placeholders || []).length > 0 && (
-    <Menu label="Placeholders" align="start"
-      trigger={(p) => <button type="button" className="btn sm ghost pe-insert" {...p}><IconPlus size={14} /> Insert a name that fills itself in</button>}
-      items={(ctx.cat.placeholders || []).map((o) => ({ key: o.value, label: o.label, hint: o.value, onSelect: () => setText(text + o.value) }))} />
+    <Menu label={t('Placeholders')} align="start"
+      trigger={(p) => <button type="button" className="btn sm ghost pe-insert" {...p}><IconPlus size={14} /> {t('Insert a name that fills itself in')}</button>}
+      items={(ctx.cat.placeholders || []).map((o) => ({ key: o.value, label: tx(o.label), hint: o.value, onSelect: () => setText(text + o.value) }))} />
   )
   const variables = field.variables.length > 0 && <datalist id={listId}>{field.variables.map((v) => <option key={v} value={v} label={variableLabel(v)} />)}</datalist>
 
@@ -187,7 +188,7 @@ export function PropField({ field, value, onChange, issues = [], ctx, unordered,
   switch (field.kind) {
     case 'multiline': case 'markdown':
       control = <Textarea rows={field.kind === 'markdown' ? 6 : 3} value={text} maxLength={field.maxLength || undefined} placeholder={field.placeholder} onChange={(e) => setText(e.target.value)} />
-      if (field.kind === 'markdown') hintExtra = <span className="pe-facts"> Markdown: **bold**, *italic*, lists and [links](/library/3).</span>
+      if (field.kind === 'markdown') hintExtra = <span className="pe-facts"> {t('Markdown: **bold**, *italic*, lists and [links](/library/3).')}</span>
       break
     case 'int': case 'number':
       control = <Input type="number" inputMode={field.kind === 'int' ? 'numeric' : 'decimal'} step={field.kind === 'int' ? 1 : 'any'} min={field.min} max={field.max} value={text} placeholder={field.placeholder} onChange={(e) => setText(e.target.value)} />
@@ -197,9 +198,9 @@ export function PropField({ field, value, onChange, issues = [], ctx, unordered,
       const known = field.options.some((o) => o.value === cur)
       control = (
         <Select value={cur} onChange={(e) => onChange(e.target.value || undefined)}>
-          <option value="">{field.hasDefault ? `${valueText(field, field.defaultValue)} (the usual)` : field.required ? 'Choose…' : 'Not set'}</option>
-          {field.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          {cur && !known && <option value={cur}>{cur} (not a choice)</option>}
+          <option value="">{field.hasDefault ? t('{value} (the usual)', { value: valueText(field, field.defaultValue) }) : field.required ? t('Choose…') : t('Not set')}</option>
+          {field.options.map((o) => <option key={o.value} value={o.value}>{tx(o.label)}</option>)}
+          {cur && !known && <option value={cur}>{t('{value} (not a choice)', { value: cur })}</option>}
         </Select>
       )
       break
@@ -208,16 +209,16 @@ export function PropField({ field, value, onChange, issues = [], ctx, unordered,
       control = unordered ? <AnyOf field={field} value={value} onChange={onChange} /> : <OrderedChoice field={field} value={value} onChange={onChange} />
       break
     case 'icon':
-      control = <IconPicker cat={ctx.cat} value={value} onChange={onChange} none={field.hasDefault ? `${words(String(field.defaultValue))} (the usual)` : 'No icon'} />
+      control = <IconPicker cat={ctx.cat} value={value} onChange={onChange} none={field.hasDefault ? t('{value} (the usual)', { value: tx(words(String(field.defaultValue))) }) : t('No icon')} />
       break
     case 'section': {
       const cur = toText(value)
       const options = ctx.sections || []
       control = (
         <Select value={cur} onChange={(e) => onChange(e.target.value || undefined)}>
-          <option value="">{field.required ? 'Choose a section…' : 'Not set'}</option>
+          <option value="">{field.required ? t('Choose a section…') : t('Not set')}</option>
           {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          {cur && !options.some((o) => o.value === cur) && <option value={cur}>{cur} (not on this page)</option>}
+          {cur && !options.some((o) => o.value === cur) && <option value={cur}>{t('{value} (not on this page)', { value: cur })}</option>}
         </Select>
       )
       break
@@ -227,36 +228,36 @@ export function PropField({ field, value, onChange, issues = [], ctx, unordered,
       const known = field.variables.includes(cur) || ctx.libraries.some((l) => String(l.id) === cur)
       control = (
         <Select value={cur} onChange={(e) => onChange(fromText(field, e.target.value))}>
-          <option value="">{field.required ? 'Choose a library…' : 'Every library'}</option>
+          <option value="">{field.required ? t('Choose a library…') : t('Every library')}</option>
           {field.variables.map((v) => <option key={v} value={v}>{variableLabel(v)}</option>)}
           {ctx.libraries.map((l) => <option key={l.id} value={String(l.id)}>{l.name}</option>)}
-          {cur && !known && <option value={cur}>{cur.startsWith('$') ? `${cur} (means nothing here)` : `Library #${cur} (not one of yours)`}</option>}
+          {cur && !known && <option value={cur}>{cur.startsWith('$') ? t('{value} (means nothing here)', { value: cur }) : t('Library #{id} (not one of yours)', { id: cur })}</option>}
         </Select>
       )
       break
     }
     case 'route':
       control = <Input value={text} placeholder={field.placeholder || '/library/3'} list={listId} onChange={(e) => setText(e.target.value)} />
-      hintExtra = <><span className="pe-facts"> A place in the app, beginning with /.</span><datalist id={listId}>{routes.map((r) => <option key={r.value} value={r.value} label={r.label} />)}</datalist></>
+      hintExtra = <><span className="pe-facts"> {t('A place in the app, beginning with /.')}</span><datalist id={listId}>{routes.map((r) => <option key={r.value} value={r.value} label={r.label} />)}</datalist></>
       break
     case 'url':
       control = <Input type="url" inputMode="url" value={text} placeholder={field.placeholder || 'https://'} onChange={(e) => setText(e.target.value)} />
       break
     case 'image':
       control = <Input value={text} placeholder={field.placeholder || '/api/…'} onChange={(e) => setText(e.target.value)} />
-      hintExtra = <span className="pe-facts"> The address of a picture on this server, beginning /api/.</span>
+      hintExtra = <span className="pe-facts"> {t('The address of a picture on this server, beginning /api/.')}</span>
       break
     case 'json':
       control = <Textarea className="pe-mono" rows={3} spellCheck={false} value={text} placeholder={field.placeholder} onChange={(e) => setText(e.target.value)} />
       break
     case 'scope':
       control = <Input value={text} placeholder={field.placeholder} spellCheck={false} onChange={(e) => setText(e.target.value)} />
-      hintExtra = <span className="pe-facts"> A module’s ID, or a name of your own in lower case.</span>
+      hintExtra = <span className="pe-facts"> {t('A module’s ID, or a name of your own in lower case.')}</span>
       break
     default:
       // Text, a reference, and any type that came after this editor was written.
       control = <Input value={text} maxLength={field.maxLength || undefined} placeholder={field.placeholder} list={field.variables.length ? listId : undefined} spellCheck={field.kind === 'text' && field.type !== 'string' ? undefined : false} onChange={(e) => setText(e.target.value)} />
-      if (field.variables.length) hintExtra = <span className="pe-facts"> Or one of: {field.variables.join(', ')}.</span>
+      if (field.variables.length) hintExtra = <span className="pe-facts"> {t('Or one of: {names}.', { names: field.variables.join(', ') })}</span>
   }
 
   if (bare) return <div className={'pe-bare' + (issues.length ? ' invalid' : '')}>{control}{variables}{notes}</div>
@@ -273,8 +274,8 @@ export function PropField({ field, value, onChange, issues = [], ctx, unordered,
 // ---------------------------------------------------------------- conditions
 
 const GROUP_WORDS: Record<'any' | 'all', { legend: string; add: string; one: string }> = {
-  any: { legend: 'At least one of these holds', add: 'Add an alternative', one: 'Alternative' },
-  all: { legend: 'Every one of these holds', add: 'Add another group', one: 'Group' },
+  any: { legend: tk('At least one of these holds'), add: tk('Add an alternative'), one: tk('Alternative {n}') },
+  all: { legend: tk('Every one of these holds'), add: tk('Add another group'), one: tk('Group {n}') },
 }
 const MAX_DEPTH = 8
 
@@ -298,18 +299,18 @@ export function ConditionEditor({ value, onChange, ctx, issues = [], depth = 0, 
 
   return (
     <div className={'pe-cond' + (depth ? ' nested' : '')}>
-      {depth === 0 && <p className="pe-cond-says"><strong>Shown:</strong> {conditionText(ctx.cat, c)}</p>}
+      {depth === 0 && <p className="pe-cond-says"><strong>{t('Shown:')}</strong> {conditionText(ctx.cat, c)}</p>}
       <IssueNotes issues={issues} />
       {active.map((f) => (
         <div key={f.name} className="pe-cond-rule">
           <PropField field={f} value={c[f.name]} ctx={ctx} unordered onChange={(v) => set(f.name, v === undefined ? blank(f) : v)} />
-          <IconButton size="sm" label={`Remove the rule ${f.label}`} onClick={() => drop(f.name)}><IconClose /></IconButton>
+          <IconButton size="sm" label={t('Remove the rule {name}', { name: tx(f.label) })} onClick={() => drop(f.name)}><IconClose /></IconButton>
         </div>
       ))}
       {unknown.map((k) => (
         <div key={k} className="pe-cond-rule">
           <PropField field={fieldFor(ctx.cat, { name: k, type: 'unknown', label: words(k) })} value={c[k]} ctx={ctx} onChange={(v) => set(k, v === undefined ? '' : v)} />
-          <IconButton size="sm" label={`Remove the rule ${words(k)}`} onClick={() => drop(k)}><IconClose /></IconButton>
+          <IconButton size="sm" label={t('Remove the rule {name}', { name: tx(words(k)) })} onClick={() => drop(k)}><IconClose /></IconButton>
         </div>
       ))}
       {(['any', 'all'] as const).map((k) => {
@@ -318,40 +319,40 @@ export function ConditionEditor({ value, onChange, ctx, issues = [], depth = 0, 
         const w = GROUP_WORDS[k]
         return (
           <fieldset key={k} className="pe-cond-group">
-            <legend>{w.legend}</legend>
+            <legend>{t(w.legend)}</legend>
             {list.map((sub, i) => (
               <div key={i} className="pe-cond-sub">
-                <div className="pe-cond-sub-head"><span>{w.one} {i + 1}</span><Button size="sm" variant="ghost" onClick={() => { const next = list.filter((_, n) => n !== i); if (next.length) set(k, next); else drop(k) }}>Remove</Button></div>
-                <ConditionEditor value={sub} ctx={ctx} depth={depth + 1} name={`${name}, ${w.one.toLowerCase()} ${i + 1}`} onChange={(v) => set(k, list.map((x, n) => (n === i ? v : x)))} />
+                <div className="pe-cond-sub-head"><span>{t(w.one, { n: i + 1 })}</span><Button size="sm" variant="ghost" onClick={() => { const next = list.filter((_, n) => n !== i); if (next.length) set(k, next); else drop(k) }}>{t('Remove')}</Button></div>
+                <ConditionEditor value={sub} ctx={ctx} depth={depth + 1} name={t('{name}, {part}', { name, part: t(w.one, { n: i + 1 }).toLowerCase() })} onChange={(v) => set(k, list.map((x, n) => (n === i ? v : x)))} />
               </div>
             ))}
-            <Button size="sm" variant="ghost" icon={<IconPlus size={14} />} onClick={() => set(k, [...list, {}])}>{w.add}</Button>
+            <Button size="sm" variant="ghost" icon={<IconPlus size={14} />} onClick={() => set(k, [...list, {}])}>{t(w.add)}</Button>
           </fieldset>
         )
       })}
       {not && (
         <fieldset className="pe-cond-group">
-          <legend>But not when</legend>
+          <legend>{t('But not when')}</legend>
           <div className="pe-cond-sub">
-            <div className="pe-cond-sub-head"><span>{Object.keys(not).length ? 'All of this holds' : 'With no rule here, this is never shown'}</span><Button size="sm" variant="ghost" onClick={() => drop('not')}>Remove</Button></div>
-            <ConditionEditor value={not} ctx={ctx} depth={depth + 1} name={`${name}, but not when`} onChange={(v) => set('not', v)} />
+            <div className="pe-cond-sub-head"><span>{Object.keys(not).length ? t('All of this holds') : t('With no rule here, this is never shown')}</span><Button size="sm" variant="ghost" onClick={() => drop('not')}>{t('Remove')}</Button></div>
+            <ConditionEditor value={not} ctx={ctx} depth={depth + 1} name={t('{name}, but not when', { name })} onChange={(v) => set('not', v)} />
           </div>
         </fieldset>
       )}
       <div className="pe-cond-add">
         {inactive.length > 0 && (
-          <Select inputSize="sm" aria-label={`Add a rule to ${name}`} value="" onChange={(e) => { const f = fields.find((x) => x.name === e.target.value); if (f) set(f.name, blank(f)) }}>
-            <option value="">Add a rule…</option>
-            {inactive.map((f) => <option key={f.name} value={f.name}>{f.label}</option>)}
+          <Select inputSize="sm" aria-label={t('Add a rule to {name}', { name })} value="" onChange={(e) => { const f = fields.find((x) => x.name === e.target.value); if (f) set(f.name, blank(f)) }}>
+            <option value="">{t('Add a rule…')}</option>
+            {inactive.map((f) => <option key={f.name} value={f.name}>{tx(f.label)}</option>)}
           </Select>
         )}
         {depth < MAX_DEPTH && (
-          <Menu label="Combine rules" align="start"
-            trigger={(p) => <button type="button" className="btn sm ghost" {...p}>Combine…</button>}
+          <Menu label={t('Combine rules')} align="start"
+            trigger={(p) => <button type="button" className="btn sm ghost" {...p}>{t('Combine…')}</button>}
             items={[
-              { key: 'any', label: 'At least one of…', hint: 'Shown when any one of several sets of rules holds', disabled: !!group('any'), onSelect: () => set('any', [{}, {}]) },
-              { key: 'all', label: 'Every one of…', hint: 'Several sets of rules that must all hold', disabled: !!group('all'), onSelect: () => set('all', [{}]) },
-              { key: 'not', label: 'But not when…', hint: 'Hidden when these rules hold', disabled: !!not, onSelect: () => set('not', {}) },
+              { key: 'any', label: t('At least one of…'), hint: t('Shown when any one of several sets of rules holds'), disabled: !!group('any'), onSelect: () => set('any', [{}, {}]) },
+              { key: 'all', label: t('Every one of…'), hint: t('Several sets of rules that must all hold'), disabled: !!group('all'), onSelect: () => set('all', [{}]) },
+              { key: 'not', label: t('But not when…'), hint: t('Hidden when these rules hold'), disabled: !!not, onSelect: () => set('not', {}) },
             ]} />
         )}
       </div>

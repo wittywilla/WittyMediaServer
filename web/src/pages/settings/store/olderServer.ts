@@ -6,6 +6,7 @@
 // server). The server never installs one by itself: it answers 409 with code "older-server" and
 // names each one, and only a request that says confirmOlder installs it. Everything here is what
 // the pop-up needs to ask, kept apart from the page so it can be tested on its own.
+import { t, tn } from './words.ts'
 
 export type OlderVersion = { module: string; name: string; version: string; madeFor: string; server: string; warning: string }
 
@@ -49,20 +50,21 @@ export const confirmedIds = (choices: OlderChoices): string[] => Object.keys(cho
 
 // The pop-up's title.
 export function olderTitle(list: OlderVersion[]): string {
-  if (list.length === 1) return `${list[0].name} ${list[0].version} was made for an older server`
-  return `${list.length} modules were made for an older server`
+  if (list.length === 1) return t('{name} {version} was made for an older server', { name: list[0].name, version: list[0].version })
+  return tn('{count} module was made for an older server', '{count} modules were made for an older server', list.length)
 }
 
 // What each one means, in plain words: what it was made for, what this server is, and what may
 // not work. The server's own warning comes first when it sent one.
 export function olderWords(o: OlderVersion): string[] {
-  const made = o.madeFor ? `WittyMediaServer ${series(o.madeFor)}` : 'an older WittyMediaServer'
-  const here = o.server || 'this server'
-  const lines = [o.warning || `${o.name} ${o.version} was made for ${made}; this server is ${here}. Pages, settings and features from ${o.server ? series(o.server) : 'this server'} will be missing, and it may not work.`]
-  lines.push(`If you install it anyway, parts of ${o.name} may show “This isn’t available”, and it can stop working when this server updates. You can remove it, or update it once a version made for ${o.server ? series(o.server) : 'this server'} is published.`)
+  const made = o.madeFor ? `WittyMediaServer ${series(o.madeFor)}` : t('an older WittyMediaServer')
+  const here = o.server || t('this server')
+  const ours = o.server ? series(o.server) : t('this server')
+  const lines = [o.warning || t('{name} {version} was made for {made}; this server is {here}. Pages, settings and features from {ours} will be missing, and it may not work.', { name: o.name, version: o.version, made, here, ours })]
+  lines.push(t('If you install it anyway, parts of {name} may show “This isn’t available”, and it can stop working when this server updates. You can remove it, or update it once a version made for {ours} is published.', { name: o.name, ours }))
   return lines
 }
 
 // What a module the person chose not to install says in a list of what happened.
 export const notInstalledWords = (o: OlderVersion): string =>
-  `No version of ${o.name} for this server is published yet, so it wasn’t installed. Version ${o.version} was made for WittyMediaServer ${series(o.madeFor) || 'an older series'}.`
+  t('No version of {name} for this server is published yet, so it wasn’t installed. Version {version} was made for WittyMediaServer {series}.', { name: o.name, version: o.version, series: series(o.madeFor) || t('an older series') })

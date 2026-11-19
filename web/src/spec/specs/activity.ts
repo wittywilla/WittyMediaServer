@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { Cc, mk, secN, secP } from '../model.ts'
 import type { SpecPageData, SpecSection } from '../types.ts'
+import { t } from '../../sdui/words.ts'
 
 // The activity panel's own notices and the history's filter (canvas page "activity"); the running tasks stay the
 // panel's live widgets. Ids: show:all, show:failed, clear.
@@ -9,9 +10,9 @@ export interface ActivityView { tab: 'now' | 'history'; connected: boolean; load
 
 export function activitySpec(v: ActivityView): SpecPageData {
   const s: SpecSection[] = []
-  if (!v.connected && v.loaded) s.push(secN('', 'Reconnecting to the server. This may be out of date.', true))
-  if (v.readOnly) s.push(secN('', 'You can see what the server is doing here. Only an administrator can change it.'))
-  if (v.update && v.isAdmin && v.tab === 'now') s.push(secN('Update available', `WittyMediaServer ${v.update} can be installed.`, true))
-  if (v.tab === 'history') s.push(secP('Show', [{ ...Cc('All', !v.failedOnly), id: 'show:all' }, { ...Cc('Failed', v.failedOnly), id: 'show:failed' }, ...(v.canClear ? [{ ...Cc('Clear history'), id: 'clear' }] : [])]))
-  return mk('activity', 'Top bar · Activity', 'Activity', '', s, [], '')
+  if (!v.connected && v.loaded) s.push(secN('', t('Reconnecting to the server. This may be out of date.'), true))
+  if (v.readOnly) s.push(secN('', t('You can see what the server is doing here. Only an administrator can change it.')))
+  if (v.update && v.isAdmin && v.tab === 'now') s.push(secN(t('Update available'), t('WittyMediaServer {version} can be installed.', { version: v.update }), true))
+  if (v.tab === 'history') s.push(secP(t('Show'), [{ ...Cc(t('All'), !v.failedOnly), id: 'show:all' }, { ...Cc(t('Failed'), v.failedOnly), id: 'show:failed' }, ...(v.canClear ? [{ ...Cc(t('Clear history')), id: 'clear' }] : [])]))
+  return mk('activity', t('Top bar · Activity'), t('Activity'), '', s, [], '')
 }

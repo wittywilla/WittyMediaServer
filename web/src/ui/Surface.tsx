@@ -7,6 +7,7 @@ import LogsLink from '../components/LogsLink'
 import { ModuleMissing } from '../components/ModuleMissing'
 import { useMedia } from '../shell/useNav'
 import { IconFilm, IconInfo, IconLeft, IconPlay, IconRight } from '../icons'
+import { num, t } from '../i18n'
 
 // What the content sits on: Card, the poster card, Shelf (a titled row of them),
 // and the three states a page can be in besides ready: loading, empty and failed.
@@ -85,10 +86,10 @@ export function CardRow({ children }: { children: ReactNode }) {
 }
 
 // Shelf: a heading, with an optional link to all of it, over a row of cards.
-export function Shelf({ title, to, toLabel = 'See all', children }: { title: ReactNode; to?: string; toLabel?: string; children: ReactNode }) {
+export function Shelf({ title, to, toLabel, children }: { title: ReactNode; to?: string; toLabel?: string; children: ReactNode }) {
   return (
     <section className="hub">
-      <div className="hub-head"><h2>{title}</h2>{to && <Link to={to}>{toLabel}<IconRight /></Link>}</div>
+      <div className="hub-head"><h2>{title}</h2>{to && <Link to={to}>{toLabel || t('See all')}<IconRight /></Link>}</div>
       <CardRow>{children}</CardRow>
     </section>
   )
@@ -96,7 +97,7 @@ export function Shelf({ title, to, toLabel = 'See all', children }: { title: Rea
 
 // ---------------------------------------------------------------- page states
 
-export function Spinner() { return <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div> }
+export function Spinner() { return <div className="loading-box" role="status" aria-label={t('Loading')}><div className="spinner" /></div> }
 
 // Grey shapes where something will land. Shown only if loading takes a moment.
 export function Skeleton({ w, h, round, lines }: { w?: number | string; h?: number | string; round?: boolean; lines?: number }) {
@@ -106,7 +107,7 @@ export function Skeleton({ w, h, round, lines }: { w?: number | string; h?: numb
 
 // SkeletonGrid: grey shapes where a grid of cards will land.
 export function SkeletonGrid({ square, count = 12, className }: { square?: boolean; count?: number; className?: string }) {
-  return <div className={(square ? 'album-grid' : 'grid') + ' skeleton-grid' + (square ? ' square' : '') + (className ? ' ' + className : '')} aria-busy="true" aria-label="Loading">{Array.from({ length: count }, (_, i) => <div key={i} />)}</div>
+  return <div className={(square ? 'album-grid' : 'grid') + ' skeleton-grid' + (square ? ' square' : '') + (className ? ' ' + className : '')} aria-busy="true" aria-label={t('Loading')}>{Array.from({ length: count }, (_, i) => <div key={i} />)}</div>
 }
 
 export type PageShape = 'home' | 'library' | 'item' | 'search' | 'page'
@@ -153,7 +154,7 @@ export function PageSkeleton({ shape = 'page' }: { shape?: PageShape }) {
   } else {
     body = <div className="skel-lines">{line('10rem', '1.75rem')}{line('100%')}{line('100%')}{line('60%')}</div>
   }
-  return <div className={'page-skel ' + shape + '-skel'} role="status" aria-label="Loading" aria-busy="true">{body}</div>
+  return <div className={'page-skel ' + shape + '-skel'} role="status" aria-label={t('Loading')} aria-busy="true">{body}</div>
 }
 
 // The shape of the page an address leads to, for loading it.
@@ -183,9 +184,9 @@ export function LoadError({ what, onRetry }: { what: string; onRetry?: () => voi
   return (
     <div className="empty" role="alert">
       <span className="empty-ic" aria-hidden="true"><IconInfo /></span>
-      <h2 className="empty-title">{what} couldn’t be loaded</h2>
-      <p>The server didn’t answer properly. This is usually brief, and doesn’t mean anything has gone.</p>
-      {onRetry && <button type="button" className="btn" onClick={onRetry}>Try again</button>}
+      <h2 className="empty-title">{t('{what} couldn’t be loaded', { what })}</h2>
+      <p>{t('The server didn’t answer properly. This is usually brief, and doesn’t mean anything has gone.')}</p>
+      {onRetry && <button type="button" className="btn" onClick={onRetry}>{t('Try again')}</button>}
       <LogsLink />
     </div>
   )
@@ -211,7 +212,7 @@ export function Progress({ value, max = 100, label, tone, showValue }: { value?:
       <div className="ui-progress-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={pct === undefined ? undefined : max} aria-valuenow={value}>
         <i style={pct === undefined ? undefined : { transform: `scaleX(${pct / 100})` }} />
       </div>
-      {showValue && pct !== undefined && <span className="ui-progress-value">{Math.round(pct)}%</span>}
+      {showValue && pct !== undefined && <span className="ui-progress-value">{num(Math.round(pct) / 100, { style: 'percent' })}</span>}
     </div>
   )
 }

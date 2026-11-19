@@ -9,6 +9,7 @@ import { announce } from '../a11y'
 import { IconDown, IconGrip, IconUp } from '../icons'
 import { IconButton } from '../ui/Button'
 import { Switch } from '../ui/Field'
+import { t } from '../i18n'
 
 // locked: never moves and is never hidden. hideFixed: moves, but is always shown (Settings in the menu).
 export type ArrangeRow = { id: string; title: string; icon?: ReactNode; locked?: boolean; hideFixed?: boolean; hidden?: boolean; pinned?: boolean; note?: string }
@@ -68,19 +69,19 @@ export function ArrangeList({ rows, label, canMove, canHide, canPin, onMove, onH
       {rows.map((r, i) => (
         <li key={r.id} className={'nav-custom-row' + (held === r.id ? ' held' : '') + (r.hidden ? ' off' : '') + (over === i && held && held !== r.id ? ' drop' : '') + (r.locked ? ' locked' : '')}>
           {canMove && !r.locked
-            ? <button type="button" className="nav-custom-grip" data-arrange-key={'grip:' + r.id} aria-label={`Move ${r.title}. Position ${i + 1} of ${rows.length}. Use the up and down arrow keys.`}
+            ? <button type="button" className="nav-custom-grip" data-arrange-key={'grip:' + r.id} aria-label={t('Move {name}. Position {position} of {total}. Use the up and down arrow keys.', { name: r.title, position: i + 1, total: rows.length })}
                 onKeyDown={(e) => gripKeys(e, i)} onPointerDown={(e) => startDrag(e, r.id)} onPointerMove={onDrag} onPointerUp={endDrag} onPointerCancel={endDrag}><IconGrip /></button>
             : <span className="nav-custom-grip none" aria-hidden="true" />}
           <span className="nav-custom-name">{r.icon}<span>{r.title}{r.note && <small className="muted"> · {r.note}</small>}</span></span>
           {extra?.(r)}
           {canMove && !r.locked && (
             <span className="nav-custom-move">
-              <IconButton label={`Move ${r.title} up`} size="sm" disabled={i === 0} data-arrange-key={'up:' + r.id} onClick={() => move(i, i - 1, i - 1 === 0 ? 'down:' + r.id : 'up:' + r.id)}><IconUp /></IconButton>
-              <IconButton label={`Move ${r.title} down`} size="sm" disabled={i === rows.length - 1} data-arrange-key={'down:' + r.id} onClick={() => move(i, i + 1, i + 1 === rows.length - 1 ? 'up:' + r.id : 'down:' + r.id)}><IconDown /></IconButton>
+              <IconButton label={t('Move {name} up', { name: r.title })} size="sm" disabled={i === 0} data-arrange-key={'up:' + r.id} onClick={() => move(i, i - 1, i - 1 === 0 ? 'down:' + r.id : 'up:' + r.id)}><IconUp /></IconButton>
+              <IconButton label={t('Move {name} down', { name: r.title })} size="sm" disabled={i === rows.length - 1} data-arrange-key={'down:' + r.id} onClick={() => move(i, i + 1, i + 1 === rows.length - 1 ? 'up:' + r.id : 'down:' + r.id)}><IconDown /></IconButton>
             </span>
           )}
-          {canPin && onPinned && !r.locked && <button type="button" className={'btn sm' + (r.pinned ? ' primary' : ' ghost')} aria-pressed={!!r.pinned} aria-label={`${r.pinned ? 'Unpin' : 'Pin'} ${r.title}${r.pinned ? '' : ' to the top'}`} onClick={() => onPinned(r.id, !r.pinned)}>{r.pinned ? 'Pinned' : 'Pin'}</button>}
-          {r.locked || r.hideFixed ? <span className="muted sdui-locked">Always shown</span> : canHide && <Switch label={`Show ${r.title}`} checked={!r.hidden} onChange={(on) => onHidden(r.id, !on)} />}
+          {canPin && onPinned && !r.locked && <button type="button" className={'btn sm' + (r.pinned ? ' primary' : ' ghost')} aria-pressed={!!r.pinned} aria-label={r.pinned ? t('Unpin {name}', { name: r.title }) : t('Pin {name} to the top', { name: r.title })} onClick={() => onPinned(r.id, !r.pinned)}>{r.pinned ? t('Pinned') : t('Pin')}</button>}
+          {r.locked || r.hideFixed ? <span className="muted sdui-locked">{t('Always shown')}</span> : canHide && <Switch label={t('Show {name}', { name: r.title })} checked={!r.hidden} onChange={(on) => onHidden(r.id, !on)} />}
         </li>
       ))}
     </ul>

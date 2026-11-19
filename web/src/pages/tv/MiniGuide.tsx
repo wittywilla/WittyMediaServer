@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { announce } from '../../a11y'
 import { fmtClock, fmtLeft, type GuideChannel, type GuidePage } from './tvApi'
+import { t } from '../../i18n'
 
 // The mini guide: a few channels over the picture, with what is on them now and
 // next, without leaving what's playing. Up and Down move, OK tunes.
@@ -55,7 +56,7 @@ export default function MiniGuide({ channel, onTune, onClose, onFull }: { channe
   useEffect(() => { list.current?.querySelector<HTMLElement>('[aria-current="true"]')?.focus({ preventScroll: true }) }, [at, rows])
   const cur = rows?.[at]
   const [more, setMore] = useState<{ key: string; at: number } | null>(null)
-  useEffect(() => { if (cur) announce(`Channel ${cur.number}, ${cur.name}`) }, [cur?.key]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (cur) announce(t('Channel {number}, {name}', { number: cur.number, name: cur.name })) }, [cur?.key]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onKey = (e: React.KeyboardEvent) => {
     let done = true
@@ -72,11 +73,11 @@ export default function MiniGuide({ channel, onTune, onClose, onFull }: { channe
     if (done) { e.preventDefault(); e.stopPropagation() }
   }
   return (
-    <div className="ctv-mini" role="region" aria-label="Mini guide" onClick={(e) => e.stopPropagation()} onKeyDown={onKey}>
+    <div className="ctv-mini" role="region" aria-label={t('Mini guide')} onClick={(e) => e.stopPropagation()} onKeyDown={onKey}>
       {more && <MoreInfo channelKey={more.key} at={more.at} onClose={() => setMore(null)} />}
-      <div className="ctv-mini-head"><b>Now and next</b><button type="button" className="ctv-btn sm" onClick={() => { if (cur) { const on = cur.programmes.find((p) => p.start <= now && p.end > now); setMore({ key: cur.key, at: on ? now : cur.programmes[0]?.start ?? now }) } }} disabled={!cur}>More info <kbd aria-hidden="true">I</kbd></button><button type="button" className="ctv-btn sm" onClick={onFull}>Full guide</button><button type="button" className="ctv-btn sm" onClick={onClose}>Close</button></div>
+      <div className="ctv-mini-head"><b>{t('Now and next')}</b><button type="button" className="ctv-btn sm" onClick={() => { if (cur) { const on = cur.programmes.find((p) => p.start <= now && p.end > now); setMore({ key: cur.key, at: on ? now : cur.programmes[0]?.start ?? now }) } }} disabled={!cur}>{t('More info')} <kbd aria-hidden="true">I</kbd></button><button type="button" className="ctv-btn sm" onClick={onFull}>{t('Full guide')}</button><button type="button" className="ctv-btn sm" onClick={onClose}>{t('Close')}</button></div>
       {err && <div className="ctv-err" role="alert">{err}</div>}
-      {!rows && !err && <div className="ctv-mini-wait">Loading…</div>}
+      {!rows && !err && <div className="ctv-mini-wait">{t('Loading…')}</div>}
       <ul ref={list}>
         {rows?.map((c, i) => {
           const on = c.programmes.find((p) => p.start <= now && p.end > now)
@@ -86,7 +87,7 @@ export default function MiniGuide({ channel, onTune, onClose, onFull }: { channe
               <button type="button" className={'ctv-mini-row' + (i === at ? ' sel' : '') + (c.key === channel ? ' tuned' : '')} tabIndex={i === at ? 0 : -1} aria-current={i === at} disabled={!!c.encrypted}
                 onClick={() => { if (i === at) onTune(c.key); else setAt(i) }} onFocus={() => { if (i !== at) setAt(i) }}>
                 <span className="ctv-mini-ch"><b>{c.number}</b> {c.name}</span>
-                <span className="ctv-mini-now"><b>{on?.title || (c.kind === 'library' ? 'Off air' : 'No guide data')}</b>{on && on.end > now && <small>{fmtLeft(on.end - now)} left</small>}</span>
+                <span className="ctv-mini-now"><b>{on?.title || (c.kind === 'library' ? t('Off air') : t('No guide data'))}</b>{on && on.end > now && <small>{t('{time} left', { time: fmtLeft(on.end - now) })}</small>}</span>
                 <span className="ctv-mini-next">{next && <><time>{fmtClock(next.start)}</time> {next.title}</>}</span>
               </button>
             </li>

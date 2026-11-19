@@ -1,0 +1,15 @@
+{
+  "Language and time zone": "Язык и часовой пояс",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "Прежде всего: язык этих страниц, меню дисков и звуковых дорожек, а также часовой пояс сервера.",
+  "Language": "Язык",
+  "Everything on these pages, for everyone who uses this server.": "Всё на этих страницах — для всех, кто пользуется этим сервером.",
+  "Disc menus and sound tracks": "Меню дисков и звуковые дорожки",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "Меню дисков и звуковая дорожка, с которой начинается фильм или сериал, если она есть на этом языке. Субтитры выключены, пока кто-нибудь их не включит.",
+  "The original language": "Язык оригинала",
+  "Time zone": "Часовой пояс",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "По нему считаются дни телепрограммы, расписания, записи и журналы. Если сервер сейчас работает в другом поясе, он один раз перезапустится по окончании настройки.",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "Часовой пояс компьютера, на котором работает сервер. По нему считаются дни телепрограммы, расписания, записи и журналы.",
+  "This device is set to {zone}.": "На этом устройстве установлен пояс {zone}.",
+  "You can change these again on the Name and address step, and later in Settings.": "Это можно снова изменить на шаге «Имя и адрес», а позже — в настройках.",
+  "Continue": "Продолжить"
+}

@@ -30,6 +30,8 @@ import { classifyPlayError } from './errors'
 import QualityMenu, { StreamInfo } from './QualityMenu'
 import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from './quality'
 import { announce } from '../a11y'
+import { t, tk, tn, tx } from '../i18n'
+import { trackLang } from './trackLang'
 import { useMedia } from '../shell/useNav'
 
 // Opened from the player's top bar, and not before.
@@ -39,18 +41,22 @@ const PartyPanel = lazy(() => import('../remote/PartyPanel'))
 
 haveHls(Hls)
 
-const MODE_WORDS: Record<string, string> = { direct: 'Direct play', remux: 'Rewrapped', transcode: 'Transcoding' }
+const MODE_WORDS: Record<string, string> = { direct: tk('Direct play'), remux: tk('Rewrapped'), transcode: tk('Transcoding') }
 
 // A track's own name, unless it only repeats its language ("English" under "English").
-const ownName = (t: { language: string; title?: string }) => (t.title && t.title.trim().toLowerCase() !== langName(t.language).toLowerCase() ? t.title : undefined)
+// The title is checked against the language's English name and its name in the app's language.
+const ownName = (tr: { language: string; title?: string }) => {
+  const own = tr.title?.trim().toLowerCase()
+  return own && own !== langName(tr.language).toLowerCase() && own !== trackLang(tr.language).toLowerCase() ? tr.title : undefined
+}
 // Sound as people say it, not a number of channels.
-const channelWords = (n?: number) => (!n ? '' : n === 1 ? 'Mono' : n === 2 ? 'Stereo' : n === 6 ? '5.1' : n === 8 ? '7.1' : `${n} channels`)
+const channelWords = (n?: number) => (!n ? '' : n === 1 ? t('Mono') : n === 2 ? t('Stereo') : n === 6 ? '5.1' : n === 8 ? '7.1' : tn('{count} channel', '{count} channels', n))
 // What kind of subtitles, in words rather than a format's code name (SUBRIP, HDMV_PGS_SUBTITLE).
 const subKind = (codec?: string) => {
   const c = (codec || '').toLowerCase()
-  if (c === 'ass' || c === 'ssa') return 'Styled text'
-  if (/pgs|dvd_?sub|dvb_?sub|vobsub|xsub/.test(c)) return 'Pictures'
-  return c ? 'Text' : undefined
+  if (c === 'ass' || c === 'ssa') return t('Styled text')
+  if (/pgs|dvd_?sub|dvb_?sub|vobsub|xsub/.test(c)) return t('Pictures')
+  return c ? t('Text') : undefined
 }
 
 const legacyRemote = () => { try { return localStorage.getItem('wms.remote.video') === '1' } catch { return false } }
@@ -187,7 +193,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         if (!current) return
         setInfo(a)
         noteAway(a.quality?.away)
-        if (want.reopen) setNote((n) => (n?.kind === 'lost' ? { kind: 'back', text: 'Reconnected, at the same place.' } : n))
+        if (want.reopen) setNote((n) => (n?.kind === 'lost' ? { kind: 'back', text: t('Reconnected, at the same place.') } : n))
         setSub((s) => (s == null ? a.subtitleIndex : s))
         // A stream starts where it was asked to; a file or a full stream seeks once open.
         pendingSeek.current = a.seek === 'restart' ? null : (a.startAtSec || null)
@@ -196,7 +202,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         // Picking up after a dropped connection: keep asking, waiting longer each time, rather
         // than stop with an error the moment the connection is still away.
         if (want.reopen && !(e instanceof ApiError && e.status >= 400 && e.status < 500)) {
-          setNote({ kind: 'lost', text: 'Connection lost. Trying again…' })
+          setNote({ kind: 'lost', text: t('Connection lost. Trying again…') })
           retry = window.setTimeout(() => { ask(Math.min(wait * 2, 8000)) }, wait)
           return
         }
@@ -226,14 +232,14 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
       track.kind = 'subtitles'
       track.src = local
       track.srclang = shownSub?.language?.slice(0, 2) || 'und'
-      track.label = shownSub?.title || shownSub?.languageName || 'Subtitles'
+      track.label = shownSub?.title || (shownSub?.language ? trackLang(shownSub.language) : '') || shownSub?.languageName || t('Subtitles')
       track.default = true
       v.appendChild(track)
       track.track.mode = 'showing'
       // Clear of the controls, which sit over the bottom of the picture.
-      const t = track
-      t.addEventListener('load', () => { for (const c of Array.from(t.track.cues || [])) { const cue = c as VTTCue; if (cue.line === 'auto') cue.line = -3 } })
-    }).catch(() => toast('These subtitles couldn’t be loaded.'))
+      const tr = track
+      tr.addEventListener('load', () => { for (const c of Array.from(tr.track.cues || [])) { const cue = c as VTTCue; if (cue.line === 'auto') cue.line = -3 } })
+    }).catch(() => toast(t('These subtitles couldn’t be loaded.')))
     return () => {
       stopped = true
       if (track) { track.track.mode = 'disabled'; track.remove() }
@@ -323,7 +329,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (!v) return
     const onFail = () => {
       if (robust && v.error?.code === MediaError.MEDIA_ERR_NETWORK) return // asked for again at the same place (useSource)
-      if (v.error && !convertInstead()) { errCode.current = v.error.code; setErr(v.error.message || 'This file can’t be played here.') }
+      if (v.error && !convertInstead()) { errCode.current = v.error.code; setErr(v.error.message || t('This file can’t be played here.')) }
     }
     v.addEventListener('error', onFail)
     return () => v.removeEventListener('error', onFail)
@@ -458,7 +464,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const chooseQuality = (choice: string) => {
     setQualityOpen(false)
     setDeviceDefault(here(), choice)
-    announce(`Quality: ${describe(choice, info?.quality?.presets || [])}`)
+    announce(t('Quality: {quality}', { quality: describe(choice, info?.quality?.presets || []) }))
     if (info?.quality?.asked !== choice) ask({ quality: choice, convert: false })
   }
   // Stream information: what the player sees now, with what the server said it sends.
@@ -472,15 +478,15 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     const sid = info?.decision === 'transcode' ? info.streamId : ''
     const ask = () => { if (sid) api.get<StreamWork>(`/hls/${sid}/work`).then(setWork).catch(() => {}) }
     ask()
-    const t = setInterval(() => { tick((n) => n + 1); ask() }, 2000)
-    return () => clearInterval(t)
+    const timer = setInterval(() => { tick((n) => n + 1); ask() }, 2000)
+    return () => clearInterval(timer)
   }, [statsOn, info?.streamId, info?.decision])
   const statLines = statsOn && info ? streamLines(info.decision, info.output && { ...info.output, work: work || info.output.work }, {
     width: video.current?.videoWidth || 0, height: video.current?.videoHeight || 0,
     // A robust stream's rung, which the player picks as it goes; otherwise what the server said.
     kbps: (() => { const h = hlsRef.current; const l = info.streaming?.ladder && h && h.currentLevel >= 0 ? h.levels[h.currentLevel] : null; return l?.bitrate ? Math.round(l.bitrate / 1000) : 0 })(),
   }) : []
-  const trackLabel = (t: { language: string; title?: string }) => [langName(t.language), t.title].filter(Boolean).join(' · ')
+  const trackLabel = (tr: { language: string; title?: string }) => [trackLang(tr.language), tr.title].filter(Boolean).join(' · ')
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
   // A finger's tap on the picture shows the controls, or hides them if they're up, as on any phone's player: the play
   // button pauses. A mouse click still plays and pauses. A double tap on the left or right third skips back or on.
@@ -508,7 +514,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   remote.current = {
     command: (c) => {
       const v = video.current
-      if (!v) throw new Error('The player isn’t ready yet.')
+      if (!v) throw new Error(t('The player isn’t ready yet.'))
       switch (c.type) {
         case 'pause': v.pause(); break
         case 'resume': v.play().catch(() => {}); break
@@ -518,21 +524,21 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         case 'mute': v.muted = !!c.muted; break
         case 'rate': setSpeed(v, c.rate || 1); break
         // In a queue from another device, what follows is the queue's next entry (remote/videoQueue.ts).
-        case 'next': if (!hasNext) throw new Error('Nothing comes after this.'); goNext(true); break
+        case 'next': if (!hasNext) throw new Error(t('Nothing comes after this.')); goNext(true); break
         case 'previous': seek(0); break
         case 'audio': {
           const id = Number(c.audio)
-          if (!info?.audio.some((a) => a.index === id)) throw new Error('That sound track isn’t on this title.')
+          if (!info?.audio.some((a) => a.index === id)) throw new Error(t('That sound track isn’t on this title.'))
           switchTrack('audio', id)
           break
         }
         case 'subtitle': {
           const id = c.subtitle === 'off' ? -1 : Number(c.subtitle)
-          if (id >= 0 && !info?.subtitles.some((x) => x.index === id)) throw new Error('Those subtitles aren’t on this title.')
+          if (id >= 0 && !info?.subtitles.some((x) => x.index === id)) throw new Error(t('Those subtitles aren’t on this title.'))
           switchTrack('sub', id)
           break
         }
-        default: throw new Error('This device can’t do that.')
+        default: throw new Error(t('This device can’t do that.'))
       }
     },
     state: () => {
@@ -564,8 +570,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         <video ref={video} playsInline preload="auto" style={{ objectFit: prefs.picture === 'fill' ? 'cover' : 'contain' }} />
       </div>
       {st.waiting && !needClick && <div className="center-spinner"><div className="spinner" /></div>}
-      {note && !mini && <div className={'net-note' + (note.kind === 'lost' ? ' lost' : '')} role="status" aria-live="polite">{note.text}</div>}
-      {needClick && <div className="big-play"><button onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
+      {note && !mini && <div className={'net-note' + (note.kind === 'lost' ? ' lost' : '')} role="status" aria-live="polite">{tx(note.text)}</div>}
+      {needClick && <div className="big-play"><button aria-label={t('Play')} onClick={(e) => { e.stopPropagation(); setNeedClick(false); video.current?.play() }}><IconPlay /></button></div>}
       <PartyNote itemId={item.id} video={video} close={chrome.close} quiet={mini} />
       {partyOpen && !mini && <Suspense fallback={null}><PartyPanel onClose={() => setPartyOpen(false)} item={{ id: item.id, title: item.title, kind: item.kind, showId: item.showId, positionSec: () => (video.current?.currentTime || 0) + offset }} /></Suspense>}
       {err && (() => {
@@ -573,14 +579,14 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         return (
           <div className={'overlay-msg kind-' + pe.kind} role="alert">
             <div className="box play-error" onClick={(e) => e.stopPropagation()}>
-              <h2>{pe.title}</h2>
-              <p>{pe.text}</p>
-              {pe.kind !== 'other' && err !== pe.text && <details><summary>What the player said</summary><p>{err}</p></details>}
+              <h2>{tx(pe.title)}</h2>
+              <p>{tx(pe.text)}</p>
+              {pe.kind !== 'other' && err !== pe.text && <details><summary>{t('What the player said')}</summary><p>{err}</p></details>}
               <div className="play-error-actions">
-                {pe.again && <button className="btn primary" onClick={() => { setErr(''); errCode.current = undefined; ask(pe.convert && info?.decision !== 'transcode' ? { convert: true } : { reopen: (want.reopen || 0) + 1 }) }}>{pe.convert ? 'Play it converted' : 'Try again'}</button>}
-                {!pe.again && <button className="btn primary" onClick={() => { setErr(''); setPicker('subtitle') }}>Choose subtitles</button>}
-                {info && <button className="btn" onClick={() => setInfoOpen(true)}>How this is playing</button>}
-                <button className="btn ghost" onClick={chrome.close}>Back</button>
+                {pe.again && <button className="btn primary" onClick={() => { setErr(''); errCode.current = undefined; ask(pe.convert && info?.decision !== 'transcode' ? { convert: true } : { reopen: (want.reopen || 0) + 1 }) }}>{pe.convert ? t('Play it converted') : t('Try again')}</button>}
+                {!pe.again && <button className="btn primary" onClick={() => { setErr(''); setPicker('subtitle') }}>{t('Choose subtitles')}</button>}
+                {info && <button className="btn" onClick={() => setInfoOpen(true)}>{t('How this is playing')}</button>}
+                <button className="btn ghost" onClick={chrome.close}>{t('Back')}</button>
               </div>
             </div>
           </div>
@@ -590,81 +596,81 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         party={party.active ? (party.room?.canControl ? 'control' : 'follow') : 'none'} seek={seek} nextHref={item.nextId ? nextHref : null} />
       {mini ? (
         <div className="mini-bar" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-          {duration > 0 && <div className="mini-progress" role="progressbar" aria-label="Position" aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(now)}><i style={{ width: Math.min(100, (now / duration) * 100) + '%' }} /></div>}
+          {duration > 0 && <div className="mini-progress" role="progressbar" aria-label={t('Position')} aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(now)}><i style={{ width: Math.min(100, (now / duration) * 100) + '%' }} /></div>}
           <div className="mini-info" onClick={chrome.expand}>
             <div className="mini-title">{item.showTitle || item.title}</div>
             <div className="mini-sub">{item.showTitle ? [episodeLabel(item), item.title].filter(Boolean).join(' · ') : item.year}</div>
           </div>
           <div className="mini-btns">
-            <button className="ibtn mini-step" onClick={() => onRemote('rew')} title="Back 10 seconds" aria-label="Back 10 seconds"><span aria-hidden="true">−10</span></button>
-            <button className="ibtn big" onClick={togglePlay} title={st.playing ? 'Pause' : 'Play'} aria-label={st.playing ? 'Pause' : 'Play'}>{st.playing ? <IconPause /> : <IconPlay />}</button>
-            {hasNext && (!party.active || party.room?.canControl) ? <button className="ibtn" onClick={() => goNext()} title={party.active ? 'Next for everyone in the party' : 'Next episode'} aria-label={party.active ? 'Next for everyone in the party' : 'Next episode'}><IconNext /></button> : <span />}
-            <button className={'ibtn keep' + (remoteOn ? ' on' : '')} onClick={() => setRemoteOn(!remoteOn)} title="Remote" aria-label="Remote" aria-pressed={remoteOn}><IconRemote /></button>
-            <button className="ibtn" onClick={chrome.expand} title="Full player" aria-label="Full player"><IconExpand /></button>
-            <button className="ibtn" onClick={chrome.close} title="Stop" aria-label="Stop"><IconClose /></button>
+            <button className="ibtn mini-step" onClick={() => onRemote('rew')} title={t('Back 10 seconds')} aria-label={t('Back 10 seconds')}><span aria-hidden="true">−10</span></button>
+            <button className="ibtn big" onClick={togglePlay} title={st.playing ? t('Pause') : t('Play')} aria-label={st.playing ? t('Pause') : t('Play')}>{st.playing ? <IconPause /> : <IconPlay />}</button>
+            {hasNext && (!party.active || party.room?.canControl) ? <button className="ibtn" onClick={() => goNext()} title={party.active ? t('Next for everyone in the party') : t('Next episode')} aria-label={party.active ? t('Next for everyone in the party') : t('Next episode')}><IconNext /></button> : <span />}
+            <button className={'ibtn keep' + (remoteOn ? ' on' : '')} onClick={() => setRemoteOn(!remoteOn)} title={t('Remote')} aria-label={t('Remote')} aria-pressed={remoteOn}><IconRemote /></button>
+            <button className="ibtn" onClick={chrome.expand} title={t('Full player')} aria-label={t('Full player')}><IconExpand /></button>
+            <button className="ibtn" onClick={chrome.close} title={t('Stop')} aria-label={t('Stop')}><IconClose /></button>
           </div>
           {remoteOn && <RemoteSheet docked onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />}
         </div>
       ) : (
         <>
           <div className="top" onClick={(e) => e.stopPropagation()}>
-            <button className="ibtn" onClick={chrome.minimize} title="Back (keeps playing in the mini player)"><IconBack /></button>
-            <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && MODE_WORDS[info.decision]].filter(Boolean).join(' · ')}</div></div>
-            {!compact && (may.party || party.room) && <button className={'cbtn' + (party.active ? ' on' : '')} onClick={() => setPartyOpen((o) => !o)} title="Watch party" aria-expanded={partyOpen} aria-haspopup="dialog" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /><span className="lbl">Party</span></button>}
-            {may.playOn && <button className="cbtn" onClick={() => openOver('device')} title="Play on another device" aria-label="Play on another device"><IconDevices /><span className="lbl">Cast</span></button>}
-            {hasNext && (!party.active || party.room?.canControl) && <button className="cbtn" onClick={() => goNext(true)} title={party.active ? 'Next for everyone in the party' : 'Next episode'}><IconNext /><span className="lbl">{item.showId != null ? 'Next episode' : 'Next'}</span></button>}
-            {!compact && <button className="cbtn" onClick={chrome.minimize} title="Mini player" aria-label="Mini player"><IconMini /><span className="lbl">Mini</span></button>}
+            <button className="ibtn" onClick={chrome.minimize} title={t('Back (keeps playing in the mini player)')}><IconBack /></button>
+            <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && tx(MODE_WORDS[info.decision])].filter(Boolean).join(' · ')}</div></div>
+            {!compact && (may.party || party.room) && <button className={'cbtn' + (party.active ? ' on' : '')} onClick={() => setPartyOpen((o) => !o)} title={t('Watch party')} aria-expanded={partyOpen} aria-haspopup="dialog" aria-label={party.room ? tn('Watch party, {count} watching', 'Watch party, {count} watching', party.room.members.length) : t('Watch party')}><IconUsers /><span className="lbl">{t('Party')}</span></button>}
+            {may.playOn && <button className="cbtn" onClick={() => openOver('device')} title={t('Play on another device')} aria-label={t('Play on another device')}><IconDevices /><span className="lbl">{t('Play on…')}</span></button>}
+            {hasNext && (!party.active || party.room?.canControl) && <button className="cbtn" onClick={() => goNext(true)} title={party.active ? t('Next for everyone in the party') : t('Next episode')}><IconNext /><span className="lbl">{item.showId != null ? t('Next episode') : t('Next')}</span></button>}
+            {!compact && <button className="cbtn" onClick={chrome.minimize} title={t('Mini player')} aria-label={t('Mini player')}><IconMini /><span className="lbl">{t('Mini')}</span></button>}
           </div>
           {remoteOn && (sheetLayout
             ? <RemoteSheet onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />
             : barAllowed() && (prefs.remoteStyle === 'bar' || prefs.remoteStyle === 'barBelow')
               ? <RemoteBar below={prefs.remoteStyle === 'barBelow'} onKey={onRemote} enabled={remoteEnabled} disc={copy} note={keysNote} form={form} />
               : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />)}
-          {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{skip.label} ›</button>}
+          {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{tx(skip.label)} ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
           {next && (nearEnd || ended) && !nextDismissed && !party.active && (
-            <div className="watch-next" role="region" aria-label={upNext != null ? 'Up next' : 'Watch next'} onClick={(e) => e.stopPropagation()}>
+            <div className="watch-next" role="region" aria-label={upNext != null ? t('Up next') : t('Watch next')} onClick={(e) => e.stopPropagation()}>
               <div className="wn-head">{next.recommended
-                ? (next.show ? `Because you watched ${item.showTitle || item.title}` : 'You might also like')
-                : next.item.showId != null ? 'Next episode' : 'Up next'}</div>
+                ? (next.show ? t('Because you watched {title}', { title: item.showTitle || item.title }) : t('You might also like'))
+                : next.item.showId != null ? t('Next episode') : t('Up next')}</div>
               <div className="wn-body" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}>
                 <div className={'wn-thumb' + (next.item.showId != null ? ' wide' : '')}>{next.item.poster && <img src={sized(posterUrl(next.item), fitWidth(240))} alt="" />}</div>
                 <div>
                   <div className="wn-title">{next.show ? next.show.title : next.item.showTitle || next.item.title}</div>
                   <div className="muted" style={{ fontSize: 12 }}>{next.item.showId != null ? [episodeLabel(next.item), next.item.title].filter(Boolean).join(' · ') : next.item.year}</div>
-                  {upNext != null && <div className="wn-count" role="timer" aria-live="off">Plays in {upNext} s<i style={{ '--left': upNext / 8 } as React.CSSProperties} aria-hidden="true" /></div>}
+                  {upNext != null && <div className="wn-count" role="timer" aria-live="off">{t('Plays in {count} s', { count: upNext })}<i style={{ '--left': upNext / 8 } as React.CSSProperties} aria-hidden="true" /></div>}
                 </div>
               </div>
               <div className="wn-actions">
-                <button className="btn sm primary" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}><IconPlay /> Play now</button>
-                <button className="btn sm ghost" onClick={() => { setNextDismissed(true); setUpNext(null) }}>{upNext != null ? 'Watch the credits' : 'Dismiss'}</button>
+                <button className="btn sm primary" onClick={() => nav(`/play/${next.item.id}`, { replace: true })}><IconPlay /> {t('Play now')}</button>
+                <button className="btn sm ghost" onClick={() => { setNextDismissed(true); setUpNext(null) }}>{upNext != null ? t('Watch the credits') : t('Dismiss')}</button>
               </div>
             </div>
           )}
           <Controls video={video} duration={duration} offset={offset} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
             chapters={chapters} chapterNames={info?.chapters?.map((c) => c.title)} chapterThumb={sceneThumb} copy={copy}
             onPrev={stepPrev} onNext={chapters.length > 1 || (hasNext && !party.active) || (hasNext && party.room?.canControl) ? () => stepChapter(1) : undefined}
-            quality={quality || (info?.quality ? 'Quality' : '')} onQuality={info ? () => setInfoOpen(true) : undefined}
+            quality={quality || (info?.quality ? t('Quality') : '')} onQuality={info ? () => setInfoOpen(true) : undefined}
             onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
-            audio={info?.audio.map((a) => ({ id: a.index, label: [langName(a.language), ownName(a), a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))}
+            audio={info?.audio.map((a) => ({ id: a.index, label: [trackLang(a.language), ownName(a), a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker(k) }}
             compact={compact} sheetItems={[
-              ...((may.party || party.room) ? [{ key: 'party', icon: <IconUsers />, label: 'Watch party', value: party.room ? `${party.room.members.length} watching` : undefined, on: party.active, onClick: () => setPartyOpen(true) }] : []),
-              { key: 'mini', icon: <IconMini />, label: 'Keep playing in a corner', onClick: chrome.minimize },
+              ...((may.party || party.room) ? [{ key: 'party', icon: <IconUsers />, label: t('Watch party'), value: party.room ? tn('{count} watching', '{count} watching', party.room.members.length) : undefined, on: party.active, onClick: () => setPartyOpen(true) }] : []),
+              { key: 'mini', icon: <IconMini />, label: t('Keep playing in a corner'), onClick: chrome.minimize },
             ]}
             showSeek={prefs.seekBar} remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} onSettings={() => setSettingsOpen((o) => !o)} />
           {settingsOpen && <ViewSettings prefs={prefs} scope={view.scope} isDisc={false} onClose={() => setSettingsOpen(false)} onChange={(p) => view.update(p, view.scope)} onScope={view.setScope}
             streaming={streamPref} onStreaming={(v) => { setDeviceStreaming(v); setStreamPref(v); ask({ reopen: (want.reopen || 0) + 1 }) }} />}
           {picker && info && (
-            <TrackPicker heading={picker === 'audio' ? 'Audio & language' : 'Subtitles'} onClose={() => setPicker(null)}
+            <TrackPicker heading={picker === 'audio' ? t('Audio & language') : t('Subtitles')} onClose={() => setPicker(null)}
               onPick={(id) => switchTrack(picker === 'audio' ? 'audio' : 'sub', id)}
               tiles={picker === 'audio'
-                ? info.audio.map((a) => ({ id: a.index, title: langName(a.language), sub: ownName(a), detail: [a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))
-                : [{ id: -1, title: 'Off', active: sub == null || sub < 0 }, ...info.subtitles.flatMap((x) => {
-                  const plain = { id: x.index, title: langName(x.language), sub: ownName(x), detail: subKind(x.codec), active: x.index === sub && !burn?.styled }
+                ? info.audio.map((a) => ({ id: a.index, title: trackLang(a.language), sub: ownName(a), detail: [a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))
+                : [{ id: -1, title: t('Off'), active: sub == null || sub < 0 }, ...info.subtitles.flatMap((x) => {
+                  const plain = { id: x.index, title: trackLang(x.language), sub: ownName(x), detail: subKind(x.codec), active: x.index === sub && !burn?.styled }
                   // ASS can carry placement and styling that plain text loses: keeping it means drawing it into the picture.
-                  return x.codec === 'ass' || x.codec === 'ssa' ? [plain, { id: x.index + STYLED, title: langName(x.language), sub: 'With its styling', detail: 'Drawn into the picture', active: x.index === sub && !!burn?.styled }] : [plain]
+                  return x.codec === 'ass' || x.codec === 'ssa' ? [plain, { id: x.index + STYLED, title: trackLang(x.language), sub: t('With its styling'), detail: t('Drawn into the picture'), active: x.index === sub && !!burn?.styled }] : [plain]
                 })]} />
           )}
           {statsOn && <StreamInfo lines={statLines} />}

@@ -69,7 +69,7 @@ const MODULE_PAGES = {
 
 test('every step that asks something says where to change it later, and that page exists', () => {
   const routes = readFileSync(new URL('../SettingsPage.tsx', import.meta.url), 'utf8')
-  const labels = [...routes.matchAll(/to: '([a-z-]+)', label: '([^']+)'/g)].map((m) => [m[1], m[2]])
+  const labels = [...routes.matchAll(/to: '([a-z-]+)', label: (?:tk\()?'([^']+)'/g)].map((m) => [m[1], m[2]])
   for (const s of STEPS) {
     if (s.id === 'welcome' || s.id === 'account' || s.id === 'done') continue
     assert.ok(s.later, `${s.id} has nowhere to change it later`)

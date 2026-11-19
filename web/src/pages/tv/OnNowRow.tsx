@@ -7,6 +7,7 @@ import { CardRow } from '../../components/common'
 import { IconRight } from '../../icons'
 import { fmtLeft, type GuideChannel, type GuidePage } from './tvApi'
 import './onnow.css'
+import { t } from '../../i18n'
 
 // "On TV now" on Home: the channels, favourites first, with what is on and a
 // bar for how far in. It asks the server once, when Home opens.
@@ -24,21 +25,21 @@ export default function OnNowRow() {
   const now = Date.now() / 1000
   const list = [...rows].sort((a, b) => Number(!!b.favourite) - Number(!!a.favourite))
   return (
-    <section className="hub" aria-label="On TV now">
-      <div className="hub-head"><h2>On TV now</h2><Link to="/tv">Guide <IconRight /></Link></div>
+    <section className="hub" aria-label={t('On TV now')}>
+      <div className="hub-head"><h2>{t('On TV now')}</h2><Link to="/tv">{t('Guide')} <IconRight /></Link></div>
       <CardRow>
         {list.map((c) => {
           const p = c.programmes.find((x) => x.start <= now && x.end > now)
           const pct = p ? ((now - p.start) / (p.end - p.start)) * 100 : 0
           return (
-            <Link key={c.key} className="onnow-card" to={`/tv/watch/${c.key}`} aria-label={`Channel ${c.number}, ${c.name}: ${p?.title || 'nothing listed'}`}>
+            <Link key={c.key} className="onnow-card" to={`/tv/watch/${c.key}`} aria-label={t('Channel {number}, {name}: {programme}', { number: c.number, name: c.name, programme: p?.title || t('nothing listed') })}>
               <span className="onnow-art">
                 {p?.itemId ? <img src={mediaUrl(`/api/items/${p.itemId}/backdrop`)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : null}
                 <span className="onnow-num">{c.number}</span>
                 <i className="onnow-bar"><u style={{ width: pct + '%' }} /></i>
               </span>
-              <b>{p?.title || (c.kind === 'library' ? 'Off air' : 'No guide data')}</b>
-              <small>{c.name}{p ? ` · ${fmtLeft(p.end - now)} left` : ''}</small>
+              <b>{p?.title || (c.kind === 'library' ? t('Off air') : t('No guide data'))}</b>
+              <small>{c.name}{p ? ` · ${t('{time} left', { time: fmtLeft(p.end - now) })}` : ''}</small>
             </Link>
           )
         })}

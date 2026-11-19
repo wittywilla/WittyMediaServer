@@ -1,0 +1,13 @@
+{
+  "Control bar": "Säädinpalkki",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Yksityiskohtainen tuo kaikki painikkeet palkkiin. Yksinkertainen pitää kuvan vapaana: toisto ja hypyt keskellä, ja loput (ääni, tekstitykset, laatu, nopeus, kohtaukset) yhdessä Valinnat-valikossa. Automaattinen on yksinkertainen puhelimessa tai tabletissa ja yksityiskohtainen leveämmällä näytöllä.",
+  "Detailed": "Yksityiskohtainen",
+  "Back to options": "Takaisin valintoihin",
+  "Mono": "Mono",
+  "Styled text": "Muotoiltu teksti",
+  "Keep playing in a corner": "Jatka toistoa nurkassa",
+  "{count} watching": {
+    "one": "{count} katsoja",
+    "other": "{count} katsojaa"
+  }
+}

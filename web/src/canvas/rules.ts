@@ -6,6 +6,13 @@
 // rules, with no page in them.
 
 // What GET /media/{id}/canvas answers.
+// The words: constants are marked with tk() and translated where they're shown, with tx(); a sentence with something
+// filled in goes through say(), English here so the tests need nothing else, and t() when the app passes it.
+// (Local, so this file loads without the app around it.)
+const tk = <S extends string>(english: S): S => english
+type Say = (english: string, vars?: Record<string, string | number | null | undefined>) => string
+const english: Say = (s, v) => s.replace(/\{(\w+)\}/g, (m, k: string) => (v && v[k] != null ? String(v[k]) : m))
+
 export type CanvasInfo = {
   available: boolean; url?: string; mime?: string; width?: number; height?: number; durationMs?: number; loop: boolean
   source?: 'upload' | 'generated' | 'sidecar' | 'metadata-folder' | string
@@ -62,33 +69,33 @@ export function albumCanvas(infos: (CanvasInfo | null)[]): CanvasInfo | null {
 // Why a file found beside the media isn't used, in words for an administrator.
 export function refusedWords(reason: string | undefined): string {
   switch (reason) {
-    case 'too-big': return 'There is a canvas file beside this, but it is over 64 MB, so it isn\'t used: it would be sent to every phone that opened this.'
-    case 'too-long': return 'There is a canvas file beside this, but it is longer than a minute, so it isn\'t used.'
+    case 'too-big': return tk('There is a canvas file beside this, but it is over 64 MB, so it isn’t used: it would be sent to every phone that opened this.')
+    case 'too-long': return tk('There is a canvas file beside this, but it is longer than a minute, so it isn’t used.')
     default: return ''
   }
 }
 
 export const SOURCE_WORDS: Record<string, string> = {
-  upload: 'Uploaded here, and kept in the server\'s own folder.',
-  generated: 'Cut from the video by the server.',
-  sidecar: 'A file beside the media.',
-  'metadata-folder': 'A file in the metadata folder.',
+  upload: tk('Uploaded here, and kept in the server’s own folder.'),
+  generated: tk('Cut from the video by the server.'),
+  sidecar: tk('A file beside the media.'),
+  'metadata-folder': tk('A file in the metadata folder.'),
 }
 
 // The seconds an administrator can ask for (POST /media/{id}/canvas/generate takes 2 to 15).
 export const GEN_MIN_SEC = 2
 export const GEN_MAX_SEC = 15
-export function generateBody(start: string, length: string, runtimeSec: number): { body: { startSec?: number; durationSec?: number }; error: string } {
+export function generateBody(start: string, length: string, runtimeSec: number, t: Say = english): { body: { startSec?: number; durationSec?: number }; error: string } {
   const body: { startSec?: number; durationSec?: number } = {}
   if (start.trim() !== '') {
     const s = parseClock(start)
-    if (s === null) return { body, error: 'Give the start as seconds, or as minutes:seconds.' }
-    if (runtimeSec > 0 && s >= runtimeSec) return { body, error: 'That start is after the end of the video.' }
+    if (s === null) return { body, error: t('Give the start as seconds, or as minutes:seconds.') }
+    if (runtimeSec > 0 && s >= runtimeSec) return { body, error: t('That start is after the end of the video.') }
     body.startSec = s
   }
   if (length.trim() !== '') {
     const d = Number(length)
-    if (!Number.isFinite(d) || d < GEN_MIN_SEC || d > GEN_MAX_SEC) return { body, error: `A canvas is ${GEN_MIN_SEC} to ${GEN_MAX_SEC} seconds long.` }
+    if (!Number.isFinite(d) || d < GEN_MIN_SEC || d > GEN_MAX_SEC) return { body, error: t('A canvas is {min} to {max} seconds long.', { min: GEN_MIN_SEC, max: GEN_MAX_SEC }) }
     body.durationSec = d
   }
   return { body, error: '' }

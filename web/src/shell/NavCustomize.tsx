@@ -12,6 +12,7 @@ import { ask } from '../ui/Overlay'
 import { toast } from '../ui/Toast'
 import { GROUPS, groupOf, type NavPrefs } from './navModel'
 import { navIcon, setOwnerNavPrefs, useMenu, useNavPrefs } from './useNav'
+import { t, txc } from '../i18n'
 
 // Arrange the main menu: drag a row by its handle, or use the arrow keys on it, or
 // the Move buttons (which is what a remote has). Each change takes effect at once.
@@ -29,7 +30,7 @@ export default function NavCustomize() {
   // "Arrange this menu" in the bar's More menu comes straight here.
   useEffect(() => { if (location.hash === '#navigation') document.getElementById('navigation')?.scrollIntoView() }, [])
 
-  const failed = () => toast('Could not save that', { tone: 'danger' })
+  const failed = () => toast(t('Could not save that'), { tone: 'danger' })
   const saveLook = (patch: Partial<NavPrefs>) => setMine({ ...prefs, ...patch }).catch(failed)
   const state = (list: typeof rows) => ({ order: list.map((r) => r.id), hidden: list.filter((r) => r.hidden).map((r) => r.id) })
   const apply = (next: typeof rows, remember = true) => {
@@ -56,57 +57,57 @@ export default function NavCustomize() {
     try {
       await menu.reset()
       setUndo([])
-      toast(server ? 'The menu is back as everyone has it' : 'Back to the server’s arrangement', { tone: 'ok' })
+      toast(server ? t('The menu is back as everyone has it') : t('Back to the server’s arrangement'), { tone: 'ok' })
     } catch { failed() }
   }
   const shareLook = async () => {
-    if (!await ask({ title: server ? 'Use this look for everyone?' : 'Use this arrangement for everyone?', body: server
-      ? 'How the menu is drawn (grouping, what a full bar does, where it sits) becomes the default. People who have chosen their own keep theirs.'
-      : 'People who have arranged their own menu keep theirs. Everyone else gets this one, and it can be changed again at any time.', confirm: 'Use for everyone' })) return
+    if (!await ask({ title: server ? t('Use this look for everyone?') : t('Use this arrangement for everyone?'), body: server
+      ? t('How the menu is drawn (grouping, what a full bar does, where it sits) becomes the default. People who have chosen their own keep theirs.')
+      : t('People who have arranged their own menu keep theirs. Everyone else gets this one, and it can be changed again at any time.'), confirm: t('Use for everyone') })) return
     const value: NavPrefs = server ? { ...prefs, style: getNavStyle() } : { ...prefs, ...state(rows), style: getNavStyle() }
     try {
       await api.put('/settings', { navDefault: JSON.stringify(value) })
       setOwnerNavPrefs(value)
-      toast('This is now the default for everyone', { tone: 'ok' })
+      toast(t('This is now the default for everyone'), { tone: 'ok' })
     } catch (err) { toast((err as Error).message, { tone: 'danger' }) }
   }
   const arranged = rows.some((r) => r.hidden) || rows.some((r, i) => r.id !== menu.rows[i]?.id) || undo.length > 0
 
   return (
     <div className="nav-custom" id="navigation">
-      <h3>Arrange the menu</h3>
+      <h3>{t('Arrange the menu')}</h3>
       <div className="nav-custom-opts">
-        <div className="nav-custom-opt"><span>When the top bar is full</span>
-          <Segmented label="When the top bar is full" value={prefs.overflow || 'more'} onChange={(v) => saveLook({ overflow: v })}
-            options={[{ value: 'more', label: 'Use a More menu' }, { value: 'scroll', label: 'Scroll sideways' }]} />
+        <div className="nav-custom-opt"><span>{t('When the top bar is full')}</span>
+          <Segmented label={t('When the top bar is full')} value={prefs.overflow || 'more'} onChange={(v) => saveLook({ overflow: v })}
+            options={[{ value: 'more', label: t('Use a More menu') }, { value: 'scroll', label: t('Scroll sideways') }]} />
         </div>
-        <div className="nav-custom-opt"><span>When the side menu is folded</span>
-          <Segmented label="When the side menu is folded" value={prefs.collapse || 'rail'} onChange={(v) => saveLook({ collapse: v })}
-            options={[{ value: 'rail', label: 'Keep the icons' }, { value: 'hide', label: 'Hide it' }]} />
+        <div className="nav-custom-opt"><span>{t('When the side menu is folded')}</span>
+          <Segmented label={t('When the side menu is folded')} value={prefs.collapse || 'rail'} onChange={(v) => saveLook({ collapse: v })}
+            options={[{ value: 'rail', label: t('Keep the icons') }, { value: 'hide', label: t('Hide it') }]} />
         </div>
-        <div className="nav-custom-toggle"><span id="nav-grouped">Group into Watch, Listen, Read and Play</span>
+        <div className="nav-custom-toggle"><span id="nav-grouped">{t('Group into Watch, Listen, Read and Play')}</span>
           <Switch labelledBy="nav-grouped" checked={!!prefs.grouped} onChange={(on) => saveLook({ grouped: on })} />
         </div>
       </div>
       {server && !menu.editable
-        ? <p className="muted">Whoever manages this profile has turned off rearranging, so the menu is as the server has it.</p>
+        ? <p className="muted">{t('Whoever manages this profile has turned off rearranging, so the menu is as the server has it.')}</p>
         : (
-          <ArrangeList label="Menu items, in order" canMove canHide
+          <ArrangeList label={t('Menu items, in order')} canMove canHide
             rows={rows.map((r) => ({ id: r.id, title: r.title, hidden: r.hidden, icon: r.item ? navIcon(r.item) : undefined, hideFixed: r.fixed }))}
             onMove={move} onHidden={(id, hidden) => apply(rows.map((r) => (r.id === id && !r.fixed ? { ...r, hidden } : r)))}
             extra={(row) => {
               const it = rows.find((r) => r.id === row.id)?.item
               return prefs.grouped && it ? (
-                <Select aria-label={`Group for ${row.title}`} value={groupOf(it, prefs)} onChange={(e) => saveLook({ groups: { ...prefs.groups, [it.id]: e.target.value } })}
-                  options={[{ value: '', label: 'No group' }, ...GROUPS.map((g) => ({ value: g, label: g }))]} />
+                <Select aria-label={t('Group for {name}', { name: row.title })} value={groupOf(it, prefs)} onChange={(e) => saveLook({ groups: { ...prefs.groups, [it.id]: e.target.value } })}
+                  options={[{ value: '', label: t('No group') }, ...GROUPS.map((g) => ({ value: g, label: txc('menu group', g) }))]} />
               ) : null
             }} />
         )}
       <div className="nav-custom-foot">
-        {server && menu.editable && <Button variant="ghost" onClick={back} disabled={!undo.length}>Undo</Button>}
-        {(server ? menu.editable && arranged : !!mine) && <Button variant="ghost" onClick={startAgain}>{server ? 'Reset the menu' : owner.order ? 'Use the server’s arrangement' : 'Start again'}</Button>}
-        {user?.isAdmin && <Button onClick={shareLook}>{server ? 'Use this look for everyone' : 'Use for everyone'}</Button>}
-        {user?.isAdmin && server && <LinkButton to="/settings/pages/navigation" variant="ghost">Change the menu for everyone</LinkButton>}
+        {server && menu.editable && <Button variant="ghost" onClick={back} disabled={!undo.length}>{t('Undo')}</Button>}
+        {(server ? menu.editable && arranged : !!mine) && <Button variant="ghost" onClick={startAgain}>{server ? t('Reset the menu') : owner.order ? t('Use the server’s arrangement') : t('Start again')}</Button>}
+        {user?.isAdmin && <Button onClick={shareLook}>{server ? t('Use this look for everyone') : t('Use for everyone')}</Button>}
+        {user?.isAdmin && server && <LinkButton to="/settings/pages/navigation" variant="ghost">{t('Change the menu for everyone')}</LinkButton>}
       </div>
     </div>
   )

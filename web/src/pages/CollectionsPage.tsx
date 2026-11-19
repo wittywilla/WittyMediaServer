@@ -9,6 +9,7 @@ import { type Collection, type CollectionRule } from '../gallery'
 import '../gallery.css'
 import { Dialog } from '../ui/Overlay'
 import { Button } from '../ui/Button'
+import { t } from '../i18n'
 
 // Collections and smart playlists, across every library. A smart playlist is a
 // saved rule the server works out each time (docs/COLLECTIONS.md); this page
@@ -35,7 +36,7 @@ export function CollectionDialog({ collection, onClose, onSaved }: { collection?
   }, [ruleOut, kind])
   const save = async (e: React.FormEvent) => {
     e.preventDefault(); setErr('')
-    if (!name.trim()) { setErr('Give it a name.'); return }
+    if (!name.trim()) { setErr(t('Give it a name.')); return }
     const body = { name, description: desc, kind, shared, rule: kind === 'smart' ? ruleOut : undefined }
     try {
       if (collection) await api.put(`/collections/${collection.id}`, body)
@@ -57,10 +58,10 @@ export function CollectionDialog({ collection, onClose, onSaved }: { collection?
     else if (id === 'kind:smart') setKind('smart')
     else if (id.startsWith('type:')) setRule((r) => toggleType(r, id.slice(5)))
   }
-  const matchIndex = spec.sections.findIndex((x) => x.kind === 'note' && x.text.includes('match'))
+  const matchIndex = spec.sections.findIndex((x) => x.anchor === 'smartlist-count')
   return (
-    <Dialog title={collection ? 'Edit collection' : 'New collection'} size="wide" className="col-dialog" onClose={onClose}
-      actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="col-form">{collection ? 'Save' : 'Make it'}</Button></>}>
+    <Dialog title={collection ? t('Edit collection') : t('New collection')} size="wide" className="col-dialog" onClose={onClose}
+      actions={<><Button type="button" variant="ghost" onClick={onClose}>{t('Cancel')}</Button><Button variant="primary" form="col-form">{collection ? t('Save') : t('Make it')}</Button></>}>
       <form id="col-form" className="ui-dialog-form" onSubmit={save}>
         <SpecPage embedded page={spec} handled={handled} onAction={onAction} onField={onField} after={matchIndex >= 0 ? { [matchIndex]: <div className="col-preview-row">{preview?.items.filter((it) => it.poster).slice(0, 8).map((it) => <img key={it.id} src={sized(posterUrl(it), fitWidth(96))} alt={it.title} title={it.title} loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />)}</div> } : undefined} />
       </form>

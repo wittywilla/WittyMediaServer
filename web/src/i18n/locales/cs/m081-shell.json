@@ -1,0 +1,19 @@
+{
+  "Episode number": "Číslo dílu",
+  "Episode {episode}": "Díl {episode}",
+  "Episodes {episodes}": "Díly {episodes}",
+  "Last episode": "Poslední díl",
+  "Season number": "Číslo řady",
+  "Show episodes as": "Zobrazit díly jako",
+  "Special {episode}": "Speciál {episode}",
+  "Specials {episodes}": "Speciály {episodes}",
+  "S{season} · E{episode}": "Ř{season} · D{episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "Grafický čip umí převádět video za zlomek práce procesoru. Každý se testuje při spuštění serveru, ty, které váš počítač nemá, jsou zašedlé, a každý funkční je zaškrtnutý, dokud sami nezvolíte: použije se první zaškrtnutý funkční a obraz zůstává na čipu od dekódování po kódování, kde to jde. Když není zaškrtnuto nic, vše běží softwarově, což dává nejlepší kvalitu vzhledem k velikosti a nejvíc zatěžuje procesor.",
+  "{left} of {count} left": {
+    "one": "zbývá {left} z {count}",
+    "few": "zbývá {left} z {count}",
+    "many": "zbývá {left} z {count}",
+    "other": "zbývá {left} z {count}"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

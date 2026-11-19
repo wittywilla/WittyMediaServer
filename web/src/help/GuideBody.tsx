@@ -6,6 +6,7 @@ import { IconCheck, IconCopy } from '../icons'
 import { guideByFile, settingsPages, slugOf } from './guides'
 import imageSizes from './imageSizes.json'
 import { plain, target, type Block, type Inline } from './markdown'
+import { t } from '../i18n'
 
 // Draws a guide. Everything becomes React elements, so nothing in a guide can act as HTML, and
 // only plain web addresses and other guides become links.
@@ -36,9 +37,9 @@ function CodeBlock({ v }: { v: string }) {
   }
   return (
     <div className="help-code">
-      <pre tabIndex={0} role="group" aria-label="Code"><code>{v}</code></pre>
-      <button type="button" className="btn sm ghost help-copy" onClick={copy} aria-label={copied ? 'Copied' : 'Copy this'}>
-        {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}<span>{copied ? 'Copied' : 'Copy'}</span>
+      <pre tabIndex={0} role="group" aria-label={t('Code')}><code>{v}</code></pre>
+      <button type="button" className="btn sm ghost help-copy" onClick={copy} aria-label={copied ? t('Copied') : t('Copy this')}>
+        {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}<span>{copied ? t('Copied') : t('Copy')}</span>
       </button>
     </div>
   )
@@ -63,7 +64,7 @@ function Inlines({ c, ctx }: { c: Inline[]; ctx: Ctx }): ReactNode {
       }
       case 'link': {
         const to = target(n.href)
-        if (to?.kind === 'web') return <a key={i} href={to.href} target="_blank" rel="noreferrer noopener"><Inlines c={n.c} ctx={ctx} /><span className="sr-only"> (opens in a new tab)</span></a>
+        if (to?.kind === 'web') return <a key={i} href={to.href} target="_blank" rel="noreferrer noopener"><Inlines c={n.c} ctx={ctx} /><span className="sr-only"> {t('(opens in a new tab)')}</span></a>
         if (to?.kind === 'here') return <Link key={i} to={`${ctx.from}#${(ctx.idPrefix ?? '') + to.hash}`}><Inlines c={n.c} ctx={ctx} /></Link>
         const g = to?.kind === 'guide' ? guideByFile(to.file) : undefined
         if (g && to?.kind === 'guide') return <Link key={i} to={`/help/${slugOf(g.file)}${to.hash ? '#' + to.hash : ''}`}><Inlines c={n.c} ctx={ctx} /></Link>
@@ -100,7 +101,7 @@ function Blocks({ blocks, ctx }: { blocks: Block[]; ctx: Ctx }): ReactNode {
         return b.ordered ? <ol key={i} start={b.start}>{items}</ol> : <ul key={i}>{items}</ul>
       }
       case 'table': return (
-        <div key={i} className="help-table" tabIndex={0} role="group" aria-label="Table">
+        <div key={i} className="help-table" tabIndex={0} role="group" aria-label={t('Table')}>
           <table>
             <thead><tr>{b.head.map((c, k) => <th key={k} scope="col" style={{ textAlign: b.align[k] }}><Inlines c={c} ctx={ctx} /></th>)}</tr></thead>
             <tbody>{b.rows.map((r, k) => <tr key={k}>{r.map((c, n) => <td key={n} style={{ textAlign: b.align[n] }}><Inlines c={c} ctx={ctx} /></td>)}</tr>)}</tbody>

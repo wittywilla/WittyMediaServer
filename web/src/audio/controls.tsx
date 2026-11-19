@@ -8,6 +8,7 @@ import { IconMute, IconPlus, IconVolume } from '../icons'
 import { toast } from '../state'
 import { IconAddList, IconHeart, IconHeartOn } from './icons'
 import type { PlayerView } from './types'
+import { t } from '../i18n'
 
 // Pieces the bar and the full player share.
 
@@ -62,11 +63,11 @@ export function Volume({ p, up }: { p: PlayerView; up?: boolean }) {
   const { volume, muted } = p.sound
   const shown = muted ? 0 : volume
   return (
-    <Pop label="Volume" up={up} icon={shown === 0 ? <IconMute /> : <IconVolume />}>
+    <Pop label={t('Volume')} up={up} icon={shown === 0 ? <IconMute /> : <IconVolume />}>
       {() => (
         <div className="mp-volume">
-          <button type="button" className="mp-ibtn" aria-pressed={muted} aria-label={muted ? 'Turn the sound back on' : 'Mute'} onClick={() => p.setSound({ muted: !muted })}>{shown === 0 ? <IconMute /> : <IconVolume />}</button>
-          <input className="range" type="range" autoFocus min={0} max={100} step={2} value={Math.round(shown * 100)} aria-label="Volume" aria-valuetext={`${Math.round(shown * 100)}%`}
+          <button type="button" className="mp-ibtn" aria-pressed={muted} aria-label={muted ? t('Turn the sound back on') : t('Mute')} onClick={() => p.setSound({ muted: !muted })}>{shown === 0 ? <IconMute /> : <IconVolume />}</button>
+          <input className="range" type="range" autoFocus min={0} max={100} step={2} value={Math.round(shown * 100)} aria-label={t('Volume')} aria-valuetext={`${Math.round(shown * 100)}%`}
             style={{ '--pct': shown * 100 + '%' } as React.CSSProperties} onChange={(e) => p.setSound({ volume: Number(e.target.value) / 100, muted: false })} />
         </div>
       )}
@@ -77,14 +78,14 @@ export function Volume({ p, up }: { p: PlayerView; up?: boolean }) {
 export function Like({ p }: { p: PlayerView }) {
   if (!p.current || p.live || p.books) return null
   const id = p.current.id
-  return <button type="button" className={'mp-ibtn' + (p.liked ? ' liked' : '')} aria-pressed={p.liked} aria-label={p.liked ? 'Remove from liked songs' : 'Add to liked songs'} title={p.liked ? 'Liked' : 'Like'} onClick={() => p.toggleLike(id)}>{p.liked ? <IconHeartOn /> : <IconHeart />}</button>
+  return <button type="button" className={'mp-ibtn' + (p.liked ? ' liked' : '')} aria-pressed={p.liked} aria-label={p.liked ? t('Remove from liked songs') : t('Add to liked songs')} title={p.liked ? t('Liked') : t('Like')} onClick={() => p.toggleLike(id)}>{p.liked ? <IconHeartOn /> : <IconHeart />}</button>
 }
 
 type Playlist = { id: number; name: string; kind: string; system?: string }
 
 // Playlists are collections, which also hold rules and any other kind of media, so this is
 // one list across the app and a playlist made here is on the Collections page too.
-export function AddToPlaylist({ items, up, label = 'Add to a playlist' }: { items: Item[]; up?: boolean; label?: string }) {
+export function AddToPlaylist({ items, up, label = t('Add to a playlist') }: { items: Item[]; up?: boolean; label?: string }) {
   return (
     <Pop label={label} up={up} icon={<IconAddList />}>
       {(close) => <PlaylistPicker items={items} onDone={close} />}
@@ -102,7 +103,7 @@ export function PlaylistPicker({ items, onDone }: { items: Item[]; onDone: () =>
     setBusy(true)
     try {
       await api.post(`/collections/${id}/items`, { items: items.map((i) => i.id) })
-      toast(`Added to ${called}`)
+      toast(t('Added to {name}', { name: called }))
       onDone()
     } catch (e) { toast((e as Error).message) }
     setBusy(false)
@@ -119,15 +120,15 @@ export function PlaylistPicker({ items, onDone }: { items: Item[]; onDone: () =>
   if (making) {
     return (
       <form className="mp-newlist" onSubmit={(e) => { e.preventDefault(); void make() }}>
-        <input className="input" autoFocus aria-label="Name of the new playlist" placeholder="Name" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
-        <button className="btn sm primary" disabled={busy || !name.trim()}>Make it</button>
+        <input className="input" autoFocus aria-label={t('Name of the new playlist')} placeholder={t('Name')} maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+        <button className="btn sm primary" disabled={busy || !name.trim()}>{t('Make it')}</button>
       </form>
     )
   }
   return (
     <div className="mp-menu" role="menu">
-      <button type="button" role="menuitem" autoFocus onClick={() => setMaking(true)}><IconPlus size={18} /> New playlist</button>
-      {!lists && <span className="muted mp-menu-note">Loading…</span>}
+      <button type="button" role="menuitem" autoFocus onClick={() => setMaking(true)}><IconPlus size={18} /> {t('New playlist')}</button>
+      {!lists && <span className="muted mp-menu-note">{t('Loading…')}</span>}
       {lists?.map((l) => <button type="button" role="menuitem" key={l.id} disabled={busy} onClick={() => void add(l.id, l.name)}>{l.name}</button>)}
     </div>
   )
@@ -138,7 +139,7 @@ export function Seek({ p, slim }: { p: PlayerView; slim?: boolean }) {
   const { time, duration: dur } = p
   const pct = dur > 0 ? Math.min(100, (time / dur) * 100) : 0
   return (
-    <input className={'range' + (slim ? ' mp-seek-slim' : '')} type="range" min={0} max={Math.max(1, dur)} step={1} value={Math.min(time, dur)} aria-label="Position" aria-valuetext={`${fmtTime(time)} of ${fmtTime(dur)}`}
+    <input className={'range' + (slim ? ' mp-seek-slim' : '')} type="range" min={0} max={Math.max(1, dur)} step={1} value={Math.min(time, dur)} aria-label={t('Position')} aria-valuetext={t('{time} of {total}', { time: fmtTime(time), total: fmtTime(dur) })}
       style={{ '--pct': pct + '%' } as React.CSSProperties} onChange={(e) => p.seek(Number(e.target.value))} />
   )
 }

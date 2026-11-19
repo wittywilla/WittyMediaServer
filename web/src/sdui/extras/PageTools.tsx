@@ -23,6 +23,7 @@ import { ScanControl, type ScanMode, type ScanProgress } from '../../components/
 import type { Document } from '../types'
 import { toolsFor } from '../native'
 import { ActiveFilters, FILTER_KEYS, FilterPanel, SaveViewDialog } from '../../pages/library/Filters'
+import { t, tn } from '../../i18n'
 import '../../pages/library/library.css'
 
 const BulkEdit = lazy(() => import('../../pages/library/BulkEdit'))
@@ -111,22 +112,22 @@ function VideoTools({ lib }: { lib: Library }) {
   const active = FILTER_KEYS.filter((k) => params.get(k)).length
   const here = `/library/${lib.id}`
   return (
-    <div className="sdui-tools" role="toolbar" aria-label={`${lib.name} tools`}>
+    <div className="sdui-tools" role="toolbar" aria-label={t('{name} tools', { name: lib.name })}>
       <div className="sdui-tools-row">
-        <Button size="sm" variant="ghost" icon={<IconTune />} onClick={() => setOpen('filters')} aria-haspopup="dialog" data-tv-options>Filters{active > 0 ? ` (${active})` : ''}</Button>
-        {admin && <Button size="sm" variant="ghost" className="tools-admin" icon={<IconCheck />} onClick={() => setOpen('select')} aria-haspopup="dialog">Select</Button>}
-        {admin && <Button size="sm" variant="ghost" className="tools-admin" icon={<IconEdit />} onClick={() => setOpen('categories')} aria-haspopup="dialog">Categories</Button>}
-        {admin && queue > 0 && <LinkButton size="sm" variant="ghost" className="tools-admin" to={`/fix-matches?library=${lib.id}`}>Fix matches <span className="lib-badge">{queue}</span></LinkButton>}
+        <Button size="sm" variant="ghost" icon={<IconTune />} onClick={() => setOpen('filters')} aria-haspopup="dialog" data-tv-options>{active > 0 ? t('Filters ({count})', { count: active }) : t('Filters')}</Button>
+        {admin && <Button size="sm" variant="ghost" className="tools-admin" icon={<IconCheck />} onClick={() => setOpen('select')} aria-haspopup="dialog">{t('Select')}</Button>}
+        {admin && <Button size="sm" variant="ghost" className="tools-admin" icon={<IconEdit />} onClick={() => setOpen('categories')} aria-haspopup="dialog">{t('Categories')}</Button>}
+        {admin && queue > 0 && <LinkButton size="sm" variant="ghost" className="tools-admin" to={`/fix-matches?library=${lib.id}`}>{t('Fix matches')} <span className="lib-badge">{queue}</span></LinkButton>}
         <ScanTool lib={lib} />
       </div>
       <ActiveFilters params={params} setParam={setParam} onSave={() => setOpen('save')} onClear={clear} />
       {views.length > 0 && !active && (
-        <div className="chips lib-views" role="group" aria-label="Saved views">
+        <div className="chips lib-views" role="group" aria-label={t('Saved views')}>
           {views.map((v) => <Link key={v.id} className="chip" to={`${here}?${v.query}`}>{v.name}</Link>)}
         </div>
       )}
       {open === 'filters' && <FilterPanel library={lib.id} params={params} setParam={setParam} onClear={clear} onSave={() => setOpen('save')} onClose={() => setOpen('')} />}
-      {open === 'save' && <SaveViewDialog library={lib.id} params={params} onClose={() => setOpen('')} onSaved={() => { setOpen(''); loadViews(); toast('View saved'); bump() }} />}
+      {open === 'save' && <SaveViewDialog library={lib.id} params={params} onClose={() => setOpen('')} onSaved={() => { setOpen(''); loadViews(); toast(t('View saved')); bump() }} />}
       <Suspense fallback={null}>
         {open === 'categories' && <CategoryEditor library={lib.id} onClose={() => setOpen('')} onChanged={bump} />}
         {open === 'select' && <SelectTitles lib={lib} params={params} onClose={() => setOpen('')} />}
@@ -163,16 +164,16 @@ function SelectTitles({ lib, params, onClose }: { lib: Library; params: URLSearc
       onClose={() => setEditing(false)} onDone={() => { bump(); onClose() }} />
   }
   return (
-    <Dialog title="Choose titles to edit together" size="wide" onClose={onClose}
-      actions={<><Button variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!picked.length} onClick={() => setEditing(true)}>Edit {picked.length || ''} together</Button></>}>
-      {failed ? <p className="error" role="alert">{failed}</p> : !rows ? <p className="muted" role="status">Loading…</p> : (
+    <Dialog title={t('Choose titles to edit together')} size="wide" onClose={onClose}
+      actions={<><Button variant="ghost" onClick={onClose}>{t('Cancel')}</Button><Button variant="primary" disabled={!picked.length} onClick={() => setEditing(true)}>{picked.length ? tn('Edit {count} together', 'Edit {count} together', picked.length) : t('Edit together')}</Button></>}>
+      {failed ? <p className="error" role="alert">{failed}</p> : !rows ? <p className="muted" role="status">{t('Loading…')}</p> : (
         <div className="sdui-pick">
           <div className="sdui-pick-head">
-            <input className="input" type="search" placeholder="Find a title" aria-label="Find a title" value={find} onChange={(e) => setFind(e.target.value)} />
-            <label className="sdui-pick-all"><input type="checkbox" checked={all} onChange={() => setChosen((s) => { const n = new Set(s); for (const r of shown) { if (all) n.delete(rowKey(r)); else n.add(rowKey(r)) } return n })} /> All shown</label>
+            <input className="input" type="search" placeholder={t('Find a title')} aria-label={t('Find a title')} value={find} onChange={(e) => setFind(e.target.value)} />
+            <label className="sdui-pick-all"><input type="checkbox" checked={all} onChange={() => setChosen((s) => { const n = new Set(s); for (const r of shown) { if (all) n.delete(rowKey(r)); else n.add(rowKey(r)) } return n })} /> {t('All shown')}</label>
           </div>
-          {total > rows.length && <p className="muted">The first {rows.length} of {total}. Filter the page to choose among the rest.</p>}
-          <ul className="sdui-pick-list" aria-label="Titles">
+          {total > rows.length && <p className="muted">{t('The first {shown} of {total}. Filter the page to choose among the rest.', { shown: rows.length, total })}</p>}
+          <ul className="sdui-pick-list" aria-label={t('Titles')}>
             {shown.map((r) => {
               const k = rowKey(r)
               return <li key={k}><label><input type="checkbox" checked={chosen.has(k)} onChange={() => flip(k)} /> <span>{rowTitle(r)}</span>{r.type === 'item' && r.item.year ? <span className="muted"> · {r.item.year}</span> : null}</label></li>
@@ -192,15 +193,15 @@ function AudioTools({ lib }: { lib: Library }) {
   const playAll = async () => {
     try {
       const all = await api.get<Item[]>(`/music/songs?library=${lib.id}&sort=random&limit=500`)
-      if (all.length) { audio.play(all, 0, 'music'); announce(`Playing ${all.length} songs`) } else toast('Nothing to play yet')
+      if (all.length) { audio.play(all, 0, 'music'); announce(tn('Playing {count} song', 'Playing {count} songs', all.length)) } else toast(t('Nothing to play yet'))
     } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
   return (
-    <div className="sdui-tools" role="toolbar" aria-label={`${lib.name} tools`}>
+    <div className="sdui-tools" role="toolbar" aria-label={t('{name} tools', { name: lib.name })}>
       <div className="sdui-tools-row">
-        {music && <Button size="sm" variant="primary" icon={<IconShuffle />} onClick={() => void playAll()}>Play all</Button>}
-        {music && <LinkButton size="sm" variant="ghost" to={`/library/${lib.id}?tab=songs`}>Songs</LinkButton>}
-        {music && <LinkButton size="sm" variant="ghost" to={`/library/${lib.id}?tab=playlists`}>Playlists</LinkButton>}
+        {music && <Button size="sm" variant="primary" icon={<IconShuffle />} onClick={() => void playAll()}>{t('Play all')}</Button>}
+        {music && <LinkButton size="sm" variant="ghost" to={`/library/${lib.id}?tab=songs`}>{t('Songs')}</LinkButton>}
+        {music && <LinkButton size="sm" variant="ghost" to={`/library/${lib.id}?tab=playlists`}>{t('Playlists')}</LinkButton>}
         <ScanTool lib={lib} />
       </div>
     </div>
@@ -215,9 +216,9 @@ function CollectionsTools() {
   const [making, setMaking] = useState(false)
   if (!canPost(user)) return null
   return (
-    <div className="sdui-tools" role="toolbar" aria-label="Collections tools">
+    <div className="sdui-tools" role="toolbar" aria-label={t('Collections tools')}>
       <div className="sdui-tools-row">
-        <Button size="sm" variant="primary" icon={<IconPlus />} onClick={() => setMaking(true)} aria-haspopup="dialog">New collection</Button>
+        <Button size="sm" variant="primary" icon={<IconPlus />} onClick={() => setMaking(true)} aria-haspopup="dialog">{t('New collection')}</Button>
       </div>
       <Suspense fallback={null}>
         {making && <CollectionDialog onClose={() => setMaking(false)} onSaved={() => { setMaking(false); bump(); nav('/collections') }} />}
@@ -243,20 +244,20 @@ function CollectionTools({ id }: { id: number }) {
     if (songs.length && songs.length === items.length) { audio.play(songs); return }
     const first = items.find((x) => x.kind === 'video' || x.kind.startsWith('dvd') || x.kind.startsWith('bluray'))
     if (first) nav(`/play/${first.id}?collection=${c.id}`)
-    else toast('Nothing here plays one after another')
+    else toast(t('Nothing here plays one after another'))
   }
   const remove = async () => {
-    if (!await ask({ title: `Delete “${c.name}”?`, body: 'What’s in it stays in its library.', confirm: 'Delete', danger: true })) return
+    if (!await ask({ title: t('Delete “{name}”?', { name: c.name }), body: t('What’s in it stays in its library.'), confirm: t('Delete'), danger: true })) return
     try { await api.del(`/collections/${c.id}`); bump(); nav('/collections', { replace: true }) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
   const changed = () => { load(); bump() }
   return (
-    <div className="sdui-tools" role="toolbar" aria-label={`${c.name} tools`}>
+    <div className="sdui-tools" role="toolbar" aria-label={t('{name} tools', { name: c.name })}>
       <div className="sdui-tools-row">
-        {items.length > 0 && <Button size="sm" variant="primary" icon={<IconPlay />} onClick={playAll}>Play all</Button>}
-        {own && <Button size="sm" variant="ghost" icon={<IconEdit />} onClick={() => setOpen('edit')} aria-haspopup="dialog">Edit</Button>}
-        {own && c.kind !== 'smart' && (items.length > 0 || got.shows.length > 0) && <Button size="sm" variant="ghost" onClick={() => setOpen('remove')} aria-haspopup="dialog">Remove titles</Button>}
-        {own && !c.system && <Button size="sm" variant="ghost" icon={<IconTrash />} onClick={() => void remove()}>Delete</Button>}
+        {items.length > 0 && <Button size="sm" variant="primary" icon={<IconPlay />} onClick={playAll}>{t('Play all')}</Button>}
+        {own && <Button size="sm" variant="ghost" icon={<IconEdit />} onClick={() => setOpen('edit')} aria-haspopup="dialog">{t('Edit')}</Button>}
+        {own && c.kind !== 'smart' && (items.length > 0 || got.shows.length > 0) && <Button size="sm" variant="ghost" onClick={() => setOpen('remove')} aria-haspopup="dialog">{t('Remove titles')}</Button>}
+        {own && !c.system && <Button size="sm" variant="ghost" icon={<IconTrash />} onClick={() => void remove()}>{t('Delete')}</Button>}
       </div>
       <Suspense fallback={null}>
         {open === 'edit' && <CollectionDialog collection={c} onClose={() => setOpen('')} onSaved={() => { setOpen(''); changed() }} />}
@@ -268,13 +269,13 @@ function CollectionTools({ id }: { id: number }) {
 
 function RemoveTitles({ c, items, shows, onClose, onChanged }: { c: Collection; items: Item[]; shows: Show[]; onClose: () => void; onChanged: () => void }) {
   const take = async (body: { items?: number[]; shows?: number[] }, name: string) => {
-    try { await api.del(`/collections/${c.id}/items`, body); announce(`Removed ${name}`); onChanged() } catch (e) { toast((e as Error).message || 'Couldn’t change this collection', { tone: 'danger' }) }
+    try { await api.del(`/collections/${c.id}/items`, body); announce(t('Removed {name}', { name })); onChanged() } catch (e) { toast((e as Error).message || t('Couldn’t change this collection'), { tone: 'danger' }) }
   }
   return (
-    <Dialog title={`Remove from ${c.name}`} onClose={onClose} actions={<Button variant="primary" onClick={onClose}>Done</Button>}>
-      <ul className="sdui-pick-list" aria-label="Titles in this collection">
-        {shows.map((s) => <li key={'s' + s.id}><span>{s.title}</span><Button size="sm" variant="ghost" aria-label={`Remove ${s.title}`} onClick={() => void take({ shows: [s.id] }, s.title)}>Remove</Button></li>)}
-        {items.map((it) => <li key={it.id}><span>{it.title}</span><Button size="sm" variant="ghost" aria-label={`Remove ${it.title}`} onClick={() => void take({ items: [it.id] }, it.title)}>Remove</Button></li>)}
+    <Dialog title={t('Remove from {name}', { name: c.name })} onClose={onClose} actions={<Button variant="primary" onClick={onClose}>{t('Done')}</Button>}>
+      <ul className="sdui-pick-list" aria-label={t('Titles in this collection')}>
+        {shows.map((s) => <li key={'s' + s.id}><span>{s.title}</span><Button size="sm" variant="ghost" aria-label={t('Remove {name}', { name: s.title })} onClick={() => void take({ shows: [s.id] }, s.title)}>{t('Remove')}</Button></li>)}
+        {items.map((it) => <li key={it.id}><span>{it.title}</span><Button size="sm" variant="ghost" aria-label={t('Remove {name}', { name: it.title })} onClick={() => void take({ items: [it.id] }, it.title)}>{t('Remove')}</Button></li>)}
       </ul>
     </Dialog>
   )

@@ -1,0 +1,15 @@
+{
+  "Control bar": "Панель управления",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Подробная выводит все кнопки на панель. Простая оставляет изображение свободным: воспроизведение и перемотка в центре, а остальное (звук, субтитры, качество, скорость, сцены) — в одном меню «Параметры». Автоматически — простая на телефоне или планшете и подробная на более широком экране.",
+  "Detailed": "Подробная",
+  "Back to options": "Назад к параметрам",
+  "Mono": "Моно",
+  "Styled text": "Текст с оформлением",
+  "Keep playing in a corner": "Продолжить воспроизведение в углу",
+  "{count} watching": {
+    "one": "смотрит {count}",
+    "few": "смотрят {count}",
+    "many": "смотрят {count}",
+    "other": "смотрят {count}"
+  }
+}

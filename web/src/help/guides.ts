@@ -46,6 +46,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'SUPPORTED-FORMATS', title: 'Supported formats', about: 'Every file type, and how it plays.' },
     { file: 'TV', title: 'TV shows', about: 'Seasons, episodes, specials and naming.' },
     { file: 'CHANNELS', title: 'Channels and live TV', about: 'WittyTV: your own channels, the guide, bumpers, tuners and recordings.' },
+    { file: 'LIVE-TV', title: 'Live TV: tuners, IPTV and the guide', about: 'The demo tuner, big playlists, matching channels to the guide, and what each error means.' },
     { file: 'MUSIC', title: 'Music, audiobooks and podcasts', about: 'Listening, queues, full screen and the visualizer.' },
     { file: 'LYRICS-KARAOKE', title: 'Lyrics and karaoke', about: 'Lyrics that follow the song, where they come from, and singing along.' },
     { file: 'PHOTOS', title: 'Photos', about: 'Albums, the map, sharing and live photos.' },

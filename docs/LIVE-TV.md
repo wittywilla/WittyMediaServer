@@ -162,3 +162,7 @@ The full detail of every failure is in the server's log, never shown on a page, 
 - Matching is WittyTuner's `match` package. The server lists the guide's channels to it (host API `GET /tv/guide/ids`: id, name, other names, icon, source, and how far ahead its listings go).
 - A `tvg-shift` channel's programmes are kept under `<guide id>@<minutes>`, so every part of the server that reads a channel's guide sees them moved.
 - Testing with a big playlist: WittyTuner's tests make playlists of thousands of channels; for a test server, any generated M3U and XMLTV of made-up channels whose addresses lead nowhere, or to the demo tuner, will do. Don't test with pirated IPTV lists.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

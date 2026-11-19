@@ -402,7 +402,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/photos/map` | Signed-in | A photos library the account may open. limits. Box of four numbers |
 | `GET /api/photos/ai` | Signed-in | Nothing: reserved |
 | `GET /api/photos/{id}` | Signed-in | limits |
-| `GET /api/items/{id}/image` | Signed-in | limits. Photo or video. Type from a fixed list |
+| `GET /api/items/{id}/image` | Signed-in; address token | limits. Photo or video. Type from a fixed list |
 | `GET /api/items/{id}/original` | Signed-in | limits. Photo or video. Type from a fixed list. Sent as a download |
 | `GET /api/items/{id}/motion` | Signed-in | limits. Clip's path is inside a library |
 | `POST /api/libraries/{id}/upload` | Adult | Uploads turned on. A photos or shorts library the account may open. Name cleaned, listed extension, first bytes checked, never replaces a file. Size per request from settings |

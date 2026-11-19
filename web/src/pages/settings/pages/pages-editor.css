@@ -6,7 +6,7 @@
 /* Three panes need more room than a settings page's column: while a page is being edited,
    and only then, the page takes the width there is. */
 @media (min-width: 1281px) {
-  .set-shell:has(.pe-wide) { grid-template-columns: 232px minmax(0, 1fr); max-width: 1760px; justify-content: stretch; }
+  .set-shell:has(.pe-wide) { grid-template-columns: var(--set-nav-w) minmax(0, 1fr); max-width: 1760px; justify-content: stretch; }
 }
 
 /* ---------------------------------------------------------------- the draft */

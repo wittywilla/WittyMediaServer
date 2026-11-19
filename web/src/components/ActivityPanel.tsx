@@ -21,7 +21,7 @@ export default function ActivityPanel({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>('now')
   const panel = useId()
   const going = a.tasks.length
-  const notices = activitySpec({ tab, connected: a.connected, loaded: a.loaded, readOnly: a.access.readOnly, update: update || '', isAdmin: !!user?.isAdmin, failedOnly: false, canClear: false })
+  const notices = activitySpec({ tab, connected: a.connected, loaded: a.loaded, readOnly: a.access.readOnly, update: update || '', isAdmin: !!user?.isAdmin, failedOnly: false, canClear: false, part: 'notices' })
   const upAt = notices.sections.findIndex((x) => x.h === t('Update available'))
   const count = (n: number) => (n ? <span className="act-tab-n">{n}</span> : null)
   return (
@@ -164,7 +164,7 @@ function History({ recent, readOnly }: { recent: Task[]; readOnly: boolean }) {
     if (!await ask({ title: t('Clear the activity history?'), body: t('What happened stops being listed here. WittyLog keeps its own record, and anything going on now carries on.'), confirm: t('Clear history'), danger: true })) return
     try { await clearTaskHistory(); setRows([]); setMore(false) } catch (e) { toast((e as Error).message) }
   }
-  const bar = activitySpec({ tab: 'history', connected: true, loaded: true, readOnly, update: '', isAdmin: false, failedOnly: only, canClear: !readOnly && rows.length > 0 })
+  const bar = activitySpec({ tab: 'history', connected: true, loaded: true, readOnly, update: '', isAdmin: false, failedOnly: only, canClear: !readOnly && rows.length > 0, part: 'filter' })
   const barIds = handledIds(withIds(bar))
   return (
     <>

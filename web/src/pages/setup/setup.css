@@ -283,5 +283,8 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 /* Welcome's foot: Back to the language and time zone screen, and what it chose. */
 .su-chosen-locale { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-5); font-size: var(--text-sm); }
 
-/* The Demucs row from Settings, on the Karaoke voices page. */
-.su-separator { padding: var(--sp-2) var(--sp-4); }
+/* The Demucs row from Settings, on the Karaoke voices page, padded like the other rounded setup panels. Two classes,
+   because settings.css loads after this file and its .set-card has no padding (#513). The rows keep their own
+   top and bottom space, so the card adds the sides, and the first row has no line above it. */
+.set-card.su-separator { padding: var(--sp-1) var(--sp-4); }
+.su-separator > .set-row:first-child { border-top: 0; }

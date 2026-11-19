@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "Valitse ääni, joka on lähimpänä laulajan ääntä.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "Omat asetukset Lisäasetuksista. Valitse ääni palataksesi valmiisiin asetuksiin.",
   "Now: {name}": "Nyt: {name}",
-  "Advanced voice settings": "Lauluäänen lisäasetukset"
+  "Advanced voice settings": "Lauluäänen lisäasetukset",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "Laulajan ääni on poistettu, joten nämä muuttavat vain sen alla olevaa musiikkia. Palauta ääni kuullaksesi ne.",
+  "Hear the voice": "Kuuntele laulua"
 }

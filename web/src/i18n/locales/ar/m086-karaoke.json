@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "اختر الصوت الأقرب إلى صوت المغني.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "إعداداتك الخاصة، من «متقدم». اختر صوتًا للعودة إلى إعداد مسبق.",
   "Now: {name}": "الآن: {name}",
-  "Advanced voice settings": "إعدادات الصوت المتقدمة"
+  "Advanced voice settings": "إعدادات الصوت المتقدمة",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "صوت المغني مُزال، لذا تغيّر هذه الإعدادات الموسيقى تحته فقط. أعد الصوت لتسمعها.",
+  "Hear the voice": "اسمع الصوت"
 }

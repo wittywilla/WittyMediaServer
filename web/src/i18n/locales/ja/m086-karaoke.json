@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "歌い手の声にいちばん近い声を選んでください。",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "詳細設定で変更したカスタム設定です。声を選ぶとプリセットに戻ります。",
   "Now: {name}": "現在: {name}",
-  "Advanced voice settings": "声の詳細設定"
+  "Advanced voice settings": "声の詳細設定",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "歌い手の声はオフなので、ここでの変更は伴奏にだけかかります。聞くには声を戻してください。",
+  "Hear the voice": "声を戻す"
 }

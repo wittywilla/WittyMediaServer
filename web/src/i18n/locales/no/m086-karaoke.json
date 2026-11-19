@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "Velg stemmen som ligger nærmest sangerens.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "Dine egne innstillinger, fra Avansert. Velg en stemme for å gå tilbake til et forhåndsvalg.",
   "Now: {name}": "Nå: {name}",
-  "Advanced voice settings": "Avanserte stemmeinnstillinger"
+  "Advanced voice settings": "Avanserte stemmeinnstillinger",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "Sangerens stemme er tatt ut, så disse endrer bare musikken under. Ta stemmen tilbake for å høre dem.",
+  "Hear the voice": "Hør stemmen"
 }

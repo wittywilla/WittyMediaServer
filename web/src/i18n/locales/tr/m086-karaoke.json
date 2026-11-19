@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "Şarkıcının sesine en yakın sesi seçin.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "Gelişmiş bölümünden kendi ayarlarınız. Hazır bir ayara dönmek için bir ses seçin.",
   "Now: {name}": "Şimdi: {name}",
-  "Advanced voice settings": "Gelişmiş ses ayarları"
+  "Advanced voice settings": "Gelişmiş ses ayarları",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "Şarkıcının sesi kapalı, bu yüzden bunlar yalnızca alttaki müziği değiştirir. Duymak için sesi geri getirin.",
+  "Hear the voice": "Sesi duy"
 }

@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "选择最接近歌手嗓音的人声。",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "来自“高级”的自定义设置。选择一种人声即可回到预设。",
   "Now: {name}": "当前：{name}",
-  "Advanced voice settings": "高级人声设置"
+  "Advanced voice settings": "高级人声设置",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "歌手的人声已关闭，所以这些只会改变下面的伴奏。重新打开人声即可听到效果。",
+  "Hear the voice": "打开人声"
 }

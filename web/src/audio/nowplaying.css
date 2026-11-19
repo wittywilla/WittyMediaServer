@@ -438,6 +438,9 @@ button.np-artist:hover { color: var(--np-fg); text-decoration: underline; text-u
 .kar-fx-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
 .kar-fx-foot .kar-chip { min-height: 44px; }
 .kar-fx-custom { font-size: var(--text-sm); color: var(--np-fg-2); }
+.kar-fx-out { display: grid; gap: var(--sp-2); justify-items: start; padding: var(--sp-3); border-radius: var(--r-md); background: var(--np-rule); }
+.kar-fx-out p { margin: 0; font-size: var(--text-sm); }
+.kar-fx-out .kar-chip { min-height: 44px; }
 .kar-fx-wall { padding: var(--sp-3); border-radius: var(--r-md); background: var(--np-rule); }
 .using-controller .kar-fx-voice-row .kar-chip { min-height: 56px; }
 .kar-fx-group { margin: 0; padding: 12px 12px 8px; border: 1px solid var(--np-line); border-radius: var(--r-md); display: grid; gap: 4px; }

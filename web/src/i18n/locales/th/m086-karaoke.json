@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "เลือกเสียงที่ใกล้เคียงกับเสียงของผู้ร้องที่สุด",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "การตั้งค่าของคุณเองจากขั้นสูง เลือกเสียงเพื่อกลับไปใช้ค่าที่ตั้งไว้",
   "Now: {name}": "ตอนนี้: {name}",
-  "Advanced voice settings": "การตั้งค่าเสียงร้องขั้นสูง"
+  "Advanced voice settings": "การตั้งค่าเสียงร้องขั้นสูง",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "เสียงของนักร้องถูกปิดอยู่ ค่าเหล่านี้จึงเปลี่ยนแค่ดนตรีด้านล่าง เปิดเสียงร้องกลับมาเพื่อฟัง",
+  "Hear the voice": "ฟังเสียงร้อง"
 }

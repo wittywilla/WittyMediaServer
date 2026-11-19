@@ -63,6 +63,11 @@ export class FxChain {
     this.comp.attack.value = 0.005
     this.comp.release.value = 0.15
     this.comp.knee.value = 8
+    // Neutral from the start, before any settings arrive: the nodes' own defaults compress hard (a 12:1 ratio from -24 dB)
+    // and, worst of all, send the echo back into itself at full level. That loop has no way to die away: it builds on
+    // the voice until it runs out of numbers, and from then on every sound after it is NaN, which is silence (#517).
+    this.comp.threshold.value = 0
+    this.comp.ratio.value = 1
     this.makeUp = ctx.createGain()
     this.pan = ctx.createStereoPanner()
     this.voice.connect(this.lowCut).connect(this.bass).connect(this.presence).connect(this.air).connect(this.comp).connect(this.makeUp).connect(this.pan).connect(out)
@@ -77,6 +82,7 @@ export class FxChain {
     // Echo: a delay that feeds back into itself, a little darker each time round.
     this.echoDelay = ctx.createDelay(1.5)
     this.echoBack = ctx.createGain()
+    this.echoBack.gain.value = 0
     const dark = f('lowpass', 4500, 0.5)
     this.echoLevel = ctx.createGain()
     this.echoLevel.gain.value = 0

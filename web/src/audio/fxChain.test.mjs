@@ -12,7 +12,7 @@ function fakeEngine() {
   const writes = []
   const param = (name, value, min = -3.4e38, max = 3.4e38) => ({
     name, value, minValue: min, maxValue: max,
-    setTargetAtTime(v) { writes.push([name, v]); if (!Number.isFinite(v)) throw new TypeError(name + ' is not finite') },
+    setTargetAtTime(v) { writes.push([name, v]); if (!Number.isFinite(v)) throw new TypeError(name + ' is not finite'); this.value = v },
   })
   let made = 0
   const node = (kind, params = {}) => {
@@ -85,5 +85,28 @@ test('a chain with something not a number in it says so', () => {
   assert.equal(chain.broken(), false)
   ctx.poisoned = true
   assert.equal(chain.broken(), true)
+  chain.close()
+})
+
+test('a new chain is neutral before any settings reach it: no echo fed back, no compression (#517)', () => {
+  const { ctx, out } = fakeEngine()
+  const chain = new FxChain(ctx, out)
+  // The echo's loop at the node default (1) built on the voice until it was NaN, and every sound after it with it.
+  assert.equal(chain.echoBack.gain.value, 0)
+  assert.equal(chain.comp.ratio.value, 1)
+  assert.equal(chain.comp.threshold.value, 0)
+  assert.equal(chain.echoLevel.gain.value, 0); assert.equal(chain.reverbLevel.gain.value, 0); assert.equal(chain.doubleLevel.gain.value, 0)
+  chain.close()
+})
+
+test('the echo never comes back at full level, whatever is asked', () => {
+  const { ctx, writes, out } = fakeEngine()
+  const chain = new FxChain(ctx, out)
+  for (const fx of [{ ...FX_OFF, echo: 100, echoRepeats: 80 }, { ...FX_OFF, echo: 100, echoRepeats: 1e6 }, { ...FX_OFF, echo: 100, echoRepeats: Infinity }]) {
+    chain.set(fx)
+    assert.ok(chain.echoBack.gain.value <= 0.85, 'fed back at ' + chain.echoBack.gain.value)
+  }
+  chain.set(FX_OFF)
+  assert.equal(chain.echoBack.gain.value, 0)
   chain.close()
 })

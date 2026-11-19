@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "Chọn giọng gần nhất với giọng của ca sĩ.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "Cài đặt riêng của bạn, từ Nâng cao. Chọn một giọng để quay lại mẫu có sẵn.",
   "Now: {name}": "Hiện tại: {name}",
-  "Advanced voice settings": "Cài đặt giọng hát nâng cao"
+  "Advanced voice settings": "Cài đặt giọng hát nâng cao",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "Giọng ca sĩ đang tắt, nên các mục này chỉ đổi phần nhạc bên dưới. Bật lại giọng để nghe.",
+  "Hear the voice": "Nghe giọng hát"
 }

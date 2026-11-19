@@ -13,7 +13,7 @@ import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
 import { Pop } from './controls'
 import { VoiceFxPanel } from './VoiceFxPanel'
 import { isOff } from './voiceFx'
-import { KAR_PARTS } from './stemMix'
+import { KAR_PARTS, levelOf } from './stemMix'
 import type { PlayerView } from './types'
 import { num, t, tx } from '../i18n'
 
@@ -58,6 +58,14 @@ export default function Karaoke({ p, ly, onClose, behind, choice, styles, cover 
   const [panel, setPanel] = useState<KarPanel>('')
   const readWords = lyrics?.plain || lines.map((l) => l.text).join('\n')
   const stems = useKaraokeStems(p)
+  const stemsNow = useRef(stems)
+  stemsNow.current = stems
+  // The same function every time, so Voice settings (memo) isn't drawn again for it.
+  const hearVoice = useCallback(() => {
+    const k = stemsNow.current
+    if (k.answer && levelOf(k.answer, k.levels, 'vocals') === 0) k.setLevel('vocals', 1)
+    else k.setSing(false)
+  }, [])
   const sideCover = coverBeside && cover ? cover : ''
   const phone = useMedia('(max-width: 700px)')
   const coarse = useMedia('(pointer: coarse)')
@@ -268,7 +276,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, styles, cover 
           {note && <p className="kar-fx-note" role="status">{note}</p>}
         </aside>
       )}
-      {panel === 'fx' && <VoiceFxPanel fx={stems.fx} onFx={stems.setFx} ready={stems.active} quick={stems.answer?.mix === 'blend'} onClose={closePanel} />}
+      {panel === 'fx' && <VoiceFxPanel fx={stems.fx} onFx={stems.setFx} ready={stems.active} quick={stems.answer?.mix === 'blend'} voiceOut={stems.sing || (!!stems.answer && levelOf(stems.answer, stems.levels, 'vocals') === 0)} onVoice={hearVoice} onClose={closePanel} />}
       {/* The keys karaoke answers, said as the player says its own (they were there, but nowhere to be seen). */}
       <p className="np-hints kar-hints" aria-hidden="true">
         <kbd>Esc</kbd> {t('back')} · <kbd>{t('Space')}</kbd> {t('play or pause')} · <kbd>←</kbd> <kbd>→</kbd> {t('previous or next line')} · <kbd>V</kbd> {t('guide voice')} · <kbd>M</kbd> {t('mix')} · <kbd>−</kbd> <kbd>+</kbd> {t('key')} · <kbd>[</kbd> <kbd>]</kbd> {t('words sooner or later')} · <kbd>F</kbd> {t('full screen')}

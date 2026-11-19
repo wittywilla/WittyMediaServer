@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "Επιλέξτε τη φωνή που μοιάζει περισσότερο με του τραγουδιστή.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "Δικές σας ρυθμίσεις, από τις ρυθμίσεις για προχωρημένους. Επιλέξτε μια φωνή για να επιστρέψετε σε προεπιλογή.",
   "Now: {name}": "Τώρα: {name}",
-  "Advanced voice settings": "Ρυθμίσεις φωνής για προχωρημένους"
+  "Advanced voice settings": "Ρυθμίσεις φωνής για προχωρημένους",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "Η φωνή του τραγουδιστή είναι κλειστή, οπότε αυτά αλλάζουν μόνο τη μουσική από κάτω. Επαναφέρετε τη φωνή για να τα ακούσετε.",
+  "Hear the voice": "Ακούστε τη φωνή"
 }

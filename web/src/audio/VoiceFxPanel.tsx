@@ -18,7 +18,9 @@ import { t, tx } from '../i18n'
 // television shows the note saying where to change it, as a phone does (ui/advanced.tsx), and the presets stay.
 //
 // Drawn only when what it shows changes (memo): karaoke draws itself again many times a second as the words move.
-export const VoiceFxPanel = memo(function VoiceFxPanel({ fx, onFx, onClose, ready, quick }: { fx: Fx; onFx: (fx: Fx) => void; onClose: () => void; ready: boolean; quick: boolean }) {
+// voiceOut: the singer is taken out (as karaoke starts), so nothing here but the music's shaping is heard; onVoice brings
+// them back.
+export const VoiceFxPanel = memo(function VoiceFxPanel({ fx, onFx, onClose, ready, quick, voiceOut = false, onVoice }: { fx: Fx; onFx: (fx: Fx) => void; onClose: () => void; ready: boolean; quick: boolean; voiceOut?: boolean; onVoice?: () => void }) {
   const box = useRef<HTMLElement>(null)
   const [view, setView] = useState<'presets' | 'advanced'>('presets')
   const tv = useTvMode()
@@ -54,6 +56,12 @@ export const VoiceFxPanel = memo(function VoiceFxPanel({ fx, onFx, onClose, read
           : quick ? t('The quick version has no voice of its own, so the voice here is what\'s left of the song without the music: close, not exact.')
             : t('The voice and the music are separate parts, so each is shaped on its own.')}
       </p>
+      {ready && voiceOut && onVoice && (
+        <div className="kar-fx-out" role="status">
+          <p>{t('The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.')}</p>
+          <button type="button" className="kar-chip" onClick={onVoice}>{t('Hear the voice')}</button>
+        </div>
+      )}
       {view === 'presets' ? (
         <div className="kar-fx-presets">
           <p className="kar-fx-lead">{t('Choose the voice closest to the singer’s.')}</p>

@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "가수의 목소리에 가장 가까운 목소리를 고르세요.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "고급에서 바꾼 내 설정입니다. 목소리를 고르면 프리셋으로 돌아갑니다.",
   "Now: {name}": "현재: {name}",
-  "Advanced voice settings": "고급 목소리 설정"
+  "Advanced voice settings": "고급 목소리 설정",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "가수의 목소리가 꺼져 있어서 이 설정은 그 아래 음악만 바꿉니다. 들으려면 목소리를 다시 켜세요.",
+  "Hear the voice": "목소리 듣기"
 }

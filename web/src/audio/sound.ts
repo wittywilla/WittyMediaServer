@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { tk } from '../i18n'
+import { Hush } from './stemMix'
+import { klog } from './klog'
 // What happens to the sound between the player and the speakers: equaliser, loudness
 // and key. It's all optional and nothing here runs until someone turns one
 // on: an <audio> element plays straight to the speakers until then, which is both the
@@ -126,7 +128,7 @@ export class SoundGraph {
     this.loudness.connect(this.master)
     this.master.connect(ctx.destination)
     // If the system stops the context (a phone call), the music would stay stopped.
-    ctx.addEventListener('statechange', () => { if (ctx.state === 'suspended') void ctx.resume().catch(() => {}) })
+    ctx.addEventListener('statechange', () => { klog('audio engine:', ctx.state); if (ctx.state === 'suspended') void ctx.resume().catch(() => {}) })
   }
 
   async resume() { await this.ctx.resume().catch(() => {}) }
@@ -146,8 +148,13 @@ export class SoundGraph {
 
   // Where karaoke's parts come in: before the key change and the equaliser, as a song does.
   get stemIn(): AudioNode { return this.input }
-  // Silences, or gives back, the song's own sound while its parts play instead.
-  hushDecks(on: boolean) { this.deckBus.gain.setTargetAtTime(on ? 0 : 1, this.ctx.currentTime, 0.02) }
+  // Silences the song's own sound while a player of its parts holds it, and gives it back when none does (Hush).
+  private hush = new Hush()
+  hushDecks(on: boolean, by: object) {
+    const quiet = on ? this.hush.hold(by) : this.hush.release(by)
+    klog('song', quiet ? 'hushed' : 'heard', on ? '(a set took over)' : '(a set let go)')
+    this.deckBus.gain.setTargetAtTime(quiet ? 0 : 1, this.ctx.currentTime, 0.02)
+  }
 
   setDeckLevel(el: HTMLMediaElement, level: number) {
     const d = this.decks.get(el)

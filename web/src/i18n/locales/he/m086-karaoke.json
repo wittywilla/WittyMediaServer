@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "בחרו את הקול הקרוב ביותר לקול של הזמר.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "ההגדרות שלך, מתוך ״מתקדם״. בחרו קול כדי לחזור להגדרה מוכנה.",
   "Now: {name}": "עכשיו: {name}",
-  "Advanced voice settings": "הגדרות קול מתקדמות"
+  "Advanced voice settings": "הגדרות קול מתקדמות",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "קול הזמר מושתק, ולכן ההגדרות האלה משנות רק את המוזיקה שמתחתיו. החזירו את הקול כדי לשמוע אותן.",
+  "Hear the voice": "השמע את הקול"
 }

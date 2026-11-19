@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "Kies de stem die het dichtst bij die van de zanger ligt.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "Je eigen instellingen, uit Geavanceerd. Kies een stem om terug te gaan naar een voorinstelling.",
   "Now: {name}": "Nu: {name}",
-  "Advanced voice settings": "Geavanceerde steminstellingen"
+  "Advanced voice settings": "Geavanceerde steminstellingen",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "De stem van de zanger is eruit, dus dit verandert alleen de muziek eronder. Zet de stem terug om het te horen.",
+  "Hear the voice": "Stem horen"
 }

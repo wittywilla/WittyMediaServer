@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "Escolha a voz mais próxima da de quem canta.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "Suas próprias configurações, de Avançado. Escolha uma voz para voltar a uma predefinição.",
   "Now: {name}": "Agora: {name}",
-  "Advanced voice settings": "Configurações de voz avançadas"
+  "Advanced voice settings": "Configurações de voz avançadas",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "A voz de quem canta está desligada, então isto muda só a música por baixo. Traga a voz de volta para ouvir.",
+  "Hear the voice": "Ouvir a voz"
 }

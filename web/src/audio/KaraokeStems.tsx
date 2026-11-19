@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { useApp } from '../state'
-import { decodeLevels, defaultLevel, encodeLevels, levelOf, routesFor, levelsKey, MIX, playable, pollDelay, qualityName, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
+import { decodeLevels, defaultLevel, takeOver, encodeLevels, levelOf, routesFor, levelsKey, MIX, playable, pollDelay, qualityName, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
 import { StemSet, type StemPlayer } from './stems'
 import { decodeFx, encodeFx, FX_OFF, fxKey, type Fx } from './voiceFx'
 import type { PlayerView } from './types'
+import { klog } from './klog'
 import { t, tx } from '../i18n'
 
 // Karaoke from a song's separate parts. Opening karaoke asks the server once; it makes a
@@ -16,6 +17,10 @@ import { t, tx } from '../i18n'
 
 // How loud the guide voice is: the singer, quietly, to follow.
 const GUIDE_LEVEL = 0.2
+// Which of the player's two decks, for the log (klog.ts).
+const deckIds = new WeakMap<object, number>()
+let decksSeen = 0
+const deckId = (el: object) => { if (!deckIds.has(el)) deckIds.set(el, ++decksSeen); return deckIds.get(el) }
 
 const readLevels = (key: string): Levels => { try { return decodeLevels(localStorage.getItem(key)) } catch { return {} } }
 const readFx = (key: string): Fx => { try { return decodeFx(localStorage.getItem(key)) } catch { return { ...FX_OFF } } }
@@ -34,7 +39,11 @@ export function useKaraokeStems(p: PlayerView) {
   const [active, setActive] = useState(false)
   const [lost, setLost] = useState('')
   const set = useRef<StemPlayer | null>(null)
-  const drop = useCallback(() => { set.current?.close(); set.current = null; setActive(false) }, [])
+  // The answer the playing set was made from. The levels are worked out from its parts: a newer answer (the separated
+  // version, while it's still being loaded) names other parts, and set on the playing quick version it silenced every
+  // one of them until the new set took over (#517).
+  const opened = useRef<KaraokeAnswer | null>(null)
+  const drop = useCallback(() => { set.current?.close(); set.current = null; opened.current = null; setActive(false) }, [])
 
   // Ask once for this song, then as often as the server says while something is being made.
   useEffect(() => {
@@ -68,16 +77,25 @@ export function useKaraokeStems(p: PlayerView) {
   // The song's own player, which the parts follow. The player has two and moves between them (gapless, crossfade):
   // parts left following the one that has finished would go quiet with it, so they follow whichever is playing.
   const deck = p.media()
+  // What a set of parts is told the moment it takes over (below): the effects further down tell it only when something
+  // changes, and a set that replaces another (the quick version making way for the separated one) changes nothing they
+  // watch, so it was left silent and with no voice settings at all (#517).
+  const now = useRef({ levels, sing, fx, volume: p.sound.muted ? 0 : p.sound.volume })
+  now.current = { levels, sing, fx, volume: p.sound.muted ? 0 : p.sound.volume }
   useEffect(() => {
     const el = deck
+    klog('parts effect: version', version || '-', 'song', id, 'normal speed', normalSpeed, 'deck', el ? deckId(el) : '-')
     if (!version || !playable(answer) || !el) { drop(); return }
     setLost('')
     const stop = new AbortController()
     // The parts playing now carry on until the new ones are ready.
     StemSet.open(el, answer.stems, stop.signal).then((s) => {
       if (stop.signal.aborted) { s.close(); return }
-      set.current?.close()
+      const was = set.current
+      takeOver(s, answer, now.current)
       set.current = s
+      opened.current = answer
+      was?.close()
       setActive(true)
     }).catch((e: unknown) => {
       if (stop.signal.aborted) return
@@ -89,7 +107,8 @@ export function useKaraokeStems(p: PlayerView) {
   useEffect(() => () => { set.current?.close(); set.current = null }, [])
 
   useEffect(() => {
-    if (active && playable(answer)) set.current?.setRoutes(routesFor(answer, levels, sing), p.sound.muted ? 0 : p.sound.volume)
+    const a = opened.current
+    if (active && a) set.current?.setRoutes(routesFor(a, levels, sing), p.sound.muted ? 0 : p.sound.volume)
   }, [active, answer, levels, sing, p.sound.volume, p.sound.muted])
   useEffect(() => { if (active) set.current?.setFx(fx) }, [active, fx])
   // The same function every time, so Voice settings doesn't draw itself again as the words move along.

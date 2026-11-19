@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "गायक की आवाज़ के सबसे क़रीब वाली आवाज़ चुनें।",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "उन्नत से आपकी अपनी सेटिंग्स। किसी प्रीसेट पर लौटने के लिए कोई आवाज़ चुनें।",
   "Now: {name}": "अभी: {name}",
-  "Advanced voice settings": "उन्नत आवाज़ सेटिंग्स"
+  "Advanced voice settings": "उन्नत आवाज़ सेटिंग्स",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "गायक की आवाज़ हटी हुई है, इसलिए ये सिर्फ़ उसके नीचे के संगीत को बदलती हैं। इन्हें सुनने के लिए आवाज़ वापस लाएँ।",
+  "Hear the voice": "आवाज़ सुनें"
 }

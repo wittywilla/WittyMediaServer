@@ -21,5 +21,7 @@
   "Choose the voice closest to the singer’s.": "Виберіть голос, найближчий до голосу виконавця.",
   "Your own settings, from Advanced. Choose a voice to go back to a preset.": "Власні налаштування з розділу «Додатково». Виберіть голос, щоб повернутися до шаблону.",
   "Now: {name}": "Зараз: {name}",
-  "Advanced voice settings": "Додаткові налаштування голосу"
+  "Advanced voice settings": "Додаткові налаштування голосу",
+  "The singer’s voice is out, so these change only the music under it. Bring the voice back to hear them.": "Голос виконавця прибрано, тож ці налаштування змінюють лише музику під ним. Поверніть голос, щоб їх почути.",
+  "Hear the voice": "Увімкнути голос"
 }

@@ -198,10 +198,14 @@ type Manager struct {
 	session map[string]*Session
 	max     int // FFmpeg processes running at once
 	live    liveRegistry
+	// hwMu guards gpuFailed and hwRunning. Sessions reach them while holding their own lock,
+	// and mu is taken before a session's lock (makeRoom, ActiveCount), so these must not be
+	// under mu: nothing else is ever locked while hwMu is held.
+	hwMu sync.Mutex
 	// gpuFailed: encoder and source picture kinds whose GPU pipeline failed here, so that
-	// other streams of the same kind don't each fail once first. Guarded by mu.
+	// other streams of the same kind don't each fail once first. Guarded by hwMu.
 	gpuFailed map[string]bool
-	hwRunning map[string]int // jobs running on each hardware encoder (see hwCaps); guarded by mu
+	hwRunning map[string]int // jobs running on each hardware encoder (see hwCaps); guarded by hwMu
 }
 
 // ErrBusy: as many transcodes are running as the server allows
@@ -1454,12 +1458,12 @@ func (s *Session) hwExit(j *job) {
 		return
 	}
 	if forget {
-		s.m.mu.Lock()
+		s.m.hwMu.Lock()
 		if s.m.gpuFailed == nil {
 			s.m.gpuFailed = map[string]bool{}
 		}
 		s.m.gpuFailed[j.hw.key] = true
-		s.m.mu.Unlock()
+		s.m.hwMu.Unlock()
 	}
 	s.logger().Warn("FFmpeg failed using the graphics chip: the stream goes on with less of it", "cat", "transcode",
 		"encoder", j.hw.plan.Name, "gpuPipeline", j.hw.onGPU, "gpuToneMap", j.hw.placebo, "level", next, "forAll", forget, "ffmpeg", tail(said, 500))

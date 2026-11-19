@@ -70,9 +70,9 @@ func (m *Manager) chooseHW(q ffmpeg.Quality, preset string, level int32, src hwS
 		return c
 	}
 	c.key = strings.Join([]string{plan.Name, src.codec, src.pixFmt, src.toneMap, boolWord(src.subs)}, "|")
-	m.mu.Lock()
+	m.hwMu.Lock()
 	failed := m.gpuFailed[c.key]
-	m.mu.Unlock()
+	m.hwMu.Unlock()
 	if failed {
 		c.key = ""
 		return c
@@ -110,8 +110,8 @@ func (m *Manager) atCap(encoder string) bool {
 	if !ok {
 		return false
 	}
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.hwMu.Lock()
+	defer m.hwMu.Unlock()
 	return m.hwRunning[encoder] >= limit
 }
 
@@ -120,21 +120,21 @@ func (m *Manager) hwStarted(encoder string) {
 	if !hardware(encoder) {
 		return
 	}
-	m.mu.Lock()
+	m.hwMu.Lock()
 	if m.hwRunning == nil {
 		m.hwRunning = map[string]int{}
 	}
 	m.hwRunning[encoder]++
-	m.mu.Unlock()
+	m.hwMu.Unlock()
 }
 
 func (m *Manager) hwEnded(encoder string) {
 	if !hardware(encoder) {
 		return
 	}
-	m.mu.Lock()
+	m.hwMu.Lock()
 	m.hwRunning[encoder]--
-	m.mu.Unlock()
+	m.hwMu.Unlock()
 }
 
 // stepDown is what a failed job using c says about its stream's next jobs: the level they

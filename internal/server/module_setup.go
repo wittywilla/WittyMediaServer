@@ -32,6 +32,8 @@ type pendingModuleStep struct {
 	Page   string `json:"page"`
 	Later  string `json:"later,omitempty"`
 	To     string `json:"to,omitempty"`
+	// Open is where Set up goes for a step the server asks itself, with no SDUI page of the module's.
+	Open string `json:"open,omitempty"`
 }
 
 func moduleStepKey(module, id string, version int) string {
@@ -54,7 +56,7 @@ func (s *Server) pendingModuleSteps(ctx context.Context) []pendingModuleStep {
 		return nil
 	}
 	in, _ := s.Modules.Integrations()
-	return pendingSteps(in, s.moduleStepsDone(ctx))
+	return append(pendingSteps(in, s.moduleStepsDone(ctx)), s.wittyTVLookPending(ctx)...)
 }
 
 func pendingSteps(in []modules.InUse, done []string) []pendingModuleStep {
@@ -151,12 +153,21 @@ func (s *Server) handleModuleStepSkip(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "a step is {module, step}")
 		return
 	}
+	ctx := r.Context()
+	if in.Module == tunerModule && in.Step == wittyTVLookStep {
+		// The server's own question about WittyTuner, not a step the module declares.
+		if err := s.wittyTVLookAnswered(ctx); err != nil {
+			writeErr(w, 500, err.Error())
+			return
+		}
+		w.WriteHeader(204)
+		return
+	}
 	version, found := s.moduleStepVersion(in.Module, in.Step)
 	if !found {
 		writeErr(w, 404, "no module in use has that setup step")
 		return
 	}
-	ctx := r.Context()
 	if err := s.recordModuleStep(ctx, in.Module, in.Step, version); err != nil {
 		writeErr(w, 500, err.Error())
 		return
@@ -211,8 +222,12 @@ func withSetupNotices(page sdui.Page, steps []pendingModuleStep) sdui.Page {
 		if st.Later != "" {
 			text += " You can also do it later, in " + st.Later + "."
 		}
+		to := "/page/" + st.Page
+		if st.Page == "" {
+			to = st.Open
+		}
 		notices = append(notices, sdui.Section{ID: "module-setup-" + st.Module + "-" + st.ID, Component: "Notice",
-			Props: map[string]any{"tone": "info", "title": "Finish setting up " + st.Name, "text": text, "buttonLabel": "Set up", "to": "/page/" + st.Page,
+			Props: map[string]any{"tone": "info", "title": "Finish setting up " + st.Name, "text": text, "buttonLabel": "Set up", "to": to,
 				"dismissLabel": "Dismiss", "dismissOp": "setup.skip", "dismissParams": map[string]any{"module": st.Module, "step": st.ID}}})
 	}
 	page.Sections = append(notices, page.Sections...)

@@ -129,6 +129,9 @@ func (s *Server) serverSettingsView(r *http.Request) (map[string]string, int) {
 	out["theme"] = s.serverTheme(r.Context()) // the look's own until one is chosen
 	out["timeZoneNow"] = time.Local.String()  // the zone the server runs in, which is timeZone's, else the computer's
 	out["timeZoneComputer"] = computerZone
+	if len(s.wittyTVLookPending(r.Context())) > 0 {
+		out[settingWittyTVLookAsk] = "1" // WittyTuner was just installed: the guide's look is to be asked (wittytv_look.go)
+	}
 	if s.timeZoneWaiting(r.Context()) {
 		out["timeZoneRestart"] = "1" // saved, in use once the server starts again
 	}

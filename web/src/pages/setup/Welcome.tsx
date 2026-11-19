@@ -5,7 +5,7 @@ import { api } from '../../api'
 import { IconAudio, IconBook, IconGamepad, IconPalette, IconTv, IconUsers } from '../../icons'
 import { Button, Field, Input } from '../../ui'
 import { WhereIsTheCode } from './parts'
-import { LocaleFirst, localeAsked, pendingLocale, reopenLocale } from './Locale'
+import { pendingLocale, reopenLocale } from './Locale'
 import { applyPageTitle } from '../../theme'
 import { nativeName, t, tk } from '../../i18n'
 
@@ -20,15 +20,11 @@ const FEATURES = [
   { icon: <IconPalette />, title: tk('Yours'), text: tk('It runs on your own computer. No account with anyone, and nothing is reported back.') },
 ]
 
-export function Welcome({ onStart }: { onStart: () => void }) {
+export function Welcome({ onStart, onLanguage }: { onStart: () => void; onLanguage: () => void }) {
   const [restoring, setRestoring] = useState(false)
   // While a backup is coming back, starting something else would only get in its way.
   const [busy, setBusy] = useState(false)
-  // The language and time zone come first, before anything else; once chosen in this browser they aren't asked again.
-  const [asked, setAsked] = useState(localeAsked)
-  // Both screens share one address, so the window's title is set here when one gives way to the other.
-  useEffect(() => { applyPageTitle(asked ? t('Let’s set up your server') : t('Language and time zone')) }, [asked])
-  if (!asked) return <LocaleFirst onDone={() => setAsked(true)} />
+  useEffect(() => { applyPageTitle(t('Let’s set up your server')) }, [])
   return (
     <section className="oobe-welcome">
       <img className="oobe-welcome-logo" src="/icon.svg" alt="" />
@@ -43,7 +39,7 @@ export function Welcome({ onStart }: { onStart: () => void }) {
       <ul className="oobe-perks" aria-label={t('What your server does')}>
         {FEATURES.map((f) => <li key={f.title}><span className="ic">{f.icon}</span><span><b>{t(f.title)}</b> <span className="muted">{t(f.text)}</span></span></li>)}
       </ul>
-      {!busy && <ChosenLocale onBack={() => { reopenLocale(); setAsked(false) }} />}
+      {!busy && <ChosenLocale onBack={() => { reopenLocale(); onLanguage() }} />}
     </section>
   )
 }

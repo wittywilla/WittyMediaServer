@@ -116,3 +116,19 @@ func TestModuleStepDoneFromSetup(t *testing.T) {
 		t.Errorf("recorded twice: %v", done)
 	}
 }
+
+// WittyTV's look, asked by the server after a fresh WittyTuner install, has no SDUI page of the
+// module's: its notice opens Settings, Appearance, at WittyTV.
+func TestWittyTVLookNotice(t *testing.T) {
+	home := withSetupNotices(sdui.Page{ID: "home", Kind: "home"}, []pendingModuleStep{wittyTVLookNotice()})
+	if len(home.Sections) != 1 {
+		t.Fatalf("notices: %d", len(home.Sections))
+	}
+	p := home.Sections[0].Props
+	if p["to"] != "/settings/appearance#wittytv" || p["title"] != "Finish setting up WittyTuner" {
+		t.Errorf("notice: %v", p)
+	}
+	if d, _ := p["dismissParams"].(map[string]any); d["step"] != wittyTVLookStep || d["module"] != tunerModule {
+		t.Errorf("dismiss: %v", p["dismissParams"])
+	}
+}

@@ -45,6 +45,7 @@ import { tvElsewhere } from '../tvmode/OnAComputer'
 import { t, tk, tn, tx } from '../i18n'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
+const WittyTvLookDialog = lazy(() => import('./tv/WittyTvLookPrompt').then((m) => ({ default: m.WittyTvLookDialog })))
 const ModuleStore = lazy(() => import('./settings/store/ModuleStore'))
 const ModulePage = lazy(() => import('./settings/store/ModulePage'))
 const OtherStores = lazy(() => import('./settings/store/OtherStores'))
@@ -252,12 +253,12 @@ export default function SettingsPage() {
           <Route path="backup" element={<Suspense fallback={null}><BackupSettings /></Suspense>} />
           <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
-          <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /></Suspense>} />
+          <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /><WittyTvLookDialog /></Suspense>} />
           <Route path="module-settings" element={<Suspense fallback={null}><ModuleSettingsList /></Suspense>} />
           <Route path="module-settings/:module" element={<Suspense fallback={null}><ModuleSettingsPage /></Suspense>} />
-          <Route path="modules/store" element={<Suspense fallback={null}><ModuleStore /></Suspense>} />
-          <Route path="modules/store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />
-          <Route path="modules/store/:store/:id" element={<Suspense fallback={null}><ModulePage /></Suspense>} />
+          <Route path="modules/store" element={<Suspense fallback={null}><ModuleStore /><WittyTvLookDialog /></Suspense>} />
+          <Route path="modules/store/:id" element={<Suspense fallback={null}><ModulePage /><WittyTvLookDialog /></Suspense>} />
+          <Route path="modules/store/:store/:id" element={<Suspense fallback={null}><ModulePage /><WittyTvLookDialog /></Suspense>} />
           <Route path="modules/stores" element={<Suspense fallback={null}><OtherStores /></Suspense>} />
           <Route path="about" element={<About />} />
           <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />

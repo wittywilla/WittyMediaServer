@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import ConvertPanel from '../../wittyinfo/ConvertPanel'
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import LegalNote from '../../components/LegalNote'
@@ -45,6 +46,8 @@ export function Details({ info, facts, next, back }: StepProps) {
   const [saving, setSaving] = useState(false)
   // Whether anything is written into someone's media folders is worth asking, not assuming.
   const [beside, setBeside] = useState(true)
+  // A conversion chosen and not finished holds Continue (ConvertPanel).
+  const [converting, setConverting] = useState(false)
   useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => setBeside(s.saveMetadata !== '0')).catch(() => {}) }, [])
   const test = async (p: (typeof PROVIDERS)[number]) => {
     setState((s) => ({ ...s, [p.id]: { busy: true } }))
@@ -103,9 +106,13 @@ export function Details({ info, facts, next, back }: StepProps) {
           )
         })}
       </div>
+      <h2 className="oobe-sub">{t('What your libraries already have')}</h2>
+      <p className="muted oobe-hint">{t('NFO files, posters, lyrics and game details already beside your media can be gathered into WittyMediaServer’s own files, or the other way round. Choose for each kind and press Convert now: Continue waits until it is done.')}</p>
+      <ConvertPanel onBusy={setConverting} beforeStart={() => api.put('/settings', { saveMetadata: beside ? '1' : '0' })} />
       <LegalNote kind="webResults" newTab className="su-gap" />
       <LaterNote info={info} />
-      <StepActions back={back}><Button variant="primary" size="big" busy={saving} onClick={save}>{any ? t('Save and continue') : t('Continue')}</Button></StepActions>
+      {converting && <p className="muted oobe-hint" role="status">{t('Convert what you chose, or choose “Leave them as they are”, to continue.')}</p>}
+      <StepActions back={back}><Button variant="primary" size="big" busy={saving} disabled={converting} onClick={save}>{any ? t('Save and continue') : t('Continue')}</Button></StepActions>
     </section>
   )
 }

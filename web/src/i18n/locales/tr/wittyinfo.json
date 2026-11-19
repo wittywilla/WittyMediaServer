@@ -78,7 +78,7 @@
   "Forced": "Zorunlu",
   "Frame": "Kare",
   "Frightening scenes": "Korkutucu sahneler",
-  "From the .wittyinfo": ".wittyinfo dosyasından",
+  "The title’s .wittyinfo": "Başlığın .wittyinfo dosyası",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "NFO dosyalarını, posterleri, şarkı sözlerini ve oyun ayrıntılarını .wittyinfo, .wittyaudio ve .wittyplay dosyalarında topla ya da bunları her zamanki dosyalar olarak geri yaz.",
   "Gather the {standard} into {ext} files": "{standard} öğelerini {ext} dosyalarında topla",
   "How much to change it so every song plays as loud.": "Her şarkının aynı yükseklikte çalması için ne kadar değiştirileceği.",
@@ -285,9 +285,9 @@
     "one": "{count} kitaplık salt okunur ve olduğu gibi bırakılır.",
     "other": "{count} kitaplık salt okunur ve olduğu gibi bırakılır."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "Kendiliğinden bulunan yerine {from} kaynağından {count} atlama.",
-    "other": "Kendiliğinden bulunan yerine {from} kaynağından {count} atlama."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: kendiliğinden bulunanın yerine {count} atlama.",
+    "other": "{from}: kendiliğinden bulunanın yerine {count} atlama."
   },
   "{done} of {total}: {item}": "{done}/{total}: {item}",
   "{games} games, {meta} with details beside them": "{games} oyun, yanında ayrıntısı olan {meta}",
@@ -302,5 +302,6 @@
   "{what} saved": "{what} kaydedildi",
   "{what} taken out": "{what} kaldırıldı",
   "“Previously on…”": "“Önceki bölümlerde…”",
-  "−1 s": "−1 sn"
+  "−1 s": "−1 sn",
+  "Lyrics and details": "Şarkı sözleri ve ayrıntılar"
 }

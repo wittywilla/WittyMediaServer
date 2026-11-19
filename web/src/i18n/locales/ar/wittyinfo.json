@@ -82,7 +82,7 @@
   "Forced": "إجبارية",
   "Frame": "إطار",
   "Frightening scenes": "مشاهد مخيفة",
-  "From the .wittyinfo": "من ملف .wittyinfo",
+  "The title’s .wittyinfo": "ملف .wittyinfo الخاص بالعنوان",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "جمع ملفات NFO والملصقات وكلمات الأغاني وتفاصيل الألعاب في ملفات .wittyinfo و.wittyaudio و.wittyplay، أو كتابتها مجددًا كملفات عادية.",
   "Gather the {standard} into {ext} files": "جمع {standard} في ملفات {ext}",
   "How much to change it so every song plays as loud.": "مقدار التغيير ليُسمع كل أغنية بالارتفاع نفسه.",
@@ -301,13 +301,13 @@
     "many": "{count} مكتبة للقراءة فقط وتُترك كما هي.",
     "other": "{count} مكتبة للقراءة فقط وتُترك كما هي."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "zero": "لا تخطيات من {from} بدلًا مما وُجد تلقائيًا.",
-    "one": "تخطٍّ واحد من {from} بدلًا مما وُجد تلقائيًا.",
-    "two": "تخطيان من {from} بدلًا مما وُجد تلقائيًا.",
-    "few": "{count} تخطيات من {from} بدلًا مما وُجد تلقائيًا.",
-    "many": "{count} تخطيًا من {from} بدلًا مما وُجد تلقائيًا.",
-    "other": "{count} تخطٍّ من {from} بدلًا مما وُجد تلقائيًا."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "zero": "{from}: {count} تخطٍّ بدلًا مما وُجد تلقائيًا.",
+    "one": "{from}: {count} تخطٍّ بدلًا مما وُجد تلقائيًا.",
+    "two": "{from}: {count} تخطٍّ بدلًا مما وُجد تلقائيًا.",
+    "few": "{from}: {count} تخطٍّ بدلًا مما وُجد تلقائيًا.",
+    "many": "{from}: {count} تخطٍّ بدلًا مما وُجد تلقائيًا.",
+    "other": "{from}: {count} تخطٍّ بدلًا مما وُجد تلقائيًا."
   },
   "{done} of {total}: {item}": "{done} من {total}: {item}",
   "{games} games, {meta} with details beside them": "ألعاب: {games}، منها بتفاصيل بجانبها: {meta}",
@@ -322,5 +322,6 @@
   "{what} saved": "تم حفظ {what}",
   "{what} taken out": "تمت إزالة {what}",
   "“Previously on…”": "«في الحلقات السابقة…»",
-  "−1 s": "−1 ث"
+  "−1 s": "−1 ث",
+  "Lyrics and details": "الكلمات والتفاصيل"
 }

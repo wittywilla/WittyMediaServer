@@ -78,7 +78,7 @@
   "Forced": "Forcés",
   "Frame": "Image",
   "Frightening scenes": "Scènes effrayantes",
-  "From the .wittyinfo": "Du .wittyinfo",
+  "The title’s .wittyinfo": "Le .wittyinfo du titre",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "Rassembler les fichiers NFO, affiches, paroles et détails de jeux dans des fichiers .wittyinfo, .wittyaudio et .wittyplay, ou les réécrire sous forme de fichiers habituels.",
   "Gather the {standard} into {ext} files": "Rassembler les {standard} dans des fichiers {ext}",
   "How much to change it so every song plays as loud.": "De combien le changer pour que chaque morceau joue aussi fort.",
@@ -285,9 +285,9 @@
     "one": "{count} bibliothèque est en lecture seule et reste telle quelle.",
     "other": "{count} bibliothèques sont en lecture seule et restent telles quelles."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} saut venant de {from}, à la place de ce qui a été trouvé seul.",
-    "other": "{count} sauts venant de {from}, à la place de ce qui a été trouvé seul."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from} : {count} saut à la place de ce qui a été trouvé tout seul.",
+    "other": "{from} : {count} sauts à la place de ce qui a été trouvé tout seul."
   },
   "{done} of {total}: {item}": "{done} sur {total} : {item}",
   "{games} games, {meta} with details beside them": "{games} jeux, {meta} avec des détails à côté",
@@ -302,5 +302,6 @@
   "{what} saved": "{what} enregistré",
   "{what} taken out": "{what} retiré",
   "“Previously on…”": "« Précédemment… »",
-  "−1 s": "−1 s"
+  "−1 s": "−1 s",
+  "Lyrics and details": "Paroles et détails"
 }

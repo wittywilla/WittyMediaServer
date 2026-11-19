@@ -187,7 +187,7 @@ export type MarkerPut = { reset: true } | { intro?: PutRange; recap?: PutRange; 
 type PutRange = { start: number; end?: number }
 
 const SOURCE_WORDS: Record<string, string> = {
-  wittyinfo: tk('From the .wittyinfo'), 'wittyinfo-season': tk('The season’s .wittyinfo'), 'wittyinfo-show': tk('The show’s .wittyinfo'),
+  wittyinfo: tk('The title’s .wittyinfo'), 'wittyinfo-season': tk('The season’s .wittyinfo'), 'wittyinfo-show': tk('The show’s .wittyinfo'),
   manual: tk('Set by hand'), 'skip.json': tk('From a .skip.json beside the file'), edl: tk('From an .edl beside the file'),
   chapters: tk('From the file’s chapters'), detected: tk('Found by comparing episodes'), show: tk('The show’s own intro'),
 }

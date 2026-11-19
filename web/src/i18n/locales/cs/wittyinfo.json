@@ -80,7 +80,7 @@
   "Forced": "Vynucené",
   "Frame": "Snímek",
   "Frightening scenes": "Děsivé scény",
-  "From the .wittyinfo": "Ze souboru .wittyinfo",
+  "The title’s .wittyinfo": ".wittyinfo titulu",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "Shromáždit soubory NFO, plakáty, texty písní a podrobnosti her do souborů .wittyinfo, .wittyaudio a .wittyplay, nebo je zapsat zpět jako obvyklé soubory.",
   "Gather the {standard} into {ext} files": "Shromáždit {standard} do souborů {ext}",
   "How much to change it so every song plays as loud.": "O kolik ji změnit, aby každá skladba hrála stejně hlasitě.",
@@ -293,11 +293,11 @@
     "many": "{count} knihovny je jen pro čtení a zůstane, jak je.",
     "other": "{count} knihoven je jen pro čtení a zůstane, jak jsou."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} přeskok ze {from} místo toho, co se našlo samo.",
-    "few": "{count} přeskoky ze {from} místo toho, co se našlo samo.",
-    "many": "{count} přeskoku ze {from} místo toho, co se našlo samo.",
-    "other": "{count} přeskoků ze {from} místo toho, co se našlo samo."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} přeskočení místo toho, co bylo nalezeno samo.",
+    "few": "{from}: {count} přeskočení místo toho, co bylo nalezeno samo.",
+    "many": "{from}: {count} přeskočení místo toho, co bylo nalezeno samo.",
+    "other": "{from}: {count} přeskočení místo toho, co bylo nalezeno samo."
   },
   "{done} of {total}: {item}": "{done} z {total}: {item}",
   "{games} games, {meta} with details beside them": "{games} her, {meta} s podrobnostmi vedle",
@@ -312,5 +312,6 @@
   "{what} saved": "Uloženo: {what}",
   "{what} taken out": "Odebráno: {what}",
   "“Previously on…”": "„Minule jste viděli…“",
-  "−1 s": "−1 s"
+  "−1 s": "−1 s",
+  "Lyrics and details": "Text a podrobnosti"
 }

@@ -80,7 +80,7 @@
   "Forced": "Принудительные",
   "Frame": "Кадр",
   "Frightening scenes": "Пугающие сцены",
-  "From the .wittyinfo": "Из .wittyinfo",
+  "The title’s .wittyinfo": ".wittyinfo названия",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "Собрать файлы NFO, постеры, тексты песен и сведения об играх в файлы .wittyinfo, .wittyaudio и .wittyplay или записать их обратно как обычные файлы.",
   "Gather the {standard} into {ext} files": "Собрать {standard} в файлы {ext}",
   "How much to change it so every song plays as loud.": "Насколько изменить, чтобы каждая песня звучала одинаково громко.",
@@ -293,11 +293,11 @@
     "many": "{count} библиотек доступны только для чтения и остаются как есть.",
     "other": "{count} библиотеки доступны только для чтения и остаются как есть."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} пропуск из {from} вместо найденного автоматически.",
-    "few": "{count} пропуска из {from} вместо найденного автоматически.",
-    "many": "{count} пропусков из {from} вместо найденного автоматически.",
-    "other": "{count} пропуска из {from} вместо найденного автоматически."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} пропуск вместо найденного автоматически.",
+    "few": "{from}: {count} пропуска вместо найденного автоматически.",
+    "many": "{from}: {count} пропусков вместо найденного автоматически.",
+    "other": "{from}: {count} пропуска вместо найденного автоматически."
   },
   "{done} of {total}: {item}": "{done} из {total}: {item}",
   "{games} games, {meta} with details beside them": "Игры: {games}, со сведениями рядом: {meta}",
@@ -312,5 +312,6 @@
   "{what} saved": "Сохранено: {what}",
   "{what} taken out": "Удалено: {what}",
   "“Previously on…”": "«Ранее в сериале…»",
-  "−1 s": "−1 с"
+  "−1 s": "−1 с",
+  "Lyrics and details": "Текст и сведения"
 }

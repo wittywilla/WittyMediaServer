@@ -221,7 +221,7 @@ function CustomInfoNote({ itemId }: { itemId: number }) {
   const parts = (m?.segments || []).filter((s) => s.source.startsWith('wittyinfo')).length
   return (
     <p className="wi-note" role="note">
-      <span className="wi-badge file">{t('Custom info')}</span> {tn('{count} skip from {from}, in place of what was found by itself.', '{count} skips from {from}, in place of what was found by itself.', parts, { from: from || '.wittyinfo' })}
+      <span className="wi-badge file">{t('Custom info')}</span> {tn('{from}: {count} skip, in place of what was found by itself.', '{from}: {count} skips, in place of what was found by itself.', parts, { from: from || '.wittyinfo' })}
     </p>
   )
 }

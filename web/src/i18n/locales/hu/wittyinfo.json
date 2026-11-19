@@ -78,7 +78,7 @@
   "Forced": "Kényszerített",
   "Frame": "Képkocka",
   "Frightening scenes": "Ijesztő jelenetek",
-  "From the .wittyinfo": "A .wittyinfo fájlból",
+  "The title’s .wittyinfo": "A cím .wittyinfo fájlja",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "NFO-fájlok, plakátok, dalszövegek és játékadatok összegyűjtése .wittyinfo, .wittyaudio és .wittyplay fájlokba, vagy visszaírásuk a szokásos fájlokként.",
   "Gather the {standard} into {ext} files": "A(z) {standard} összegyűjtése {ext} fájlokba",
   "How much to change it so every song plays as loud.": "Mennyivel változzon, hogy minden dal ugyanolyan hangosan szóljon.",
@@ -285,9 +285,9 @@
     "one": "{count} könyvtár csak olvasható, és változatlan marad.",
     "other": "{count} könyvtár csak olvasható, és változatlan marad."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} ugrás innen: {from}, a magától talált helyett.",
-    "other": "{count} ugrás innen: {from}, a magától talált helyett."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} kihagyás a magától talált helyett.",
+    "other": "{from}: {count} kihagyás a magától talált helyett."
   },
   "{done} of {total}: {item}": "{done}/{total}: {item}",
   "{games} games, {meta} with details beside them": "{games} játék, {meta} mellette lévő adatokkal",
@@ -302,5 +302,6 @@
   "{what} saved": "{what} mentve",
   "{what} taken out": "{what} eltávolítva",
   "“Previously on…”": "„Az előző részek tartalmából…”",
-  "−1 s": "−1 s"
+  "−1 s": "−1 s",
+  "Lyrics and details": "Dalszöveg és részletek"
 }

@@ -78,7 +78,7 @@
   "Forced": "Geforceerd",
   "Frame": "Beeld",
   "Frightening scenes": "Enge scènes",
-  "From the .wittyinfo": "Uit de .wittyinfo",
+  "The title’s .wittyinfo": "De .wittyinfo van de titel",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "NFO-bestanden, posters, songteksten en spelgegevens verzamelen in .wittyinfo-, .wittyaudio- en .wittyplay-bestanden, of ze weer uitschrijven als de gebruikelijke bestanden.",
   "Gather the {standard} into {ext} files": "De {standard} verzamelen in {ext}-bestanden",
   "How much to change it so every song plays as loud.": "Hoeveel het verandert zodat elk nummer even hard speelt.",
@@ -285,9 +285,9 @@
     "one": "{count} bibliotheek is alleen-lezen en blijft zoals ze is.",
     "other": "{count} bibliotheken zijn alleen-lezen en blijven zoals ze zijn."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} sprong uit {from}, in plaats van wat vanzelf is gevonden.",
-    "other": "{count} sprongen uit {from}, in plaats van wat vanzelf is gevonden."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} sprong in plaats van wat vanzelf is gevonden.",
+    "other": "{from}: {count} sprongen in plaats van wat vanzelf is gevonden."
   },
   "{done} of {total}: {item}": "{done} van {total}: {item}",
   "{games} games, {meta} with details beside them": "{games} spellen, {meta} met gegevens ernaast",
@@ -302,5 +302,6 @@
   "{what} saved": "{what} opgeslagen",
   "{what} taken out": "{what} verwijderd",
   "“Previously on…”": "‘Eerder in…’",
-  "−1 s": "−1 s"
+  "−1 s": "−1 s",
+  "Lyrics and details": "Songtekst en details"
 }

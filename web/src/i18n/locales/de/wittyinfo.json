@@ -78,7 +78,7 @@
   "Forced": "Erzwungen",
   "Frame": "Bild",
   "Frightening scenes": "Beängstigende Szenen",
-  "From the .wittyinfo": "Aus der .wittyinfo",
+  "The title’s .wittyinfo": "Die .wittyinfo des Titels",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "NFO-Dateien, Poster, Liedtexte und Spieldetails in .wittyinfo-, .wittyaudio- und .wittyplay-Dateien sammeln oder wieder als die üblichen Dateien herausschreiben.",
   "Gather the {standard} into {ext} files": "Die {standard} in {ext}-Dateien sammeln",
   "How much to change it so every song plays as loud.": "Wie stark sie geändert wird, damit jeder Song gleich laut spielt.",
@@ -285,9 +285,9 @@
     "one": "{count} Mediathek ist schreibgeschützt und bleibt, wie sie ist.",
     "other": "{count} Mediatheken sind schreibgeschützt und bleiben, wie sie sind."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} Sprung aus {from}, statt dessen, was von selbst gefunden wurde.",
-    "other": "{count} Sprünge aus {from}, statt dessen, was von selbst gefunden wurde."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} Sprung anstelle dessen, was von selbst gefunden wurde.",
+    "other": "{from}: {count} Sprünge anstelle dessen, was von selbst gefunden wurde."
   },
   "{done} of {total}: {item}": "{done} von {total}: {item}",
   "{games} games, {meta} with details beside them": "{games} Spiele, {meta} mit Details daneben",
@@ -302,5 +302,6 @@
   "{what} saved": "{what} gespeichert",
   "{what} taken out": "{what} entfernt",
   "“Previously on…”": "„Was bisher geschah…“",
-  "−1 s": "−1 s"
+  "−1 s": "−1 s",
+  "Lyrics and details": "Liedtext und Details"
 }

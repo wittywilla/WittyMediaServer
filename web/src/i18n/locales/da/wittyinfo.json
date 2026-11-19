@@ -78,7 +78,7 @@
   "Forced": "Tvungne",
   "Frame": "Billede",
   "Frightening scenes": "Uhyggelige scener",
-  "From the .wittyinfo": "Fra .wittyinfo-filen",
+  "The title’s .wittyinfo": "Titlens .wittyinfo",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "Saml NFO-filer, plakater, sangtekster og spiloplysninger i .wittyinfo-, .wittyaudio- og .wittyplay-filer, eller skriv dem ud igen som de sædvanlige filer.",
   "Gather the {standard} into {ext} files": "Saml {standard} i {ext}-filer",
   "How much to change it so every song plays as loud.": "Hvor meget den ændres, så hver sang spiller lige højt.",
@@ -285,9 +285,9 @@
     "one": "{count} bibliotek er skrivebeskyttet og lades, som det er.",
     "other": "{count} biblioteker er skrivebeskyttede og lades, som de er."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} spring fra {from} i stedet for det, der blev fundet af sig selv.",
-    "other": "{count} spring fra {from} i stedet for det, der blev fundet af sig selv."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} spring i stedet for det, der blev fundet af sig selv.",
+    "other": "{from}: {count} spring i stedet for det, der blev fundet af sig selv."
   },
   "{done} of {total}: {item}": "{done} af {total}: {item}",
   "{games} games, {meta} with details beside them": "{games} spil, {meta} med oplysninger ved siden af",
@@ -302,5 +302,6 @@
   "{what} saved": "{what} gemt",
   "{what} taken out": "{what} fjernet",
   "“Previously on…”": "»Tidligere i…«",
-  "−1 s": "−1 s"
+  "−1 s": "−1 s",
+  "Lyrics and details": "Sangtekst og detaljer"
 }

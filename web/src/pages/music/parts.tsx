@@ -12,6 +12,7 @@ import { PlayOnMenuItem } from '../../remote/PlayOnButton'
 import { toast, useApp } from '../../state'
 import { SongVideoItems, TieDialog } from './SongVideo'
 import { num, t, tn } from '../../i18n'
+import { MusicInfoDialog, MusicInfoItem } from '../../wittyinfo/MusicInfo'
 import './music.css'
 
 // What the music pages are built from.
@@ -89,6 +90,8 @@ export function TrackMenu({ t: song }: { t: Item }) {
   const liked = audio.liked(song.id)
   const [adding, setAdding] = useState(false)
   const [tying, setTying] = useState(false)
+  const [info, setInfo] = useState(false)
+  const { user } = useApp()
   return (<>
     <Pop label={t('More for {title}', { title: song.title })} icon={<IconMore />} className="mh-more">
       {(close) => adding ? <PlaylistPicker items={[song]} onDone={() => { setAdding(false); close() }} /> : (
@@ -101,10 +104,12 @@ export function TrackMenu({ t: song }: { t: Item }) {
           <PlayOnMenuItem source={{ kind: 'item', itemId: song.id, itemKind: song.kind, title: song.title }} onChosen={close} />
           <SongVideoItems t={song} close={close} onTie={() => setTying(true)} />
           {song.artist && <Link role="menuitem" className="mh-menu-link" to={artistLink(song.libraryId, song.albumArtist || song.artist)} onClick={close}>{t('Go to artist')}</Link>}
+          {user?.isAdmin && song.kind === 'audio' && <MusicInfoItem label={t('Lyrics and details')} onOpen={() => setInfo(true)} close={close} />}
           {song.album && <Link role="menuitem" className="mh-menu-link" to={albumLink(song.libraryId, { artist: song.albumArtist || song.artist || '', title: song.album })} onClick={close}>{t('Go to album')}</Link>}
         </div>
       )}
     </Pop>
+    {info && <MusicInfoDialog album={false} id={song.id} title={song.title} onClose={() => setInfo(false)} />}
     {tying && <TieDialog item={{ id: song.id, title: song.title }} role="song" onClose={() => setTying(false)} />}
   </>)
 }

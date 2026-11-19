@@ -78,7 +78,7 @@
   "Forced": "Pakotettu",
   "Frame": "Ruutu",
   "Frightening scenes": "Pelottavat kohtaukset",
-  "From the .wittyinfo": ".wittyinfo-tiedostosta",
+  "The title’s .wittyinfo": "Nimikkeen .wittyinfo",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "Kokoa NFO-tiedostot, julisteet, sanoitukset ja pelien tiedot .wittyinfo-, .wittyaudio- ja .wittyplay-tiedostoihin, tai kirjoita ne takaisin tavallisiksi tiedostoiksi.",
   "Gather the {standard} into {ext} files": "Kokoa {standard} {ext}-tiedostoihin",
   "How much to change it so every song plays as loud.": "Kuinka paljon sitä muutetaan, jotta jokainen kappale soi yhtä lujaa.",
@@ -285,9 +285,9 @@
     "one": "{count} kirjasto on vain luku -tilassa ja jätetään ennalleen.",
     "other": "{count} kirjastoa on vain luku -tilassa ja jätetään ennalleen."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} ohitus lähteestä {from} sen sijaan, mitä löytyi itsestään.",
-    "other": "{count} ohitusta lähteestä {from} sen sijaan, mitä löytyi itsestään."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} ohitus itsestään löydetyn sijaan.",
+    "other": "{from}: {count} ohitusta itsestään löydetyn sijaan."
   },
   "{done} of {total}: {item}": "{done}/{total}: {item}",
   "{games} games, {meta} with details beside them": "{games} peliä, {meta} tiedoilla vieressä",
@@ -302,5 +302,6 @@
   "{what} saved": "{what} tallennettu",
   "{what} taken out": "{what} poistettu",
   "“Previously on…”": "”Aiemmin…”",
-  "−1 s": "−1 s"
+  "−1 s": "−1 s",
+  "Lyrics and details": "Sanat ja tiedot"
 }

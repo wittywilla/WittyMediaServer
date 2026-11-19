@@ -77,7 +77,7 @@
   "Forced": "強制",
   "Frame": "フレーム",
   "Frightening scenes": "怖い場面",
-  "From the .wittyinfo": ".wittyinfo から",
+  "The title’s .wittyinfo": "タイトルの .wittyinfo",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "NFO ファイル、ポスター、歌詞、ゲームの詳細を .wittyinfo、.wittyaudio、.wittyplay ファイルにまとめるか、通常のファイルとして書き戻します。",
   "Gather the {standard} into {ext} files": "{standard} を {ext} ファイルにまとめる",
   "How much to change it so every song plays as loud.": "すべての曲が同じ音量で聞こえるように変える量。",
@@ -281,8 +281,8 @@
   "{count} libraries are read-only and are left as they are.": {
     "other": "{count} 個のライブラリは読み取り専用のため、そのままにします。"
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "other": "{from} からの {count} 件のスキップ。自動で見つかったものの代わりに使われます。"
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "other": "{from}: {count} 件のスキップ。自動で見つかったものの代わりに使われます。"
   },
   "{done} of {total}: {item}": "{done} / {total}: {item}",
   "{games} games, {meta} with details beside them": "ゲーム {games} 件、隣に詳細あり {meta} 件",
@@ -297,5 +297,6 @@
   "{what} saved": "{what}を保存しました",
   "{what} taken out": "{what}を削除しました",
   "“Previously on…”": "「前回までは…」",
-  "−1 s": "−1 秒"
+  "−1 s": "−1 秒",
+  "Lyrics and details": "歌詞と詳細"
 }

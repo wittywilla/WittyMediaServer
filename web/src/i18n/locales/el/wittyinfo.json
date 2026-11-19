@@ -78,7 +78,7 @@
   "Forced": "Αναγκαστικοί",
   "Frame": "Καρέ",
   "Frightening scenes": "Τρομακτικές σκηνές",
-  "From the .wittyinfo": "Από το .wittyinfo",
+  "The title’s .wittyinfo": "Το .wittyinfo του τίτλου",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "Συγκεντρώστε αρχεία NFO, αφίσες, στίχους και στοιχεία παιχνιδιών σε αρχεία .wittyinfo, .wittyaudio και .wittyplay, ή γράψτε τα ξανά ως τα συνήθη αρχεία.",
   "Gather the {standard} into {ext} files": "Συγκέντρωση των {standard} σε αρχεία {ext}",
   "How much to change it so every song plays as loud.": "Πόσο να αλλάξει ώστε κάθε τραγούδι να παίζει το ίδιο δυνατά.",
@@ -285,9 +285,9 @@
     "one": "{count} βιβλιοθήκη είναι μόνο για ανάγνωση και μένει όπως είναι.",
     "other": "{count} βιβλιοθήκες είναι μόνο για ανάγνωση και μένουν όπως είναι."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} παράλειψη από {from}, αντί για ό,τι βρέθηκε μόνο του.",
-    "other": "{count} παραλείψεις από {from}, αντί για ό,τι βρέθηκε μόνο του."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} παράλειψη αντί για ό,τι βρέθηκε αυτόματα.",
+    "other": "{from}: {count} παραλείψεις αντί για ό,τι βρέθηκε αυτόματα."
   },
   "{done} of {total}: {item}": "{done} από {total}: {item}",
   "{games} games, {meta} with details beside them": "{games} παιχνίδια, {meta} με στοιχεία δίπλα",
@@ -302,5 +302,6 @@
   "{what} saved": "{what}: αποθηκεύτηκε",
   "{what} taken out": "{what}: αφαιρέθηκε",
   "“Previously on…”": "«Στα προηγούμενα…»",
-  "−1 s": "−1 δ"
+  "−1 s": "−1 δ",
+  "Lyrics and details": "Στίχοι και λεπτομέρειες"
 }

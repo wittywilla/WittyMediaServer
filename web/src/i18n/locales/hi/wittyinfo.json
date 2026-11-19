@@ -78,7 +78,7 @@
   "Forced": "अनिवार्य",
   "Frame": "फ़्रेम",
   "Frightening scenes": "डरावने दृश्य",
-  "From the .wittyinfo": ".wittyinfo से",
+  "The title’s .wittyinfo": "शीर्षक की .wittyinfo",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "NFO फ़ाइलें, पोस्टर, गीत के बोल और गेम विवरण को .wittyinfo, .wittyaudio और .wittyplay फ़ाइलों में इकट्ठा करें, या उन्हें सामान्य फ़ाइलों के रूप में वापस लिखें।",
   "Gather the {standard} into {ext} files": "{standard} को {ext} फ़ाइलों में इकट्ठा करें",
   "How much to change it so every song plays as loud.": "कितना बदलें ताकि हर गीत एक जितना तेज़ बजे।",
@@ -285,9 +285,9 @@
     "one": "{count} लाइब्रेरी केवल-पढ़ने योग्य है और जैसी है वैसी छोड़ी गई है।",
     "other": "{count} लाइब्रेरी केवल-पढ़ने योग्य हैं और जैसी हैं वैसी छोड़ी गई हैं।"
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{from} से {count} स्किप, अपने-आप मिले के स्थान पर।",
-    "other": "{from} से {count} स्किप, अपने-आप मिले के स्थान पर।"
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} स्किप, अपने-आप मिले के स्थान पर।",
+    "other": "{from}: {count} स्किप, अपने-आप मिले के स्थान पर।"
   },
   "{done} of {total}: {item}": "{total} में से {done}: {item}",
   "{games} games, {meta} with details beside them": "{games} गेम, {meta} के बगल में विवरण",
@@ -302,5 +302,6 @@
   "{what} saved": "{what} सहेजा गया",
   "{what} taken out": "{what} हटाया गया",
   "“Previously on…”": "“पिछली बार…”",
-  "−1 s": "−1 से"
+  "−1 s": "−1 से",
+  "Lyrics and details": "बोल और विवरण"
 }

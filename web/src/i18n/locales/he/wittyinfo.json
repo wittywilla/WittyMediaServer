@@ -79,7 +79,7 @@
   "Forced": "מאולצות",
   "Frame": "פריים",
   "Frightening scenes": "סצנות מפחידות",
-  "From the .wittyinfo": "מקובץ ה-.wittyinfo",
+  "The title’s .wittyinfo": "קובץ ה-.wittyinfo של הכותר",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "איסוף קובצי NFO, פוסטרים, מילות שירים ופרטי משחקים לקובצי .wittyinfo, .wittyaudio ו-.wittyplay, או כתיבתם בחזרה כקבצים הרגילים.",
   "Gather the {standard} into {ext} files": "איסוף {standard} לקובצי {ext}",
   "How much to change it so every song plays as loud.": "כמה לשנות כדי שכל שיר יישמע באותה עוצמה.",
@@ -289,10 +289,10 @@
     "two": "שתי ספריות לקריאה בלבד ונשארות כפי שהן.",
     "other": "{count} ספריות לקריאה בלבד ונשארות כפי שהן."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "דילוג אחד מתוך {from}, במקום מה שנמצא אוטומטית.",
-    "two": "שני דילוגים מתוך {from}, במקום מה שנמצא אוטומטית.",
-    "other": "{count} דילוגים מתוך {from}, במקום מה שנמצא אוטומטית."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: דילוג אחד, במקום מה שנמצא אוטומטית.",
+    "two": "{from}: שני דילוגים, במקום מה שנמצא אוטומטית.",
+    "other": "{from}: {count} דילוגים, במקום מה שנמצא אוטומטית."
   },
   "{done} of {total}: {item}": "{done} מתוך {total}: {item}",
   "{games} games, {meta} with details beside them": "משחקים: {games}, עם פרטים לידם: {meta}",
@@ -307,5 +307,6 @@
   "{what} saved": "{what} נשמר",
   "{what} taken out": "{what} הוסר",
   "“Previously on…”": "„בפרקים הקודמים…”",
-  "−1 s": "‎−1 ש׳"
+  "−1 s": "‎−1 ש׳",
+  "Lyrics and details": "מילים ופרטים"
 }

@@ -78,7 +78,7 @@
   "Forced": "Tvingade",
   "Frame": "Bildruta",
   "Frightening scenes": "Skrämmande scener",
-  "From the .wittyinfo": "Från .wittyinfo-filen",
+  "The title’s .wittyinfo": "Titelns .wittyinfo",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "Samla NFO-filer, affischer, låttexter och speluppgifter i .wittyinfo-, .wittyaudio- och .wittyplay-filer, eller skriv ut dem igen som de vanliga filerna.",
   "Gather the {standard} into {ext} files": "Samla {standard} i {ext}-filer",
   "How much to change it so every song plays as loud.": "Hur mycket den ändras så att varje låt spelas lika högt.",
@@ -285,9 +285,9 @@
     "one": "{count} bibliotek är skrivskyddat och lämnas som det är.",
     "other": "{count} bibliotek är skrivskyddade och lämnas som de är."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} hopp från {from}, i stället för det som hittades av sig själv.",
-    "other": "{count} hopp från {from}, i stället för det som hittades av sig själv."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} hopp i stället för det som hittades av sig självt.",
+    "other": "{from}: {count} hopp i stället för det som hittades av sig självt."
   },
   "{done} of {total}: {item}": "{done} av {total}: {item}",
   "{games} games, {meta} with details beside them": "{games} spel, {meta} med uppgifter bredvid",
@@ -302,5 +302,6 @@
   "{what} saved": "{what} sparades",
   "{what} taken out": "{what} togs bort",
   "“Previously on…”": "”Tidigare i…”",
-  "−1 s": "−1 s"
+  "−1 s": "−1 s",
+  "Lyrics and details": "Låttext och detaljer"
 }

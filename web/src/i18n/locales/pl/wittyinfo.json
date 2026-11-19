@@ -80,7 +80,7 @@
   "Forced": "Wymuszone",
   "Frame": "Klatka",
   "Frightening scenes": "Straszne sceny",
-  "From the .wittyinfo": "Z pliku .wittyinfo",
+  "The title’s .wittyinfo": ".wittyinfo tytułu",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "Zbierz pliki NFO, plakaty, teksty piosenek i szczegóły gier w pliki .wittyinfo, .wittyaudio i .wittyplay albo zapisz je z powrotem jako zwykłe pliki.",
   "Gather the {standard} into {ext} files": "Zbierz {standard} w pliki {ext}",
   "How much to change it so every song plays as loud.": "O ile ją zmienić, aby każdy utwór grał równie głośno.",
@@ -293,11 +293,11 @@
     "many": "{count} bibliotek jest tylko do odczytu i zostaje bez zmian.",
     "other": "{count} biblioteki są tylko do odczytu i zostają bez zmian."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} pominięcie z {from} zamiast tego, co znaleziono samodzielnie.",
-    "few": "{count} pominięcia z {from} zamiast tego, co znaleziono samodzielnie.",
-    "many": "{count} pominięć z {from} zamiast tego, co znaleziono samodzielnie.",
-    "other": "{count} pominięcia z {from} zamiast tego, co znaleziono samodzielnie."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} pominięcie zamiast tego, co znaleziono samo.",
+    "few": "{from}: {count} pominięcia zamiast tego, co znaleziono samo.",
+    "many": "{from}: {count} pominięć zamiast tego, co znaleziono samo.",
+    "other": "{from}: {count} pominięcia zamiast tego, co znaleziono samo."
   },
   "{done} of {total}: {item}": "{done} z {total}: {item}",
   "{games} games, {meta} with details beside them": "{games} gier, {meta} ze szczegółami obok",
@@ -312,5 +312,6 @@
   "{what} saved": "Zapisano: {what}",
   "{what} taken out": "Usunięto: {what}",
   "“Previously on…”": "„Poprzednio w…”",
-  "−1 s": "−1 s"
+  "−1 s": "−1 s",
+  "Lyrics and details": "Tekst i szczegóły"
 }

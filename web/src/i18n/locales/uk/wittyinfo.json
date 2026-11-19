@@ -80,7 +80,7 @@
   "Forced": "Примусові",
   "Frame": "Кадр",
   "Frightening scenes": "Страшні сцени",
-  "From the .wittyinfo": "Із .wittyinfo",
+  "The title’s .wittyinfo": ".wittyinfo назви",
   "Gather NFO files, posters, lyrics and game details into .wittyinfo, .wittyaudio and .wittyplay files, or write them back out as the usual files.": "Зібрати файли NFO, постери, тексти пісень і відомості про ігри у файли .wittyinfo, .wittyaudio і .wittyplay або записати їх назад як звичайні файли.",
   "Gather the {standard} into {ext} files": "Зібрати {standard} у файли {ext}",
   "How much to change it so every song plays as loud.": "Наскільки змінити, щоб кожна пісня звучала однаково гучно.",
@@ -293,11 +293,11 @@
     "many": "{count} бібліотек доступні лише для читання й лишаються як є.",
     "other": "{count} бібліотеки доступні лише для читання й лишаються як є."
   },
-  "{count} skips from {from}, in place of what was found by itself.": {
-    "one": "{count} пропуск із {from} замість знайденого автоматично.",
-    "few": "{count} пропуски з {from} замість знайденого автоматично.",
-    "many": "{count} пропусків із {from} замість знайденого автоматично.",
-    "other": "{count} пропуску з {from} замість знайденого автоматично."
+  "{from}: {count} skips, in place of what was found by itself.": {
+    "one": "{from}: {count} пропуск замість знайденого автоматично.",
+    "few": "{from}: {count} пропуски замість знайденого автоматично.",
+    "many": "{from}: {count} пропусків замість знайденого автоматично.",
+    "other": "{from}: {count} пропуску замість знайденого автоматично."
   },
   "{done} of {total}: {item}": "{done} із {total}: {item}",
   "{games} games, {meta} with details beside them": "Ігри: {games}, із відомостями поруч: {meta}",
@@ -312,5 +312,6 @@
   "{what} saved": "Збережено: {what}",
   "{what} taken out": "Видалено: {what}",
   "“Previously on…”": "«Раніше в серіалі…»",
-  "−1 s": "−1 с"
+  "−1 s": "−1 с",
+  "Lyrics and details": "Текст і відомості"
 }

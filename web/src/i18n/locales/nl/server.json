@@ -1163,5 +1163,15 @@
   "Up to 500.": "Maximaal 500.",
   "No series": "Geen serie",
   "No author": "Geen auteur",
-  "Under a minute": "Minder dan een minuut"
+  "Under a minute": "Minder dan een minuut",
+  "Type the folder's full path, such as {example}.": "Typ het volledige pad van de map, zoals {example}.",
+  "That folder can't be read: {reason}": "Die map kan niet worden gelezen: {reason}",
+  "The server can't write there: {reason}": "De server kan daar niet schrijven: {reason}",
+  "The server can't write there: its account isn't allowed to.": "De server kan daar niet schrijven: zijn account mag dat niet.",
+  "The server can't write there: that drive or folder isn't there.": "De server kan daar niet schrijven: die schijf of map bestaat niet.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Daar is niet genoeg ruimte: je gegevens hebben ongeveer {need} nodig, en er is {free} vrij.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "er is niet genoeg ruimte in {folder}: de gegevens hebben {need} nodig, en er is {free} vrij",
+  "the copy didn't match, so nothing was changed: {reason}": "de kopie kwam niet overeen, dus er is niets gewijzigd: {reason}",
+  "the choice couldn't be saved: {reason}": "de keuze kon niet worden opgeslagen: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "de nieuwe plek kon niet worden opgeslagen in {file}: {reason}"
 }

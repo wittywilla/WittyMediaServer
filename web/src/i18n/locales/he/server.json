@@ -1163,5 +1163,15 @@
   "Up to 500.": "עד 500.",
   "No series": "בלי סדרה",
   "No author": "בלי מחבר",
-  "Under a minute": "פחות מדקה"
+  "Under a minute": "פחות מדקה",
+  "Type the folder's full path, such as {example}.": "יש להקליד את הנתיב המלא של התיקייה, למשל {example}.",
+  "That folder can't be read: {reason}": "לא ניתן לקרוא את התיקייה הזו: {reason}",
+  "The server can't write there: {reason}": "השרת לא יכול לכתוב שם: {reason}",
+  "The server can't write there: its account isn't allowed to.": "השרת לא יכול לכתוב שם: לחשבון שלו אין הרשאה לכך.",
+  "The server can't write there: that drive or folder isn't there.": "השרת לא יכול לכתוב שם: הכונן או התיקייה האלה לא קיימים.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "אין שם מספיק מקום: הנתונים שלך צריכים בערך {need}, ופנויים {free}.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "אין מספיק מקום ב־{folder}: הנתונים צריכים {need}, ופנויים {free}",
+  "the copy didn't match, so nothing was changed: {reason}": "העותק לא תאם, ולכן שום דבר לא שונה: {reason}",
+  "the choice couldn't be saved: {reason}": "לא ניתן היה לשמור את הבחירה: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "לא ניתן היה לשמור את המיקום החדש ב־{file}: {reason}"
 }

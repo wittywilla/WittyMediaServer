@@ -1163,5 +1163,15 @@
   "Up to 500.": "Upp till 500.",
   "No series": "Ingen serie",
   "No author": "Ingen författare",
-  "Under a minute": "Under en minut"
+  "Under a minute": "Under en minut",
+  "Type the folder's full path, such as {example}.": "Skriv mappens fullständiga sökväg, till exempel {example}.",
+  "That folder can't be read: {reason}": "Den mappen kan inte läsas: {reason}",
+  "The server can't write there: {reason}": "Servern kan inte skriva där: {reason}",
+  "The server can't write there: its account isn't allowed to.": "Servern kan inte skriva där: dess konto har inte behörighet.",
+  "The server can't write there: that drive or folder isn't there.": "Servern kan inte skriva där: den enheten eller mappen finns inte.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Det finns inte plats där: dina data behöver ungefär {need}, och {free} är ledigt.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "det finns inte plats i {folder}: data behöver {need}, och {free} är ledigt",
+  "the copy didn't match, so nothing was changed: {reason}": "kopian stämde inte, så inget ändrades: {reason}",
+  "the choice couldn't be saved: {reason}": "valet kunde inte sparas: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "den nya platsen kunde inte sparas i {file}: {reason}"
 }

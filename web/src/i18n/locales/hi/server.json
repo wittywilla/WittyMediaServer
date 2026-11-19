@@ -1163,5 +1163,15 @@
   "Up to 500.": "500 तक।",
   "No series": "कोई सीरीज़ नहीं",
   "No author": "कोई लेखक नहीं",
-  "Under a minute": "एक मिनट से कम"
+  "Under a minute": "एक मिनट से कम",
+  "Type the folder's full path, such as {example}.": "फ़ोल्डर का पूरा पाथ टाइप करें, जैसे {example}।",
+  "That folder can't be read: {reason}": "वह फ़ोल्डर पढ़ा नहीं जा सकता: {reason}",
+  "The server can't write there: {reason}": "सर्वर वहाँ लिख नहीं सकता: {reason}",
+  "The server can't write there: its account isn't allowed to.": "सर्वर वहाँ लिख नहीं सकता: उसके खाते को इसकी अनुमति नहीं है।",
+  "The server can't write there: that drive or folder isn't there.": "सर्वर वहाँ लिख नहीं सकता: वह ड्राइव या फ़ोल्डर मौजूद नहीं है।",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "वहाँ जगह नहीं है: आपके डेटा को लगभग {need} चाहिए, और {free} खाली है।",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "{folder} में जगह नहीं है: डेटा को {need} चाहिए, और {free} खाली है",
+  "the copy didn't match, so nothing was changed: {reason}": "कॉपी मेल नहीं खाई, इसलिए कुछ नहीं बदला गया: {reason}",
+  "the choice couldn't be saved: {reason}": "चुनाव सेव नहीं हो सका: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "नई जगह {file} में सेव नहीं हो सकी: {reason}"
 }

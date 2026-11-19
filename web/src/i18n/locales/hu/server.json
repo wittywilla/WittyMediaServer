@@ -1163,5 +1163,15 @@
   "Up to 500.": "Legfeljebb 500.",
   "No series": "Nincs sorozat",
   "No author": "Nincs szerző",
-  "Under a minute": "Kevesebb mint egy perc"
+  "Under a minute": "Kevesebb mint egy perc",
+  "Type the folder's full path, such as {example}.": "Írd be a mappa teljes elérési útját, például: {example}.",
+  "That folder can't be read: {reason}": "Az a mappa nem olvasható: {reason}",
+  "The server can't write there: {reason}": "A szerver nem tud oda írni: {reason}",
+  "The server can't write there: its account isn't allowed to.": "A szerver nem tud oda írni: a fiókjának nincs hozzá joga.",
+  "The server can't write there: that drive or folder isn't there.": "A szerver nem tud oda írni: az a meghajtó vagy mappa nem létezik.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Nincs ott elég hely: az adataidnak körülbelül {need} kell, és {free} szabad.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "nincs elég hely a(z) {folder} mappában: az adatoknak {need} kell, és {free} szabad",
+  "the copy didn't match, so nothing was changed: {reason}": "a másolat nem egyezett, ezért semmi sem változott: {reason}",
+  "the choice couldn't be saved: {reason}": "a választást nem sikerült menteni: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "az új helyet nem sikerült menteni a(z) {file} fájlba: {reason}"
 }

@@ -1163,5 +1163,15 @@
   "Up to 500.": "Nejvýše 500.",
   "No series": "Bez série",
   "No author": "Bez autora",
-  "Under a minute": "Méně než minuta"
+  "Under a minute": "Méně než minuta",
+  "Type the folder's full path, such as {example}.": "Zadejte úplnou cestu ke složce, například {example}.",
+  "That folder can't be read: {reason}": "Tuto složku nelze číst: {reason}",
+  "The server can't write there: {reason}": "Server tam nemůže zapisovat: {reason}",
+  "The server can't write there: its account isn't allowed to.": "Server tam nemůže zapisovat: jeho účet k tomu nemá oprávnění.",
+  "The server can't write there: that drive or folder isn't there.": "Server tam nemůže zapisovat: ten disk nebo složka neexistuje.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Není tam dost místa: vaše data potřebují asi {need} a volných je {free}.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "v {folder} není dost místa: data potřebují {need} a volných je {free}",
+  "the copy didn't match, so nothing was changed: {reason}": "kopie nesouhlasila, takže se nic nezměnilo: {reason}",
+  "the choice couldn't be saved: {reason}": "volbu se nepodařilo uložit: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "nové umístění se nepodařilo uložit do {file}: {reason}"
 }

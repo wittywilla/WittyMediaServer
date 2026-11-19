@@ -1163,5 +1163,15 @@
   "Up to 500.": "Opptil 500.",
   "No series": "Ingen serie",
   "No author": "Ingen forfatter",
-  "Under a minute": "Under ett minutt"
+  "Under a minute": "Under ett minutt",
+  "Type the folder's full path, such as {example}.": "Skriv inn hele stien til mappen, for eksempel {example}.",
+  "That folder can't be read: {reason}": "Den mappen kan ikke leses: {reason}",
+  "The server can't write there: {reason}": "Serveren kan ikke skrive der: {reason}",
+  "The server can't write there: its account isn't allowed to.": "Serveren kan ikke skrive der: kontoen dens har ikke lov.",
+  "The server can't write there: that drive or folder isn't there.": "Serveren kan ikke skrive der: den disken eller mappen finnes ikke.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Det er ikke plass der: dataene dine trenger omtrent {need}, og {free} er ledig.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "det er ikke plass i {folder}: dataene trenger {need}, og {free} er ledig",
+  "the copy didn't match, so nothing was changed: {reason}": "kopien stemte ikke, så ingenting ble endret: {reason}",
+  "the choice couldn't be saved: {reason}": "valget kunne ikke lagres: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "det nye stedet kunne ikke lagres i {file}: {reason}"
 }

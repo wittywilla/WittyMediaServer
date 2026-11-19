@@ -1163,5 +1163,15 @@
   "Up to 500.": "สูงสุด 500",
   "No series": "ไม่มีซีรีส์",
   "No author": "ไม่มีผู้แต่ง",
-  "Under a minute": "ไม่ถึงหนึ่งนาที"
+  "Under a minute": "ไม่ถึงหนึ่งนาที",
+  "Type the folder's full path, such as {example}.": "พิมพ์พาธเต็มของโฟลเดอร์ เช่น {example}",
+  "That folder can't be read: {reason}": "อ่านโฟลเดอร์นั้นไม่ได้: {reason}",
+  "The server can't write there: {reason}": "เซิร์ฟเวอร์เขียนที่นั่นไม่ได้: {reason}",
+  "The server can't write there: its account isn't allowed to.": "เซิร์ฟเวอร์เขียนที่นั่นไม่ได้: บัญชีของเซิร์ฟเวอร์ไม่ได้รับอนุญาต",
+  "The server can't write there: that drive or folder isn't there.": "เซิร์ฟเวอร์เขียนที่นั่นไม่ได้: ไม่มีไดรฟ์หรือโฟลเดอร์นั้น",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "พื้นที่ที่นั่นไม่พอ: ข้อมูลของคุณต้องใช้ประมาณ {need} แต่มีพื้นที่ว่าง {free}",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "พื้นที่ใน {folder} ไม่พอ: ข้อมูลต้องใช้ {need} แต่มีพื้นที่ว่าง {free}",
+  "the copy didn't match, so nothing was changed: {reason}": "สำเนาไม่ตรงกัน จึงไม่มีการเปลี่ยนแปลงใด ๆ: {reason}",
+  "the choice couldn't be saved: {reason}": "บันทึกตัวเลือกไม่ได้: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "บันทึกตำแหน่งใหม่ใน {file} ไม่ได้: {reason}"
 }

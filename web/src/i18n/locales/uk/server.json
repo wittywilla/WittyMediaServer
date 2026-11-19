@@ -1163,5 +1163,15 @@
   "Up to 500.": "До 500.",
   "No series": "Без серії",
   "No author": "Без автора",
-  "Under a minute": "Менше хвилини"
+  "Under a minute": "Менше хвилини",
+  "Type the folder's full path, such as {example}.": "Введіть повний шлях до папки, наприклад {example}.",
+  "That folder can't be read: {reason}": "Цю папку не вдається прочитати: {reason}",
+  "The server can't write there: {reason}": "Сервер не може туди записувати: {reason}",
+  "The server can't write there: its account isn't allowed to.": "Сервер не може туди записувати: його обліковому запису це не дозволено.",
+  "The server can't write there: that drive or folder isn't there.": "Сервер не може туди записувати: такого диска чи папки немає.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Там не вистачає місця: вашим даним потрібно близько {need}, а вільно {free}.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "у {folder} не вистачає місця: даним потрібно {need}, а вільно {free}",
+  "the copy didn't match, so nothing was changed: {reason}": "копія не збіглася, тому нічого не змінено: {reason}",
+  "the choice couldn't be saved: {reason}": "не вдалося зберегти вибір: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "не вдалося зберегти нове місце в {file}: {reason}"
 }

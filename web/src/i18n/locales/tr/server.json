@@ -1163,5 +1163,15 @@
   "Up to 500.": "En fazla 500.",
   "No series": "Seri yok",
   "No author": "Yazar yok",
-  "Under a minute": "Bir dakikadan az"
+  "Under a minute": "Bir dakikadan az",
+  "Type the folder's full path, such as {example}.": "Klasörün tam yolunu yazın, örneğin {example}.",
+  "That folder can't be read: {reason}": "Bu klasör okunamıyor: {reason}",
+  "The server can't write there: {reason}": "Sunucu oraya yazamıyor: {reason}",
+  "The server can't write there: its account isn't allowed to.": "Sunucu oraya yazamıyor: hesabının buna izni yok.",
+  "The server can't write there: that drive or folder isn't there.": "Sunucu oraya yazamıyor: o sürücü ya da klasör yok.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Orada yer yok: verileriniz yaklaşık {need} gerektiriyor ve {free} boş.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "{folder} içinde yer yok: veriler {need} gerektiriyor ve {free} boş",
+  "the copy didn't match, so nothing was changed: {reason}": "kopya eşleşmedi, bu yüzden hiçbir şey değiştirilmedi: {reason}",
+  "the choice couldn't be saved: {reason}": "seçim kaydedilemedi: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "yeni konum {file} içine kaydedilemedi: {reason}"
 }

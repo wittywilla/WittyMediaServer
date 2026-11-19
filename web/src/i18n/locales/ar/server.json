@@ -1163,5 +1163,15 @@
   "Up to 500.": "حتى 500.",
   "No series": "بلا سلسلة",
   "No author": "بلا مؤلف",
-  "Under a minute": "أقل من دقيقة"
+  "Under a minute": "أقل من دقيقة",
+  "Type the folder's full path, such as {example}.": "اكتب المسار الكامل للمجلد، مثل {example}.",
+  "That folder can't be read: {reason}": "تتعذّر قراءة هذا المجلد: {reason}",
+  "The server can't write there: {reason}": "لا يستطيع الخادم الكتابة هناك: {reason}",
+  "The server can't write there: its account isn't allowed to.": "لا يستطيع الخادم الكتابة هناك: حسابه غير مسموح له بذلك.",
+  "The server can't write there: that drive or folder isn't there.": "لا يستطيع الخادم الكتابة هناك: ذلك القرص أو المجلد غير موجود.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "لا توجد مساحة كافية هناك: تحتاج بياناتك إلى نحو {need}، والمساحة الحرة {free}.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "لا توجد مساحة كافية في {folder}: تحتاج البيانات إلى {need}، والمساحة الحرة {free}",
+  "the copy didn't match, so nothing was changed: {reason}": "لم تتطابق النسخة، لذا لم يُغيَّر شيء: {reason}",
+  "the choice couldn't be saved: {reason}": "تعذّر حفظ الاختيار: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "تعذّر حفظ المكان الجديد في {file}: {reason}"
 }

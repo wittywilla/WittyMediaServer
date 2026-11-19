@@ -519,23 +519,25 @@ input[type=range] { accent-color: var(--accent); }
 }
 .card .poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .card .poster .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--fg-3); padding: var(--sp-3); text-align: center; font-weight: 600; }
-/* Designed placeholder art (see Placeholder): a colour of its own (--ph-art), and a label if
-   it has one. The title itself is printed under the card. */
+/* Designed placeholder art (see Placeholder): a colour of its own (--ph-art), with its label or
+   the title on it, so a cover without a picture still says what it is (#514). It is its own size
+   container, so art too small to read (a mini player's picture, a row's thumbnail) shows the
+   colour alone. */
 .art-ph { position: absolute; inset: 0; display: flex !important; flex-direction: column; justify-content: center; align-items: center; gap: var(--sp-1);
   padding: var(--sp-3) !important; text-align: left !important; color: var(--on-image) !important; font-size: initial; background: var(--ph-art); }
 .art-ph::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.08), transparent 40%), radial-gradient(120% 60% at 0% 0%, rgba(255,255,255,.10), transparent 60%); pointer-events: none; }
-.art-ph b { position: relative; font-size: var(--text-lg); font-weight: var(--weight-heading); line-height: var(--leading-tight); opacity: .85; overflow-wrap: anywhere; }
-.art-ph:not(.labelled) b { display: none; }
+.art-ph { container-type: size; }
+.art-ph b { position: relative; display: -webkit-box; max-inline-size: 100%; font-size: var(--text-lg); font-weight: var(--weight-heading); line-height: var(--leading-tight); overflow: hidden; overflow-wrap: anywhere; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
 /* A phone, as the apps: the title's colour (--ph) rising from the card's, with the title in
    white over the lower third, where the colour is solid. Those colours are dark enough for
    white words, so it reads in every theme. Too small to read (a mini player's picture): the
    colour alone. */
 @media (max-width: 760px) {
-  .art-ph { justify-content: flex-end; align-items: flex-start; background: linear-gradient(180deg, var(--bg-3) 0%, var(--ph, var(--bg-4)) 64%); container-type: size; }
+  .art-ph { justify-content: flex-end; align-items: flex-start; background: linear-gradient(180deg, var(--bg-3) 0%, var(--ph, var(--bg-4)) 64%); }
   .art-ph::before { content: none; }
-  .art-ph b, .art-ph:not(.labelled) b { display: -webkit-box; font-size: var(--text-base); font-weight: 600; line-height: var(--leading-snug); opacity: 1; overflow: hidden; hyphens: auto; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
-  @container (max-width: 72px) { .art-ph b, .art-ph:not(.labelled) b { display: none; } }
+  .art-ph b { font-size: var(--text-base); font-weight: 600; line-height: var(--leading-snug); opacity: 1; hyphens: auto; -webkit-line-clamp: 3; }
 }
+@container (max-width: 72px) { .art-ph b { display: none; } }
 .card .poster .play { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; opacity: 0; transition: opacity var(--dur-2); background: rgb(0 0 0 / .32); }
 @media (hover: hover) { .card:hover .poster .play { opacity: 1; } }
 .card:focus-visible .poster .play, .card:focus-within .poster .play { opacity: 1; }

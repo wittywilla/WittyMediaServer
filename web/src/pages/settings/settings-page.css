@@ -9,7 +9,8 @@
    column with a row of page buttons on phones. Only theme colour variables
    are used, so every theme styles these pages too. */
 /* It starts at the page column's left edge and --page-top below the bar, like every other page (styles.css). */
-.set-shell { display: grid; grid-template-columns: 232px minmax(0, 760px); gap: 40px; justify-content: start; align-items: start; max-width: 1100px; margin: 0 auto 0 max(0px, calc((100% - var(--page-max)) / 2)); }
+/* The menu's column holds its padding and scroll bar as well as the items, and a wider gap keeps the bar clear of the page (#521). */
+.set-shell { --set-nav-w: calc(232px + var(--sp-5) + var(--sp-2)); display: grid; grid-template-columns: var(--set-nav-w) minmax(0, 760px); gap: var(--sp-12); justify-content: start; align-items: start; max-width: 1100px; margin: 0 auto 0 max(0px, calc((100% - var(--page-max)) / 2)); }
 .set-nav-title { margin: 0 0 2px var(--sp-3); font-size: var(--page-title); font-weight: var(--weight-heading); line-height: var(--leading-tight); letter-spacing: var(--tracking-display); }
 .set-nav-group { display: grid; gap: 2px; }
 .set-nav-head { padding: 0 var(--sp-3) 6px; font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }

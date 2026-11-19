@@ -2,7 +2,8 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { fitWidth, fmtTime, posterUrl, sized } from '../api'
 import { Placeholder } from '../components/common'
-import { IconAudio, IconMic, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconNext, IconPause, IconPlay, IconPrev, IconUp, IconVisualizer } from '../icons'
+import { IconAudio, IconMic, IconBack15, IconClose, IconDown, IconExpand, IconForward30, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconUp, IconVisualizer } from '../icons'
+import { Menu, type MenuEntry } from '../ui/Menu'
 import { AddToPlaylist, Like, Seek, Volume } from './controls'
 import { musicCatalogue } from '../sdui/catalogue'
 import { IconKaraoke, IconList, IconRepeat, IconRepeatOne, IconShuffle } from './icons'
@@ -16,7 +17,8 @@ import { useCanvas } from '../canvas/useCanvas'
 // playing on the left, the buttons over the place in the song in the middle, the rest on the
 // right. Room is left under the page so it never hides the last row. It collapses to a small
 // button in the corner for anyone who wants the screen back. Everything else is one press
-// away in the full player.
+// away in the full player. Lyrics, karaoke and the visualizer are in the bar's More menu, so
+// the bar keeps to the buttons used most and nothing in it is squeezed.
 
 export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boolean }) {
   const it = p.current
@@ -52,6 +54,11 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
     )
   }
   const dur = p.duration
+  const more: MenuEntry[] = [
+    ...(sing && wants('lyrics') ? [{ key: 'lyrics', label: t('Lyrics (L)'), icon: <IconMic size={18} />, onSelect: () => p.openFull({ panel: 'lyrics' }) }] : []),
+    ...(sing && wants('karaoke') ? [{ key: 'karaoke', label: t('Karaoke (K)'), icon: <IconKaraoke />, onSelect: () => p.openFull({ panel: 'karaoke' }) }] : []),
+    ...(!p.live && wants('visualizer') ? [{ key: 'visualizer', label: t('Visualizer (V)'), icon: <IconVisualizer />, onSelect: () => p.openFull({ visualizer: true }) }] : []),
+  ]
   return (
     <div className={'audio-bar' + (p.live ? ' live' : '')} role="region" aria-label={t('Now playing')}>
       <div className="ab-left">
@@ -83,10 +90,8 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
       </div>
       <div className="ab-right">
         <div className="ab-side wide">
-          {sing && wants('lyrics') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'lyrics' })} aria-label={t('Lyrics')} title={t('Lyrics (L)')}><IconMic size={20} /></button>}
-          {sing && wants('karaoke') && <button className="ab-viz-pill" onClick={() => p.openFull({ panel: 'karaoke' })} title={t('Karaoke (K)')}><IconKaraoke /><span>{t('Karaoke')}</span></button>}
           {wants('queue') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'queue' })} aria-label={t('Queue')} title={t('Queue')}><IconList /></button>}
-          {!p.live && wants('visualizer') && <button className="ab-viz-pill" onClick={() => p.openFull({ visualizer: true })} title={t('Visualizer (V)')}><IconVisualizer /><span>{t('Visualizer')}</span></button>}
+          {more.length > 0 && <Menu label={t('More')} align="end" items={more} trigger={(tp, open) => <button {...tp} className={'mp-ibtn' + (open ? ' on' : '')} aria-label={t('More')} title={t('More')}><IconMore /></button>} />}
           <Volume p={p} up />
           <button className="mp-ibtn ab-expand" onClick={() => p.openFull()} aria-label={t('Full screen')} title={t('Full screen')}><IconExpand /></button>
           <button className="mp-ibtn" onClick={() => p.setCollapsed(true)} aria-label={t('Collapse the player')} title={t('Collapse')}><IconDown /></button>

@@ -50,4 +50,8 @@ test('activity: notices and history filter', () => {
   const h = activitySpec({ ...base, tab: 'history', failedOnly: true })
   assert.deepEqual(h.sections[0].items.map((c) => [c.id, c.on]), [['show:all', false], ['show:failed', true], ['clear', false]])
   assert.deepEqual(problems(withIds(h)), [])
+  // The panel's notices and the history's own filter never both draw the Show row (#512).
+  const ro = { ...base, tab: 'history', readOnly: true, connected: false }
+  assert.equal(activitySpec({ ...ro, part: 'notices' }).sections.filter((x) => x.items?.some((c) => c.id === 'show:all')).length, 0)
+  assert.deepEqual(activitySpec({ ...ro, part: 'filter' }).sections.map((x) => x.items?.[0]?.id), ['show:all'])
 })

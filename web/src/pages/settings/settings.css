@@ -8,7 +8,9 @@
 /* ---------------------------------------------------------------- menu */
 /* The menu scrolls by itself when it's longer than the window, and a scroll that
    reaches its end stops there instead of moving the page beside it. */
-.set-nav { --set-nav-top: calc(var(--topbar-h) + var(--sp-4)); position: sticky; top: var(--set-nav-top); max-height: calc(100dvh - var(--set-nav-top) - var(--sp-4) - var(--dock-space)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; display: grid; align-content: start; gap: var(--sp-4); padding-bottom: var(--sp-6); }
+.set-nav { --set-nav-top: calc(var(--topbar-h) + var(--sp-4)); position: sticky; top: var(--set-nav-top); max-height: calc(100dvh - var(--set-nav-top) - var(--sp-4) - var(--dock-space)); overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: var(--sp-4); padding-bottom: var(--sp-6);
+  /* Room for the scroll bar, so the chosen page and the search box end before it, and a thin bar in the theme's colours (#521). */
+  padding-right: var(--sp-5); scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--fg-3) 55%, var(--bg)) transparent; }
 
 /* ---------------------------------------------------------------- page */
 .set-main { min-width: 0; padding-bottom: 96px; }

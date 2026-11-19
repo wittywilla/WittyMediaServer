@@ -117,7 +117,20 @@ export type PlaybackAnswer = {
   chapters?: { start: number; title: string }[]; explain?: PlaybackExplain
   videos?: { index: number; codec: string; width: number; height: number; title?: string }[]; videoIndex?: number; stereo?: string; flattened?: boolean
   streaming?: PlaybackStreaming
+  quality?: QualityView; output?: PlaybackOutput
 }
+// What a quality menu may offer (see docs/CLIENT-API.md, Quality). choice is what streams are made to now.
+export type QualityPreset = { name: string; height: number; kbps: number }
+export type QualityLimits = { maxHeight: number; maxKbps: number }
+export type QualityView = {
+  choice: string; asked: string; presets: QualityPreset[]; limits: QualityLimits; away: boolean
+  sourceWidth?: number; sourceHeight?: number; sourceKbps?: number; videoCodecs: string[]; audioRates: number[]
+}
+// The stream as it reaches the player.
+export type PlaybackOutput = { width?: number; height?: number; videoCodec?: string; audioCodec?: string; kbps?: number; audioKbps?: number; audioChannels?: number; encoder?: string; work?: StreamWork }
+// What converts a stream: GET /hls/{id}/work (docs/CLIENT-API.md, Quality).
+export type StreamWork = { encoder: string; gpuEncode: boolean; gpuDecode: boolean; gpuToneMap: boolean; running?: boolean }
+export type StreamingPrefs = { prefs: { home: string; away: string }; quality: QualityView; profile: QualityLimits; remote: QualityLimits }
 export type DvdButton = { n: number; x1: number; y1: number; x2: number; y2: number; up: number; down: number; left: number; right: number; auto: boolean; lit: boolean; cmd: string; frames?: number; fps?: number; num?: number; soundSelect?: number; soundPress?: number }
 export type DvdMenu = {
   width: number; height: number; aspect: '4:3' | '16:9'; buttons: DvdButton[]; selected: number
@@ -182,10 +195,17 @@ export const forgetMissingModule = () => { missing = null }
 
 const parse = (text: string): any => { try { return text ? JSON.parse(text) : null } catch { return { error: text } } }
 
+// The viewer's quality choice for requests that start a stream (player/quality.ts). Only on
+// those: a header on every request would make a page on another address ask first each time.
+let streamQuality: ((method: string, path: string) => string) | null = null
+export const setStreamQuality = (fn: typeof streamQuality) => { streamQuality = fn }
+
 async function send(method: string, path: string, body?: unknown, signal?: AbortSignal): Promise<{ text: string; data: any }> {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers['Authorization'] = 'Bearer ' + tok
+  const q = streamQuality?.(method, path)
+  if (q) headers['X-WMS-Quality'] = q
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   let res: Response
   try {

@@ -159,7 +159,7 @@ func (s *Server) streamRoutes(pattern string) func(*http.Request, *streamGrant) 
 	}
 	switch pattern {
 	case "GET /api/items/{id}/file", "GET /api/items/{id}/stream", "GET /api/items/{id}/poster", "GET /api/items/{id}/backdrop",
-		"GET /api/items/{id}/subtitles/{file}", "GET /api/items/{id}/disc/thumb/{ttn}/{n}", "GET /api/cd/{id}", "GET /api/cd/{id}/audio", "GET /api/cd/{id}/graphics",
+		"GET /api/items/{id}/subtitles/{file}", "GET /api/items/{id}/disc/thumb/{ttn}/{n}", "GET /api/items/{id}/scene/{sec}", "GET /api/cd/{id}", "GET /api/cd/{id}/audio", "GET /api/cd/{id}/graphics",
 		"GET /api/radio/{id}/stream", "GET /api/radio/{id}/hls",
 		"GET /api/media/{id}/canvas/file", "GET /api/media/{id}/stems/{stem}":
 		return item
@@ -249,7 +249,9 @@ func (s *Server) handleItemStreamToken(w http.ResponseWriter, r *http.Request) {
 
 // addLiveTicket fills in what a player that can't set headers needs, when it asks with
 // ?streamToken=1. The web player doesn't ask, so it doesn't use up an account's tickets.
+// Every tune answer passes through here, so it also says what the quality menu may offer.
 func (s *Server) addLiveTicket(r *http.Request, info *tuneInfo) error {
+	info.Quality = s.qualityFor(r, 0, 0, 0)
 	if r.URL.Query().Get("streamToken") != "1" {
 		return nil
 	}

@@ -67,6 +67,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/me` | Signed-in | The caller's own account |
 | `GET /api/me/ui` | Signed-in | own |
 | `PUT /api/me/ui` | Signed-in | own. A JSON object of at most 16 KB |
+| `GET /api/me/streaming` | Signed-in | own |
+| `PUT /api/me/streaming` | Signed-in | own. Choices read as quality choices; the profile's limits still apply |
 | `GET /api/home` | Signed-in | own progress. limits |
 | `GET /api/libraries` | Signed-in | limits. Folder paths for admins only |
 | `POST /api/libraries` | Admin | Name, known type, full paths to existing folders. Module for the type is installed; for a games library, a module that scans games is installed and on, and the console is `auto` or one it names |
@@ -151,6 +153,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
 | `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
+| `GET /api/items/{id}/scene/{sec}` | Signed-in; ticket; address token | limits. Video file. Time within its length |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
 | `GET /api/prefs` | Signed-in | Nothing: server-wide playback defaults |
 | `POST /api/themes/mine` | Signed-in | own theme only. Profiles may import only when the administrator allows it (403). Same ZIP rules as POST /api/themes, plus variables only; at most five each; never over another's id (409) |
@@ -245,6 +248,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/hls/{id}/subs/{file}` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. Name is 'n.m3u8' or 'n.vtt' and the track exists. An account with limits is checked against what it plays |
 | `GET /api/hls/{id}/playlist.m3u8` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. An account with limits is checked against what it plays |
 | `GET /api/hls/{id}/seg/{n}` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. Segment number. An account with limits is checked against what it plays |
+| `GET /api/hls/{id}/work` | Signed-in | Stream exists. An account with limits is checked against what it plays |
 | `DELETE /api/hls/{id}` | Signed-in | Removes the caller as a viewer. The stream stops when no viewer is left. An account with limits is checked against what it plays |
 | `GET /api/settings` | Admin | Secrets masked |
 | `PUT /api/settings` | Admin | Known keys. Numbers, lists and FFmpeg options checked for each setting |
@@ -262,6 +266,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/users` | Signed-in | Caller may manage that kind of profile. Administrator flag for admins only. Name and password rules |
 | `DELETE /api/users/{id}` | Signed-in | Caller may manage that account, and it isn't their own |
 | `PUT /api/users/{id}/access` | Signed-in | Caller may manage that account. Not their own, not an administrator's |
+| `GET /api/users/{id}/stream-limits` | Admin | The account exists |
+| `PUT /api/users/{id}/stream-limits` | Admin | The account exists. Numbers in range (0 = none), anything else dropped |
 | `PUT /api/users/{id}/password` | Signed-in | Own password for adults, with the current one and an attempt limit. Another account's if the caller may manage it. Length rules |
 | `DELETE /api/users/{id}/2fa` | Admin | Not their own, not another administrator's |
 | `GET /api/profiles/household` | Signed-in | Names, kinds and pictures of every profile, where the sign-in screen shows profiles, or anywhere for an adult's account. No limits and no passwords |
@@ -452,6 +458,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/guide` | Signed-in | Channels the account may watch. Time range, hours, paging |
 | `GET /api/tv/{key}/tune` | Signed-in | Channel key. Channel visible to the account, enabled, and not encrypted. For a library channel, limits on what is on now |
 | `GET /api/tv/{key}/live/playlist.m3u8` | Signed-in | Channel key. Channel checked again on each request |
+| `GET /api/tv/{key}/live/work` | Signed-in | Channel key. Channel checked again on each request |
 | `GET /api/tv/{key}/live/seg/{name}` | Signed-in | Channel key. Channel checked again on each request. Name is a segment the stream made |
 | `POST /api/tv/{key}/leave` | Signed-in | Channel key. Viewer name of up to 40 characters |
 | `GET /api/tv/settings` | Admin | Nothing further |
@@ -511,6 +518,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/tv/reminders` | Signed-in | own. A channel the account may watch. Title of up to 300 characters, a time ahead. A limit per account |
 | `DELETE /api/tv/reminders/{id}` | Signed-in | own |
 | `GET /api/channels/bumpers` | Admin | Nothing further |
+| `GET /api/channels/videos` | Admin | Ids must be numbers; at most 100 libraries and 2000 ids; search cut to 200 characters; a page holds at most 200 |
 | `POST /api/channels/bumpers` | Admin | A video that exists |
 | `POST /api/channels/bumpers/upload` | Admin | Name cleaned, video extension, first bytes checked, never replaces a file. At most 2 GB and 30 minutes. Keeps room free on the disk. Read as a video before it is kept |
 | `DELETE /api/channels/bumpers/item/{id}` | Admin | Bumper exists. A file is deleted only in the bumpers folder |
@@ -653,6 +661,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/media/{id}/karaoke` | Signed-in | limits. A song. Lists only stems the stems listing would, and the song itself; starts nothing |
 | `POST /api/media/{id}/karaoke/prepare` | Signed-in | limits. A song that is a file inside a library. Follows the owner's switch (anyone, administrators only, never). Queues at most one FFmpeg job and one run of the separator found on or named on the machine (never one named in a request or a setting) per song, 16 waiting at most on the whole server; so many an hour per account; no separator on a tiny machine or a busy small one. Results kept in the server's own folder under a size cap |
 | `GET /api/karaoke/status` | Admin | What separator the machine has (its name and version, never its path), the switch, and how much is kept. look=1 looks again |
+| `GET /api/karaoke/separator` | Admin | Whether Demucs can be installed and is; its version and size, never a path |
+| `POST /api/karaoke/separator/install` | Admin | Never by itself. One at a time. Downloads only from fixed addresses in the code (GitHub for uv, checked against a SHA-256 the server carries; uv's own checked Python; pinned package versions from PyPI and download.pytorch.org; Demucs's model from its makers), into the data folder's separator/ only, which backups leave out. Refused on tiny machines. A failure removes the folder |
+| `DELETE /api/karaoke/separator` | Admin | Deletes only the data folder's separator/ (the path is fixed, never from the request) |
 | `GET /api/media/{id}/markers` | Signed-in | limits. Sidecars (.skip.json, .edl) beside the media, inside a library, at most 256 KB, at most 200 ranges; ranges that don't make sense are dropped. Also what comparing the season's episodes found |
 | `PUT /api/media/{id}/markers` | Admin | JSON of at most 64 KB. Every range starts at 0 or later and ends after it starts, at most 200 breaks. Kept apart from what scans read, which never replace it |
 | `POST /api/shows/{id}/detect-intros` | Admin | A show. Season by form. One run at a time on the server; at most 60 episodes a season, 10 minutes of each one's sound, FFmpeg at low priority. Writes only detected markers, never ones a person set |

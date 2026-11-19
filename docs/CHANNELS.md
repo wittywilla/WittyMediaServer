@@ -252,27 +252,30 @@ Discs play with no menus or remote features. An encrypted disc is listed with th
 To use them:
 
 1. Go to **Settings → Libraries → Add library** and choose **Commercials**.
-2. In a channel's editor, under **Commercials**, tick the library, and choose **All of them** or **Only these**.
+2. In a channel's editor, under **Commercials**, tick one or more libraries, and for each choose **All of them** or **Only these**. **Only these** shows how many you've chosen, and **Choose videos** opens a list you can search, a page at a time, in a dialog of its own.
 3. Choose **After each show, play** 0 to 5 commercials, and optionally **During a programme, a break every** so many minutes, with 1 to 5 commercials.
 
 They also fill gaps to the time grid, and never count as watched. No break comes so near the end that you'd just wait for the programme to finish. The guide shows one programme with its breaks inside it, and its times are when it really starts and ends.
 
-Commercials are picked at random, but one that played lately waits until up to 24 others have (half of them, in a small library), unless it's the only one short enough for a gap. A video that one of the channel's bumper rules plays is a bumper on that channel, and isn't played as a commercial as well, unless the bumpers are all the commercials it has.
+Commercials are picked at random, but one that played lately waits until up to 24 others have (half of them, in a small library), unless it's the only one short enough for a gap. Commercials come only from the channel's commercials libraries, unless you turn on **Commercials may also come from the bumper libraries**. A video in the channel's bumper libraries, or one a bumper rule names itself, is a bumper on that channel, and isn't played as a commercial as well (say, promos chosen as bumpers out of the same collection), unless that switch is on or the bumpers are all the commercials it has.
 
 Commercials come under a profile's limits like anything else: unrated ones hide a channel from a Kids profile, since viewers share one stream.
 
 ## Bumpers
 
-A **bumper** is a short video around a programme: a station ident, or a sting before one particular film. **Bumpers** in a channel's editor has two parts.
+A **bumper** is a short video around a programme: a station ident, or a sting before one particular film. **Bumpers** in a channel's editor has three parts.
 
-**The bumper library** is shared by every channel. **Upload videos** takes a video of at most 30 minutes and 2 GB, and **Choose from my media** uses one you already have. Anything in a Commercials library is in it too. Uploads go into an ordinary commercials library in the data folder, called *WittyTV bumpers*, so ratings and thumbnails work as they do for any video.
+**Bumper libraries** are where this channel's bumpers come from: any of your Commercials libraries, each whole or only the videos you choose, as for commercials. Each shows how many videos it has. By default bumpers come only from these, and commercials only from the commercials libraries. **Bumpers may also come from the commercials libraries** lets the bumper rules use the channel's commercials too, and **Commercials may also come from the bumper libraries** (under Commercials) works the other way round. Both are per channel.
+
+**Your uploads and picks** are shared by every channel. The editor shows how many there are, and **Manage** opens them in a dialog. **Upload videos** takes a video of at most 30 minutes and 2 GB, and **Choose from my media** uses one you already have. Uploads go into an ordinary commercials library in the data folder, called *WittyTV bumpers*, so ratings and thumbnails work as they do for any video; tick it under Bumper libraries to use it.
 
 **Rules for this channel** say when, which videos and for what:
 
 | Part | Choices |
 |---|---|
 | **When** | Before each programme, after each programme, between commercials, or in a break every so many minutes |
-| **Play** | One to five of the chosen videos, which take turns |
+| **Videos** | Any from the channel's bumper libraries, or only the ones you choose in a dialog you can search, a page at a time |
+| **Play** | One to five of them, which take turns |
 | **For** | Every programme, or particular films, shows, genres or collections |
 | **Mandatory** | Never cut or left out to keep to the timetable |
 
@@ -523,6 +526,7 @@ Definition
 | `GET /api/tv/favourites`, `PUT` and `DELETE /api/tv/favourites/{key}` | Signed in | This account's favourite channels |
 | `GET` and `POST /api/tv/reminders`, `DELETE /api/tv/reminders/{id}` | Signed in | This account's reminders |
 | `GET` and `POST /api/channels/bumpers`, `POST .../upload`, `DELETE .../item/{id}` | Admin | The bumper library |
+| `GET /api/channels/videos` | Admin | A page of the videos in some libraries (`libraries=`), the bumper list (`own=1`) or chosen ones (`ids=`), with `search=`, `offset=` and `limit=` |
 | `GET /api/channels/discs`, `POST /api/channels/clip-preview` | Admin | Discs for scenes, and trying one |
 | `GET /api/tv/{key}/tune` | Signed in | What's on, and the stream |
 | `GET /api/tv/{key}/programme?start` | Signed in | One programme in full, for More info |

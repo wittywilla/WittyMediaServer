@@ -371,7 +371,7 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 	ls.Viewer(viewerName(r))
 	now := time.Now()
 	logo, brand := tunerLogo(c)
-	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: logo, Brand: brand, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
+	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: logo, Brand: brand, URL: s.liveURL(r, ls, "/api/tv/"+r.PathValue("key")+"/live/playlist.m3u8"),
 		ServerTime: now.Unix(), CanRecord: s.canRecord(r, c), BackgroundPlay: s.backgroundPlay(r.Context()), BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60),
 		Notices: s.channelNotices(c), ATSC3: c.ATSC3, Security: securityOf(c)}
 	if s.silentChannel(c) {
@@ -449,7 +449,20 @@ func (s *Server) tuneError(w http.ResponseWriter, r *http.Request, err error) {
 // ensureTunerLive starts the shared stream of a tuner channel. FFmpeg and the
 // tuner run only while someone keeps asking for the playlist.
 func (s *Server) ensureTunerLive(r *http.Request, id int64) (*hls.LiveSession, error) {
-	key := "tun-" + strconv.FormatInt(id, 10)
+	base := "tun-" + strconv.FormatInt(id, 10)
+	ls, err := s.ensureTunerLiveAs(r, id, base+s.streamTag(r))
+	if err != nil && ls == nil {
+		// A viewer's own size and rate needs the channel opened again, which a tuner with no
+		// other tuner free can't do: they get the stream everyone else watching gets.
+		if shared := s.HLS.GetLive(base); shared != nil {
+			shared.Touch()
+			return shared, nil
+		}
+	}
+	return ls, err
+}
+
+func (s *Server) ensureTunerLiveAs(r *http.Request, id int64, key string) (*hls.LiveSession, error) {
 	if ls := s.HLS.GetLive(key); ls != nil {
 		ls.Touch()
 		return ls, nil

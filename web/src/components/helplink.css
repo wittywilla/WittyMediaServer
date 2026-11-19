@@ -5,3 +5,12 @@
 .help-link:hover { color: var(--fg); text-decoration: underline; }
 .help-inline { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
 .set-help { display: flex; justify-content: flex-end; margin-bottom: calc(var(--sp-2) * -1); }
+/* Where a Settings page has a back link above it (1280px and narrower), the help link shares that row instead of
+   taking a line of its own between the back link and the notices. The pull-up is the back link's whole box
+   (margins and the wrapper's margin) so what follows does not move. Wider, the sidebar replaces the back link and
+   the help link keeps its own line. */
+@media (max-width: 1280px) {
+  .set-back + .set-help { box-sizing: border-box; height: calc(var(--control-h-sm) + var(--sp-1)); padding-top: var(--sp-1); align-items: center; margin-top: calc(-1 * (var(--control-h-sm) + var(--sp-6))); margin-bottom: var(--sp-5); pointer-events: none; }
+  .set-back + .set-help > * { pointer-events: auto; }
+  .set-main:has(.st-page > .back-link) > .set-back + .set-help { height: auto; padding-top: 0; margin: 0 0 calc(var(--sp-2) * -1); pointer-events: auto; }
+}

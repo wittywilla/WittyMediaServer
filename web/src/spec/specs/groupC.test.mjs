@@ -4,7 +4,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { problems, reachable, withIds } from '../model.ts'
 import { helpSpec } from './help.ts'
-import { INSTALL, moduleMissingSpec } from './moduleMissing.ts'
+import { INSTALL, moduleMissingSpec, stillMissing } from './moduleMissing.ts'
 
 const groups = [{ title: 'Start here', guides: [{ file: 'GETTING_STARTED', title: 'Getting started', about: 'From installing.' }, { file: 'PLAYING', title: 'Watching', about: 'The player.' }] }, { title: 'Your media', guides: [{ file: 'TV', title: 'TV shows', about: 'Seasons.' }] }]
 const slug = (f) => f.toLowerCase().replace(/_/g, '-')
@@ -55,4 +55,20 @@ test('module missing: several modules, one primary; the what text wins as the ti
   assert.deepEqual(p.actions.map((a) => a.kind), ['primary', 'secondary'])
   assert.ok(p.actions.every((a) => a.disabled))
   assert.deepEqual(problems(withIds(p)), [])
+})
+
+test('module missing: names the module that is missing, not the one that is in use', () => {
+  // WittyComics is installed; the kit it is built on is not. The page is about the kit.
+  const p = moduleMissingSpec({ ...base, ids: ['wittycomics', 'wittyink'], mods: [{ id: 'wittyink', name: 'WittyInk', summary: 'What every reader shares.' }] })
+  assert.equal(p.title, 'This needs WittyInk')
+  assert.deepEqual(p.actions.map((a) => a.id), [INSTALL + 'wittyink'])
+  assert.ok(!/WittyComics/.test(JSON.stringify(p)))
+})
+
+test('module missing: a reader in use does not make the page ready while its kit is absent', () => {
+  const ids = ['wittycomics', 'wittyink']
+  const ink = { id: 'wittyink', enabled: false }
+  assert.deepEqual(stillMissing(ids, [{ id: 'wittycomics', enabled: true }, ink]), { gone: [ink], ready: false })
+  assert.equal(stillMissing(ids, [{ id: 'wittycomics', enabled: true }]).ready, false)
+  assert.equal(stillMissing(ids, [{ id: 'wittycomics', enabled: true }, { id: 'wittyink', enabled: true }]).ready, true)
 })

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { refreshModuleWeb, useModuleSetupStep } from '../moduleRegistry'
+import { Guarded, refreshModuleWeb, useModuleSetupStep, useSetupStepOwner } from '../moduleRegistry'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { api, setToken, type Library } from '../api'
@@ -8,7 +8,8 @@ import type { StyledPart } from '../brandStyle.ts'
 import { Brand, BrandMark, Spinner, VersionTag } from '../components/common'
 import { HelpLink } from '../components/HelpLink'
 import type { LibraryKind, ModuleReport } from '../moduleStore'
-import { useApp } from '../state'
+import { toast, useApp } from '../state'
+import { saveLocale } from './setup/Locale'
 import { Button, Progress } from '../ui'
 import { Account } from './setup/Account'
 import { Details } from './setup/Details'
@@ -42,6 +43,8 @@ export default function SetupWizard() {
   const signedIn = !!user
   const [facts, setFacts] = useState<Facts | null>(signedIn ? null : { signedIn: false, store: true, modules: [], kinds: null })
   const [added, setAdded] = useState<Library[]>([])
+  // The modules that draw a step of their own (Live TV, Games), if any is in use.
+  const owners: Partial<Record<StepId, string>> = { tv: useSetupStepOwner('tv'), games: useSetupStepOwner('games') }
 
   // What's on this server decides which steps there are. What its modules add to the web app is asked
   // for again with it: the first ask, before there was an account, was refused, and the Modules step
@@ -80,6 +83,14 @@ export default function SetupWizard() {
   const nowAt = stepper.findIndex((x) => x.id === drawnId(step.id))
   const go = (id: StepId) => navigate(pathOf(id))
   const props: StepProps = { info: step, facts, refresh, next: () => { if (next) go(next.id) }, back: back ? () => go(back.id) : undefined }
+  // A module's own step is remembered on the server when someone moves on from it, done or put off,
+  // so "Finish setting up" isn't left on Home for a step that was gone through here. The module's
+  // page may say so too; twice is still once.
+  const passed = (id: StepId, done: boolean) => {
+    const module = owners[id]
+    if (module) api.post('/setup/module-steps/skip', { module, step: id, done }).catch(() => { /* Home offers it again, which is all */ })
+  }
+  const moduleProps = (id: StepId) => ({ ...props, next: () => { passed(id, true); props.next() } })
   const finish = async (to = '/') => {
     // First run is over: the server answers the apps from here on.
     try { await api.post('/setup/complete', {}) } catch { /* an administrator only; the settings below still say so */ }
@@ -131,25 +142,28 @@ export default function SetupWizard() {
                 setUser(u)
                 // From here it counts as set up only when the last page says so, even once there are libraries.
                 api.put('/settings', { setupDone: '0' }).catch(() => {})
-                navigate(pathOf('name'), { replace: true })
+                // The language and time zone asked before Welcome are saved now there's an account, before the
+                // Name step reads them back.
+                void saveLocale().catch(() => toast('The language and time zone couldn’t be saved. Choose them again on this page.', { tone: 'danger' }))
+                  .finally(() => navigate(pathOf('name'), { replace: true }))
               }} />}
               {step.id === 'name' && <Name {...props} onTry={setTryName} />}
               {step.id === 'modules' && <Modules {...props} />}
               {step.id === 'media' && <Media {...props} added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} />}
-              {step.id === 'games' && <ModuleStep id="games" props={{ ...props, added, goTo: go }} own={<NotLoaded info={step} />} />}
+              {step.id === 'games' && <ModuleStep id="games" module={owners.games} props={{ ...moduleProps('games'), added, goTo: go }} own={<NotLoaded info={step} />} />}
               {step.id === 'discs' && <Discs {...props} />}
               {step.id === 'details' && <Details {...props} />}
               {step.id === 'logos' && <Logos {...props} />}
               {step.id === 'music' && <Music {...props} />}
               {step.id === 'listings' && <Listings {...props} />}
-              {step.id === 'tv' && <ModuleStep id="tv" props={{ ...props }} own={<NotLoaded info={step} />} />}
+              {step.id === 'tv' && <ModuleStep id="tv" module={owners.tv} props={moduleProps('tv')} own={<NotLoaded info={step} />} />}
               {step.id === 'look' && <Look {...props} />}
               {step.id === 'theme' && <Theme {...props} />}
               {step.id === 'people' && <People {...props} />}
               {step.id === 'remote' && <Remote {...props} />}
               {step.id === 'done' && <Done steps={steps} onFinish={finish} />}
             </main>
-            {canSkip(step) && next && <p className="oobe-skip"><Button variant="ghost" onClick={() => props.next()}>Skip for now</Button> <span className="muted">You can do this later in {step.later?.where}.</span></p>}
+            {canSkip(step) && next && <p className="oobe-skip"><Button variant="ghost" onClick={() => { passed(step.id, false); props.next() }}>Skip for now</Button> <span className="muted">You can do this later in {step.later?.where}.</span></p>}
           </div>
         </div>
         <footer className="oobe-foot"><VersionTag version={version} /></footer>
@@ -159,11 +173,12 @@ export default function SetupWizard() {
 }
 
 // A first-run step a module of API 5 draws itself (moduleRegistry.tsx), given the same props the
-// app's own step has; the app's own while there is none.
-function ModuleStep({ id, props, own }: { id: string; props: Record<string, unknown>; own: React.ReactNode }) {
+// app's own step has; the app's own while there is none, or if the module's step crashes, so
+// setup always goes on.
+function ModuleStep({ id, module, props, own }: { id: string; module?: string; props: Record<string, unknown>; own: React.ReactNode }) {
   const C = useModuleSetupStep(id)
   if (C === undefined) return <div className="center"><div className="spinner" /></div>
-  return C ? <C {...props} /> : <>{own}</>
+  return C && module ? <Guarded module={module} instead={own}><C {...props} /></Guarded> : <>{own}</>
 }
 
 // A module's step whose page didn't load says so, never an empty card. Skip for now sits under it.

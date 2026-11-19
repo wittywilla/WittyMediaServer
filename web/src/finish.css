@@ -43,8 +43,9 @@ html[data-type="mono"] body { letter-spacing: 0; }
   --glass-paint: linear-gradient(180deg, var(--glass-hi), var(--glass-lo));
 }
 
-/* ---- the scene: sky, light sweep, bubbles, hill (ui/Scene.tsx), fixed behind the page and under the menu ---- */
-.scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; contain: strict; }
+/* ---- the scene: sky, light sweep, bubbles, hill (ui/Scene.tsx), fixed behind the page and under the menu. Its own class,
+   look-scene: the player's and the disc page's scene cards are .scene, and a fixed .scene hid them all. ---- */
+.look-scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; contain: strict; }
 .scene-layer { position: absolute; }
 .scene-sky, .scene-light, .scene-image { inset: 0; inline-size: 100%; block-size: 100%; }
 .scene-image { object-fit: cover; }

@@ -12,7 +12,6 @@ import (
 	"image"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -41,6 +40,7 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/tv/{key}/tune", a(s.handleTune))
 	m.Handle("GET /api/tv/{key}/live/playlist.m3u8", a(s.handleLivePlaylist))
 	m.Handle("GET /api/tv/{key}/live/seg/{name}", a(s.handleLiveSegment))
+	m.Handle("GET /api/tv/{key}/live/work", a(s.handleLiveWork))
 	m.Handle("POST /api/tv/{key}/leave", a(s.handleLiveLeave))
 	m.Handle("GET /api/tv/settings", ad(s.handleTVSettings))
 	m.Handle("PUT /api/tv/settings", ad(s.handlePutTVSettings))
@@ -899,12 +899,14 @@ func (s *Server) rowProgrammes(ctx context.Context, row *guideChannel, from, to 
 // ---------------------------------------------------------------------------
 
 type tuneInfo struct {
-	Key    string `json:"key"`
-	Kind   string `json:"kind"`
-	Number string `json:"number"`
-	Name   string `json:"name"`
-	Logo   string `json:"logo,omitempty"`
-	URL    string `json:"url"`
+	// Quality is what the player's quality menu offers for this channel, and what is chosen.
+	Quality *qualityView `json:"quality,omitempty"`
+	Key     string       `json:"key"`
+	Kind    string       `json:"kind"`
+	Number  string       `json:"number"`
+	Name    string       `json:"name"`
+	Logo    string       `json:"logo,omitempty"`
+	URL     string       `json:"url"`
 	// For a player that can't set headers: asked for with ?streamToken=1.
 	StreamURL   string          `json:"streamUrl,omitempty"`
 	StreamToken string          `json:"streamToken,omitempty"`
@@ -999,7 +1001,7 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ls.Viewer(viewerName(r))
-	info := tuneInfo{Key: r.PathValue("key"), Kind: "library", Number: c.Number, Name: c.Name, URL: "/api/tv/" + r.PathValue("key") + "/live/playlist.m3u8",
+	info := tuneInfo{Key: r.PathValue("key"), Kind: "library", Number: c.Number, Name: c.Name, URL: s.liveURL(r, ls, "/api/tv/"+r.PathValue("key")+"/live/playlist.m3u8"),
 		Description: c.Description, Accent: c.Look.Accent, Brand: brandOf(c),
 		PositionSec: float64(now.Unix() - cur.Start + cur.Offset), ServerTime: now.Unix(), CountProgress: c.CountProgress && cur.Kind == channels.KindShow,
 		CanRecord: s.canRecord(r, nil)}
@@ -1053,9 +1055,9 @@ func (s *Server) handleLiveLeave(w http.ResponseWriter, r *http.Request) {
 		// A catch-up stream is left by naming the programme's start as well.
 		if start, err := strconv.ParseInt(r.URL.Query().Get("start"), 10, 64); err == nil && start > 0 && strings.HasPrefix(key, "tun-") {
 			id, _ := strconv.ParseInt(strings.TrimPrefix(key, "tun-"), 10, 64)
-			s.HLS.LeaveLive(catchupID(id, start), v)
+			s.HLS.LeaveLive(catchupID(id, start)+s.streamTag(r), v)
 		} else {
-			s.HLS.LeaveLive(key, v)
+			s.HLS.LeaveLive(key+s.streamTag(r), v)
 		}
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
@@ -1082,7 +1084,7 @@ func (s *Server) liveQuality(r *http.Request) (ffmpeg.Quality, int, string) {
 }
 
 func (s *Server) ensureLibraryLive(r *http.Request, c *channels.Channel) (*hls.LiveSession, error) {
-	id := "lib-" + strconv.FormatInt(c.ID, 10)
+	id := "lib-" + strconv.FormatInt(c.ID, 10) + s.streamTag(r)
 	if ls := s.HLS.GetLive(id); ls != nil {
 		ls.Touch()
 		return ls, nil
@@ -1215,6 +1217,7 @@ func (s *Server) itemLiveInput(ctx context.Context, p *channels.Programme, off, 
 	}
 	if v := pr.Video(); v != nil {
 		in.Height = min(v.Width, v.Height)
+		in.VideoCodec, in.PixFmt = v.CodecName, v.PixFmt // whether the graphics chip can decode it
 		interlaced := v.FieldOrder == "tt" || v.FieldOrder == "bb" || v.FieldOrder == "tb" || v.FieldOrder == "bt"
 		if interlaced {
 			in.VideoFilter = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
@@ -1294,7 +1297,7 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "channel not found")
 		return
 	}
-	ls := s.HLS.GetLive(key)
+	ls := s.liveLookup(r, kind, key)
 	if ls == nil {
 		// Stopped while nobody was looking: start it again where it should be.
 		var err error
@@ -1329,14 +1332,7 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 		s.tuneError(w, r, err)
 		return
 	}
-	// A player that can't set headers (a TV's own player) keeps its token.
-	suffix := ""
-	for _, k := range []string{"st", "token"} {
-		if v := r.URL.Query().Get(k); v != "" {
-			suffix = "?" + k + "=" + url.QueryEscape(v)
-			break
-		}
-	}
+	suffix := liveSuffix(r)
 	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 	w.Header().Set("Cache-Control", "no-store")
 	_, _ = w.Write(ls.Playlist(func(f string) string { return "seg/" + f + suffix }))
@@ -1349,7 +1345,7 @@ func (s *Server) handleLiveSegment(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "channel not found")
 		return
 	}
-	ls := s.HLS.GetLive(key)
+	ls := s.liveLookup(r, kind, key)
 	if ls == nil {
 		writeErr(w, 404, "no such stream")
 		return

@@ -764,12 +764,12 @@ func (s *LiveSession) hwFailed(c hwChoice, early bool, said string) {
 		return
 	}
 	if forget {
-		s.m.mu.Lock()
+		s.m.hwMu.Lock()
 		if s.m.gpuFailed == nil {
 			s.m.gpuFailed = map[string]bool{}
 		}
 		s.m.gpuFailed[c.key] = true
-		s.m.mu.Unlock()
+		s.m.hwMu.Unlock()
 	}
 	s.log.Warn("FFmpeg failed using the graphics chip: the channel goes on with less of it", "cat", "transcode",
 		"encoder", c.plan.Name, "gpuPipeline", c.onGPU, "level", next, "forAll", forget, "ffmpeg", tail(said, 500))

@@ -120,8 +120,8 @@ Save or undo your other changes first, because picking a time leaves the dialog.
 - **Skips**: any number of parts, each an intro, recap, credits, preview, a scene after the credits, an advert break or any other part you name, with a **Skip button**, **Skip by itself** or **Only mark it**. Drag them on the timeline, or type exact times. **This video has no…** stops the season's or show's defaults and anything found by itself from adding a kind. The faint bands on the timeline, and **What plays now**, show what is in force and where it came from.
 - **Scenes**: titles and start times that take the place of the file's chapters in the player's Scenes; **Copy the video's chapters** starts from those.
 - **Content**: what some people may not want to see or hear, and how strong it is. Each profile chooses what to do about it.
-- **Details**, **Pictures**: a title, overview, genres and the rest, and a poster, backdrop, logo or episode picture kept in the file itself.
-- **File**: where it is, which cut it was made for, **Export**, **Import…** and **Remove**.
+- **Details**, **Pictures**: a title, overview, genres and the rest, and posters, backdrops, logos or episode pictures kept in the file itself. Each kind can hold several: **Add another** puts one more after it, a small picture's **Show this one first** makes it the one shown, and **×** takes it out. The title's picture chooser offers all of them too.
+- **File**: where it is, which cut it was made for, which version of the format it follows, **Export**, **Import…** and **Remove**.
 
 In the player, **Mark start** and **Mark end** set the picked part (or start a new one) at the moment playing; **Frame** steps a frame and **±1 s** moves the part. The player's own skip button tries the parts as they are, before saving. From a title's page, **Preview** saves and opens the player a few seconds before the part.
 

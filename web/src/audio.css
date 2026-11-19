@@ -88,10 +88,6 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 .select.sm { min-height: var(--control-h-sm); padding: 0 var(--sp-2); font-size: var(--text-sm); }
 /* Easy to see: a word beside the icon. */
 /* The words in the page's own colour: accent text on the accent's tint falls under 4.5:1 in some themes. */
-.ab-viz-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; margin: 0 2px; border: 1.5px solid var(--accent-line); border-radius: var(--r-full); background: var(--accent-soft); color: var(--fg); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; white-space: nowrap; }
-.ab-viz-pill svg { width: 18px; height: 18px; color: var(--accent-text); }
-.ab-viz-pill:hover { background: var(--accent); color: var(--accent-fg); }
-.ab-viz-pill:hover svg { color: inherit; }
 
 /* Phones: art, words, play, next, above the tab bar. All the rest is in the full player. */
 @media (max-width: 899px) {
@@ -115,10 +111,6 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
   .app.nav-open:not(.nav-top) ~ .audio-bar { left: calc(50% + var(--sidebar) / 2); width: min(1320px, calc(100% - var(--sidebar) - 48px)); }
   /* Room under the page for the bar, so the last row is never hidden. */
   .app:has(~ .audio-bar) .content, .app:has(~ .np) .content { padding-bottom: 128px; }
-}
-@media (min-width: 900px) and (max-width: 1240px) {
-  .ab-viz-pill span { display: none; }
-  .ab-viz-pill { padding: 0 10px; }
 }
 /* Collapsed: a small round button in the corner, keeping the play button to hand. */
 .audio-bar.collapsed { left: auto; right: 16px; transform: none; width: auto; display: flex; gap: 6px; padding: 5px 8px 5px 5px; border-radius: var(--r-full); grid-template-columns: none; }

@@ -337,7 +337,7 @@ input[type=range] { accent-color: var(--accent); }
 .search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--fg-3); pointer-events: none; z-index: 1; }
 .topbar .spacer { flex: 1; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; font-weight: 700; color: var(--accent-fg); border: 0; }
-.content { flex: 1; padding: var(--page-top) var(--gutter) var(--sp-16); min-width: 0; }
+.content { flex: 1; padding: var(--page-top) var(--gutter) var(--sp-16); min-width: 0; container-type: inline-size; } /* a title's picture runs out to its edges (100cqi: --hero-bleed) */
 /* Desktop: the hamburger collapses the sidebar entirely. */
 .app:not(.nav-open) .sidebar { display: none; }
 .backdrop-dim { display: none; }
@@ -348,7 +348,8 @@ input[type=range] { accent-color: var(--accent); }
 @supports (animation-timeline: scroll()) {
   /* The words in the bar sit low in it, so the fade stays strong down to them, and each gets a
      halo of the page's colour: readable on any picture, light or dark. */
-  .app:has(.hero, .detail-hero) .topbar { background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .8) 65%, rgb(var(--bg-rgb) / 0)); }
+  /* The fade eases out to nothing (slow at the end), so its foot reads as no line across the picture. */
+  .app:has(.hero, .detail-hero) .topbar { background: linear-gradient(rgb(var(--bg-rgb) / .9), rgb(var(--bg-rgb) / .86) 30%, rgb(var(--bg-rgb) / .74) 50%, rgb(var(--bg-rgb) / .52) 66%, rgb(var(--bg-rgb) / .28) 80%, rgb(var(--bg-rgb) / .1) 91%, rgb(var(--bg-rgb) / .02) 97%, rgb(var(--bg-rgb) / 0)); }
   .app:has(.hero, .detail-hero) .topbar :is(.section-row a, .topnav-link, .top-brand) { text-shadow: 0 0 2px rgb(var(--bg-rgb)), 0 0 8px rgb(var(--bg-rgb)); }
   /* A link on a pill of its own (the active one, in most nav styles) is already readable there, and the
      halo would smudge its dark words on the light pill. Crossbar marks it with a line instead, so keeps it. */
@@ -431,17 +432,41 @@ input[type=range] { accent-color: var(--accent); }
 .meta .pill + *::before { content: none; }
 
 /* ---------------------------------------------------------------- hero */
-.hero { position: relative; height: 62vh; min-height: 400px; max-height: 660px; margin: calc(-1 * var(--page-top)) calc(-1 * var(--gutter)) var(--section-gap); overflow: hidden; }
+/* A picture at the top of a page (the billboard, a title's header) runs out to the edges of the page area, however wide
+   the screen: the page's column (--page-max) centres in .content, so half the column less half of .content (100cqi) is
+   how far out its edges are. Inside a narrower page that is the gutter, as it always was. No side edge to fade. */
+:root { --hero-bleed: calc(50% - 50cqi - var(--gutter)); }
+/* The words on it stay on the column's edge (--page-max), however far out the picture runs. */
+:root { --hero-inset: calc(var(--gutter) + max(0px, (100cqi - var(--page-max)) / 2)); }
+/* It fades into the page by its own alpha (a mask), never by painting the page's colour over it: then it melts into a
+   gradient, a scene or a picture behind the page as it does into a flat colour, with no line where it stops. The fade
+   eases out (slow at the end), from --hero-fade-from down. --hero-top fades the top edge in too when it doesn't start
+   under the see-through top bar (something sits above it, or the browser can't run it up under the bar). */
+:root { --hero-top-in: transparent 0%, rgb(0 0 0 / .08) 4%, rgb(0 0 0 / .3) 9%, rgb(0 0 0 / .6) 14%, rgb(0 0 0 / .85) 19%, #000 25%; } /* design-ok: a mask takes only alpha; black is fully shown, not a colour */
+:is(.hero, .detail-hero) { --hero-fade-from: 48%; --hero-fade: linear-gradient(180deg, var(--hero-top, #000 0%), #000 var(--hero-fade-from),
+  rgb(0 0 0 / .86) calc(var(--hero-fade-from) + (100% - var(--hero-fade-from)) * .23), rgb(0 0 0 / .62) calc(var(--hero-fade-from) + (100% - var(--hero-fade-from)) * .44),
+  rgb(0 0 0 / .36) calc(var(--hero-fade-from) + (100% - var(--hero-fade-from)) * .63), rgb(0 0 0 / .15) calc(var(--hero-fade-from) + (100% - var(--hero-fade-from)) * .81),
+  rgb(0 0 0 / .04) calc(var(--hero-fade-from) + (100% - var(--hero-fade-from)) * .92), transparent 100%); } /* design-ok: a mask takes only alpha; black is fully shown, not a colour */
+.app:has(.home.editing, .legal-ack-bar, .play-status) :is(.hero, .detail-hero) { --hero-top: var(--hero-top-in); }
+@supports not (animation-timeline: scroll()) { :is(.hero, .detail-hero) { --hero-top: var(--hero-top-in); } }
+.hero { position: relative; height: 62vh; min-height: 400px; max-height: 660px; margin: calc(-1 * var(--page-top)) var(--hero-bleed) var(--section-gap); overflow: hidden; }
 .hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; transition: opacity var(--dur-4) var(--ease-standard); }
+/* The picture and its shade fade out together: one soft edge across the whole width. A mask is painted once, not every frame. */
+.hero :is(.bg, .shade) { -webkit-mask-image: var(--hero-fade); mask-image: var(--hero-fade); }
+/* The see-through top bar lightens (or darkens) the picture under it for its words; that veil carries on a little way down
+   the picture and eases out there, so the bar's foot reads as no band across it. It belongs to the picture, so it fades
+   with it. Not in TV mode, which has no bar over the picture. */
+html:not(.tv-mode) :is(.hero, .detail-hero) .bg::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgb(var(--bg-rgb) / .45), rgb(var(--bg-rgb) / .42) calc(var(--bar-space) * .7), rgb(var(--bg-rgb) / .32) calc(var(--bar-space) * 1.2), rgb(var(--bg-rgb) / .18) calc(var(--bar-space) * 1.8), rgb(var(--bg-rgb) / .07) calc(var(--bar-space) * 2.4), rgb(var(--bg-rgb) / .015) calc(var(--bar-space) * 2.9), rgb(var(--bg-rgb) / 0) calc(var(--bar-space) * 3.2)); }
 /* The bottom fades into the page colour along an eased curve (no bend that reads as a line), the same across the whole width. */
 .hero .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(var(--bg-rgb) / .94) 0%, rgb(var(--bg-rgb) / .78) 40%, rgb(var(--bg-rgb) / 0) 82%), linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .9) 7%, rgb(var(--bg-rgb) / .68) 17%, rgb(var(--bg-rgb) / .42) 28%, rgb(var(--bg-rgb) / .2) 40%, rgb(var(--bg-rgb) / .06) 52%, rgb(var(--bg-rgb) / 0) 62%); }
-.hero .info { position: absolute; left: var(--gutter); bottom: var(--sp-10); width: min(620px, calc(100% - 2 * var(--gutter))); isolation: isolate; }
+.hero .info { position: absolute; left: var(--hero-inset); bottom: var(--sp-10); width: min(620px, calc(100% - 2 * var(--hero-inset))); isolation: isolate; }
 /* Words over a picture read over any picture: behind them, a scrim in the theme's own page colour, as solid as the
    theme's --hero-scrim (scripts/theme-contrast.py checks its text reads over a white and a black picture under it).
    A light theme gets a light scrim under dark words, a dark theme a dark one under light words. It belongs to the words,
    not the picture, so a fade or mask on the picture and its shade (a scene's soft bottom edge) never thins it. Its own
    edges fade out (gradients and a mask, painted once): no box, no blur. */
-.hero .info::before { content: ''; position: absolute; z-index: -1; inset: calc(-1 * var(--sp-16)) calc(-1 * var(--hero-scrim-fade)) calc(-1 * var(--sp-16)) calc(-1 * var(--gutter)); pointer-events: none;
+.hero .info::before { content: ''; position: absolute; z-index: -1; inset: calc(-1 * var(--sp-16)) calc(-1 * var(--hero-scrim-fade)) calc(-1 * var(--sp-16)) calc(-1 * var(--hero-inset)); pointer-events: none;
   background: linear-gradient(90deg, rgb(var(--bg-rgb) / var(--hero-scrim)) calc(100% - var(--hero-scrim-fade)), rgb(var(--bg-rgb) / 0));
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 var(--sp-12)); mask-image: linear-gradient(180deg, transparent, #000 var(--sp-12)); } /* design-ok: a mask takes only alpha; black is fully shown, not a colour */
 .hero { --hero-scrim-fade: clamp(96px, 14vw, 220px); }
@@ -451,7 +476,7 @@ input[type=range] { accent-color: var(--accent); }
 .hero .meta { margin-bottom: var(--sp-3); }
 .hero p { color: var(--fg); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0 0 var(--sp-5); max-width: 58ch; }
 .hero .actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-.hero .dots { position: absolute; right: var(--gutter); bottom: var(--sp-10); display: flex; align-items: center; gap: 2px; }
+.hero .dots { position: absolute; right: var(--hero-inset); bottom: var(--sp-10); display: flex; align-items: center; gap: 2px; }
 /* The dots look small, but the button around each is a proper target (WCAG 2.5.8). */
 .hero .dots button { position: relative; display: grid; place-items: center; width: 24px; height: 24px; border: 0; background: none; padding: 0; color: inherit; border-radius: 50%; }
 .hero .dots button::before { content: ''; width: 8px; height: 8px; border-radius: var(--r-full); background: color-mix(in srgb, var(--fg) 45%, transparent); transition: width var(--dur-2), background var(--dur-2); }
@@ -604,7 +629,9 @@ textarea.input { padding: 10px var(--sp-3); line-height: var(--leading-body); re
 .limits .chips { margin-bottom: 0; }
 
 /* ---------------------------------------------------------------- detail */
-.detail-hero { position: relative; margin: calc(-1 * var(--page-top)) calc(-1 * var(--gutter)) 0; height: 50vh; min-height: 320px; max-height: 560px; overflow: hidden; }
+/* The whole header fades out (--hero-fade): the picture, a moving one, and the shade with them. Then the shade under the
+   title only ever gets more see-through over the page, and the picture under the words shows no more than it did. */
+.detail-hero { position: relative; margin: calc(-1 * var(--page-top)) var(--hero-bleed) 0; height: 50vh; min-height: 320px; max-height: 560px; overflow: hidden; --hero-fade-from: 46%; -webkit-mask-image: var(--hero-fade); mask-image: var(--hero-fade); }
 .detail-hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 25%; }
 /* The title's words overlap the bottom of the header: there the shade is at least the theme's --hero-scrim, so they read over any picture. */
 .detail-hero .shade { position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / max(.9, var(--hero-scrim))) 24%, rgb(var(--bg-rgb) / var(--hero-scrim)) 42%, rgb(var(--bg-rgb) / .5) 68%, rgb(var(--bg-rgb) / .2) 100%); }
@@ -652,8 +679,8 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
   .detail .poster { width: 132px; }
   .detail .actions .btn { flex: 1 1 auto; }
   .detail .admin-tools { flex: 1 1 100%; }
-  /* The backdrop fades into the page: the picture itself goes, so there's no line where it ends. */
-  .detail-hero .bg { -webkit-mask-image: linear-gradient(#000 40%, transparent); mask-image: linear-gradient(#000 40%, transparent); } /* design-ok: a mask only reads how solid it is */
+  /* The backdrop fades into the page sooner: the picture itself goes, so there's no line where it ends. */
+  .detail-hero { --hero-fade-from: 34%; }
   .detail-hero .shade { background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / var(--hero-scrim)) 30%, rgb(var(--bg-rgb) / .35) 65%, rgb(var(--bg-rgb) / .15) 100%); }
   /* One row: the main action, Save, and "⋯" for the rest. */
   .detail .item-actions { flex-wrap: nowrap; }

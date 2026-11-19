@@ -8,8 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -119,14 +122,15 @@ func (s *Store) idsIn(ctx context.Context, q string, libs []int64) ([]int64, err
 // besideFiles is what lies beside one title that a .wittyinfo can hold.
 type besideFiles struct {
 	nfo       string
-	art       map[string]string // role: path
+	art       map[string]string   // role: path
+	more      map[string][]string // role: further pictures (Film-poster-2.jpg, extrafanart/...)
 	skipJSON  string
 	edl       string
 	subtitles []SubtitleFile
 }
 
 func (b *besideFiles) any() bool {
-	return b.nfo != "" || len(b.art) > 0 || b.skipJSON != "" || b.edl != "" || len(b.subtitles) > 0
+	return b.nfo != "" || len(b.art) > 0 || len(b.more) > 0 || b.skipJSON != "" || b.edl != "" || len(b.subtitles) > 0
 }
 
 // besideItem finds what lies beside a film or an episode.
@@ -172,6 +176,14 @@ func (s *Store) besideItem(ctx context.Context, it *Item, subtitles bool) beside
 				out.art[role] = p
 			}
 		}
+		names := map[string][]string{}
+		for _, role := range []string{"poster", "backdrop", "logo", "clearart", "banner", "disc"} {
+			names[role] = []string{base + "-" + extraArtName(role)}
+			if alone {
+				names[role] = append(names[role], extraArtName(role))
+			}
+		}
+		out.more = morePictures(dir, names, alone, out.art)
 	}
 	for _, p := range sidecarPaths(it.Path, ".skip.json") {
 		if fileThere(p) {
@@ -301,7 +313,7 @@ func segmentsFrom(m mediaextras.Markers) []wittyinfo.Segment {
 
 // takePicture puts a picture file in a .wittyinfo for a role, unless it has one.
 func takePicture(x *wittyinfo.Info, role, path string) (bool, error) {
-	if x.Artwork[role] != "" {
+	if x.Artwork.First(role) != "" {
 		return false, nil
 	}
 	b, err := readSmall(path, wittyinfo.MaxImage)
@@ -336,6 +348,13 @@ func (s *Store) gatherInto(x *wittyinfo.Info, b besideFiles, episode bool, durat
 		}
 		if ok {
 			used = append(used, p)
+		}
+	}
+	for _, role := range wittyinfo.ArtworkRoles {
+		if n, err := takeMorePictures(x, role, b.more[role]); err != nil {
+			errs = append(errs, err)
+		} else if n > 0 {
+			used = append(used, b.more[role][:n]...)
 		}
 	}
 	if len(x.Segments) == 0 {
@@ -539,6 +558,11 @@ func (s *Scanner) GatherInfo(ctx context.Context, libs []int64, o ConvertOptions
 				b.art[role] = p
 			}
 		}
+		more := map[string][]string{}
+		for _, role := range []string{"poster", "backdrop", "logo", "banner", "clearart"} {
+			more[role] = []string{extraArtName(role)}
+		}
+		b.more = morePictures(sh.Path, more, true, b.art)
 		var used []string
 		if b.nfo != "" {
 			var scratch Show
@@ -553,6 +577,13 @@ func (s *Scanner) GatherInfo(ctx context.Context, libs []int64, o ConvertOptions
 				rep.fail(sh.Title, err)
 			} else if ok {
 				used = append(used, b.art[role])
+			}
+		}
+		for _, role := range wittyinfo.ArtworkRoles {
+			if n, err := takeMorePictures(x, role, b.more[role]); err != nil {
+				rep.fail(sh.Title, err)
+			} else if n > 0 {
+				used = append(used, b.more[role][:n]...)
 			}
 		}
 		if len(used) > 0 {
@@ -692,6 +723,10 @@ func (s *Scanner) SpreadInfo(ctx context.Context, libs []int64, o ConvertOptions
 		if err := s.SaveItemMetadata(ctx, fresh); err != nil {
 			errs = append(errs, err)
 		}
+		// The further pictures, as Film-poster-2.jpg and so on (the first is the one above).
+		if err := writeMorePictures(x, filepath.Dir(it.Path), strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))+"-", roots); err != nil {
+			errs = append(errs, err)
+		}
 		// The skips, as a .skip.json any version of the server reads.
 		m := mediaextras.FromWittyinfo(x)
 		m.FillEnds(it.RuntimeSec)
@@ -768,6 +803,10 @@ func (s *Scanner) SpreadInfo(ctx context.Context, libs []int64, o ConvertOptions
 			rep.fail(sh.Title, err)
 			continue
 		}
+		if err := writeMorePictures(l.Info.Localize(lang), sh.Path, "", roots); err != nil {
+			rep.fail(sh.Title, err)
+			continue
+		}
 		rep.Converted++
 		if o.Retire {
 			if l.Origin == "file" {
@@ -817,7 +856,7 @@ func (s *Store) CountConvertible(ctx context.Context, libs []int64) (ConvertCoun
 		if b.nfo != "" {
 			c.WithNFO++
 		}
-		if len(b.art) > 0 {
+		if len(b.art) > 0 || len(b.more) > 0 {
 			c.WithArt++
 		}
 		if b.skipJSON != "" || b.edl != "" {
@@ -852,4 +891,131 @@ func (s *Store) CountConvertible(ctx context.Context, libs []int64) (ConvertCoun
 	}
 	c.TookMillis = int(time.Since(began).Milliseconds())
 	return c, nil
+}
+
+// ------------------------------------------------------------------ further pictures
+
+// extraArtName is a role as picture files beside media are usually named.
+func extraArtName(role string) string {
+	switch role {
+	case "backdrop":
+		return "fanart"
+	case "logo":
+		return "clearlogo"
+	case "disc":
+		return "discart"
+	}
+	return role
+}
+
+// morePictures finds further pictures for each role in one listing of dir: <name>-2.jpg,
+// <name>2.jpg and so on for the names given, and, where the folder is the title's own,
+// what an extrafanart folder holds as further backdrops. What first already names is left
+// out, and each role holds wittyinfo.MaxPicturesPerRole at most.
+func morePictures(dir string, names map[string][]string, own bool, first map[string]string) map[string][]string {
+	out := map[string][]string{}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return out
+	}
+	type found struct {
+		n    int
+		path string
+	}
+	byRole := map[string][]found{}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		ext := strings.ToLower(filepath.Ext(name))
+		if !mediatypes.IsArtwork("x" + ext) {
+			continue
+		}
+		stem := strings.ToLower(strings.TrimSuffix(name, filepath.Ext(name)))
+		for role, list := range names {
+			for _, want := range list {
+				rest, ok := strings.CutPrefix(stem, strings.ToLower(want))
+				if !ok {
+					continue
+				}
+				rest = strings.TrimPrefix(rest, "-")
+				n, err := strconv.Atoi(rest)
+				if err != nil || n < 1 || n > 99 || strconv.Itoa(n) != rest {
+					continue
+				}
+				p := filepath.Join(dir, name)
+				if p != first[role] {
+					byRole[role] = append(byRole[role], found{n, p})
+				}
+			}
+		}
+	}
+	if own {
+		if extra, err := os.ReadDir(filepath.Join(dir, "extrafanart")); err == nil {
+			for i, e := range extra {
+				if !e.IsDir() && mediatypes.IsArtwork("x"+strings.ToLower(filepath.Ext(e.Name()))) {
+					byRole["backdrop"] = append(byRole["backdrop"], found{1000 + i, filepath.Join(dir, "extrafanart", e.Name())})
+				}
+			}
+		}
+	}
+	for role, list := range byRole {
+		sort.SliceStable(list, func(i, j int) bool { return list[i].n < list[j].n })
+		for _, f := range list {
+			if len(out[role]) < wittyinfo.MaxPicturesPerRole-1 {
+				out[role] = append(out[role], f.path)
+			}
+		}
+	}
+	return out
+}
+
+// takeMorePictures adds further pictures for a role to a file that has none yet beyond the
+// one shown, so that gathering again adds nothing twice. It says how many it took.
+func takeMorePictures(x *wittyinfo.Info, role string, paths []string) (int, error) {
+	if len(paths) == 0 || len(x.Artwork[role]) > 1 {
+		return 0, nil
+	}
+	n := 0
+	var errs []error
+	for _, p := range paths {
+		b, err := readSmall(p, wittyinfo.MaxImage)
+		if err == nil {
+			ext := strings.ToLower(filepath.Ext(p))
+			if ext == ".jpeg" {
+				ext = ".jpg"
+			}
+			_, err = x.AddImage(role, ext, b)
+		}
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", filepath.Base(p), err))
+			continue
+		}
+		n++
+	}
+	return n, errors.Join(errs...)
+}
+
+// writeMorePictures writes each role's further pictures beside the media as
+// <prefix><name>-2.jpg and on, leaving any file already there alone.
+func writeMorePictures(x *wittyinfo.Info, dir, prefix string, roots []string) error {
+	var errs []error
+	for _, role := range wittyinfo.ArtworkRoles {
+		p := x.Artwork[role]
+		for i := 1; i < len(p); i++ {
+			b := x.Files[p[i]]
+			if len(b) == 0 {
+				continue
+			}
+			dst := filepath.Join(dir, prefix+extraArtName(role)+"-"+strconv.Itoa(i+1)+strings.ToLower(filepath.Ext(p[i])))
+			if fileThere(dst) {
+				continue
+			}
+			if err := writeBeside(dst, b, roots); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errors.Join(errs...)
 }

@@ -48,7 +48,7 @@ A song's own file beats its album's, which beats what the song's tags say.
   },
   "scenes": [{ "id": "ch-1", "title": "Chapter One", "start": 0 }],
   "segments": [{ "type": "custom", "start": "3:20", "end": "5:00", "label": "Silence before the hidden track", "action": "auto" }],
-  "artwork": { "poster": "images/poster.jpg", "back": "images/back.jpg", "artist": "images/artist.jpg" },
+  "artwork": { "poster": ["images/poster.jpg", "images/poster-2.jpg"], "back": "images/back.jpg", "artist": "images/artist.jpg" },
   "translations": {
     "es": { "lyrics": { "lines": [{ "start": 12.5, "text": "Primera línea" }, { "start": 16, "text": "Segunda línea" }] } }
   }
@@ -92,7 +92,15 @@ viewer whose language has them gets them; everyone else gets the song's own.
 ## Converting
 
 **Gather** takes a song's `.lrc` (or `.txt`) lyrics into its `.wittyaudio`, and an album
-folder's cover (`cover.jpg`, `folder.jpg`, `front.jpg` and the like) and `album.nfo` into
-`album.wittyaudio`. **Spread** writes them back out as `.lrc`, `cover.jpg` and `album.nfo`. The
+folder's covers (`cover.jpg`, `folder.jpg`, `front.jpg` and the like, then `cover-2.jpg`,
+`front2.jpg` and on), its back (`back.jpg`) and disc (`cd.jpg`, `disc.jpg`) and `album.nfo` into
+`album.wittyaudio`: the album's `poster` role is a list of its covers, the first shown.
+**Spread** writes them back out as `.lrc`, `cover.jpg`, `cover-2.jpg` and on, `back.jpg`,
+`cd.jpg` and `album.nfo`. The
 audio files themselves are never changed: tags inside them stay as they are. See
 [Converting a library](wittyinfo.md#converting-a-library).
+
+## Versions
+
+A `.wittyaudio` says `"format": "wittyaudio"` and the same `version` as a `.wittyinfo`, and is read
+the same way: see [Versions](wittyinfo.md#versions).

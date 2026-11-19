@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/lyrics"
@@ -166,6 +167,29 @@ func (s *Scanner) gatherSongs(ctx context.Context, libs []int64, o ConvertOption
 					used = append(used, c)
 				}
 			}
+			// The back and the disc, and further covers: cover-2.jpg, front2.jpg and on.
+			if p := findArt(dir, "back", "back-cover", "backcover"); p != "" {
+				if ok, err := takePicture(x, "back", p); err != nil {
+					rep.fail(it.Album, err)
+				} else if ok {
+					used = append(used, p)
+				}
+			}
+			if p := findArt(dir, "cd", "disc", "discart"); p != "" {
+				if ok, err := takePicture(x, "disc", p); err != nil {
+					rep.fail(it.Album, err)
+				} else if ok {
+					used = append(used, p)
+				}
+			}
+			more := morePictures(dir, map[string][]string{"poster": {"cover", "folder", "front"}, "back": {"back"}}, false, map[string]string{"poster": albumCover(dir)})
+			for _, role := range []string{"poster", "back"} {
+				if n, err := takeMorePictures(x, role, more[role]); err != nil {
+					rep.fail(it.Album, err)
+				} else if n > 0 {
+					used = append(used, more[role][:n]...)
+				}
+			}
 			if p := filepath.Join(dir, "album.nfo"); fileThere(p) {
 				if n := readAlbumNFO(p); n != nil {
 					m := &wittyinfo.Metadata{Title: n.Title, Overview: n.Review, Genres: n.Genres}
@@ -249,12 +273,25 @@ func (s *Scanner) spreadSongs(ctx context.Context, libs []int64, o ConvertOption
 			albums[key] = true
 			dir := filepath.Dir(it.Path)
 			x := a.Info.Localize(s.Store.serverLanguage(ctx))
-			if name := x.Artwork["poster"]; name != "" && len(x.Files[name]) > 0 {
-				dst := filepath.Join(dir, "cover"+strings.ToLower(filepath.Ext(name)))
-				if err := writeBeside(dst, x.Files[name], roots); err != nil {
-					rep.fail(it.Album, err)
-				} else {
-					did = true
+			// The covers: cover.jpg, then cover-2.jpg and on; the back as back.jpg.
+			for role, file := range map[string]string{"poster": "cover", "back": "back", "disc": "cd"} {
+				for i, name := range x.Artwork[role] {
+					if len(x.Files[name]) == 0 {
+						continue
+					}
+					stem := file
+					if i > 0 {
+						stem += "-" + strconv.Itoa(i+1)
+					}
+					dst := filepath.Join(dir, stem+strings.ToLower(filepath.Ext(name)))
+					if i > 0 && fileThere(dst) {
+						continue
+					}
+					if err := writeBeside(dst, x.Files[name], roots); err != nil {
+						rep.fail(it.Album, err)
+					} else {
+						did = true
+					}
 				}
 			}
 			if m := x.Metadata; m != nil && m.Title != "" {

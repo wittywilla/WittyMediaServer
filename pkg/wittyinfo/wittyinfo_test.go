@@ -118,7 +118,7 @@ func TestRoundTripKeepsEverything(t *testing.T) {
 	if err != nil {
 		t.Fatal(problemsOf(err))
 	}
-	if y.Artwork["poster"] != "images/poster.png" || len(y.Files["images/poster.png"]) == 0 || len(y.Files["tool-data/state.bin"]) != 3 {
+	if y.Artwork.First("poster") != "images/poster.png" || len(y.Files["images/poster.png"]) == 0 || len(y.Files["tool-data/state.bin"]) != 3 {
 		t.Errorf("members lost: %v %v", y.Artwork, len(y.Files))
 	}
 	if y.Segments[0].Type != SegIntro || y.Segments[0].ID == "" {

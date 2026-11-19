@@ -49,7 +49,7 @@ func TestWittyaudioSong(t *testing.T) {
 		t.Fatal("no album.wittyaudio:", err)
 	}
 	a, _ := wittyinfo.Parse(album)
-	if a.ScopeOr() != wittyinfo.ScopeAlbum || a.Metadata.Title != "An Album" || a.Audio.AlbumArtist != "Someone" || a.Artwork["poster"] == "" {
+	if a.ScopeOr() != wittyinfo.ScopeAlbum || a.Metadata.Title != "An Album" || a.Audio.AlbumArtist != "Someone" || a.Artwork.First("poster") == "" {
 		t.Fatalf("album: %+v %+v", a.Metadata, a.Audio)
 	}
 	if it, _ := ts.Store.Item(ctx, f.song.ID); it.Album != "An Album" || it.AlbumArtist != "Someone" || it.Title != "Song" {

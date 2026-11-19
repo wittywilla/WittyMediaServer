@@ -395,17 +395,23 @@ func (e *editor) api(w http.ResponseWriter, r *http.Request, rest string) {
 				writeJSON(w, 413, map[string]string{"error": "A picture can be 16 MB at most."})
 				return
 			}
-			ext := map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}[http.DetectContentType(b)]
-			if ext == "" {
-				writeJSON(w, 400, map[string]string{"error": "Send a JPEG, PNG or WebP picture."})
-				return
+			c := wittyinfo.ImageChange{Add: r.URL.Query().Get("add") == "1", First: r.URL.Query().Get("first")}
+			if len(b) > 0 {
+				if c.Ext = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}[http.DetectContentType(b)]; c.Ext == "" {
+					writeJSON(w, 400, map[string]string{"error": "Send a JPEG, PNG or WebP picture."})
+					return
+				}
+				c.Picture = b
 			}
-			if _, err := x.SetImage(role, ext, b); err != nil {
+			if err := x.ChangeImages(role, c); err != nil {
 				writeJSON(w, 400, map[string]string{"error": err.Error()})
 				return
 			}
 		case http.MethodDelete:
-			delete(x.Artwork, role)
+			if err := x.ChangeImages(role, wittyinfo.ImageChange{Remove: true, Name: r.URL.Query().Get("name")}); err != nil {
+				writeJSON(w, 400, map[string]string{"error": err.Error()})
+				return
+			}
 		default:
 			http.Error(w, "method", 405)
 			return

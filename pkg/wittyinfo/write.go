@@ -9,7 +9,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -50,8 +49,10 @@ func (x *Info) Tidy() {
 		}
 	}
 	used := map[string]bool{}
-	for _, v := range x.Artwork {
-		used[v] = true
+	for _, p := range x.Artwork {
+		for _, v := range p {
+			used[v] = true
+		}
 	}
 	for _, s := range x.Scenes {
 		used[s.Image] = true
@@ -160,34 +161,6 @@ func (x *Info) Encode() ([]byte, error) {
 		return nil, refuse("", "the file would be larger than %d MB", MaxFile>>20)
 	}
 	return buf.Bytes(), nil
-}
-
-// SetImage puts a picture in the archive for a role (poster, backdrop...) and names it in
-// the artwork. ext is ".jpg", ".png" or ".webp".
-func (x *Info) SetImage(role, ext string, b []byte) (string, error) {
-	ok := false
-	for _, r := range ArtworkRoles {
-		ok = ok || r == role
-	}
-	if !ok {
-		return "", fmt.Errorf("%q is not an artwork role: use %s", role, strings.Join(ArtworkRoles, ", "))
-	}
-	name := "images/" + role + strings.ToLower(ext)
-	if err := checkImage(name, b); err != nil {
-		return "", err
-	}
-	if x.Files == nil {
-		x.Files = map[string][]byte{}
-	}
-	if old := x.Artwork[role]; old != "" {
-		delete(x.Files, old)
-	}
-	x.Files[name] = b
-	if x.Artwork == nil {
-		x.Artwork = Artwork{}
-	}
-	x.Artwork[role] = name
-	return name, nil
 }
 
 // Clone copies a file, members and all, so that changing one leaves the other alone.

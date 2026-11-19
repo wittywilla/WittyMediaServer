@@ -682,8 +682,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/wittyinfo/{target}/{id}/export` | Admin | The file in use, written again by the format's writer; served as an attachment, never shown |
 | `POST /api/wittyinfo/{target}/{id}/import` | Admin | Body of at most 64 MB, checked whole by the format's reader; its scope must match the target. Saved as PUT is |
 | `POST /api/wittyinfo/{target}/{id}/use-anyway` | Admin | A yes or no kept for the target |
-| `PUT /api/wittyinfo/{target}/{id}/images/{role}` | Admin | Body of at most 16 MB that is a JPEG, PNG or WebP by its first bytes and decodes as one, 8192 pixels across at most; role from a fixed list. Saved as PUT is |
-| `DELETE /api/wittyinfo/{target}/{id}/images/{role}` | Admin | Saved as PUT is |
+| `PUT /api/wittyinfo/{target}/{id}/images/{role}` | Admin | Body of at most 16 MB that is a JPEG, PNG or WebP by its first bytes and decodes as one, 8192 pixels across at most; role from a fixed list. `add` is only compared with "1"; `first` must name a picture the role already has (refused otherwise), never a path; at most 32 pictures a role. Saved as PUT is |
+| `DELETE /api/wittyinfo/{target}/{id}/images/{role}` | Admin | `name` is only compared with the role's own picture names; nothing outside the archive is touched. Saved as PUT is |
 | `PUT /api/wittyinfo/{target}/{id}/subtitles/{name}` | Admin | A video only. A name of letters, digits, dots and dashes ending .srt, .vtt, .ass or .ssa; body of at most 2 MB that is UTF-8 text; a language that is a language tag. Saved as PUT is |
 | `DELETE /api/wittyinfo/{target}/{id}/subtitles/{name}` | Admin | Saved as PUT is |
 | `GET /api/wittyinfo/{target}/{id}/files/{name...}` | Signed-in | limits. An item or show the account may see. Only members under images/ with a picture extension, already checked when the file was read; sent with its own image type, nosniff and a CSP that allows nothing |

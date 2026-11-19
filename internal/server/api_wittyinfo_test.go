@@ -211,7 +211,7 @@ func TestInfoEditWriteExportImport(t *testing.T) {
 		t.Fatal(w.Code, w.Body.String())
 	}
 	a = decode[infoAnswer](t, ts.do(t, "GET", u, f.admin, nil))
-	if len(a.Files) != 1 || a.Files[0].Name != "images/poster.png" || a.Info.Artwork["poster"] != "images/poster.png" {
+	if len(a.Files) != 1 || a.Files[0].Name != "images/poster.png" || a.Info.Artwork.First("poster") != "images/poster.png" {
 		t.Fatalf("%+v", a.Files)
 	}
 	if w := ts.do(t, "GET", a.Files[0].URL, f.adult, nil); w.Code != 200 || !bytes.Equal(w.Body.Bytes(), pic.Bytes()) || w.Header().Get("Content-Type") != "image/png" {

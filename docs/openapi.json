@@ -46751,6 +46751,15 @@
             }
           },
           {
+            "description": "One picture to take out (images/...); without it, every picture of the role.",
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "role",
             "required": true,
@@ -46779,7 +46788,7 @@
             "bearer": []
           }
         ],
-        "summary": "Take a role's picture out of the file.",
+        "summary": "Take a role's pictures, or one of them, out of the file.",
         "tags": [
           "Media extras"
         ],
@@ -46811,6 +46820,24 @@
             "required": false,
             "schema": {
               "type": "integer"
+            }
+          },
+          {
+            "description": "1: add the picture after the role's others, in place of replacing the one shown.",
+            "in": "query",
+            "name": "add",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "With no body: the picture (images/...) to show first.",
+            "in": "query",
+            "name": "first",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -46853,7 +46880,7 @@
             "bearer": []
           }
         ],
-        "summary": "Put a picture (JPEG, PNG or WebP, 16 MB at most) in the file for a role: poster, backdrop, logo, thumb, banner, clearart, disc or square.",
+        "summary": "Put a picture (JPEG, PNG or WebP, 16 MB at most) in the file for a role (poster, backdrop, logo, thumb, banner, clearart, disc, square; back, artist for music): shown in place of the one shown before, or with add=1 after the role's others; with no body, first= shows another first.",
         "tags": [
           "Media extras"
         ],

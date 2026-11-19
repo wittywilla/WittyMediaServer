@@ -16,6 +16,7 @@ import (
 	"math"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -601,7 +602,25 @@ func (x *Info) Check() error {
 	}
 	for _, role := range sortedKeys(x.Artwork) {
 		c.oneOf("artwork."+role, role, ArtworkRoles)
-		c.member("artwork."+role, x.Artwork[role], "images/", x.Files)
+		p := x.Artwork[role]
+		if len(p) == 0 {
+			c.bad("artwork."+role, "names no picture")
+		}
+		if len(p) > MaxPicturesPerRole {
+			c.bad("artwork."+role, "has %d pictures; %d at most", len(p), MaxPicturesPerRole)
+		}
+		seen := map[string]bool{}
+		for i, name := range p {
+			at := "artwork." + role
+			if len(p) > 1 {
+				at += "[" + strconv.Itoa(i) + "]"
+			}
+			if seen[name] {
+				c.bad(at, "names %q twice", name)
+			}
+			seen[name] = true
+			c.member(at, name, "images/", x.Files)
+		}
 	}
 	if p := x.Playback; p != nil {
 		if p.StartAt != nil {

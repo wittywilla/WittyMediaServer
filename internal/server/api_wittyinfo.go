@@ -128,6 +128,10 @@ type infoAnswer struct {
 	Match     *wittyinfo.Match    `json:"match,omitempty"`
 	Force     bool                `json:"force"`
 	Files     []infoFile          `json:"files"`
+	// Version: the newest version of the format this server writes. Newer: the file in use
+	// follows a later one; what this server doesn't know of it is kept as it is.
+	Version int  `json:"version"`
+	Newer   bool `json:"newer,omitempty"`
 	// CanWrite: an edit is written beside the media; otherwise the server keeps it.
 	CanWrite bool `json:"canWrite"`
 	// Identity: which video a new file is for (items only).
@@ -170,6 +174,8 @@ func (s *Server) infoAnswerFor(r *http.Request, t library.InfoTarget, it *librar
 		out.Kind = "show"
 	}
 	out.CanWrite = s.saveInfoBeside(r) && l.Path != ""
+	out.Version = wittyinfo.Version
+	out.Newer = l.Info != nil && l.Info.Newer()
 	if l.FileErr != nil {
 		out.FileError = l.FileErr.Error()
 		var e *wittyinfo.Error
@@ -528,7 +534,9 @@ func (s *Server) handleInfoForce(w http.ResponseWriter, r *http.Request) {
 
 var infoPictureExt = map[string]string{"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 
-// PUT /api/wittyinfo/{target}/{id}/images/{role}: a picture (JPEG, PNG or WebP) as the body.
+// PUT /api/wittyinfo/{target}/{id}/images/{role}: a picture (JPEG, PNG or WebP) as the body,
+// shown for the role in place of the one shown before; ?add=1 adds it after the role's
+// other pictures. With no body, ?first=<name> shows that picture first.
 func (s *Server) handleInfoImagePut(w http.ResponseWriter, r *http.Request) {
 	t, it, ok := s.infoTarget(w, r)
 	if !ok {
@@ -539,13 +547,16 @@ func (s *Server) handleInfoImagePut(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 413, "A picture can be 16 MB at most.")
 		return
 	}
-	ext := infoPictureExt[http.DetectContentType(b)]
-	if ext == "" {
-		writeErr(w, 400, "Send a JPEG, PNG or WebP picture.")
-		return
+	c := wittyinfo.ImageChange{Add: r.URL.Query().Get("add") == "1", First: r.URL.Query().Get("first")}
+	if len(b) > 0 {
+		if c.Ext = infoPictureExt[http.DetectContentType(b)]; c.Ext == "" {
+			writeErr(w, 400, "Send a JPEG, PNG or WebP picture.")
+			return
+		}
+		c.Picture = b
 	}
 	x := s.currentInfo(r, t, it)
-	if _, err := x.SetImage(r.PathValue("role"), ext, b); err != nil {
+	if err := x.ChangeImages(r.PathValue("role"), c); err != nil {
 		writeErr(w, 400, err.Error())
 		return
 	}
@@ -555,14 +566,18 @@ func (s *Server) handleInfoImagePut(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, s.infoAnswerFor(r, t, it))
 }
 
-// DELETE /api/wittyinfo/{target}/{id}/images/{role}
+// DELETE /api/wittyinfo/{target}/{id}/images/{role}: every picture of the role, or with
+// ?name=<name> that one.
 func (s *Server) handleInfoImageDelete(w http.ResponseWriter, r *http.Request) {
 	t, it, ok := s.infoTarget(w, r)
 	if !ok {
 		return
 	}
 	x := s.currentInfo(r, t, it)
-	delete(x.Artwork, r.PathValue("role"))
+	if err := x.ChangeImages(r.PathValue("role"), wittyinfo.ImageChange{Remove: true, Name: r.URL.Query().Get("name")}); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
 	if !s.saveInfo(w, r, t, it, x) {
 		return
 	}

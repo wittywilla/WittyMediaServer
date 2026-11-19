@@ -4,7 +4,8 @@
 // Package separator finds a stem separator the owner already installed (Demucs, Spleeter,
 // audio-separator), so karaoke needs no configuration: the server looks on the PATH and in
 // the usual places such tools are installed, and uses the best it finds. It never installs
-// anything, and what it finds is a program on this machine, never a name from a request.
+// anything by itself (install.go does, when an administrator asks), and what it finds is a
+// program on this machine, never a name from a request.
 package separator
 
 import (
@@ -27,6 +28,12 @@ type Found struct {
 	Path string `json:"-"`
 	// Words are the command, with {input} and {output}, as mediaextras.SeparatorCommand takes it.
 	Words []string `json:"-"`
+	// Installed: the one the server installed itself (install.go), not one found on the machine.
+	Installed bool `json:"installed,omitempty"`
+	// Env is added to the environment it runs in.
+	Env []string `json:"-"`
+	// Accel is what the installed one runs on (zero for one found on the machine).
+	Accel Accel `json:"accel,omitempty"`
 }
 
 // Options say where to look. The zero value looks where a real machine has them.

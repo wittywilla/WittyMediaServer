@@ -168,6 +168,7 @@ var plainRoutes = []string{
 	"GET /api/items/{id}/book",
 	"GET /api/items/{id}/canvas",
 	"GET /api/items/{id}/disc/thumb/{ttn}/{n}",
+	"GET /api/items/{id}/scene/{sec}",
 	"GET /api/items/{id}/epub/{file...}",
 	"GET /api/items/{id}/image",
 	"GET /api/items/{id}/motion",

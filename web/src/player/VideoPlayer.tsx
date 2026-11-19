@@ -30,6 +30,7 @@ import { classifyPlayError } from './errors'
 import QualityMenu, { StreamInfo } from './QualityMenu'
 import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from './quality'
 import { announce } from '../a11y'
+import { useMedia } from '../shell/useNav'
 
 // Opened from the player's top bar, and not before.
 const PlayOn = lazy(() => import('../remote/PlayOn'))
@@ -39,6 +40,18 @@ const PartyPanel = lazy(() => import('../remote/PartyPanel'))
 haveHls(Hls)
 
 const MODE_WORDS: Record<string, string> = { direct: 'Direct play', remux: 'Rewrapped', transcode: 'Transcoding' }
+
+// A track's own name, unless it only repeats its language ("English" under "English").
+const ownName = (t: { language: string; title?: string }) => (t.title && t.title.trim().toLowerCase() !== langName(t.language).toLowerCase() ? t.title : undefined)
+// Sound as people say it, not a number of channels.
+const channelWords = (n?: number) => (!n ? '' : n === 1 ? 'Mono' : n === 2 ? 'Stereo' : n === 6 ? '5.1' : n === 8 ? '7.1' : `${n} channels`)
+// What kind of subtitles, in words rather than a format's code name (SUBRIP, HDMV_PGS_SUBTITLE).
+const subKind = (codec?: string) => {
+  const c = (codec || '').toLowerCase()
+  if (c === 'ass' || c === 'ssa') return 'Styled text'
+  if (/pgs|dvd_?sub|dvb_?sub|vobsub|xsub/.test(c)) return 'Pictures'
+  return c ? 'Text' : undefined
+}
 
 const legacyRemote = () => { try { return localStorage.getItem('wms.remote.video') === '1' } catch { return false } }
 
@@ -54,6 +67,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const mini = chrome.mini
   const view = useViewPrefs(item.id, legacyRemote())
   const prefs = view.prefs
+  // A phone or tablet, upright or on its side (or a narrow window): the picture first, the rest in the Options sheet
+  // (Controls' compact bar). The full bar needs about 900 px for one row.
+  const narrow = useMedia('(max-width: 900px), (max-height: 500px) and (pointer: coarse)')
+  const compact = prefs.controls === 'simple' || (prefs.controls !== 'detailed' && narrow && !getTvMode())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [picker, setPicker] = useState<'audio' | 'subtitle' | null>(null)
   const video = useRef<HTMLVideoElement | null>(null)
@@ -312,6 +329,16 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     return () => v.removeEventListener('error', onFail)
   })
 
+  // Play was refused (no press yet), then the picture started anyway (a press on the bar, a new stream): the big
+  // Play button goes, rather than sit over a film that is playing.
+  useEffect(() => {
+    const v = video.current
+    if (!v || !needClick) return
+    const gone = () => setNeedClick(false)
+    v.addEventListener('playing', gone)
+    return () => v.removeEventListener('playing', gone)
+  }, [needClick])
+
   // Progress reporting.
   useEffect(() => {
     const send = () => {
@@ -333,9 +360,11 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     const onKey = (e: KeyboardEvent) => {
       const v = video.current
       if (!v || picker || settingsOpen || infoOpen || qualityOpen) return
-      if (document.querySelector('.modal-backdrop, .scene-panel, .party-panel')) return // a window over the player has the keys
+      if (document.querySelector('.modal-backdrop, .scene-panel, .party-panel, .player .popover, .psheet-backdrop')) return // a window over the player has the keys
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      // Space and Enter on a focused button press that button (Subtitles, Next…), as anywhere else; on the picture they play or pause.
+      if ((e.key === ' ' || e.key === 'Enter') && (e.target as HTMLElement)?.closest?.('button, a, [role="button"]')) return
       if (e.key.startsWith('Arrow') && (e.target as HTMLElement)?.closest?.('.bottom, .top, .remote, .watch-next')) return
       switch (e.key) {
         case ' ': case 'k': case 'MediaPlayPause': e.preventDefault(); v.paused ? v.play() : v.pause(); break
@@ -377,6 +406,12 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   }
   const duration = info?.durationSec || item.runtimeSec || 0
   const chapters = info?.chapters?.map((c) => c.start) || []
+  // A picture of each scene, a few seconds in (a scene's first frame is often black), from the file itself.
+  const sceneThumb = chapters.length > 1 && item.kind === 'video' ? (i: number) => {
+    const from = chapters[i], to = chapters[i + 1] ?? duration
+    // A quarter of the way in, between 2 and 20 seconds: past a fade from black or a studio's logo, still this scene.
+    return mediaUrl(`/api/items/${item.id}/scene/${Math.floor(from + Math.min(20, Math.max(2, (to - from) / 4)))}`)
+  } : undefined
   // A copy of a disc steps through its chapters, as the disc would. At the last one, next goes
   // on to the next episode, if there is one.
   const chapterStep = copy && chapters.length > 1
@@ -447,6 +482,25 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   }) : []
   const trackLabel = (t: { language: string; title?: string }) => [langName(t.language), t.title].filter(Boolean).join(' · ')
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
+  // A finger's tap on the picture shows the controls, or hides them if they're up, as on any phone's player: the play
+  // button pauses. A mouse click still plays and pauses. A double tap on the left or right third skips back or on.
+  const touch = useRef<{ touch: boolean; hidden: boolean }>({ touch: false, hidden: false })
+  const onPicturePointer = (e: React.PointerEvent) => { touch.current = { touch: e.pointerType === 'touch', hidden: !!root.current?.classList.contains('controls-hidden') } }
+  const onPicture = () => {
+    if (!touch.current.touch) { togglePlay(); return }
+    const v = video.current
+    if (!touch.current.hidden && v && !v.paused) root.current?.classList.add('controls-hidden', 'hide-cursor')
+  }
+  const onPictureTwice = (e: React.MouseEvent) => {
+    if (mini) { chrome.expand(); return }
+    const r = root.current?.getBoundingClientRect()
+    const v = video.current
+    if (touch.current.touch && r && v) {
+      const f = (e.clientX - r.left) / r.width
+      if (f < 1 / 3 || f > 2 / 3) { seek(v.currentTime + offset + (f < 1 / 3 ? -10 : 10)); return }
+    }
+    toggleFullscreen(root.current)
+  }
 
   // Another device controlling this one (docs/REMOTE-PROTOCOL.md): what it may ask of this
   // player, and what this player says it is doing. Track ids are the playback answer's own.
@@ -504,8 +558,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const openOver = (what: 'device' | 'party') => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setSendTo(what) }
   return (
     <>
-    <div className={'player' + (mini ? ' mini' : '')} ref={root} tabIndex={-1} onClick={togglePlay}
-      onDoubleClick={() => (mini ? chrome.expand() : toggleFullscreen(root.current))}>
+    <div className={'player' + (mini ? ' mini' : '')} ref={root} tabIndex={-1} onPointerDownCapture={onPicturePointer} onClick={onPicture}
+      onDoubleClick={onPictureTwice}>
       <div className="stage">
         <video ref={video} playsInline preload="auto" style={{ objectFit: prefs.picture === 'fill' ? 'cover' : 'contain' }} />
       </div>
@@ -542,12 +596,12 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             <div className="mini-sub">{item.showTitle ? [episodeLabel(item), item.title].filter(Boolean).join(' · ') : item.year}</div>
           </div>
           <div className="mini-btns">
-            <button className="ibtn" onClick={() => onRemote('rew')} title="Back 10 s"><IconBack /></button>
-            <button className="ibtn big" onClick={togglePlay} title="Play/Pause">{st.playing ? <IconPause /> : <IconPlay />}</button>
-            {hasNext && (!party.active || party.room?.canControl) ? <button className="ibtn" onClick={() => goNext()} title={party.active ? 'Next for everyone in the party' : 'Next episode'}><IconNext /></button> : <span />}
+            <button className="ibtn mini-step" onClick={() => onRemote('rew')} title="Back 10 seconds" aria-label="Back 10 seconds"><span aria-hidden="true">−10</span></button>
+            <button className="ibtn big" onClick={togglePlay} title={st.playing ? 'Pause' : 'Play'} aria-label={st.playing ? 'Pause' : 'Play'}>{st.playing ? <IconPause /> : <IconPlay />}</button>
+            {hasNext && (!party.active || party.room?.canControl) ? <button className="ibtn" onClick={() => goNext()} title={party.active ? 'Next for everyone in the party' : 'Next episode'} aria-label={party.active ? 'Next for everyone in the party' : 'Next episode'}><IconNext /></button> : <span />}
             <button className={'ibtn keep' + (remoteOn ? ' on' : '')} onClick={() => setRemoteOn(!remoteOn)} title="Remote" aria-label="Remote" aria-pressed={remoteOn}><IconRemote /></button>
-            <button className="ibtn" onClick={chrome.expand} title="Full player"><IconExpand /></button>
-            <button className="ibtn" onClick={chrome.close} title="Stop"><IconClose /></button>
+            <button className="ibtn" onClick={chrome.expand} title="Full player" aria-label="Full player"><IconExpand /></button>
+            <button className="ibtn" onClick={chrome.close} title="Stop" aria-label="Stop"><IconClose /></button>
           </div>
           {remoteOn && <RemoteSheet docked onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />}
         </div>
@@ -556,10 +610,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           <div className="top" onClick={(e) => e.stopPropagation()}>
             <button className="ibtn" onClick={chrome.minimize} title="Back (keeps playing in the mini player)"><IconBack /></button>
             <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && MODE_WORDS[info.decision]].filter(Boolean).join(' · ')}</div></div>
-            {(may.party || party.room) && <button className={'cbtn' + (party.active ? ' on' : '')} onClick={() => setPartyOpen((o) => !o)} title="Watch party" aria-expanded={partyOpen} aria-haspopup="dialog" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /><span className="lbl">Party</span></button>}
+            {!compact && (may.party || party.room) && <button className={'cbtn' + (party.active ? ' on' : '')} onClick={() => setPartyOpen((o) => !o)} title="Watch party" aria-expanded={partyOpen} aria-haspopup="dialog" aria-label={party.room ? `Watch party, ${party.room.members.length} watching` : 'Watch party'}><IconUsers /><span className="lbl">Party</span></button>}
             {may.playOn && <button className="cbtn" onClick={() => openOver('device')} title="Play on another device" aria-label="Play on another device"><IconDevices /><span className="lbl">Cast</span></button>}
             {hasNext && (!party.active || party.room?.canControl) && <button className="cbtn" onClick={() => goNext(true)} title={party.active ? 'Next for everyone in the party' : 'Next episode'}><IconNext /><span className="lbl">{item.showId != null ? 'Next episode' : 'Next'}</span></button>}
-            <button className="cbtn" onClick={chrome.minimize} title="Mini player" aria-label="Mini player"><IconMini /><span className="lbl">Mini</span></button>
+            {!compact && <button className="cbtn" onClick={chrome.minimize} title="Mini player" aria-label="Mini player"><IconMini /><span className="lbl">Mini</span></button>}
           </div>
           {remoteOn && (sheetLayout
             ? <RemoteSheet onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />
@@ -588,13 +642,17 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             </div>
           )}
           <Controls video={video} duration={duration} offset={offset} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
-            chapters={chapters} chapterNames={info?.chapters?.map((c) => c.title)} copy={copy}
+            chapters={chapters} chapterNames={info?.chapters?.map((c) => c.title)} chapterThumb={sceneThumb} copy={copy}
             onPrev={stepPrev} onNext={chapters.length > 1 || (hasNext && !party.active) || (hasNext && party.room?.canControl) ? () => stepChapter(1) : undefined}
             quality={quality || (info?.quality ? 'Quality' : '')} onQuality={info ? () => setInfoOpen(true) : undefined}
             onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
-            audio={info?.audio.map((a) => ({ id: a.index, label: [langName(a.language), a.title, a.codec?.toUpperCase(), a.channels ? a.channels + 'ch' : ''].filter(Boolean).join(' · '), active: a.index === audio }))}
+            audio={info?.audio.map((a) => ({ id: a.index, label: [langName(a.language), ownName(a), a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker(k) }}
+            compact={compact} sheetItems={[
+              ...((may.party || party.room) ? [{ key: 'party', icon: <IconUsers />, label: 'Watch party', value: party.room ? `${party.room.members.length} watching` : undefined, on: party.active, onClick: () => setPartyOpen(true) }] : []),
+              { key: 'mini', icon: <IconMini />, label: 'Keep playing in a corner', onClick: chrome.minimize },
+            ]}
             showSeek={prefs.seekBar} remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} onSettings={() => setSettingsOpen((o) => !o)} />
           {settingsOpen && <ViewSettings prefs={prefs} scope={view.scope} isDisc={false} onClose={() => setSettingsOpen(false)} onChange={(p) => view.update(p, view.scope)} onScope={view.setScope}
             streaming={streamPref} onStreaming={(v) => { setDeviceStreaming(v); setStreamPref(v); ask({ reopen: (want.reopen || 0) + 1 }) }} />}
@@ -602,9 +660,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             <TrackPicker heading={picker === 'audio' ? 'Audio & language' : 'Subtitles'} onClose={() => setPicker(null)}
               onPick={(id) => switchTrack(picker === 'audio' ? 'audio' : 'sub', id)}
               tiles={picker === 'audio'
-                ? info.audio.map((a) => ({ id: a.index, title: langName(a.language), sub: a.title, detail: [a.codec?.toUpperCase(), a.channels ? a.channels + ' ch' : ''].filter(Boolean).join(' · '), active: a.index === audio }))
+                ? info.audio.map((a) => ({ id: a.index, title: langName(a.language), sub: ownName(a), detail: [a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))
                 : [{ id: -1, title: 'Off', active: sub == null || sub < 0 }, ...info.subtitles.flatMap((x) => {
-                  const plain = { id: x.index, title: langName(x.language), sub: x.title, detail: x.codec?.toUpperCase(), active: x.index === sub && !burn?.styled }
+                  const plain = { id: x.index, title: langName(x.language), sub: ownName(x), detail: subKind(x.codec), active: x.index === sub && !burn?.styled }
                   // ASS can carry placement and styling that plain text loses: keeping it means drawing it into the picture.
                   return x.codec === 'ass' || x.codec === 'ssa' ? [plain, { id: x.index + STYLED, title: langName(x.language), sub: 'With its styling', detail: 'Drawn into the picture', active: x.index === sub && !!burn?.styled }] : [plain]
                 })]} />

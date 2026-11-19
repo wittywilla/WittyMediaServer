@@ -258,7 +258,7 @@ func TestTokenInAddressForGameRoutes(t *testing.T) {
 }
 
 // Pictures an <img> loads can't send a header, so their address carries the token: console photos, RetroAchievements badges
-// and cast photos among them. Anything else never takes a token from its address.
+// cast photos and the photos of a Photos library among them. Anything else never takes a token from its address.
 func TestAddressTokenPictures(t *testing.T) {
 	for path, want := range map[string]bool{
 		"/api/console-photos/nes/image":          true,
@@ -267,6 +267,8 @@ func TestAddressTokenPictures(t *testing.T) {
 		"/api/people/12/photo":                   true,
 		"/api/people/12":                         false,
 		"/api/people/12/photo/x":                 false,
+		"/api/items/12/image":                    true,
+		"/api/items/12/image/x":                  false,
 		"/api/console-photos/nes":                false,
 		"/api/items/12/achievements":             false,
 		"/api/items/12/achievements/badge/../x":  false,

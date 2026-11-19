@@ -128,7 +128,7 @@ var routeRules = map[string]string{
 	"GET /api/items/{id}/scene/{sec}":                     "Signed-in; ticket; address token: limits. Video file. Time within its length",
 	"GET /api/items/{id}/epub/{file...}":                  "Signed-in; address token: limits. EPUB inside a library. Name cleaned and looked up in the archive. Restrictive content policy",
 	"GET /api/items/{id}/file":                            "Signed-in; ticket; address token: limits. Video or book. Plain file inside a library once links are followed. Type from a fixed list. Limit for viewers away from home",
-	"GET /api/items/{id}/image":                           "Signed-in: limits. Photo or video. Type from a fixed list",
+	"GET /api/items/{id}/image":                           "Signed-in; address token: limits. Photo or video. Type from a fixed list",
 	"GET /api/items/{id}/motion":                          "Signed-in: limits. Clip's path is inside a library",
 	"GET /api/items/{id}/original":                        "Signed-in: limits. Photo or video. Type from a fixed list. Sent as a download",
 	"GET /api/items/{id}/page/{n}":                        "Signed-in; address token: limits. Book inside a library. Page exists. Restrictive content policy",

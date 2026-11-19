@@ -341,7 +341,7 @@ A theme sets a handful of colours and works the rest out from them (`web/src/sty
 |---|---|
 | `accentHover` | the accent, 12% towards black |
 | `accentFg` | white when it reads on the accent (4.5:1), else the dark ink `#0E1013`, else whichever reads better |
-| `accentText` | the accent, lightened (dark themes) or darkened (light themes), keeping its hue, until it reads on `bg`, `bg2` and `bg3`: as `theme-contrast.py` does it |
+| `accentText` | the accent, lightened (dark themes) or darkened (light themes), keeping its hue, until it reads on `bg`, `bg2` and `bg3`, and on `accentSoft` over each of them (a selected row): as `theme-contrast.py` does it |
 | `focus`, `brandAccent` | `accentText` (also when a layer sets `accentText` itself) |
 | `accentSoft`, `accentLine` | the accent at 14% and 45% |
 | `border`, `borderStrong`, `hover`, `pressed` | from `fg`, at 10%, 20%, 7% and 12%, or as see-through as the theme makes them (the high contrast theme's hairlines are stronger) |

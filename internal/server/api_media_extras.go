@@ -39,6 +39,9 @@ func (s *Server) mediaExtrasRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/media/{id}/stems/approximate", a(s.handleStemsApproximate))
 	m.Handle("POST /api/media/{id}/stems/separate", s.requireAdmin(s.handleStemsSeparate))
 	m.Handle("POST /api/media/{id}/canvas/generate", s.requireAdmin(s.handleCanvasGenerate))
+	m.Handle("PUT /api/media/{id}/canvas/source", s.requireAdmin(s.handleCanvasSource))
+	m.Handle("PUT /api/media/{id}/canvas/loop", s.requireAdmin(s.handleCanvasLoop))
+	m.Handle("DELETE /api/media/{id}/canvas/loop", s.requireAdmin(s.handleCanvasLoop))
 	m.Handle("DELETE /api/media/{id}/stems/{stem}", s.requireAdmin(s.handleStemDelete))
 	m.Handle("GET /api/media/{id}/markers", a(s.handleMarkers))
 	m.Handle("PUT /api/media/{id}/markers", s.requireAdmin(s.handleMarkersPut))
@@ -126,6 +129,11 @@ type canvasInfo struct {
 	Task string `json:"task,omitempty"`
 	// CanGenerate: an administrator can have one cut from the video.
 	CanGenerate bool `json:"canGenerate"`
+	// CanCut: an administrator can have one cut from another video, or from a clip from their device.
+	CanCut bool `json:"canCut"`
+	// LoopStartMs and LoopEndMs: the part of the canvas to loop, when one was set (the Canvas studio).
+	LoopStartMs int64 `json:"loopStartMs,omitempty"`
+	LoopEndMs   int64 `json:"loopEndMs,omitempty"`
 	// Error is why the last try at cutting one failed, for the administrator who asked.
 	Error string `json:"error,omitempty"`
 	// Limited: this viewer is away from home and the owner limits the data of a stream
@@ -222,6 +230,7 @@ func (s *Server) handleCanvas(w http.ResponseWriter, r *http.Request) {
 	}
 	out := canvasInfo{Loop: true, Task: s.mediaJobTask(fmt.Sprintf("canvas:%d", it.ID))}
 	out.CanGenerate = userFrom(r).IsAdmin && it.Kind == "video" && localFileItem(it) && s.canvasEncoder() != "" && s.Tools.FFmpeg != ""
+	out.CanCut = userFrom(r).IsAdmin && canvasKind(it) && s.canvasEncoder() != "" && s.Tools.FFmpeg != ""
 	if _, rate := s.remoteCaps(r); rate != "" {
 		out.Limited = true
 	}
@@ -236,6 +245,9 @@ func (s *Server) handleCanvas(w http.ResponseWriter, r *http.Request) {
 				out.Available, out.Source, out.MIME = true, f.source, mediaextras.CanvasMIME(f.path)
 				out.URL = fmt.Sprintf("/api/media/%d/canvas/file?v=%s", it.ID, strings.Trim(extraETag(st), `"`))
 				out.Width, out.Height, out.DurationMs = s.probeCanvas(r.Context(), f, st)
+				if l := s.readCanvasLoop(it, strings.Trim(extraETag(st), `"`)); l != nil {
+					out.LoopStartMs, out.LoopEndMs = l.StartMs, l.EndMs
+				}
 			}
 		}
 	}
@@ -296,6 +308,7 @@ func (s *Server) handleCanvasUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.removeOthers(rel, mediaextras.CanvasExts, dst)
+	s.dropCanvasLoop(it)
 	_ = os.Remove(filepath.Join(filepath.Dir(dst), mediaextras.GeneratedMark))
 	s.Log.InfoContext(r.Context(), "canvas uploaded", "cat", "extras", "item", it.ID, "bytes", size)
 	writeJSON(w, 200, map[string]any{"ok": true, "size": size, "mime": mediaextras.CanvasMIME(dst)})
@@ -316,6 +329,7 @@ func (s *Server) handleCanvasDelete(w http.ResponseWriter, r *http.Request) {
 	if it == nil {
 		return
 	}
+	s.dropCanvasLoop(it)
 	found, err := mediaextras.RemoveMatching(s.extrasRoot(), mediaextras.Key(it.ID, it.Path)+"/canvas", mediaextras.CanvasExts)
 	if err != nil {
 		writeErr(w, 500, err.Error())

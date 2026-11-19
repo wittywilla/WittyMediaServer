@@ -43,3 +43,20 @@ func TestEncryptedPDFKeepsItsFileName(t *testing.T) {
 		t.Errorf("plain PDF: %q by %q", it.Title, it.Artist)
 	}
 }
+
+// A bookmark's /Title can come before the document's: the trailer's /Info says which is the
+// document's own.
+func TestPDFTitleIsTheInfoDictionarys(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "b.pdf")
+	body := "%PDF-1.4\n3 0 obj << /Title (Chapter One) /Parent 2 0 R >> endobj\n" +
+		"7 0 obj << /Title (The Real Book) /Author (Someone) >> endobj\n" +
+		"trailer << /Root 1 0 R /Info 7 0 R >>\n"
+	if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	it := &Item{Path: p}
+	readPDFMeta(it)
+	if it.Title != "The Real Book" || it.Artist != "Someone" {
+		t.Errorf("%q by %q", it.Title, it.Artist)
+	}
+}

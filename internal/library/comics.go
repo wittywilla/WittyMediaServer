@@ -412,6 +412,9 @@ var (
 	pdfAuthorRe = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Author\s*\(((?:[^()\\]|\\.){1,400})\)`) })
 	// An /Encrypt entry, as a reference or a dictionary: the file's strings are encrypted too.
 	pdfEncryptRe = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Encrypt\s*(\d+\s+\d+\s+R|<<)`) })
+	// The trailer's /Info reference: the document's own title and author are there, where
+	// /Title also names bookmarks and other parts.
+	pdfInfoRe = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`/Info\s+(\d{1,9})\s+(\d{1,5})\s+R`) })
 )
 
 // pdfTail is how much of the end of a PDF is read for its trailer, where /Encrypt usually is.
@@ -444,12 +447,13 @@ func readPDFMeta(it *Item) (cover []byte) {
 	// An encrypted PDF (an owner password: it still opens) keeps its title and author
 	// encrypted. What they decode to here is noise, so the file's name stays.
 	if !pdfEncrypted(f, b) {
-		if m := pdfTitleRe().FindSubmatch(b); m != nil {
+		info := pdfInfo(f, b)
+		if m := pdfTitleRe().FindSubmatch(info); m != nil {
 			if t := pdfString(m[1]); t != "" && it.Album == "" {
 				it.Title = t
 			}
 		}
-		if m := pdfAuthorRe().FindSubmatch(b); m != nil {
+		if m := pdfAuthorRe().FindSubmatch(info); m != nil {
 			if a := pdfString(m[1]); a != "" {
 				it.Artist, it.AlbumArtist = a, a
 			}
@@ -497,6 +501,31 @@ func pdfEncrypted(f *os.File, head []byte) bool {
 	tail := make([]byte, min(pdfTail, st.Size()-int64(len(head))))
 	n, _ := f.ReadAt(tail, st.Size()-int64(len(tail)))
 	return pdfEncryptRe().Match(tail[:n])
+}
+
+// pdfInfo is the Info dictionary's object when the trailer names one that is in the part read,
+// else all of head, as before. Bookmarks and other parts have a /Title too, and may come first.
+func pdfInfo(f *os.File, head []byte) []byte {
+	m := pdfInfoRe().FindSubmatch(head)
+	if m == nil {
+		if st, err := f.Stat(); err == nil && st.Size() > int64(len(head)) {
+			tail := make([]byte, min(pdfTail, st.Size()-int64(len(head))))
+			n, _ := f.ReadAt(tail, st.Size()-int64(len(tail)))
+			m = pdfInfoRe().FindSubmatch(tail[:n])
+		}
+	}
+	if m == nil {
+		return head
+	}
+	start := regexp.MustCompile(`(^|[^0-9])` + string(m[1]) + `\s+` + string(m[2]) + `\s+obj\b`).FindIndex(head)
+	if start == nil {
+		return head
+	}
+	obj := head[start[1]:]
+	if end := bytes.Index(obj, []byte("endobj")); end >= 0 {
+		obj = obj[:end]
+	}
+	return obj
 }
 
 // pdfString decodes a PDF literal string; one in UTF-16 stays out rather than garbled.

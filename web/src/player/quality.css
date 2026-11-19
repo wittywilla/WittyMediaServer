@@ -31,7 +31,7 @@
 .qmenu .qm-rate { display: flex; align-items: center; gap: var(--sp-3); }
 .qmenu .qm-rate .range { flex: 1; min-width: 0; }
 .qmenu .qm-num { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--fg-2); }
-.qmenu .qm-num input { width: 6em; }
+.qmenu .qm-num input { width: 8.5em; } /* room for its "No limit" placeholder, and the longer words of other languages */
 .qmenu .seg { flex-wrap: wrap; background: var(--bg-2); }
 .qmenu .seg button:not(.active) { color: var(--fg); }
 .qmenu .qm-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); }

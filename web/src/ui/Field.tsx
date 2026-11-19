@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { Children, cloneElement, isValidElement, useId, type InputHTMLAttributes, type ReactElement, type ReactNode, type Ref, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { t } from '../i18n'
 
 // Form fields. Field joins a label, a hint and an error to its control, so the
 // control is named and described for a screen reader without any ids by hand.
@@ -15,7 +16,7 @@ export function Field({ label, hint, error, required, children, className }: { l
   return (
     <div className={'ui-field' + (error ? ' invalid' : '') + (className ? ' ' + className : '')}>
       <label className="ui-field-label" htmlFor={only ? only.props.id || id : undefined} id={id + 'l'}>
-        {label}{required && <span className="ui-field-req"> (required)</span>}
+        {label}{required && <span className="ui-field-req"> {t('(required)')}</span>}
       </label>
       {only
         ? cloneElement(only, { id: only.props.id || id, 'aria-describedby': describedBy, 'aria-invalid': error ? true : only.props['aria-invalid'], 'aria-required': required || undefined })

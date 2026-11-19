@@ -18,6 +18,7 @@ import VirtualList from './VirtualList'
 import './tv.css'
 import './tvthemes.css'
 import './tvsets.css'
+import { num, t, tn } from '../../i18n'
 
 // Sets of channels (tv-sets): the guide's own lists, each in its own order. Anyone signed in can
 // make their own; an administrator can share one with the household. /tv/sets lists them and
@@ -34,10 +35,10 @@ export default function SetsPage() {
   const features = useFeatures()
   return (
     <div className="ctv ctv-page ctv-list-page ctv-setspage" {...themeRoot(look)}>
-      {features === null ? <div className="center" role="status" aria-label="Loading"><div className="spinner" /></div>
+      {features === null ? <div className="center" role="status" aria-label={t('Loading')}><div className="spinner" /></div>
         : !features.has('tv-sets') ? (
-          <EmptyState icon={<IconTv />} title="This server doesn't keep sets of channels" text="Sets of channels need a newer server. The guide's filters still choose which channels it shows."
-            action={<Link className="ctv-btn" to="/tv">Back to the guide</Link>} />
+          <EmptyState icon={<IconTv />} title={t("This server doesn't keep sets of channels")} text={t("Sets of channels need a newer server. The guide's filters still choose which channels it shows.")}
+            action={<Link className="ctv-btn" to="/tv">{t('Back to the guide')}</Link>} />
         ) : (
           <Routes>
             <Route index element={<SetList />} />
@@ -62,7 +63,7 @@ function SetList() {
     try {
       const g = await api.get<{ channels: { key: string }[] }>(`/guide?hours=1&limit=1&set=${encodeURIComponent(s.id)}`)
       const first = g.channels?.[0]
-      if (first) setInfo({ key: first.key, at: Date.now() / 1000 }); else toast('That set has no channels yet.')
+      if (first) setInfo({ key: first.key, at: Date.now() / 1000 }); else toast(t('That set has no channels yet.'))
     } catch (e) { toast((e as Error).message) }
   }
   const load = () => getSets().then((s) => { setSets(s.sets.filter((x) => x.kind === 'custom')); setErr('') }).catch((e) => setErr((e as Error).message))
@@ -72,27 +73,27 @@ function SetList() {
     if (!sets || to < 0 || to >= sets.length || from === to) return
     const next = moveItem(sets, from, to)
     setSets(next)
-    announce(`${sets[from].name}, now ${to + 1} of ${sets.length}`)
+    announce(t('{name}, now {position} of {count}', { name: sets[from].name, position: to + 1, count: sets.length }))
     try { await api.put('/tv-sets/order', { ids: next.map((s) => s.id) }) } catch (e) { toast((e as Error).message); void load() }
     // Moved with the keyboard, the keyboard stays on what moved.
     requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-set-row="${next[to].id}"] [data-move="${to > from ? 'down' : 'up'}"]`)?.focus())
   }
   const remove = async (s: TvSet) => {
-    if (!await ask({ title: `Delete the set “${s.name}”?`, body: s.shared ? 'It goes for everyone in the household. The channels themselves stay.' : 'The channels themselves stay.', confirm: 'Delete set', danger: true })) return
-    try { await api.del(`/tv-sets/${setNumber(s.id)}`); toast(`${s.name} deleted`); void load() } catch (e) { toast((e as Error).message) }
+    if (!await ask({ title: t('Delete the set “{name}”?', { name: s.name }), body: s.shared ? t('It goes for everyone in the household. The channels themselves stay.') : t('The channels themselves stay.'), confirm: t('Delete set'), danger: true })) return
+    try { await api.del(`/tv-sets/${setNumber(s.id)}`); toast(t('{name} deleted', { name: s.name })); void load() } catch (e) { toast((e as Error).message) }
   }
   return (
     <>
       <header className="ctv-list-head">
-        <h1>Sets of channels</h1>
-        <Link className="ctv-btn sm on" to="/tv/sets/new"><IconPlus size={16} /> New set</Link>
-        <Link className="ctv-btn sm" to="/tv">Back to the guide</Link>
+        <h1>{t('Sets of channels')}</h1>
+        <Link className="ctv-btn sm on" to="/tv/sets/new"><IconPlus size={16} /> {t('New set')}</Link>
+        <Link className="ctv-btn sm" to="/tv">{t('Back to the guide')}</Link>
       </header>
-      <p className="ctv-list-note ctv-sets-intro">A set is a list of channels in an order of your own, to show in the guide on its own: choose it on the guide's bar, or press C, [ or ] there. The guide on each device remembers the set it last showed.</p>
+      <p className="ctv-list-note ctv-sets-intro">{t("A set is a list of channels in an order of your own, to show in the guide on its own: choose it on the guide's bar, or press C, [ or ] there. The guide on each device remembers the set it last showed.")}</p>
       {err && <div className="ctv-err" role="alert">{err}</div>}
-      {sets && sets.length === 0 && <p className="ctv-list-empty">No sets yet. Press <b>New set</b>, or <b>Add to set…</b> on a channel in the guide.</p>}
+      {sets && sets.length === 0 && <p className="ctv-list-empty">{t('No sets yet. Press New set, or Add to set… on a channel in the guide.')}</p>}
       {sets && sets.length > 0 && (
-        <ul className="ctv-list" aria-label="Your sets, in the order the guide shows them">
+        <ul className="ctv-list" aria-label={t('Your sets, in the order the guide shows them')}>
           {sets.map((s, i) => (
             <li key={s.id} className={'ctv-rec ctv-setrow' + (dragFrom === i ? ' dragging' : '')} data-set-row={s.id} draggable
               onDragStart={(e) => { setDragFrom(i); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', s.id) }}
@@ -102,13 +103,13 @@ function SetList() {
               <span className="ctv-grip" aria-hidden="true"><IconGrip size={16} /></span>
               <div className="ctv-rec-main">
                 <b>{s.name}</b>
-                <span>{s.count.toLocaleString()} {s.count === 1 ? 'channel' : 'channels'}{s.shared ? (s.mine ? ' · Shared with the household' : ' · Shared by an administrator') : ''}</span>
+                <span>{tn('{count} channel', '{count} channels', s.count)}{s.shared ? ' · ' + (s.mine ? t('Shared with the household') : t('Shared by an administrator')) : ''}</span>
               </div>
-              <button type="button" className="ctv-btn sm" onClick={() => void showInfo(s)} aria-haspopup="dialog" aria-label={`More info about what is on ${s.name}`}>More info</button>
-              <button type="button" className="ctv-btn sm icon" data-move="up" disabled={i === 0} onClick={() => void move(i, i - 1)} aria-label={`Move ${s.name} up`}><IconUp size={16} /></button>
-              <button type="button" className="ctv-btn sm icon" data-move="down" disabled={i === sets.length - 1} onClick={() => void move(i, i + 1)} aria-label={`Move ${s.name} down`}><IconDown size={16} /></button>
-              {s.editable && <Link className="ctv-btn sm" to={`/tv/sets/${setNumber(s.id)}`} aria-label={`Change ${s.name}`}><IconEdit size={16} /> Change</Link>}
-              {s.editable && <button type="button" className="ctv-btn sm icon" onClick={() => void remove(s)} aria-label={`Delete ${s.name}`}><IconTrash size={16} /></button>}
+              <button type="button" className="ctv-btn sm" onClick={() => void showInfo(s)} aria-haspopup="dialog" aria-label={t('More info about what is on {name}', { name: s.name })}>{t('More info')}</button>
+              <button type="button" className="ctv-btn sm icon" data-move="up" disabled={i === 0} onClick={() => void move(i, i - 1)} aria-label={t('Move {name} up', { name: s.name })}><IconUp size={16} /></button>
+              <button type="button" className="ctv-btn sm icon" data-move="down" disabled={i === sets.length - 1} onClick={() => void move(i, i + 1)} aria-label={t('Move {name} down', { name: s.name })}><IconDown size={16} /></button>
+              {s.editable && <Link className="ctv-btn sm" to={`/tv/sets/${setNumber(s.id)}`} aria-label={t('Change {name}', { name: s.name })}><IconEdit size={16} /> {t('Change')}</Link>}
+              {s.editable && <button type="button" className="ctv-btn sm icon" onClick={() => void remove(s)} aria-label={t('Delete {name}', { name: s.name })}><IconTrash size={16} /></button>}
             </li>
           ))}
         </ul>
@@ -162,7 +163,7 @@ function SetEditor() {
     if (to < 0 || to >= channels.length || from === to) return
     change(moveItem(channels, from, to))
     const c = byKey.get(channels[from])
-    announce(`${c ? c.name : 'Channel'}, now ${to + 1} of ${channels.length}`)
+    announce(t('{name}, now {position} of {count}', { name: c ? c.name : t('Channel'), position: to + 1, count: channels.length }))
   }
   const trimmed = name.trim()
   const tooMany = channels.length > MAX_CHANNELS
@@ -174,26 +175,26 @@ function SetEditor() {
       if (isNew) await api.post('/tv-sets', body)
       else await api.put(`/tv-sets/${id}`, body)
       setDirty(false)
-      toast(`${trimmed} saved`)
+      toast(t('{name} saved', { name: trimmed }))
       nav('/tv/sets')
     } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
   }
   const remove = async () => {
-    if (!await ask({ title: `Delete the set “${trimmed || name}”?`, body: shared ? 'It goes for everyone in the household. The channels themselves stay.' : 'The channels themselves stay.', confirm: 'Delete set', danger: true })) return
-    try { await api.del(`/tv-sets/${id}`); toast(`${trimmed || name} deleted`); nav('/tv/sets') } catch (e) { toast((e as Error).message) }
+    if (!await ask({ title: t('Delete the set “{name}”?', { name: trimmed || name }), body: shared ? t('It goes for everyone in the household. The channels themselves stay.') : t('The channels themselves stay.'), confirm: t('Delete set'), danger: true })) return
+    try { await api.del(`/tv-sets/${id}`); toast(t('{name} deleted', { name: trimmed || name })); nav('/tv/sets') } catch (e) { toast((e as Error).message) }
   }
   const leave = async () => {
-    if (dirty && !await ask({ title: 'Leave without saving?', body: 'The changes to this set are lost.', confirm: 'Leave', cancel: 'Keep changing it', danger: true })) return
+    if (dirty && !await ask({ title: t('Leave without saving?'), body: t('The changes to this set are lost.'), confirm: t('Leave'), cancel: t('Keep changing it'), danger: true })) return
     nav('/tv/sets')
   }
 
-  if (err && !loaded) return <><SetHead title="Set of channels" onBack={() => void leave()} /><div className="ctv-err" role="alert">{err}</div></>
-  if (!loaded) return <div className="center" role="status" aria-label="Loading"><div className="spinner" /></div>
+  if (err && !loaded) return <><SetHead title={t('Set of channels')} onBack={() => void leave()} /><div className="ctv-err" role="alert">{err}</div></>
+  if (!loaded) return <div className="center" role="status" aria-label={t('Loading')}><div className="spinner" /></div>
   if (!editable) {
     return (
       <>
         <SetHead title={name} onBack={() => void leave()} />
-        <p className="ctv-list-note">{shared ? 'An administrator shares this set with the household, and only an administrator can change it.' : 'Only whoever made this set can change it.'} You can still show it in the guide, and put it where you like among your sets.</p>
+        <p className="ctv-list-note">{shared ? t('An administrator shares this set with the household, and only an administrator can change it.') : t('Only whoever made this set can change it.')} {t('You can still show it in the guide, and put it where you like among your sets.')}</p>
       </>
     )
   }
@@ -205,36 +206,36 @@ function SetEditor() {
       <span className="ctv-setch-logo"><ChannelMark ch={c} look={look} on={on} /></span>
       <span className="ctv-setch-name"><b>{c.name}</b>{c.group && <small>{c.group}</small>}</span>
     </>
-  ) : <span className="ctv-setch-name"><b>A channel you can't see</b><small>{key}</small></span>
+  ) : <span className="ctv-setch-name"><b>{t("A channel you can't see")}</b><small>{key}</small></span>
 
   return (
     <>
-      <SetHead title={isNew ? 'New set of channels' : `Change “${name}”`} onBack={() => void leave()} />
+      <SetHead title={isNew ? t('New set of channels') : t('Change “{name}”', { name })} onBack={() => void leave()} />
       <form className="ctv-setform" onSubmit={(e) => { e.preventDefault(); void save() }}>
-        <label className="ctv-setfield">Name
-          <input className="input" value={name} maxLength={MAX_NAME} required autoFocus={isNew} onChange={(e) => { setName(e.target.value); setDirty(true) }} placeholder="Kids, Sport, News…" />
+        <label className="ctv-setfield">{t('Name')}
+          <input className="input" value={name} maxLength={MAX_NAME} required autoFocus={isNew} onChange={(e) => { setName(e.target.value); setDirty(true) }} placeholder={t('Kids, Sport, News…')} />
         </label>
         {canShare && (
           <div className="ctv-setfield ctv-setshare">
-            <span id="ctv-share-l">Shared with the household</span>
+            <span id="ctv-share-l">{t('Shared with the household')}</span>
             <Switch checked={shared} labelledBy="ctv-share-l" onChange={(v) => { setShared(v); setDirty(true) }} />
-            <small>Everyone signed in sees a shared set, each only with the channels they may watch. Only an administrator changes it.</small>
+            <small>{t('Everyone signed in sees a shared set, each only with the channels they may watch. Only an administrator changes it.')}</small>
           </div>
         )}
         <div className="ctv-setactions">
-          <button type="submit" className="ctv-btn on" disabled={busy || !trimmed || tooMany}>{busy ? 'Saving…' : isNew ? 'Make the set' : 'Save'}</button>
-          {!isNew && <button type="button" className="ctv-btn" onClick={() => void remove()}><IconTrash size={16} /> Delete set</button>}
+          <button type="submit" className="ctv-btn on" disabled={busy || !trimmed || tooMany}>{busy ? t('Saving…') : isNew ? t('Make the set') : t('Save')}</button>
+          {!isNew && <button type="button" className="ctv-btn" onClick={() => void remove()}><IconTrash size={16} /> {t('Delete set')}</button>}
         </div>
       </form>
 
       <div className="ctv-setcols">
         <section aria-labelledby="ctv-in-h">
-          <h2 className="ctv-list-h2" id="ctv-in-h">In this set, in order <small>{channels.length.toLocaleString()}</small></h2>
-          {tooMany && <p className="ctv-rec-err" role="alert">A set can hold up to {MAX_CHANNELS.toLocaleString()} channels. Take some out to save it.</p>}
-          {channels.length === 0 ? <p className="ctv-list-empty">None yet. Tick channels on the right to put them in.</p> : (
+          <h2 className="ctv-list-h2" id="ctv-in-h">{t('In this set, in order')} <small>{num(channels.length)}</small></h2>
+          {tooMany && <p className="ctv-rec-err" role="alert">{t('A set can hold up to {count} channels. Take some out to save it.', { count: MAX_CHANNELS })}</p>}
+          {channels.length === 0 ? <p className="ctv-list-empty">{t('None yet. Tick channels on the right to put them in.')}</p> : (
             <>
-              <p className="ctv-list-note ctv-sets-hint">Drag a channel, or use its arrows, to change the order.</p>
-              <VirtualList count={channels.length} rowH={ROW} height={listH} label="Channels in this set" className="ctv-setlist"
+              <p className="ctv-list-note ctv-sets-hint">{t('Drag a channel, or use its arrows, to change the order.')}</p>
+              <VirtualList count={channels.length} rowH={ROW} height={listH} label={t('Channels in this set')} className="ctv-setlist"
                 onRowKey={(i, e) => {
                   // Alt is taken by the browser; with Shift, the arrows carry the channel.
                   if (e.shiftKey && e.key === 'ArrowUp') { moveTo(i, i - 1); return true }
@@ -253,9 +254,9 @@ function SetEditor() {
                       <span className="ctv-grip" aria-hidden="true"><IconGrip size={16} /></span>
                       <span className="ctv-setch-pos" aria-hidden="true">{i + 1}</span>
                       {row(c, key)}
-                      <button type="button" className="ctv-btn sm icon" data-vfocus disabled={i === 0} onClick={() => moveTo(i, i - 1)} aria-label={`Move ${c?.name || 'channel'} up`} title="Move up (Shift+Up)"><IconUp size={16} /></button>
-                      <button type="button" className="ctv-btn sm icon" disabled={i === channels.length - 1} onClick={() => moveTo(i, i + 1)} aria-label={`Move ${c?.name || 'channel'} down`} title="Move down (Shift+Down)"><IconDown size={16} /></button>
-                      <button type="button" className="ctv-btn sm icon" onClick={() => change(channels.filter((_, n) => n !== i))} aria-label={`Take ${c?.name || 'channel'} out`}><IconClose size={16} /></button>
+                      <button type="button" className="ctv-btn sm icon" data-vfocus disabled={i === 0} onClick={() => moveTo(i, i - 1)} aria-label={c ? t('Move {name} up', { name: c.name }) : t('Move channel up')} title={t('Move up (Shift+Up)')}><IconUp size={16} /></button>
+                      <button type="button" className="ctv-btn sm icon" disabled={i === channels.length - 1} onClick={() => moveTo(i, i + 1)} aria-label={c ? t('Move {name} down', { name: c.name }) : t('Move channel down')} title={t('Move down (Shift+Down)')}><IconDown size={16} /></button>
+                      <button type="button" className="ctv-btn sm icon" onClick={() => change(channels.filter((_, n) => n !== i))} aria-label={c ? t('Take {name} out', { name: c.name }) : t('Take channel out')}><IconClose size={16} /></button>
                     </div>
                   )
                 }} />
@@ -264,16 +265,16 @@ function SetEditor() {
         </section>
 
         <section aria-labelledby="ctv-pick-h">
-          <h2 className="ctv-list-h2" id="ctv-pick-h">Every channel <small>{all ? all.length.toLocaleString() : ''}</small></h2>
+          <h2 className="ctv-list-h2" id="ctv-pick-h">{t('Every channel')} <small>{all ? num(all.length) : ''}</small></h2>
           <div className="ctv-setpick-bar">
-            <input className="input" type="search" aria-label="Find channels, by number, name or group" placeholder="Find by number, name or group" value={q} onChange={(e) => setQ(e.target.value)} />
-            <button type="button" className="ctv-btn sm" disabled={!shown.length} onClick={() => { change(addAll(channels, shown.map((c) => c.key))); announce(`${shown.length} put in`) }}><IconPlus size={16} /> Select all shown</button>
-            <button type="button" className="ctv-btn sm" disabled={!shown.some((c) => inSet.has(c.key))} onClick={() => { change(removeAll(channels, shown.map((c) => c.key))); announce('Taken out') }}>Clear all shown</button>
+            <input className="input" type="search" aria-label={t('Find channels, by number, name or group')} placeholder={t('Find by number, name or group')} value={q} onChange={(e) => setQ(e.target.value)} />
+            <button type="button" className="ctv-btn sm" disabled={!shown.length} onClick={() => { change(addAll(channels, shown.map((c) => c.key))); announce(t('{count} put in', { count: shown.length })) }}><IconPlus size={16} /> {t('Select all shown')}</button>
+            <button type="button" className="ctv-btn sm" disabled={!shown.some((c) => inSet.has(c.key))} onClick={() => { change(removeAll(channels, shown.map((c) => c.key))); announce(t('Taken out')) }}>{t('Clear all shown')}</button>
           </div>
-          <div aria-live="polite" className="sr-only">{q ? `${shown.length} found` : ''}</div>
-          {all === null ? <div className="center" role="status" aria-label="Loading"><div className="spinner" /></div>
-            : shown.length === 0 ? <p className="ctv-list-empty">No channel has that number, name or group.</p> : (
-              <VirtualList count={shown.length} rowH={ROW} height={listH} label="Every channel" className="ctv-setlist"
+          <div aria-live="polite" className="sr-only">{q ? t('{count} found', { count: shown.length }) : ''}</div>
+          {all === null ? <div className="center" role="status" aria-label={t('Loading')}><div className="spinner" /></div>
+            : shown.length === 0 ? <p className="ctv-list-empty">{t('No channel has that number, name or group.')}</p> : (
+              <VirtualList count={shown.length} rowH={ROW} height={listH} label={t('Every channel')} className="ctv-setlist"
                 render={(i) => {
                   const c = shown[i]
                   const has = inSet.has(c.key)
@@ -295,8 +296,8 @@ function SetHead({ title, onBack }: { title: string; onBack: () => void }) {
   return (
     <header className="ctv-list-head">
       <h1>{title}</h1>
-      <button type="button" className="ctv-btn sm" onClick={onBack}>Back to the sets</button>
-      <Link className="ctv-btn sm" to="/tv">Back to the guide</Link>
+      <button type="button" className="ctv-btn sm" onClick={onBack}>{t('Back to the sets')}</button>
+      <Link className="ctv-btn sm" to="/tv">{t('Back to the guide')}</Link>
     </header>
   )
 }

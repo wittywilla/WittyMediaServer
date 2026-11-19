@@ -10,6 +10,7 @@ import { allowanceSpec, collectionRulesSpec, featuresSpec, KIND_LABEL as KIND_LA
 import { Field, Input } from '../../ui/Field'
 import { ask, Dialog } from '../../ui/Overlay'
 import { AVATAR_COLOUR_NAMES, AVATAR_NAMES, AvatarShape, avatarColourOf, avatarLabel, parseAvatar } from '../../ui/avatars'
+import { date, t, tk, tn, tx } from '../../i18n'
 import './parental.css'
 
 // The parts of a profile's limits beyond which titles it sees: an age for each kind of media,
@@ -63,23 +64,23 @@ export function FeatureSwitches({ access, set, kind }: { access: Access; set: (p
 const NO_TIME: TimeRules = { schoolDayMinutes: 0, weekendMinutes: 0, from: '', schoolNightUntil: '', weekendUntil: '' }
 // When the profile may watch, and for how long each day.
 export function TimeRulesEditor({ access, set }: { access: Access; set: (p: Partial<Access>) => void }) {
-  const t = access.time || NO_TIME
-  const change = (p: Partial<TimeRules>) => set({ time: { ...t, ...p } })
-  const page = useMemo(() => allowanceSpec(t.schoolDayMinutes, t.weekendMinutes), [t.schoolDayMinutes, t.weekendMinutes])
+  const tr = access.time || NO_TIME
+  const change = (p: Partial<TimeRules>) => set({ time: { ...tr, ...p } })
+  const page = useMemo(() => allowanceSpec(tr.schoolDayMinutes, tr.weekendMinutes), [tr.schoolDayMinutes, tr.weekendMinutes])
   const time = (label: string, hint: string, key: 'from' | 'schoolNightUntil' | 'weekendUntil') => (
-    <Field label={label} hint={hint}><Input type="time" value={t[key]} onChange={(e) => change({ [key]: e.target.value })} /></Field>
+    <Field label={label} hint={hint}><Input type="time" value={tr[key]} onChange={(e) => change({ [key]: e.target.value })} /></Field>
   )
   return (
     <div className="pc-time">
-      <p className="muted">Time is counted by the server while this profile is playing something, on any device. When it runs out, what is playing stops and the profile is told why. A parent can give more.</p>
+      <p className="muted">{t('Time is counted by the server while this profile is playing something, on any device. When it runs out, what is playing stops and the profile is told why. A parent can give more.')}</p>
       <SpecPage embedded page={page} onField={(id, v) => change({ [id]: Number(v) })} />
       {/* The times of day are the browser's own time fields: the page model has no time field yet. */}
       <div className="pc-grid">
-        {time('Not before', 'Leave empty for no earliest time. With a bedtime and nothing here, the day starts at 6:00.', 'from')}
-        {time('Bedtime on school nights', 'Sunday to Thursday evenings.', 'schoolNightUntil')}
-        {time('Bedtime on Fridays and Saturdays', 'Leave empty for none.', 'weekendUntil')}
+        {time(t('Not before'), t('Leave empty for no earliest time. With a bedtime and nothing here, the day starts at 6:00.'), 'from')}
+        {time(t('Bedtime on school nights'), t('Sunday to Thursday evenings.'), 'schoolNightUntil')}
+        {time(t('Bedtime on Fridays and Saturdays'), t('Leave empty for none.'), 'weekendUntil')}
       </div>
-      <p className="muted">School holidays aren’t known to the server: change these when they start.</p>
+      <p className="muted">{t('School holidays aren’t known to the server: change these when they start.')}</p>
     </div>
   )
 }
@@ -91,7 +92,7 @@ export function CollectionRules({ access, set }: { access: Access; set: (p: Part
   const [rows, setRows] = useState<CollectionRow[] | null>(null)
   useEffect(() => { api.get<CollectionRow[]>('/collections').then((r) => setRows(r.filter((c) => c.kind === 'manual' && !c.system))).catch(() => setRows([])) }, [])
   if (!rows) return null
-  if (rows.length === 0) return <p className="muted">You have no collections yet. Make one under Collections, add titles to it, and it can be allowed or hidden here as a whole.</p>
+  if (rows.length === 0) return <p className="muted">{t('You have no collections yet. Make one under Collections, add titles to it, and it can be allowed or hidden here as a whole.')}</p>
   const allow = access.allowCollections || [], block = access.blockCollections || []
   const choose = (id: number, v: string) => set({
     allowCollections: v === 'allow' ? [...new Set([...allow, id])] : allow.filter((x) => x !== id),
@@ -104,7 +105,7 @@ export function CollectionRules({ access, set }: { access: Access; set: (p: Part
 export function TagRules({ access, set }: { access: Access; set: (p: Partial<Access>) => void }) {
   const [text, setText] = useState((access.blockTags || []).join(', '))
   return (
-    <Field label="Hide videos with these tags" hint="For video libraries with tags. Commas between them.">
+    <Field label={t('Hide videos with these tags')} hint={t('For video libraries with tags. Commas between them.')}>
       <Input value={text} onChange={(e) => { setText(e.target.value); set({ blockTags: e.target.value.split(',').map((x) => x.trim()).filter(Boolean) }) }} />
     </Field>
   )
@@ -116,9 +117,9 @@ export function AvatarPicker({ value, onChange }: { value: string; onChange: (v:
   const colour = chosen?.colour || 'blue'
   return (
     <fieldset className="pc-avatars">
-      <legend>Picture</legend>
-      <div className="pc-avatar-grid" role="radiogroup" aria-label="Picture">
-        <button type="button" role="radio" aria-checked={!chosen} className={'pc-avatar none' + (!chosen ? ' on' : '')} onClick={() => onChange('')}>Their initial</button>
+      <legend>{t('Picture')}</legend>
+      <div className="pc-avatar-grid" role="radiogroup" aria-label={t('Picture')}>
+        <button type="button" role="radio" aria-checked={!chosen} className={'pc-avatar none' + (!chosen ? ' on' : '')} onClick={() => onChange('')}>{t('Their initial')}</button>
         {AVATAR_NAMES.map((n) => {
           const a = parseAvatar(n + ':' + colour)!
           return (
@@ -129,7 +130,7 @@ export function AvatarPicker({ value, onChange }: { value: string; onChange: (v:
         })}
       </div>
       {chosen && (
-        <div className="pc-avatar-grid" role="radiogroup" aria-label="Colour">
+        <div className="pc-avatar-grid" role="radiogroup" aria-label={t('Colour')}>
           {AVATAR_COLOUR_NAMES.map((c) => (
             <button key={c} type="button" role="radio" aria-checked={colour === c} aria-label={avatarLabel(c)} className={'pc-colour' + (colour === c ? ' on' : '')} onClick={() => onChange(chosen.name + ':' + c)}>
               <span style={{ background: avatarColourOf(c) }} />
@@ -143,11 +144,12 @@ export function AvatarPicker({ value, onChange }: { value: string; onChange: (v:
 
 const hm = (sec: number) => {
   const m = Math.round(sec / 60)
-  return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60 ? `${m % 60} min` : ''}`.trim()
+  if (m < 60) return t('{m} min', { m })
+  return m % 60 ? t('{h} h {m} min', { h: Math.floor(m / 60), m: m % 60 }) : t('{h} h', { h: Math.floor(m / 60) })
 }
-const dayText = (day: number) => new Date(Math.floor(day / 10000), Math.floor(day / 100) % 100 - 1, day % 100).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })
-const REFUSED: Record<string, string> = { blocked: 'Asked for a hidden title', time: 'Tried to play when time was up', feature: 'Tried something that is turned off', extra: 'Was given more time' }
-const WHY: Record<string, string> = { allowance: 'the day’s time was used up', bedtime: 'it was past bedtime', early: 'it was too early', games: 'games', recordings: 'recording', downloads: 'downloads', sharing: 'share links', comments: 'comments', syncplay: 'watch parties', remoteControl: 'playing on other devices' }
+const dayText = (day: number) => date(new Date(Math.floor(day / 10000), Math.floor(day / 100) % 100 - 1, day % 100), { weekday: 'long', day: 'numeric', month: 'long' })
+const REFUSED: Record<string, string> = { blocked: tk('Asked for a hidden title'), time: tk('Tried to play when time was up'), feature: tk('Tried something that is turned off'), extra: tk('Was given more time') }
+const WHY: Record<string, string> = { allowance: tk('the day’s time was used up'), bedtime: tk('it was past bedtime'), early: tk('it was too early'), games: tk('games'), recordings: tk('recording'), downloads: tk('downloads'), sharing: tk('share links'), comments: tk('comments'), syncplay: tk('watch parties'), remoteControl: tk('playing on other devices') }
 
 type Activity = {
   days: { day: number; screenSec: number; extraSec: number }[]
@@ -178,40 +180,40 @@ export function ActivityDialog({ user, onClose }: { user: UserView; onClose: () 
   const load = () => api.get<Activity>(`/users/${user.id}/activity?days=14`).then(setA).catch((e) => setErr((e as Error).message))
   useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const give = async (m: number) => {
-    try { await api.post(`/users/${user.id}/screen-time/extra`, { minutes: m }); toast(`${name} has ${m} more minutes today`, { tone: 'ok' }); load() } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
+    try { await api.post(`/users/${user.id}/screen-time/extra`, { minutes: m }); toast(tn('{name} has {count} more minute today', '{name} has {count} more minutes today', m, { name }), { tone: 'ok' }); load() } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
   const clear = async () => {
-    if (!await ask({ title: `Clear what’s written down about ${name}?`, body: 'What they watched and what was refused is forgotten. Today’s screen time stays.', confirm: 'Clear', danger: true })) return
+    if (!await ask({ title: t('Clear what’s written down about {name}?', { name }), body: t('What they watched and what was refused is forgotten. Today’s screen time stays.'), confirm: t('Clear'), danger: true })) return
     try { await api.del(`/users/${user.id}/activity`); load() } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
   const st = a?.screenTime
   const days = a ? [...new Set([...a.days.map((d) => d.day), ...a.watched.map((w) => w.day)])].sort((x, y) => y - x) : []
   return (
-    <Dialog title={`${name}: the last two weeks`} size="wide" onClose={onClose}
-      actions={<><Button variant="ghost" onClick={clear} disabled={!a}>Clear</Button><Button variant="primary" onClick={onClose}>Done</Button></>}>
+    <Dialog title={t('{name}: the last two weeks', { name })} size="wide" onClose={onClose}
+      actions={<><Button variant="ghost" onClick={clear} disabled={!a}>{t('Clear')}</Button><Button variant="primary" onClick={onClose}>{t('Done')}</Button></>}>
       {err && <div className="error" role="alert">{err}</div>}
-      {!a && !err && <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>}
+      {!a && !err && <div className="loading-box" role="status" aria-label={t('Loading')}><div className="spinner" /></div>}
       {a && (
         <div className="pc-activity" onKeyDown={readOn}>
           <section>
-            <h3>Today</h3>
-            <p>{st && st.allowanceSec >= 0 ? `${hm(st.usedSec)} of ${hm(st.allowanceSec)} used.` : `${hm(st?.usedSec || 0)} of screen time.`}{st && !st.allowed ? ` ${st.message}` : ''}</p>
-            <div className="pc-give" role="group" aria-label={`Give ${name} more time today`}>
-              <span className="muted">Give more time today:</span>
-              {[15, 30, 60].map((m) => <Button key={m} size="sm" onClick={() => give(m)}>{m === 60 ? '1 hour' : `${m} minutes`}</Button>)}
+            <h3>{t('Today')}</h3>
+            <p>{st && st.allowanceSec >= 0 ? t('{used} of {allowance} used.', { used: hm(st.usedSec), allowance: hm(st.allowanceSec) }) : t('{used} of screen time.', { used: hm(st?.usedSec || 0) })}{st && !st.allowed ? ` ${st.message}` : ''}</p>
+            <div className="pc-give" role="group" aria-label={t('Give {name} more time today', { name })}>
+              <span className="muted">{t('Give more time today:')}</span>
+              {[15, 30, 60].map((m) => <Button key={m} size="sm" onClick={() => give(m)}>{m === 60 ? t('1 hour') : tn('{count} minute', '{count} minutes', m)}</Button>)}
             </div>
           </section>
           <section>
-            <h3>What they watched</h3>
-            {days.length === 0 && <p className="muted">Nothing yet. This is kept only for profiles with limits, and they can’t clear it themselves.</p>}
+            <h3>{t('What they watched')}</h3>
+            {days.length === 0 && <p className="muted">{t('Nothing yet. This is kept only for profiles with limits, and they can’t clear it themselves.')}</p>}
             {days.map((day) => {
               const total = a.days.find((d) => d.day === day)
               return (
-                <div className="pc-day pc-block" key={day} tabIndex={0} role="group" aria-label={`${dayText(day)}${total ? `, ${hm(total.screenSec)} of screen time` : ''}`}>
-                  <div className="pc-day-head"><b>{dayText(day)}</b><span className="muted">{total ? `${hm(total.screenSec)} of screen time${total.extraSec ? `, with ${hm(total.extraSec)} extra given` : ''}` : ''}</span></div>
+                <div className="pc-day pc-block" key={day} tabIndex={0} role="group" aria-label={total ? t('{day}, {time} of screen time', { day: dayText(day), time: hm(total.screenSec) }) : dayText(day)}>
+                  <div className="pc-day-head"><b>{dayText(day)}</b><span className="muted">{total ? (total.extraSec ? t('{time} of screen time, with {extra} extra given', { time: hm(total.screenSec), extra: hm(total.extraSec) }) : t('{time} of screen time', { time: hm(total.screenSec) })) : ''}</span></div>
                   <ul className="pc-rows">
                     {a.watched.filter((w) => w.day === day).map((w) => (
-                      <li key={w.itemId}><span>{w.showTitle ? `${w.showTitle}: ` : ''}{w.title || 'A title that has gone'}</span><span className="muted">{hm(w.seconds)}</span></li>
+                      <li key={w.itemId}><span>{w.showTitle ? `${w.showTitle}: ` : ''}{w.title || t('A title that has gone')}</span><span className="muted">{hm(w.seconds)}</span></li>
                     ))}
                   </ul>
                 </div>
@@ -219,13 +221,13 @@ export function ActivityDialog({ user, onClose }: { user: UserView; onClose: () 
             })}
           </section>
           <section>
-            <h3>What was refused, and extra time</h3>
-            {a.events.length === 0 && <p className="muted">Nothing.</p>}
-            <ul className={'pc-rows' + (a.events.length ? ' pc-block' : '')} tabIndex={a.events.length ? 0 : undefined} aria-label="What was refused, and extra time">
+            <h3>{t('What was refused, and extra time')}</h3>
+            {a.events.length === 0 && <p className="muted">{t('Nothing.')}</p>}
+            <ul className={'pc-rows' + (a.events.length ? ' pc-block' : '')} tabIndex={a.events.length ? 0 : undefined} aria-label={t('What was refused, and extra time')}>
               {a.events.map((e, i) => (
                 <li key={i}>
-                  <span>{REFUSED[e.kind] || e.kind}{e.kind === 'blocked' ? `: ${e.title}${e.detail ? ` (${e.detail})` : ''}` : e.kind === 'extra' ? `: ${e.detail} minutes, by ${e.title === 'PIN' ? 'the parents’ PIN' : e.title}` : WHY[e.detail] ? `: ${WHY[e.detail]}` : ''}</span>
-                  <span className="muted">{new Date(e.at * 1000).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}</span>
+                  <span>{tx(REFUSED[e.kind]) || e.kind}{e.kind === 'blocked' ? `: ${e.title}${e.detail ? ` (${e.detail})` : ''}` : e.kind === 'extra' ? ': ' + t('{minutes} minutes, by {who}', { minutes: e.detail, who: e.title === 'PIN' ? t('the parents’ PIN') : e.title }) : WHY[e.detail] ? `: ${tx(WHY[e.detail])}` : ''}</span>
+                  <span className="muted">{date(e.at * 1000, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}</span>
                 </li>
               ))}
             </ul>
@@ -251,7 +253,7 @@ export function ParentPin() {
     try {
       const r = await api.put<{ set: boolean }>('/parental/pin', { pin: value, current, code })
       setIsSet(r.set); setPin(''); setCurrent(''); setCode('')
-      toast(r.set ? 'The parents’ PIN is set' : 'The parents’ PIN is removed', { tone: 'ok' })
+      toast(r.set ? t('The parents’ PIN is set') : t('The parents’ PIN is removed'), { tone: 'ok' })
     } catch (e) { setErr((e as Error).message) } finally { setBusy(false) }
   }
   const page = parentPinSpec({ isSet: !!isSet, pin, current, code, twoFactor: !!user?.twoFactor, error: err, busy })

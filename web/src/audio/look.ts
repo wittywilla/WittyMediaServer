@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useSyncExternalStore } from 'react'
 import { api } from '../api'
+import { tk } from '../i18n'
 
 // How a song's album art looks, in the full player, the bar and karaoke (the Look panel, LookPanel.tsx). One look for
 // every song, and any song can have its own, which wins. Kept with the music player's other choices in /me/ui
@@ -23,19 +24,19 @@ export type SongLook = Partial<Look> & { show?: 'art' | 'canvas' }
 export const DEFAULT_LOOK: Look = { art: 'square', backdrop: 'glow', canvasPlace: 'behind', reflection: true, pulse: false }
 
 export const ART_STYLES: { id: ArtStyle; name: string; note: string }[] = [
-  { id: 'square', name: 'Cover', note: 'The cover as it is' },
-  { id: 'circle', name: 'Round', note: 'Cut to a circle' },
-  { id: 'vinyl', name: 'Record', note: 'On a record that turns as it plays' },
-  { id: 'cd', name: 'Disc', note: 'Printed on a spinning disc' },
-  { id: 'polaroid', name: 'Snapshot', note: 'An instant photo, with the song’s name' },
-  { id: 'tilt', name: 'Float', note: 'Leans towards the pointer' },
-  { id: 'drift', name: 'Drift', note: 'Pans slowly across the picture' },
+  { id: 'square', name: tk('Cover'), note: tk('The cover as it is') },
+  { id: 'circle', name: tk('Round'), note: tk('Cut to a circle') },
+  { id: 'vinyl', name: tk('Record'), note: tk('On a record that turns as it plays') },
+  { id: 'cd', name: tk('Disc'), note: tk('Printed on a spinning disc') },
+  { id: 'polaroid', name: tk('Snapshot'), note: tk('An instant photo, with the song’s name') },
+  { id: 'tilt', name: tk('Float'), note: tk('Leans towards the pointer') },
+  { id: 'drift', name: tk('Drift'), note: tk('Pans slowly across the picture') },
 ]
 export const BACKDROPS: { id: Backdrop; name: string }[] = [
-  { id: 'glow', name: 'Glow' }, { id: 'blur', name: 'Blurred cover' }, { id: 'cover', name: 'Whole cover' }, { id: 'plain', name: 'Plain' },
+  { id: 'glow', name: tk('Glow') }, { id: 'blur', name: tk('Blurred cover') }, { id: 'cover', name: tk('Whole cover') }, { id: 'plain', name: tk('Plain') },
 ]
 export const CANVAS_PLACES: { id: CanvasPlace; name: string }[] = [
-  { id: 'behind', name: 'Behind everything' }, { id: 'art', name: 'In the cover’s place' }, { id: 'both', name: 'Both' },
+  { id: 'behind', name: tk('Behind everything') }, { id: 'art', name: tk('In the cover’s place') }, { id: 'both', name: tk('Both') },
 ]
 
 // The most songs that keep a look of their own; the oldest go first past it, so the setting can't grow without end.

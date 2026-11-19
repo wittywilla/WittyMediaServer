@@ -5,6 +5,8 @@
 // the name back as parts ready to draw. Nothing here touches the page, so it is tested (brandStyle.test.mjs).
 import { accentMask, words } from './brandName.ts'
 
+const tk = <S extends string>(english: S): S => english // marks text translated where it's shown (no i18n import: node tests load this file)
+
 export type BrandColor = { kind: 'fg' | 'accent' | 'token' | 'static' | 'gradient'; token?: string; hex?: string; stops?: string[]; angle?: number }
 export type BrandSpan = { from: number; to: number; color: BrandColor; bold?: boolean }
 export type StyledPart = { text: string; accent?: boolean; color?: BrandColor; bold?: boolean }
@@ -21,11 +23,11 @@ export const isHex = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v)
 
 // What each theme-following swatch is called, and the colour token it is.
 export const THEME_SWATCHES: { label: string; color: BrandColor }[] = [
-  { label: 'Text', color: FG },
-  { label: 'Accent', color: ACCENT },
-  { label: 'Success', color: token('ok') },
-  { label: 'Warning', color: token('warn') },
-  { label: 'Danger', color: token('danger') },
+  { label: tk('Text'), color: FG },
+  { label: tk('Accent'), color: ACCENT },
+  { label: tk('Success'), color: token('ok') },
+  { label: tk('Warning'), color: token('warn') },
+  { label: tk('Danger'), color: token('danger') },
 ]
 export const FIXED_SWATCHES = ['#b4491f', '#1e9be0', '#3ddc84', '#ffd84a', '#ff4fa3']
 export const GRADIENT_SWATCHES: BrandColor[] = [gradient(['#0a6aa8', '#1e9be0', '#3aa84a']), gradient(['#ff4fa3', '#ffd84a'])]
@@ -81,14 +83,14 @@ export function partsFromCells(name: string, cells: BrandColor[]): StyledPart[] 
 // Presets: whole-name colourings to start from.
 export type Preset = { id: string; label: string; cells: (name: string) => BrandColor[] }
 export const PRESETS: Preset[] = [
-  { id: 'auto', label: 'Accent on every other word', cells: (n) => cellsFromColouring(n, 'auto') },
-  { id: 'two', label: 'Two-tone', cells: (n) => { const w = words(n); const cut = w.length > 1 ? w[1][0] : Math.ceil(nameLength(n) / 2); return Array.from(n).map((_, i) => (i < cut ? FG : ACCENT)) } },
-  { id: 'one', label: 'One colour', cells: (n) => Array.from(n).map(() => ACCENT) },
-  { id: 'plain', label: 'Plain', cells: (n) => Array.from(n).map(() => FG) },
-  { id: 'rainbow', label: 'Rainbow letters', cells: (n) => { let k = 0; return Array.from(n).map((c) => (/\s/u.test(c) ? FG : fixed(RAINBOW[k++ % RAINBOW.length]))) } },
-  { id: 'gradient', label: 'Gradient', cells: (n) => Array.from(n).map(() => GRADIENT_SWATCHES[0]) },
+  { id: 'auto', label: tk('Accent on every other word'), cells: (n) => cellsFromColouring(n, 'auto') },
+  { id: 'two', label: tk('Two-tone'), cells: (n) => { const w = words(n); const cut = w.length > 1 ? w[1][0] : Math.ceil(nameLength(n) / 2); return Array.from(n).map((_, i) => (i < cut ? FG : ACCENT)) } },
+  { id: 'one', label: tk('One colour'), cells: (n) => Array.from(n).map(() => ACCENT) },
+  { id: 'plain', label: tk('Plain'), cells: (n) => Array.from(n).map(() => FG) },
+  { id: 'rainbow', label: tk('Rainbow letters'), cells: (n) => { let k = 0; return Array.from(n).map((c) => (/\s/u.test(c) ? FG : fixed(RAINBOW[k++ % RAINBOW.length]))) } },
+  { id: 'gradient', label: tk('Gradient'), cells: (n) => Array.from(n).map(() => GRADIENT_SWATCHES[0]) },
 ]
-export const presetLabel = (name: string) => (name ? `Accent on “${wordAt(name, 1) || name}”` : 'Accent on every other word')
+export const presetLabel = (name: string) => (name ? `Accent on “${wordAt(name, 1) || name}”` : tk('Accent on every other word'))
 function wordAt(name: string, k: number) { const w = words(name)[k]; return w ? Array.from(name).slice(w[0], w[1]).join('') : '' }
 
 // Words of the name as ranges of characters, for choosing a whole word.

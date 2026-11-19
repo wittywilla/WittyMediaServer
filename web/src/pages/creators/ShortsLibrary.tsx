@@ -16,6 +16,7 @@ import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
 import { browserCapabilities } from '../../player/capabilities'
 import { WebLink } from '../../components/WebLink'
+import { num, t, tk, tn, tx } from '../../i18n'
 
 // WittyShorts: vertical videos, one at a time, with the next a swipe (or the
 // Down button) away. The order of For You comes from the server, from what this
@@ -24,7 +25,7 @@ import { WebLink } from '../../components/WebLink'
 // much to do as for a single video.
 
 type Tab = 'foryou' | 'following' | 'liked' | 'creators'
-const TABS: [Tab, string][] = [['foryou', 'For You'], ['following', 'Following'], ['liked', 'Liked'], ['creators', 'Creators']]
+const TABS: [Tab, string][] = [['foryou', tk('For You')], ['following', tk('Following')], ['liked', tk('Liked')], ['creators', tk('Creators')]]
 
 export default function ShortsLibrary({ lib }: { lib: Library }) {
   const { user } = useApp()
@@ -42,13 +43,13 @@ export default function ShortsLibrary({ lib }: { lib: Library }) {
     <div className="sh-page">
       <h1 className="sr-only">{lib.name}</h1>
       <div className="sh-tabs" role="tablist" aria-label={lib.name}>
-        {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !creator} className={tab === k && !creator ? 'on' : ''} onClick={() => set({ tab: k === 'foryou' ? null : k, v: null, creator: null })}>{l}</button>)}
+        {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k && !creator} className={tab === k && !creator ? 'on' : ''} onClick={() => set({ tab: k === 'foryou' ? null : k, v: null, creator: null })}>{tx(l)}</button>)}
       </div>
       {canPost(user) && <div className="sh-upload"><UploadButton lib={lib} onDone={() => setAdded((n) => n + 1)} /></div>}
       {tab === 'foryou' && !creator && <Feed key={`${lib.id}-${added}`} lib={lib} startId={startId} onPosition={(id) => set({ v: String(id) }, true)} />}
       {creator && <CreatorFeed lib={lib} id={creator} startId={startId} onPosition={(id) => set({ v: String(id) }, true)} />}
       {tab === 'following' && !creator && <FollowingFeed lib={lib} startId={startId} onPosition={(id) => set({ v: String(id) }, true)} onCreators={() => set({ tab: 'creators' })} />}
-      {tab === 'liked' && !creator && <GridOf lib={lib} query={`library=${lib.id}&liked=1&sort=latest`} empty="Videos you like appear here." />}
+      {tab === 'liked' && !creator && <GridOf lib={lib} query={`library=${lib.id}&liked=1&sort=latest`} empty={t('Videos you like appear here.')} />}
       {tab === 'creators' && !creator && <CreatorsGrid lib={lib} onOpen={(id) => set({ creator: String(id), tab: null, v: null })} />}
     </div>
   )
@@ -57,7 +58,7 @@ export default function ShortsLibrary({ lib }: { lib: Library }) {
 function GridOf({ lib, query, empty }: { lib: Library; query: string; empty: string }) {
   const { items, more, loadMore } = useVideoList(query)
   if (!items) return <Spinner />
-  if (!items.length) return <EmptyState title="Nothing here yet" text={empty} />
+  if (!items.length) return <EmptyState title={t('Nothing here yet')} text={empty} />
   return (
     <div className="sh-scroll">
       <div className="cr-grid vertical">{items.map((v) => <VideoTile key={v.id} v={v} to={`/library/${lib.id}?v=${v.id}`} />)}</div>
@@ -70,14 +71,14 @@ function CreatorsGrid({ lib, onOpen }: { lib: Library; onOpen: (id: number) => v
   const [list, setList] = useState<Creator[] | null>(null)
   useEffect(() => { api.get<Creator[]>(`/creators?library=${lib.id}`).then(setList).catch(() => setList([])) }, [lib.id])
   if (!list) return <Spinner />
-  if (!list.length) return <EmptyState title="No creators yet" text="Each folder in this library counts as a creator, unless a sidecar file names one." />
+  if (!list.length) return <EmptyState title={t('No creators yet')} text={t('Each folder in this library counts as a creator, unless a sidecar file names one.')} />
   return (
     <div className="sh-scroll">
       <div className="cr-people">
         {list.map((c) => (
           <button key={c.id} className="cr-person" onClick={() => onOpen(c.id)}>
             <Avatar id={c.id} name={c.name} has={c.hasAvatar} size={84} v={c.updatedAt} />
-            <b>{c.name}</b><span className="muted">{c.videos} {c.videos === 1 ? 'video' : 'videos'}{c.subscribed ? ' · following' : ''}</span>
+            <b>{c.name}</b><span className="muted">{tn('{count} video', '{count} videos', c.videos)}{c.subscribed ? ' · ' + t('following') : ''}</span>
           </button>
         ))}
       </div>
@@ -99,7 +100,7 @@ function Feed({ lib, startId, onPosition }: { lib: Library; startId: number | nu
 function FollowingFeed({ lib, startId, onPosition, onCreators }: { lib: Library; startId: number | null; onPosition: (id: number) => void; onCreators: () => void }) {
   const fetchPage = useCallback((offset: number) => api.get<{ videos: VideoCard[]; more: boolean }>(`/videos?library=${lib.id}&subscribed=1&limit=12&offset=${offset}`), [lib.id])
   return <Pager fetchPage={fetchPage} startId={startId} onPosition={onPosition} lib={lib}
-    empty={<EmptyState title="You aren't following anyone yet" text="Follow a creator from their video, or choose from the list." action={<button className="btn primary" onClick={onCreators}>See creators</button>} />} />
+    empty={<EmptyState title={t('You aren’t following anyone yet')} text={t('Follow a creator from their video, or choose from the list.')} action={<button className="btn primary" onClick={onCreators}>{t('See creators')}</button>} />} />
 }
 
 function CreatorFeed({ lib, id, startId, onPosition }: { lib: Library; id: number; startId: number | null; onPosition: (id: number) => void }) {
@@ -167,7 +168,7 @@ function Pager({ fetchPage, startId, onPosition, lib, reshuffle, empty }: {
   }
   const toggleMute = () => setMuted((m) => { try { localStorage.setItem('wms.shorts.muted', m ? '0' : '1') } catch { /* private window */ } return !m })
   if (!items) return <Spinner />
-  if (!items.length) return <>{empty || <EmptyState title="No videos yet" text="Put video files in this library's folders and scan it. Sidecar files can add creators, tags and where a video came from." />}</>
+  if (!items.length) return <>{empty || <EmptyState title={t('No videos yet')} text={t('Put video files in this library’s folders and scan it. Sidecar files can add creators, tags and where a video came from.')} />}</>
   return (
     <div className="sh-feed" ref={scroller}>
       {items.map((v, i) => (
@@ -177,8 +178,8 @@ function Pager({ fetchPage, startId, onPosition, lib, reshuffle, empty }: {
       ))}
       {!more && (
         <div className="sh-end" data-i={items.length}>
-          <p>You've reached the end.</p>
-          {reshuffle && <button className="btn primary" onClick={() => { reshuffle(); setItems(null); setActive(0); addPage(true) }}><IconRefresh /> Start again</button>}
+          <p>{t('You’ve reached the end.')}</p>
+          {reshuffle && <button className="btn primary" onClick={() => { reshuffle(); setItems(null); setActive(0); addPage(true) }}><IconRefresh /> {t('Start again')}</button>}
         </div>
       )}
     </div>
@@ -199,7 +200,7 @@ function Slide({ v, i, active, near, lib, muted, toggleMute, rate, setRate, onNe
     if (!canReact(user)) return
     const next = v.reaction > 0 ? 0 : 1
     onChange({ reaction: next, likes: v.likes + (next > 0 ? 1 : v.reaction > 0 ? -1 : 0) })
-    try { await api.put(`/items/${v.id}/reaction`, { value: next }) } catch { toast("Couldn't save that") }
+    try { await api.put(`/items/${v.id}/reaction`, { value: next }) } catch { toast(t('Couldn’t save that')) }
   }
   // On a remote, focus on the slide means Up and Down change video; Right
   // reaches the buttons. The app's own focus movement handles them from there.
@@ -219,7 +220,7 @@ function Slide({ v, i, active, near, lib, muted, toggleMute, rate, setRate, onNe
   const liked = v.reaction > 0
   return (
     <div className={'sh-slide' + (v.vertical ? '' : ' wide')} data-i={i} ref={root} tabIndex={active ? 0 : -1} onKeyDown={onKey}
-      aria-label={`${v.title}, by ${v.creator}. Up and Down change video, Right reaches the buttons.`} role="group">
+      aria-label={t('{title}, by {creator}. Up and Down change video, Right reaches the buttons.', { title: v.title, creator: v.creator })} role="group">
       <div className="sh-stage">
         {near && !active && <img className="sh-poster" src={videoThumb(v.id, 640, v.updatedAt)} alt="" />}
         {!near && <div className="sh-poster blank" />}
@@ -229,24 +230,24 @@ function Slide({ v, i, active, near, lib, muted, toggleMute, rate, setRate, onNe
             <Avatar id={v.creatorId} name={v.creator} has={v.hasAvatar} size={36} /><b>{v.creator}</b>
           </Link>
           <p>{v.title}</p>
-          {v.tags.length > 0 && <div className="sh-tags">{v.tags.slice(0, 4).map((t) => <span key={t}>#{t}</span>)}</div>}
-          <div className="sh-why">{[v.platform, v.reason].filter(Boolean).join(' · ')}</div>
+          {v.tags.length > 0 && <div className="sh-tags">{v.tags.slice(0, 4).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
+          <div className="sh-why">{[v.platform, tx(v.reason)].filter(Boolean).join(' · ')}</div>
         </div>
       </div>
       {active && (
-        <div className="sh-rail" role="toolbar" aria-label="Video actions" aria-orientation="vertical">
-          <button className={'sh-act' + (liked ? ' on' : '')} aria-pressed={liked} disabled={!canReact(user)} onClick={like} title="Like (L)"><i>♥</i><span>{fmtCount(likesOf(v)) }</span></button>
-          <button className="sh-act" onClick={() => setSheet('comments')} title="Comments (C)"><i>💬</i><span>{fmtCount(v.comments)}</span></button>
-          <button className="sh-act" onClick={() => setSheet('share')}><i>↗</i><span>Share</span></button>
+        <div className="sh-rail" role="toolbar" aria-label={t('Video actions')} aria-orientation="vertical">
+          <button className={'sh-act' + (liked ? ' on' : '')} aria-pressed={liked} disabled={!canReact(user)} onClick={like} title={t('Like (L)')}><i>♥</i><span>{fmtCount(likesOf(v)) }</span></button>
+          <button className="sh-act" onClick={() => setSheet('comments')} title={t('Comments (C)')}><i>💬</i><span>{fmtCount(v.comments)}</span></button>
+          <button className="sh-act" onClick={() => setSheet('share')}><i>↗</i><span>{t('Share')}</span></button>
           <SpeedAct rate={rate} setRate={setRate} />
-          <button className="sh-act" onClick={() => setSheet('about')}><i>ⓘ</i><span>About</span></button>
-          {user?.isAdmin && <button className="sh-act" onClick={() => setSheet('edit')}><i><IconEdit size={22} /></i><span>Edit</span></button>}
+          <button className="sh-act" onClick={() => setSheet('about')}><i>ⓘ</i><span>{t('About')}</span></button>
+          {user?.isAdmin && <button className="sh-act" onClick={() => setSheet('edit')}><i><IconEdit size={22} /></i><span>{t('Edit')}</span></button>}
         </div>
       )}
       {sheet === 'comments' && (
         <div className="modal-backdrop" onClick={() => setSheet(null)}>
-          <div className="modal sh-sheet" role="dialog" aria-modal="true" aria-label="Comments" onClick={(e) => e.stopPropagation()}>
-            <button className="ibtn sh-sheet-x" onClick={() => setSheet(null)} aria-label="Close"><IconClose /></button>
+          <div className="modal sh-sheet" role="dialog" aria-modal="true" aria-label={t('Comments')} onClick={(e) => e.stopPropagation()}>
+            <button className="ibtn sh-sheet-x" onClick={() => setSheet(null)} aria-label={t('Close')}><IconClose /></button>
             <Comments itemId={v.id} count={v.comments} />
           </div>
         </div>
@@ -254,7 +255,7 @@ function Slide({ v, i, active, near, lib, muted, toggleMute, rate, setRate, onNe
       {sheet === 'about' && (
         <div className="modal-backdrop" onClick={() => setSheet(null)}>
           <div className="modal sh-sheet" role="dialog" aria-modal="true" aria-labelledby="sh-about" onClick={(e) => e.stopPropagation()}>
-            <button className="ibtn sh-sheet-x" onClick={() => setSheet(null)} aria-label="Close"><IconClose /></button>
+            <button className="ibtn sh-sheet-x" onClick={() => setSheet(null)} aria-label={t('Close')}><IconClose /></button>
             <h2 id="sh-about">{v.title}</h2>
             {detail && <About d={detail} lib={lib} onCreator={(on) => { setDetail({ ...detail }); onChange({}); void on }} />}
           </div>
@@ -275,17 +276,17 @@ function About({ d, lib, onCreator }: { d: VideoDetail; lib: Library; onCreator:
       {creator && (
         <div className="sh-about-who">
           <Link to={`/library/${lib.id}?creator=${creator.id}`}><Avatar id={creator.id} name={creator.name} has={creator.hasAvatar} size={44} /></Link>
-          <span><b>{creator.name}</b><br /><span className="muted">{creator.videos} videos</span></span>
+          <span><b>{creator.name}</b><br /><span className="muted">{tn('{count} video', '{count} videos', creator.videos)}</span></span>
           <SubscribeButton c={creator} onChange={(on) => { setCreator({ ...creator, subscribed: on }); onCreator(on) }} />
         </div>
       )}
       {d.description && <p className="sh-desc">{d.description}</p>}
       <dl>
-        {d.uploadDate && <><dt>Date</dt><dd>{d.uploadDate}</dd></>}
-        {d.platform && <><dt>Platform of origin</dt><dd>{d.platform}</dd></>}
-        {d.sourceUrl && <><dt>Source</dt><dd><WebLink href={d.sourceUrl}>{d.sourceUrl}</WebLink></dd></>}
-        {d.origViews > 0 && <><dt>Views at the source</dt><dd>{d.origViews.toLocaleString()}</dd></>}
-        {d.views > 0 && <><dt>Plays here</dt><dd>{d.views.toLocaleString()}</dd></>}
+        {d.uploadDate && <><dt>{t('Date')}</dt><dd>{d.uploadDate}</dd></>}
+        {d.platform && <><dt>{t('Platform of origin')}</dt><dd>{d.platform}</dd></>}
+        {d.sourceUrl && <><dt>{t('Source')}</dt><dd><WebLink href={d.sourceUrl}>{d.sourceUrl}</WebLink></dd></>}
+        {d.origViews > 0 && <><dt>{t('Views at the source')}</dt><dd>{num(d.origViews)}</dd></>}
+        {d.views > 0 && <><dt>{t('Plays here')}</dt><dd>{num(d.views)}</dd></>}
         {custom.map(([k, x]) => <div key={k} style={{ display: 'contents' }}><dt>{k}</dt><dd>{String(x)}</dd></div>)}
       </dl>
       <LegalNote kind="creators" />
@@ -298,10 +299,10 @@ function SpeedAct({ rate, setRate }: { rate: number; setRate: (r: number) => voi
   useEffect(() => { getPrefs().then((p) => setMaxSpeed(p.maxSpeed || 4)).catch(() => {}) }, [])
   const options = SPEEDS.filter((s) => s >= 0.5 && s <= maxSpeed)
   return (
-    <label className="sh-act sh-speed" title="Playback speed">
-      <i>{rate}×</i><span>Speed</span>
-      <select value={rate} aria-label="Playback speed" onChange={(e) => setRate(Number(e.target.value))}>
-        {options.map((s) => <option key={s} value={s}>{s === 1 ? 'Normal' : `${s}×`}</option>)}
+    <label className="sh-act sh-speed" title={t('Playback speed')}>
+      <i>{rate}×</i><span>{t('Speed')}</span>
+      <select value={rate} aria-label={t('Playback speed')} onChange={(e) => setRate(Number(e.target.value))}>
+        {options.map((s) => <option key={s} value={s}>{s === 1 ? t('Normal') : `${s}×`}</option>)}
       </select>
     </label>
   )
@@ -357,15 +358,15 @@ function ActiveVideo({ v, muted, toggleMute, rate, onDone }: { v: VideoCard; mut
           onDone()
         }}
         onTimeUpdate={(e) => {
-          const t = e.currentTarget.currentTime, d = t - last.current
+          const now = e.currentTarget.currentTime, d = now - last.current
           if (d > 0 && d < 5) watched.current += d
-          last.current = t
-          setTime(t)
+          last.current = now
+          setTime(now)
         }} />
       {err && <div className="overlay-msg"><div className="box">{err}</div></div>}
       {(paused || blocked) && !err && <span className="sh-paused" aria-hidden="true"><IconPlay size={46} /></span>}
-      <button className="sh-mute" onClick={(e) => { e.stopPropagation(); toggleMute() }} aria-pressed={muted} aria-label={muted ? 'Sound on' : 'Sound off'} title="Sound (M)">{muted ? <IconMute /> : <IconVolume />}</button>
-      <button className="sh-play" onClick={(e) => { e.stopPropagation(); toggle() }} aria-label={paused ? 'Play' : 'Pause'}>{paused ? <IconPlay /> : <IconPause />}</button>
+      <button className="sh-mute" onClick={(e) => { e.stopPropagation(); toggleMute() }} aria-pressed={muted} aria-label={muted ? t('Sound on') : t('Sound off')} title={t('Sound (M)')}>{muted ? <IconMute /> : <IconVolume />}</button>
+      <button className="sh-play" onClick={(e) => { e.stopPropagation(); toggle() }} aria-label={paused ? t('Play') : t('Pause')}>{paused ? <IconPlay /> : <IconPause />}</button>
       <div className="sh-bar" aria-hidden="true"><i style={{ width: dur > 0 ? `${Math.min(100, (time / dur) * 100)}%` : 0 }} /></div>
     </div>
   )

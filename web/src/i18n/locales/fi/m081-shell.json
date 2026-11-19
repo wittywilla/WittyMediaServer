@@ -1,0 +1,17 @@
+{
+  "Episode number": "Jakson numero",
+  "Episode {episode}": "Jakso {episode}",
+  "Episodes {episodes}": "Jaksot {episodes}",
+  "Last episode": "Viimeinen jakso",
+  "Season number": "Kauden numero",
+  "Show episodes as": "Näytä jaksot",
+  "Special {episode}": "Erikoisjakso {episode}",
+  "Specials {episodes}": "Erikoisjaksot {episodes}",
+  "S{season} · E{episode}": "K{season} · J{episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "Näytönohjaimesi voi muuntaa videota murto-osalla prosessorityöstä. Jokainen testataan palvelimen käynnistyessä, ne, joita koneessasi ei ole, näkyvät harmaina, ja jokainen toimiva on valittuna, kunnes valitset itse: ensimmäistä valittua toimivaa käytetään, ja kuva pysyy sirulla purkamisesta koodaukseen, kun se on mahdollista. Jos mitään ei ole valittu, kaikki tehdään ohjelmistolla, mikä antaa parhaan laadun kokoon nähden ja kuormittaa prosessoria eniten.",
+  "{left} of {count} left": {
+    "one": "{left}/{count} jäljellä",
+    "other": "{left}/{count} jäljellä"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

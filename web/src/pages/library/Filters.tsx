@@ -7,6 +7,7 @@ import { Button, Chip, Dialog, Field, Input, Sheet } from '../../ui'
 import SpecPage from '../../spec/SpecPage'
 import { handledIds } from '../../spec/model'
 import { FILTER_KEYS, FILTER_LABELS, facetLabel, filterSpec, pressFilter } from '../../spec/specs/filters'
+import { t, tx } from '../../i18n'
 
 // Everything a library can be narrowed down by. What's chosen lives in the address.
 
@@ -21,14 +22,14 @@ export function ActiveFilters({ params, setParam, onSave, onClear, platforms }: 
   // A service is filtered by its key, and shown by its name.
   const shown = (k: string) => (k === 'platform' && platforms?.find((p) => p.key === params.get(k))?.name) || friendly(k, params.get(k)!)
   return (
-    <div className="lib-active" role="group" aria-label="Filters" data-nav-group>
+    <div className="lib-active" role="group" aria-label={t('Filters')} data-nav-group>
       {on.map((k) => (
-        <Chip key={k} onRemove={() => setParam(k, '')} removeLabel={`Take off ${LABELS[k]} ${shown(k)}`}>
-          <span className="muted">{LABELS[k]}:</span>&nbsp;{shown(k)}
+        <Chip key={k} onRemove={() => setParam(k, '')} removeLabel={t('Take off {filter} {value}', { filter: tx(LABELS[k]), value: shown(k) })}>
+          <span className="muted">{t('{filter}:', { filter: tx(LABELS[k]) })}</span>&nbsp;{shown(k)}
         </Chip>
       ))}
-      <Button size="sm" variant="ghost" onClick={onSave}>Save this view</Button>
-      {on.length > 1 && <Button size="sm" variant="ghost" onClick={onClear}>Clear all</Button>}
+      <Button size="sm" variant="ghost" onClick={onSave}>{t('Save this view')}</Button>
+      {on.length > 1 && <Button size="sm" variant="ghost" onClick={onClear}>{t('Clear all')}</Button>}
     </div>
   )
 }
@@ -51,15 +52,15 @@ export function FilterPanel({ library, params, setParam, onClear, onSave, onClos
     else onClose()
   }
   return (
-    <Sheet title="Filters" className="lib-filter" onClose={onClose}>
+    <Sheet title={t('Filters')} className="lib-filter" onClose={onClose}>
       {err && <div className="error" role="alert">{err}</div>}
       {!f && !err && <div className="loading-box"><div className="spinner" /></div>}
       {f && (
         <SpecPage page={page} embedded handled={handledIds(page)} onAction={press}
           before={(
             <form className="field-row" onSubmit={(e) => { e.preventDefault(); setParam('search', search.trim()) }}>
-              <Input aria-label="Words in the title" placeholder="Words in the title" value={search} onChange={(e) => setSearch(e.target.value)} />
-              <Button type="submit">Find</Button>
+              <Input aria-label={t('Words in the title')} placeholder={t('Words in the title')} value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Button type="submit">{t('Find')}</Button>
             </form>
           )} />
       )}
@@ -80,15 +81,15 @@ export function SaveViewDialog({ library, params, onClose, onSaved }: { library:
     try { await api.post<SavedView>('/views', { libraryId: library, name, query: q.toString(), pinned }); onSaved() } catch (e: any) { setErr(e.message) }
   }
   return (
-    <Dialog title="Save this view" size="sm" onClose={onClose}
-      description="It's yours alone, and it keeps itself up to date as your library changes."
+    <Dialog title={t('Save this view')} size="sm" onClose={onClose}
+      description={t('It’s yours alone, and it keeps itself up to date as your library changes.')}
       actions={<>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" disabled={!name.trim()} onClick={save}>Save</Button>
+        <Button variant="ghost" onClick={onClose}>{t('Cancel')}</Button>
+        <Button variant="primary" disabled={!name.trim()} onClick={save}>{t('Save')}</Button>
       </>}>
       <form className="form full" onSubmit={(e) => { e.preventDefault(); save() }}>
-        <Field label="Name"><Input autoFocus value={name} maxLength={60} onChange={(e) => setName(e.target.value)} /></Field>
-        <label className="lib-check"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> Pin it to Home</label>
+        <Field label={t('Name')}><Input autoFocus value={name} maxLength={60} onChange={(e) => setName(e.target.value)} /></Field>
+        <label className="lib-check"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> {t('Pin it to Home')}</label>
         {err && <div className="error" role="alert">{err}</div>}
       </form>
     </Dialog>

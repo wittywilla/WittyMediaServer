@@ -3,6 +3,8 @@
 // TV mode's tabs and what Back and the bumpers do there, as plain rules with nothing from the page,
 // so they can be tested (nav.test.mjs). docs/plans/TV-MODE.md has the contract; TvFrame.tsx uses them.
 
+const tk = <S extends string>(english: S): S => english // marks text translated where it's shown (no i18n import: node tests load this file)
+
 // A tab of the top bar. `screen` names one of the app's own screens (profiles: You, with the profile's picture).
 export type TabId = string
 export type TvTab = { id: TabId; path: string; label: string; icon?: string; screen?: string }
@@ -30,7 +32,7 @@ function split(items: MenuEntry[]) {
 export function tabsFromMenu(items: MenuEntry[]): TvTab[] {
   const { usable, bar, more, search } = split(items)
   const tabs = bar.map(tabOf)
-  if (more.length) tabs.push({ id: 'more', path: MORE_PATH, label: 'More', icon: 'more' })
+  if (more.length) tabs.push({ id: 'more', path: MORE_PATH, label: tk('More'), icon: 'more' })
   // Search is always the last thing before You (docs/plans/DESIGN-2.md section 1, rule 4).
   if (search) tabs.push(tabOf(search))
   return [...tabs, ...usable.filter((it) => it.placement === 'end' && it.id !== 'search').map(tabOf)]

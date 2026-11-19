@@ -7,6 +7,7 @@ import { decodeLevels, defaultLevel, encodeLevels, levelOf, routesFor, levelsKey
 import { StemSet, type StemPlayer } from './stems'
 import { decodeFx, encodeFx, FX_OFF, fxKey, type Fx } from './voiceFx'
 import type { PlayerView } from './types'
+import { t, tx } from '../i18n'
 
 // Karaoke from a song's separate parts. Opening karaoke asks the server once; it makes a
 // quick version if the song has none, and a properly separated one behind it if it can.
@@ -73,7 +74,7 @@ export function useKaraokeStems(p: PlayerView) {
     }).catch((e: unknown) => {
       if (stop.signal.aborted) return
       drop()
-      setLost(e instanceof Error && !/^stem \d+$/.test(e.message) && e.name === 'Error' ? e.message : 'The song\'s separate parts couldn\'t be played here, so this is the normal track.')
+      setLost(e instanceof Error && !/^stem \d+$/.test(e.message) && e.name === 'Error' ? e.message : t('The song’s separate parts couldn’t be played here, so this is the normal track.'))
     })
     return () => stop.abort()
   }, [version, id, normalSpeed]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -107,7 +108,7 @@ export function useKaraokeStems(p: PlayerView) {
   const installable = answer?.separator === 'installable'
   const admin = !!user?.isAdmin
   const toSettings = () => p.goTowards('/settings/metadata#lyrics')
-  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, fx, setFx, installable, admin, toSettings, note: statusLine(answer, lost) }
+  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, fx, setFx, installable, admin, toSettings, note: statusLine(answer, lost, t) }
 }
 
 export type KaraokeStemsState = ReturnType<typeof useKaraokeStems>
@@ -134,35 +135,35 @@ export function KaraokeStemsControl({ k, hide = [] }: { k: KaraokeStemsState; hi
   if (!k.active || !playable(a)) {
     if (!k.waiting) return null
     return (
-      <div className="kar-stems kar-mix kar-mix-wait" role="group" aria-label="Mix" aria-busy="true">
+      <div className="kar-stems kar-mix kar-mix-wait" role="group" aria-label={t('Mix')} aria-busy="true">
         {rows.length > 0 && <div className="kar-mix-rows">
-          {rows.map((r) => <Level key={r.id} label={r.label} value={1} onChange={noop} disabled />)}
+          {rows.map((r) => <Level key={r.id} label={tx(r.label)} value={1} onChange={noop} disabled />)}
         </div>}
         <div className="kar-mix-pills" aria-hidden="true">
-          {voice && <button type="button" className="kar-chip" disabled tabIndex={-1}>Voice off</button>}
-          {voice && <button type="button" className="kar-chip" disabled tabIndex={-1}>Guide voice</button>}
-          <button type="button" className="kar-chip" disabled tabIndex={-1}>Reset</button>
+          {voice && <button type="button" className="kar-chip" disabled tabIndex={-1}>{t('Voice off')}</button>}
+          {voice && <button type="button" className="kar-chip" disabled tabIndex={-1}>{t('Guide voice')}</button>}
+          <button type="button" className="kar-chip" disabled tabIndex={-1}>{t('Reset')}</button>
         </div>
-        <p className="kar-mix-note" role="status">{k.note || 'Getting the karaoke version…'}</p>
+        <p className="kar-mix-note" role="status">{k.note || t('Getting the karaoke version…')}</p>
       </div>
     )
   }
   const pristine = !k.sing && MIX.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))
   return (
-    <div className="kar-stems kar-mix" role="group" aria-label="Mix">
+    <div className="kar-stems kar-mix" role="group" aria-label={t('Mix')}>
       {rows.length > 0 && <div className="kar-mix-rows">
-        {rows.map((r) => <Level key={r.id} label={r.label} value={r.id === 'vocals' && k.sing ? 0 : levelOf(a, k.levels, r.id)} onChange={(n) => k.setLevel(r.id, n)} />)}
+        {rows.map((r) => <Level key={r.id} label={tx(r.label)} value={r.id === 'vocals' && k.sing ? 0 : levelOf(a, k.levels, r.id)} onChange={(n) => k.setLevel(r.id, n)} />)}
       </div>}
       <div className="kar-mix-pills">
-        {voice && <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title="Take the singer out, or put them back (V)">Voice off</button>}
-        {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', 0.2)} title="Keep the singer quietly, as a guide">Guide voice</button>}
-        <button type="button" className="kar-chip" onClick={k.reset} disabled={pristine}>Reset</button>
+        {voice && <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title={t('Take the singer out, or put them back (V)')}>{t('Voice off')}</button>}
+        {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', 0.2)} title={t('Keep the singer quietly, as a guide')}>{t('Guide voice')}</button>}
+        <button type="button" className="kar-chip" onClick={k.reset} disabled={pristine}>{t('Reset')}</button>
       </div>
       <p className="kar-mix-note">
-        {qualityName(a)}. The parts are separated on your server, so the levels are approximate.
+        {t('{quality}. The parts are separated on your server, so the levels are approximate.', { quality: qualityName(a, t) })}
         {k.installable && a.quality !== 'stems' && (k.admin
-          ? <> A cleaner, properly separated version is an optional install: <button type="button" className="np-link" onClick={k.toSettings}>Demucs in Settings</button>.</>
-          : <> A cleaner, properly separated version is an optional install an administrator can add.</>)}
+          ? <> {t('A cleaner, properly separated version is an optional install:')} <button type="button" className="np-link" onClick={k.toSettings}>{t('Demucs in Settings')}</button>.</>
+          : <> {t('A cleaner, properly separated version is an optional install an administrator can add.')}</>)}
       </p>
     </div>
   )

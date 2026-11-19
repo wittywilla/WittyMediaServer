@@ -9,6 +9,22 @@
 // component added to the server appears in the editor by itself. docs/SDUI.md, "The
 // editor's contract".
 
+// ---------------------------------------------------------------- words people read
+
+// This file runs without the app too (editorModel.test.mjs, under plain node), so it can't load the app's translations
+// itself. The editor hands it its t() and tn() (context.tsx, setModelWords); until then, and in the tests, the English
+// is used with its {names} filled in. Lists made when the file loads are marked with tk() and translated where shown.
+type Fill = Record<string, string | number>
+type Words = { t: (english: string, vars?: Fill) => string; tn: (one: string, other: string, count: number, vars?: Fill) => string }
+const english = (text: string, vars?: Fill) => (vars ? text.replace(/\{(\w+)\}/g, (whole, n: string) => (vars[n] === undefined ? whole : String(vars[n]))) : text)
+let wordsNow: Words = { t: english, tn: (one, other, n, vars) => english(n === 1 ? one : other, { count: n, ...vars }) }
+export const setModelWords = (w: Words) => { wordsNow = w }
+const t = (s: string, vars?: Fill) => wordsNow.t(s, vars)
+const tn = (one: string, other: string, n: number, vars?: Fill) => wordsNow.tn(one, other, n, vars)
+const tk = <S extends string>(s: S): S => s
+// "a or b or c", "a, and b": joined the language's way, two at a time.
+const joinWith = (items: string[], two: (a: string, b: string) => string) => (items.length ? items.reduce((a, b) => two(a, b)) : '')
+
 // ---------------------------------------------------------------- the catalogue
 
 export type Option = { value: string; label: string }
@@ -153,7 +169,7 @@ export function sourceGroups(cat: Catalogue, component: string, pageKind: string
     if (spec.accepts && spec.accepts.length && !spec.accepts.includes(s.type)) continue
     const kinds = s.pageKinds || []
     const fits = !kinds.length || kinds.includes(pageKind)
-    const why = fits ? '' : 'Only on ' + kinds.map((k) => (pageKindSpec(cat, k)?.label || k).toLowerCase()).join(' or ') + ' pages'
+    const why = fits ? '' : t('Only on {kinds} pages', { kinds: joinWith(kinds.map((k) => (pageKindSpec(cat, k)?.label || k).toLowerCase()), (a, b) => t('{a} or {b}', { a, b })) })
     let g = groups.find((x) => x.category === s.category)
     if (!g) { g = { category: s.category, label: words(s.category), items: [] }; groups.push(g) }
     g.items.push({ type: s.type, label: s.label, description: s.description, icon: s.icon, fits, why })
@@ -202,15 +218,15 @@ const ONE_LINE = 200
 
 function list(items: string[]): string {
   if (items.length < 2) return items.join('')
-  return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1]
+  return t('{list} and {last}', { list: items.slice(0, -1).join(', '), last: items[items.length - 1] })
 }
 
 // valueText: a value in the words the form uses for it.
 export function valueText(spec: Pick<PropSpec, 'type' | 'options'>, v: unknown): string {
   if (v === undefined || v === null) return ''
-  if (typeof v === 'boolean') return v ? 'On' : 'Off'
+  if (typeof v === 'boolean') return v ? t('On') : t('Off')
   const label = (x: unknown) => spec.options?.find((o) => o.value === x)?.label || String(x)
-  if (Array.isArray(v)) return v.length ? v.map(label).join(', ') : 'None'
+  if (Array.isArray(v)) return v.length ? v.map(label).join(', ') : t('None')
   if (isObject(v)) return JSON.stringify(v)
   return label(v)
 }
@@ -221,19 +237,19 @@ export function fieldFor(cat: Catalogue, spec: PropSpec, variables: string[] = [
   let kind: FieldKind = mapped || 'text'
   if (spec.type === 'text' && (spec.maxLength || 4000) > ONE_LINE) kind = 'multiline'
   const hasDefault = spec.default !== undefined && spec.default !== null && spec.default !== ''
-  const limits = spec.min !== undefined && spec.max !== undefined ? `${spec.min} to ${spec.max}`
-    : spec.min !== undefined ? `${spec.min} or more`
-    : spec.max !== undefined ? `${spec.max} at most`
-    : spec.maxLength ? `At most ${spec.maxLength} characters` : ''
+  const limits = spec.min !== undefined && spec.max !== undefined ? t('{min} to {max}', { min: spec.min, max: spec.max })
+    : spec.min !== undefined ? t('{min} or more', { min: spec.min })
+    : spec.max !== undefined ? t('{max} at most', { max: spec.max })
+    : spec.maxLength ? t('At most {count} characters', { count: spec.maxLength }) : ''
   const ffs = spec.formFactors || []
   const takesVariable = spec.type === 'string' || spec.type === 'library' || spec.type === 'ref'
   return {
     name: spec.name, kind, type: spec.type, known: !!mapped, label: spec.label || words(spec.name), help: spec.help || '', required: !!spec.required,
     options: spec.options || [], min: spec.min, max: spec.max, maxLength: spec.maxLength,
     hasDefault, defaultValue: hasDefault ? spec.default : undefined,
-    defaultText: hasDefault ? 'Default: ' + valueText(spec, spec.default) : '',
+    defaultText: hasDefault ? t('Default: {value}', { value: valueText(spec, spec.default) }) : '',
     placeholder: hasDefault && typeof spec.default !== 'boolean' && !Array.isArray(spec.default) ? valueText(spec, spec.default) : '',
-    limits, only: ffs.length ? 'Only on ' + list(ffs.map((f) => formFactorLabel(cat, f).toLowerCase())) : '',
+    limits, only: ffs.length ? t('Only on {formFactors}', { formFactors: list(ffs.map((f) => formFactorLabel(cat, f).toLowerCase())) }) : '',
     variables: takesVariable ? variables : [], placeholders: spec.type === 'text' || spec.type === 'markdown',
   }
 }
@@ -455,7 +471,7 @@ export function sectionTitle(cat: Catalogue, s: Section): string {
     if (typeof v === 'string' && v.trim()) return v.length > 60 ? v.slice(0, 57) + '…' : v
   }
   const src = typeof s.source?.type === 'string' ? sourceSpec(cat, s.source.type) : undefined
-  return src?.label || componentSpec(cat, s.component)?.label || s.component || 'Section'
+  return src?.label || componentSpec(cat, s.component)?.label || s.component || t('Section')
 }
 
 // newSection: a section of a type, ready to be filled in: required properties at their
@@ -531,29 +547,34 @@ export function tidyCondition(c: Condition | null | undefined): Condition | unde
 
 // conditionText: a condition in words, for a row that only has room for a line.
 export function conditionText(cat: Catalogue, c: Condition | null | undefined): string {
-  if (!c || isEmptyCondition(c)) return 'Always'
+  if (!c || isEmptyCondition(c)) return t('Always')
+  const and = (a: string, b: string) => t('{a}, and {b}', { a, b })
+  const or = (a: string, b: string) => t('{a}, or {b}', { a, b })
   const parts: string[] = []
   for (const spec of cat.conditions) {
     const v = c[spec.field]
     if (v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length)) continue
-    if (typeof v === 'boolean') parts.push(v ? spec.label : `Not: ${spec.label.toLowerCase()}`)
-    else parts.push(`${spec.label}: ${Array.isArray(v) ? v.map((x) => valueText(spec, x)).join(' or ') : valueText(spec, v)}`)
+    if (typeof v === 'boolean') parts.push(v ? spec.label : t('Not: {condition}', { condition: spec.label.toLowerCase() }))
+    else parts.push(t('{condition}: {value}', { condition: spec.label, value: Array.isArray(v) ? joinWith(v.map((x) => valueText(spec, x)), (a, b) => t('{a} or {b}', { a, b })) : valueText(spec, v) }))
   }
-  for (const k of Object.keys(c)) if (!COMBINERS.includes(k) && !cat.conditions.some((s) => s.field === k)) parts.push(`${words(k)}: ${toText(c[k])}`)
-  const group = (l: Condition[], joiner: string) => l.map((x) => { const t = conditionText(cat, x); return l.length > 1 && /, and |, or /.test(t) ? `(${t})` : t }).join(joiner)
-  if (Array.isArray(c.all) && c.all.length) parts.push(group(c.all, ', and '))
-  if (Array.isArray(c.any) && c.any.length) parts.push(c.any.length > 1 ? `(${group(c.any, ', or ')})` : group(c.any, ''))
-  if (isObject(c.not)) parts.push(isEmptyCondition(c.not as Condition) ? 'Never' : `Not (${conditionText(cat, c.not as Condition)})`)
-  return parts.join(', and ')
+  for (const k of Object.keys(c)) if (!COMBINERS.includes(k) && !cat.conditions.some((s) => s.field === k)) parts.push(t('{condition}: {value}', { condition: words(k), value: toText(c[k]) }))
+  // A part that is itself joined is put in brackets, so it is plain what goes with what.
+  const joined = (s: string) => [and('', ''), or('', '')].some((j) => j.trim() && s.includes(j))
+  const group = (l: Condition[], two: (a: string, b: string) => string) => joinWith(l.map((x) => { const text = conditionText(cat, x); return l.length > 1 && joined(text) ? t('({condition})', { condition: text }) : text }), two)
+  if (Array.isArray(c.all) && c.all.length) parts.push(group(c.all, and))
+  if (Array.isArray(c.any) && c.any.length) parts.push(c.any.length > 1 ? t('({condition})', { condition: group(c.any, or) }) : group(c.any, or))
+  if (isObject(c.not)) parts.push(isEmptyCondition(c.not as Condition) ? t('Never') : t('Not ({condition})', { condition: conditionText(cat, c.not as Condition) }))
+  return joinWith(parts, and)
 }
 
 // ---------------------------------------------------------------- pages
 
-export const SOURCE_WORDS: Record<string, string> = { builtin: 'Built-in', changed: 'Changed', custom: 'Yours' }
+// Shown with tx() where they are drawn.
+export const SOURCE_WORDS: Record<string, string> = { builtin: tk('Built-in'), changed: tk('Changed'), custom: tk('Yours') }
 export const SOURCE_HELP: Record<string, string> = {
-  builtin: 'As it comes with the server.',
-  changed: 'A built-in page you have changed. Resetting it brings the built-in one back.',
-  custom: 'A page of your own.',
+  builtin: tk('As it comes with the server.'),
+  changed: tk('A built-in page you have changed. Resetting it brings the built-in one back.'),
+  custom: tk('A page of your own.'),
 }
 
 // matchText: what a page is for, in words.
@@ -561,10 +582,10 @@ export function matchText(cat: Catalogue, entry: { kind: string; match?: Match |
   const kind = pageKindSpec(cat, entry.kind)
   const m = entry.match || {}
   const parts: string[] = []
-  if (m.library) parts.push(`the library ${libraries.find((l) => l.id === m.library)?.name || '#' + m.library}`)
-  if (m.libraryKind) parts.push(`${libraryKindLabel(cat, m.libraryKind).toLowerCase()} libraries`)
-  if (m.mediaKind) parts.push(`${words(m.mediaKind).toLowerCase()} titles`)
-  if (parts.length) return `${kind?.label || words(entry.kind)}: only ${parts.join(', ')}`
+  if (m.library) parts.push(t('the library {name}', { name: libraries.find((l) => l.id === m.library)?.name || '#' + m.library }))
+  if (m.libraryKind) parts.push(t('{kind} libraries', { kind: libraryKindLabel(cat, m.libraryKind).toLowerCase() }))
+  if (m.mediaKind) parts.push(t('{kind} titles', { kind: words(m.mediaKind).toLowerCase() }))
+  if (parts.length) return t('{kind}: only {what}', { kind: kind?.label || words(entry.kind), what: parts.join(', ') })
   return kind ? `${kind.label}. ${kind.description}` : words(entry.kind)
 }
 
@@ -574,8 +595,8 @@ export function pageName(cat: Catalogue, p: { id: string; title?: string; kind: 
   if (p.title && !p.title.includes('{')) return p.title
   const kind = pageKindSpec(cat, p.kind)?.label || words(p.kind) || p.id
   const m = p.match || {}
-  const what = m.libraryKind ? libraryKindLabel(cat, m.libraryKind) : m.mediaKind ? words(m.mediaKind) : m.library ? `library #${m.library}` : ''
-  return what ? `${kind}: ${what}` : kind
+  const what = m.libraryKind ? libraryKindLabel(cat, m.libraryKind) : m.mediaKind ? words(m.mediaKind) : m.library ? t('library #{id}', { id: String(m.library) }) : ''
+  return what ? t('{kind}: {what}', { kind, what }) : kind
 }
 
 // tidyPage: the page as it is saved: nothing empty left lying in it.
@@ -642,28 +663,28 @@ export function withRootSections(page: Page, variant: number, sections: Section[
 // parsePageJson: a page typed as JSON, or what is wrong with it. Never a half-read page.
 export function parsePageJson(text: string, id: string): { page: Page } | { error: string } {
   let v: unknown
-  try { v = JSON.parse(text) } catch (e) { return { error: 'That isn’t JSON yet: ' + (e instanceof Error ? e.message : String(e)) } }
-  if (!isObject(v)) return { error: 'A page is written between { and }.' }
-  if (v.id !== undefined && v.id !== id) return { error: `This is the page “${id}”. The JSON calls itself “${String(v.id)}”: keep the ID, or make a new page for it.` }
-  if (v.sections !== undefined && !Array.isArray(v.sections)) return { error: '“sections” is a list, between [ and ].' }
-  if (v.variants !== undefined && !Array.isArray(v.variants)) return { error: '“variants” is a list, between [ and ].' }
+  try { v = JSON.parse(text) } catch (e) { return { error: t('That isn’t JSON yet: {error}', { error: e instanceof Error ? e.message : String(e) }) } }
+  if (!isObject(v)) return { error: t('A page is written between { and }.') }
+  if (v.id !== undefined && v.id !== id) return { error: t('This is the page “{id}”. The JSON calls itself “{other}”: keep the ID, or make a new page for it.', { id, other: String(v.id) }) }
+  if (v.sections !== undefined && !Array.isArray(v.sections)) return { error: t('“sections” is a list, between [ and ].') }
+  if (v.variants !== undefined && !Array.isArray(v.variants)) return { error: t('“variants” is a list, between [ and ].') }
   return { page: { ...(v as unknown as Page), id, kind: typeof v.kind === 'string' ? v.kind : '', title: typeof v.title === 'string' ? v.title : '', sections: (v.sections as Section[]) || [] } }
 }
 
 export function parseNavigationJson(text: string): { navigation: Navigation } | { error: string } {
   let v: unknown
-  try { v = JSON.parse(text) } catch (e) { return { error: 'That isn’t JSON yet: ' + (e instanceof Error ? e.message : String(e)) } }
-  if (!isObject(v) || !Array.isArray(v.items)) return { error: 'A menu is written as { "items": [ … ] }.' }
-  if (v.items.some((x) => !isObject(x))) return { error: 'Every entry is written between { and }.' }
+  try { v = JSON.parse(text) } catch (e) { return { error: t('That isn’t JSON yet: {error}', { error: e instanceof Error ? e.message : String(e) }) } }
+  if (!isObject(v) || !Array.isArray(v.items)) return { error: t('A menu is written as {example}.', { example: '{ "items": [ … ] }' }) }
+  if (v.items.some((x) => !isObject(x))) return { error: t('Every entry is written between { and }.') }
   return { navigation: { items: v.items as NavItem[] } }
 }
 
 // limitNote: a word of warning as a page nears what the server allows.
 export function limitNote(cat: Catalogue, page: Page): string {
   const max = cat.limits?.maxSections, n = pageIds(page).length
-  if (max && n >= max) return `This page has ${n} sections, which is the most a page can hold (${max}).`
+  if (max && n >= max) return t('This page has {count} sections, which is the most a page can hold ({max}).', { count: n, max })
   const variants = cat.limits?.maxVariants
-  if (variants && (page.variants?.length || 0) >= variants) return `This page has the most variants a page can have (${variants}).`
+  if (variants && (page.variants?.length || 0) >= variants) return t('This page has the most variants a page can have ({max}).', { max: variants })
   return ''
 }
 
@@ -672,11 +693,11 @@ export function limitNote(cat: Catalogue, page: Page): string {
 // The kinds of entry a menu holds. The catalogue doesn't list them (the validator names
 // them), so they are spelled out here: the one list in this file that is.
 export const NAV_TYPES: { value: string; label: string; help: string }[] = [
-  { value: 'page', label: 'A page', help: 'Opens one of the pages.' },
-  { value: 'libraries', label: 'Every library', help: 'One entry for each library the profile can open.' },
-  { value: 'library', label: 'One library', help: 'Opens a library you pick.' },
-  { value: 'native', label: 'A screen of the app', help: 'Opens something the app draws itself, such as the TV guide.' },
-  { value: 'route', label: 'A place in the app', help: 'Opens an address in the app, such as /library/3.' },
+  { value: 'page', label: tk('A page'), help: tk('Opens one of the pages.') },
+  { value: 'libraries', label: tk('Every library'), help: tk('One entry for each library the profile can open.') },
+  { value: 'library', label: tk('One library'), help: tk('Opens a library you pick.') },
+  { value: 'native', label: tk('A screen of the app'), help: tk('Opens something the app draws itself, such as the TV guide.') },
+  { value: 'route', label: tk('A place in the app'), help: tk('Opens an address in the app, such as /library/3.') },
 ]
 
 // The app's own screens a menu entry can open: the catalogue marks them `menu` (a server
@@ -707,11 +728,11 @@ export function setPlacement(cat: Catalogue, it: NavItem, formFactor: string, wh
 // navTitle: what an entry is called in the list, and what it is called when it has no label of its own.
 export function navTitle(cat: Catalogue, it: NavItem, pages: PageEntry[] = [], libraries: LibraryRef[] = []): string {
   if (it.label) return it.label
-  if (it.type === 'page') { const p = pages.find((x) => x.id === it.page); return p ? pageName(cat, p) : it.page || 'A page' }
-  if (it.type === 'libraries') return 'Every library'
-  if (it.type === 'library') return libraries.find((l) => l.id === it.library)?.name || (it.library ? `Library #${it.library}` : 'A library')
-  if (it.type === 'native') return cat.nativeScreens?.find((s) => s.screen === it.screen)?.label || it.screen || 'A screen'
-  return it.route || 'A place in the app'
+  if (it.type === 'page') { const p = pages.find((x) => x.id === it.page); return p ? pageName(cat, p) : it.page || t('A page') }
+  if (it.type === 'libraries') return t('Every library')
+  if (it.type === 'library') return libraries.find((l) => l.id === it.library)?.name || (it.library ? t('Library #{id}', { id: String(it.library) }) : t('A library'))
+  if (it.type === 'native') return cat.nativeScreens?.find((s) => s.screen === it.screen)?.label || it.screen || t('A screen')
+  return it.route || t('A place in the app')
 }
 
 export function newNavItem(type: string, taken: Iterable<string>): NavItem {
@@ -893,25 +914,25 @@ export function parseFix(issue: Pick<Issue, 'message' | 'fix'>, doc: unknown, po
   if (meant) {
     // The wrong word is the one the message quotes: it is either the value there or the name it is under.
     const wrong = /"([^"]*)"/.exec(issue.message)?.[1]
-    if (typeof value === 'string' && (wrong === undefined || value === wrong)) return { kind: 'set', value: meant[1], label: `Change to “${meant[1]}”` }
-    if (wrong !== undefined && lastPart(pointer) === wrong && value !== undefined) return { kind: 'rename', to: meant[1], label: `Rename to “${meant[1]}”` }
+    if (typeof value === 'string' && (wrong === undefined || value === wrong)) return { kind: 'set', value: meant[1], label: t('Change to “{value}”', { value: meant[1] }) }
+    if (wrong !== undefined && lastPart(pointer) === wrong && value !== undefined) return { kind: 'rename', to: meant[1], label: t('Rename to “{value}”', { value: meant[1] }) }
     return null
   }
-  if (/^Remove (it|kinds|the source|the condition|the repeat)\b/.test(fix)) return value === undefined ? null : { kind: 'remove', label: 'Remove it' }
+  if (/^Remove (it|kinds|the source|the condition|the repeat)\b/.test(fix)) return value === undefined ? null : { kind: 'remove', label: t('Remove it') }
   if (fix === 'Remove the control characters.' && typeof value === 'string') {
     // eslint-disable-next-line no-control-regex
-    return { kind: 'set', value: value.replace(/[\u0000\u001b]/g, ''), label: 'Remove them' }
+    return { kind: 'set', value: value.replace(/[\u0000\u001b]/g, ''), label: t('Remove them') }
   }
-  if (fix === 'Write a whole number without quotes.' && typeof value === 'string' && /^-?[0-9]+$/.test(value.trim())) return { kind: 'set', value: Number(value.trim()), label: `Make it the number ${value.trim()}` }
+  if (fix === 'Write a whole number without quotes.' && typeof value === 'string' && /^-?[0-9]+$/.test(value.trim())) return { kind: 'set', value: Number(value.trim()), label: t('Make it the number {value}', { value: value.trim() }) }
   if (fix === 'Write true or false without quotes.' && typeof value === 'string') {
-    const t = value.trim().toLowerCase()
-    if (['true', 'yes', 'on', '1'].includes(t)) return { kind: 'set', value: true, label: 'Turn it on' }
-    if (['false', 'no', 'off', '0'].includes(t)) return { kind: 'set', value: false, label: 'Turn it off' }
+    const typed = value.trim().toLowerCase()
+    if (['true', 'yes', 'on', '1'].includes(typed)) return { kind: 'set', value: true, label: t('Turn it on') }
+    if (['false', 'no', 'off', '0'].includes(typed)) return { kind: 'set', value: false, label: t('Turn it off') }
     return null
   }
-  if (fix === 'Write it in quotes.' && (typeof value === 'number' || typeof value === 'boolean')) return { kind: 'set', value: String(value), label: 'Make it text' }
-  if (fix === 'Use 0 for the default.') return { kind: 'set', value: 0, label: 'Use the default' }
-  if (/^Move (it|the grid) to the end\b/.test(fix) && /\/[0-9]+$/.test(pointer) && value !== undefined) return { kind: 'moveToEnd', label: 'Move it to the end' }
+  if (fix === 'Write it in quotes.' && (typeof value === 'number' || typeof value === 'boolean')) return { kind: 'set', value: String(value), label: t('Make it text') }
+  if (fix === 'Use 0 for the default.') return { kind: 'set', value: 0, label: t('Use the default') }
+  if (/^Move (it|the grid) to the end\b/.test(fix) && /\/[0-9]+$/.test(pointer) && value !== undefined) return { kind: 'moveToEnd', label: t('Move it to the end') }
   return null
 }
 
@@ -934,24 +955,25 @@ export function issueWhere(cat: Catalogue, page: Page, at: IssueTarget): string 
   }
   if (at.where === 'section') {
     const s = sectionAt(rootSections(page, at.variant), at.path)
-    const name = s ? sectionTitle(cat, s) : 'A section'
+    const name = s ? sectionTitle(cat, s) : t('A section')
     const spec = s && componentSpec(cat, s.component)
     let f = fieldWords(at.field)
     if (s && at.field.startsWith('props/')) f = spec?.props?.find((p) => p.name === at.field.slice(6))?.label || f
     if (s && at.field.startsWith('source/') && typeof s.source?.type === 'string') f = sourceSpec(cat, s.source.type)?.params?.find((p) => p.name === at.field.slice(7))?.label || f
-    return f ? `${name}, ${f}` : name
+    return f ? t('{section}, {field}', { section: name, field: f }) : name
   }
-  if (at.where === 'variant') return `Variant ${page.variants?.[at.variant]?.label || page.variants?.[at.variant]?.id || at.variant + 1}${at.field ? ', ' + fieldWords(at.field).toLowerCase() : ''}`
-  if (at.where === 'page') return at.field ? `The page’s ${fieldWords(at.field).toLowerCase()}` : 'The page'
-  return 'Elsewhere'
+  if (at.where === 'variant') {
+    const variant = page.variants?.[at.variant]?.label || page.variants?.[at.variant]?.id || String(at.variant + 1)
+    return at.field ? t('Variant {variant}, {field}', { variant, field: fieldWords(at.field).toLowerCase() }) : t('Variant {variant}', { variant })
+  }
+  if (at.where === 'page') return at.field ? t('The page’s {field}', { field: fieldWords(at.field).toLowerCase() }) : t('The page')
+  return t('Elsewhere')
 }
 
 // ---------------------------------------------------------------- what changed
 
 export type Change = { path: string; change: string; added?: string[]; removed?: string[]; changed?: string[]; reordered?: boolean; other?: string[] }
 export type ChangeLine = { title: string; details: string[]; page: string }
-
-const count = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`
 
 // describeChanges: the server's list of differences between two configurations, in sentences.
 // isBuiltin says whether a page ID is one the server ships, which is the difference between
@@ -961,21 +983,21 @@ export function describeChanges(changes: Change[], opts: { titleOf?: (id: string
     if (c.path.startsWith('/pages/')) {
       const id = c.path.slice(7)
       const name = opts.titleOf?.(id) || id
-      const shown = name !== id ? `${name} (${id})` : id
+      const shown = name !== id ? t('{name} ({id})', { name, id }) : id
       const builtin = opts.isBuiltin?.(id)
-      if (c.change === 'added') return { page: id, title: `${shown}: ${builtin === undefined ? 'new, or changed from the built-in page' : builtin ? 'changed from the built-in page' : 'a new page'}`, details: [] }
-      if (c.change === 'removed') return { page: id, title: `${shown}: ${builtin === undefined ? 'removed, or back to the built-in page' : builtin ? 'back to the built-in page' : 'removed'}`, details: [] }
+      if (c.change === 'added') return { page: id, title: builtin === undefined ? t('{page}: new, or changed from the built-in page', { page: shown }) : builtin ? t('{page}: changed from the built-in page', { page: shown }) : t('{page}: a new page', { page: shown }), details: [] }
+      if (c.change === 'removed') return { page: id, title: builtin === undefined ? t('{page}: removed, or back to the built-in page', { page: shown }) : builtin ? t('{page}: back to the built-in page', { page: shown }) : t('{page}: removed', { page: shown }), details: [] }
       const details: string[] = []
-      if (c.added?.length) details.push(`${count(c.added.length, 'section')} added: ${c.added.join(', ')}`)
-      if (c.removed?.length) details.push(`${count(c.removed.length, 'section')} removed: ${c.removed.join(', ')}`)
-      if (c.changed?.length) details.push(`${count(c.changed.length, 'section')} changed: ${c.changed.join(', ')}`)
-      if (c.reordered) details.push('The sections are in another order')
-      if (c.other?.length) details.push(`Also different: ${c.other.map((o) => words(o).toLowerCase()).join(', ')}`)
-      return { page: id, title: `${shown}: changed`, details }
+      if (c.added?.length) details.push(tn('{count} section added: {ids}', '{count} sections added: {ids}', c.added.length, { ids: c.added.join(', ') }))
+      if (c.removed?.length) details.push(tn('{count} section removed: {ids}', '{count} sections removed: {ids}', c.removed.length, { ids: c.removed.join(', ') }))
+      if (c.changed?.length) details.push(tn('{count} section changed: {ids}', '{count} sections changed: {ids}', c.changed.length, { ids: c.changed.join(', ') }))
+      if (c.reordered) details.push(t('The sections are in another order'))
+      if (c.other?.length) details.push(t('Also different: {what}', { what: c.other.map((o) => words(o).toLowerCase()).join(', ') }))
+      return { page: id, title: t('{page}: changed', { page: shown }), details }
     }
-    if (c.path === '/navigation') return { page: '', title: 'The menu changed', details: [] }
-    if (c.path === '/theme') return { page: '', title: 'Theme colours changed', details: [] }
-    if (c.path === '/personalisation') return { page: '', title: 'Whether profiles may arrange pages changed', details: [] }
+    if (c.path === '/navigation') return { page: '', title: t('The menu changed'), details: [] }
+    if (c.path === '/theme') return { page: '', title: t('Theme colours changed'), details: [] }
+    if (c.path === '/personalisation') return { page: '', title: t('Whether profiles may arrange pages changed'), details: [] }
     return { page: '', title: `${c.path}: ${c.change}`, details: [] }
   })
 }
@@ -1021,10 +1043,10 @@ export function foldDiff(lines: DiffLine[], keep = 3): (DiffLine | { op: '…'; 
   const out: (DiffLine | { op: '…'; text: string })[] = []
   let skipped = 0
   lines.forEach((l, i) => {
-    if (near[i]) { if (skipped) { out.push({ op: '…', text: `${count(skipped, 'line')} the same` }); skipped = 0 } out.push(l) }
+    if (near[i]) { if (skipped) { out.push({ op: '…', text: tn('{count} line the same', '{count} lines the same', skipped) }); skipped = 0 } out.push(l) }
     else skipped++
   })
-  if (skipped && out.length) out.push({ op: '…', text: `${count(skipped, 'line')} the same` })
+  if (skipped && out.length) out.push({ op: '…', text: tn('{count} line the same', '{count} lines the same', skipped) })
   return out
 }
 
@@ -1061,10 +1083,10 @@ export function undoForward<T>(u: Undo<T>): Undo<T> {
 
 export type FormFactor = 'tv' | 'phone' | 'tablet' | 'desktop'
 export const PREVIEW_FRAMES: Record<FormFactor, { width: number; height: number; label: string }> = {
-  phone: { width: 390, height: 844, label: 'Phone' },
-  tablet: { width: 820, height: 1180, label: 'Tablet' },
-  desktop: { width: 1440, height: 900, label: 'Desktop' },
-  tv: { width: 1920, height: 1080, label: 'TV' },
+  phone: { width: 390, height: 844, label: tk('Phone') },
+  tablet: { width: 820, height: 1180, label: tk('Tablet') },
+  desktop: { width: 1440, height: 900, label: tk('Desktop') },
+  tv: { width: 1920, height: 1080, label: tk('TV') },
 }
 
 // What the preview tells the server about the device it is pretending to be.
@@ -1113,9 +1135,9 @@ export const exportName = (page?: string) => (page ? `wittymedia-page-${page}.js
 // readExport: a file someone chose to import, looked at before it is sent anywhere.
 export function readExport(text: string): { kind: 'page' | 'config'; name: string; body: unknown } | { error: string } {
   let v: unknown
-  try { v = JSON.parse(text) } catch { return { error: 'That file isn’t JSON. Choose a file that was exported from here.' } }
-  if (!isObject(v) || v.format !== 'wittymedia-ui') return { error: 'That isn’t a file exported from a WittyMediaServer’s pages. Choose one that Export made.' }
-  if (isObject(v.page)) return { kind: 'page', name: String((v.page as Record<string, unknown>).title || (v.page as Record<string, unknown>).id || 'A page'), body: v }
-  if (isObject(v.config)) return { kind: 'config', name: 'Every page and the menu', body: v }
-  return { error: 'That file holds neither a page nor a whole configuration.' }
+  try { v = JSON.parse(text) } catch { return { error: t('That file isn’t JSON. Choose a file that was exported from here.') } }
+  if (!isObject(v) || v.format !== 'wittymedia-ui') return { error: t('That isn’t a file exported from a WittyMediaServer’s pages. Choose one that Export made.') }
+  if (isObject(v.page)) return { kind: 'page', name: String((v.page as Record<string, unknown>).title || (v.page as Record<string, unknown>).id || t('A page')), body: v }
+  if (isObject(v.config)) return { kind: 'config', name: t('Every page and the menu'), body: v }
+  return { error: t('That file holds neither a page nor a whole configuration.') }
 }

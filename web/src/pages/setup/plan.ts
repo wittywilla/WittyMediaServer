@@ -3,7 +3,9 @@
 // Which steps first-time setup shows, and in what order. A step belongs to whatever needs it: the
 // server itself, or a module. A module's step only appears once that module is on this server, so
 // adding a step means adding one line here and one file beside this one. Nothing here touches the
-// page or the network, so it can be tested on its own (plan.test.mjs).
+// page or the network, so it can be tested on its own (plan.test.mjs). Its words are marked with tk and translated where
+// they're shown; describeOutcome is given the app's own words by the page.
+import { ENGLISH, tk, type Words } from './words.ts'
 
 export type StepId = 'welcome' | 'account' | 'storage' | 'name' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'theme' | 'people' | 'remote' | 'done'
 
@@ -37,24 +39,24 @@ export const canMake = (f: Facts, kind: string) => !f.kinds?.some((k) => k.type 
 // Modules, Libraries, Details and artwork, Live TV, Games, Discs, People and rules, Remote access and apps, Ready. The last
 // three of "Details and artwork" (logos, lyrics, streaming lists) are its pages, each with a question of its own to answer.
 export const STEPS: StepInfo[] = [
-  { id: 'welcome', label: 'Welcome', needs: 'server', when: (f) => !f.signedIn },
-  { id: 'account', label: 'Account', needs: 'server', when: (f) => !f.signedIn },
-  { id: 'storage', label: 'Where data is kept', needs: 'server', when: (f) => !!f.askData, noSkip: true, later: { where: 'Settings, Data folder', to: '/settings/data-folder' } },
-  { id: 'name', label: 'Name and address', needs: 'server', later: { where: 'Settings, Appearance, under Name and logo', to: '/settings/appearance#name' } },
-  { id: 'look', label: 'Look', needs: 'server', later: { where: 'Settings, Appearance', to: '/settings/appearance' } },
-  { id: 'theme', label: 'Theme', needs: 'server', later: { where: 'Settings, Appearance', to: '/settings/appearance#theme' } },
-  { id: 'modules', label: 'Modules', needs: 'server', when: (f) => f.store, later: { where: 'Settings, Modules', to: '/settings/modules' } },
-  { id: 'media', label: 'Libraries', needs: 'server', later: { where: 'Settings, Libraries', to: '/settings/libraries' } },
-  { id: 'details', label: 'Details and artwork', needs: 'server', later: { where: 'Settings, Metadata agents', to: '/settings/metadata' } },
-  { id: 'logos', label: 'Logos', needs: 'server', later: { where: 'Settings, Metadata agents, under Logos', to: '/settings/metadata#logos' } },
-  { id: 'music', label: 'Lyrics', needs: 'server', when: (f) => canMake(f, 'music'), later: { where: 'Settings, Metadata agents, under Lyrics', to: '/settings/metadata#lyrics' } },
-  { id: 'listings', label: 'Streaming lists', needs: 'server', when: (f) => canMake(f, 'movies') || canMake(f, 'shows'), later: { where: 'Settings, Metadata agents, under Streaming listings', to: '/settings/metadata#listings' } },
-  { id: 'tv', label: 'Live TV', needs: ['wittytuner'], later: { where: 'Settings, Channels & tuners', to: '/settings/channels' } },
-  { id: 'games', label: 'Games', needs: ['wittyplay'], later: { where: 'Settings, Game metadata', to: '/settings/game-metadata' } },
-  { id: 'discs', label: 'Discs', needs: ['wittydvd', 'wittybluray'], later: { where: 'Settings, DVDs and Blu-rays', to: '/settings/discs' } },
-  { id: 'people', label: 'People and rules', needs: 'server', later: { where: 'Settings, Profiles', to: '/settings/users' } },
-  { id: 'remote', label: 'Remote access and apps', needs: 'server', later: { where: 'Settings, Remote Access', to: '/settings/remote' } },
-  { id: 'done', label: 'Ready', needs: 'server' },
+  { id: 'welcome', label: tk('Welcome'), needs: 'server', when: (f) => !f.signedIn },
+  { id: 'account', label: tk('Account'), needs: 'server', when: (f) => !f.signedIn },
+  { id: 'storage', label: tk('Where data is kept'), needs: 'server', when: (f) => !!f.askData, noSkip: true, later: { where: tk('Settings, Data folder'), to: '/settings/data-folder' } },
+  { id: 'name', label: tk('Name and address'), needs: 'server', later: { where: tk('Settings, Appearance, under Name and logo'), to: '/settings/appearance#name' } },
+  { id: 'look', label: tk('Look'), needs: 'server', later: { where: tk('Settings, Appearance'), to: '/settings/appearance' } },
+  { id: 'theme', label: tk('Theme'), needs: 'server', later: { where: tk('Settings, Appearance'), to: '/settings/appearance#theme' } },
+  { id: 'modules', label: tk('Modules'), needs: 'server', when: (f) => f.store, later: { where: tk('Settings, Modules'), to: '/settings/modules' } },
+  { id: 'media', label: tk('Libraries'), needs: 'server', later: { where: tk('Settings, Libraries'), to: '/settings/libraries' } },
+  { id: 'details', label: tk('Details and artwork'), needs: 'server', later: { where: tk('Settings, Metadata agents'), to: '/settings/metadata' } },
+  { id: 'logos', label: tk('Logos'), needs: 'server', later: { where: tk('Settings, Metadata agents, under Logos'), to: '/settings/metadata#logos' } },
+  { id: 'music', label: tk('Lyrics'), needs: 'server', when: (f) => canMake(f, 'music'), later: { where: tk('Settings, Metadata agents, under Lyrics'), to: '/settings/metadata#lyrics' } },
+  { id: 'listings', label: tk('Streaming lists'), needs: 'server', when: (f) => canMake(f, 'movies') || canMake(f, 'shows'), later: { where: tk('Settings, Metadata agents, under Streaming listings'), to: '/settings/metadata#listings' } },
+  { id: 'tv', label: tk('Live TV'), needs: ['wittytuner'], later: { where: tk('Settings, Channels & tuners'), to: '/settings/channels' } },
+  { id: 'games', label: tk('Games'), needs: ['wittyplay'], later: { where: tk('Settings, Game metadata'), to: '/settings/game-metadata' } },
+  { id: 'discs', label: tk('Discs'), needs: ['wittydvd', 'wittybluray'], later: { where: tk('Settings, DVDs and Blu-rays'), to: '/settings/discs' } },
+  { id: 'people', label: tk('People and rules'), needs: 'server', later: { where: tk('Settings, Profiles'), to: '/settings/users' } },
+  { id: 'remote', label: tk('Remote access and apps'), needs: 'server', later: { where: tk('Settings, Remote Access'), to: '/settings/remote' } },
+  { id: 'done', label: tk('Ready'), needs: 'server' },
 ]
 
 // A page that belongs to another step's number: Details and artwork has four.
@@ -134,20 +136,20 @@ export function offerable<T extends Offerable>(items: T[]): T[] {
 // What each module does, for someone who's never heard of any of this. A catalogue's summaries are
 // written for the store, where people have gone looking. One that isn't here shows its own.
 export const PLAIN_WORDS: Record<string, string> = {
-  wittyintegratedfilebrowser: 'Lets you choose folders by looking through them, from any device, a TV or a phone included. Without it, you type a folder’s address.',
-  wittydvd: 'Copies of your DVDs, with their real menus, chapters and subtitles.',
-  wittybluray: 'Copies of your Blu-rays with their menus, 4K and 3D discs included.',
-  wittycd: 'Copies of your audio CDs, played like a CD player, with no gaps between tracks.',
-  wittyplay: 'Your own console games, played in a browser or the app, with any controller.',
-  wittycouch: 'Play the games on a PC of yours, from your browser. The PC needs Sunshine, a free program.',
-  wittyrigs: 'Run demanding PC games on a computer of your own, and play them from your other screens.',
-  wittytuner: 'Live TV and recording, from a TV tuner, an internet TV list or a capture card. Encrypted channels are refused.',
-  wittycomics: 'Comics and manga, a page at a time or as one long strip.',
-  wittyebook: 'E-books, with text you can resize, highlights and notes.',
-  wittypdf: 'PDF files, with zoom, search and a list of pages.',
-  wittyphotos: 'A timeline and albums of your photos, including the RAW files some cameras make.',
-  wittyvisualizer: 'Light shows that follow your music, full screen.',
-  wittystats: 'A page of charts about your server: what’s playing, your libraries and your history.',
+  wittyintegratedfilebrowser: tk('Lets you choose folders by looking through them, from any device, a TV or a phone included. Without it, you type a folder’s address.'),
+  wittydvd: tk('Copies of your DVDs, with their real menus, chapters and subtitles.'),
+  wittybluray: tk('Copies of your Blu-rays with their menus, 4K and 3D discs included.'),
+  wittycd: tk('Copies of your audio CDs, played like a CD player, with no gaps between tracks.'),
+  wittyplay: tk('Your own console games, played in a browser or the app, with any controller.'),
+  wittycouch: tk('Play the games on a PC of yours, from your browser. The PC needs Sunshine, a free program.'),
+  wittyrigs: tk('Run demanding PC games on a computer of your own, and play them from your other screens.'),
+  wittytuner: tk('Live TV and recording, from a TV tuner, an internet TV list or a capture card. Encrypted channels are refused.'),
+  wittycomics: tk('Comics and manga, a page at a time or as one long strip.'),
+  wittyebook: tk('E-books, with text you can resize, highlights and notes.'),
+  wittypdf: tk('PDF files, with zoom, search and a list of pages.'),
+  wittyphotos: tk('A timeline and albums of your photos, including the RAW files some cameras make.'),
+  wittyvisualizer: tk('Light shows that follow your music, full screen.'),
+  wittystats: tk('A page of charts about your server: what’s playing, your libraries and your history.'),
 }
 
 // Step numbers count the two pages before there was an account, so they don't go back to 1 after it.
@@ -171,23 +173,22 @@ export type Outcome = {
   updates: UpdateChoice
 }
 
-export function describeOutcome(o: Outcome, steps: StepInfo[]): { step: StepId; text: string; on: boolean }[] {
+export function describeOutcome(o: Outcome, steps: StepInfo[], { t, list }: Words = ENGLISH): { step: StepId; text: string; on: boolean }[] {
   const has = (id: StepId) => steps.some((s) => s.id === id)
-  const list = (names: string[]) => (names.length < 2 ? names[0] || '' : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`)
   const out: { step: StepId; text: string; on: boolean }[] = []
-  out.push({ step: 'media', on: o.libraries.length > 0, text: o.libraries.length ? `Libraries: ${list(o.libraries)}` : 'No libraries yet' })
+  out.push({ step: 'media', on: o.libraries.length > 0, text: o.libraries.length ? t('Libraries: {names}', { names: list(o.libraries) }) : t('No libraries yet') })
   if (has('modules')) {
-    out.push({ step: 'modules', on: o.modules.length > 0, text: o.modules.length ? `Modules: ${list(o.modules)}` : 'No modules added' })
-    out.push({ step: 'modules', on: true, text: { ask: 'Module updates: it tells you, and you choose', auto: 'Module updates: installed by themselves', never: 'Module updates: only when you check' }[o.updates] })
+    out.push({ step: 'modules', on: o.modules.length > 0, text: o.modules.length ? t('Modules: {names}', { names: list(o.modules) }) : t('No modules added') })
+    out.push({ step: 'modules', on: true, text: { ask: t('Module updates: it tells you, and you choose'), auto: t('Module updates: installed by themselves'), never: t('Module updates: only when you check') }[o.updates] })
   }
-  out.push({ step: 'logos', on: o.logos === 'yes', text: o.logos === 'yes' ? 'Logos: downloading from Wikimedia Commons' : 'Logos: plain names, nothing downloaded' })
+  out.push({ step: 'logos', on: o.logos === 'yes', text: o.logos === 'yes' ? t('Logos: downloading from Wikimedia Commons') : t('Logos: plain names, nothing downloaded') })
   if (has('music')) {
-    out.push({ step: 'music', on: o.lyrics, text: o.lyrics ? 'Lyrics: looked up online when someone opens them' : 'Lyrics: only those beside your music or in its files' })
-    out.push({ step: 'music', on: o.artists, text: o.artists ? 'Artist biographies and photos: from Wikipedia' : 'Artist biographies and photos: off' })
+    out.push({ step: 'music', on: o.lyrics, text: o.lyrics ? t('Lyrics: looked up online when someone opens them') : t('Lyrics: only those beside your music or in its files') })
+    out.push({ step: 'music', on: o.artists, text: o.artists ? t('Artist biographies and photos: from Wikipedia') : t('Artist biographies and photos: off') })
   }
-  if (has('listings')) out.push({ step: 'listings', on: o.listings, text: o.listings ? `Streaming lists: on, for ${o.region}` : 'Streaming lists: off' })
+  if (has('listings')) out.push({ step: 'listings', on: o.listings, text: o.listings ? t('Streaming lists: on, for {region}', { region: o.region }) : t('Streaming lists: off') })
   return out
 }
 
 // The games promise, in one place: setup's Games step and the games folder panel both say it.
-export const GAMES_LINE = 'Point it at your games folder and leave it. Anything it can’t prove is listed for you to look at.'
+export const GAMES_LINE = tk('Point it at your games folder and leave it. Anything it can’t prove is listed for you to look at.')

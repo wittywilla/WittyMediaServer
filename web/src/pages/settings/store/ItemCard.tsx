@@ -13,24 +13,28 @@ import type { OverrideBody } from './OverrideDialog'
 import { categoryTitle, currentRun, failureOf, installModule, isBusy, mb, PHASE, type Failure, type RunItem, type StoreItem } from './storeApi'
 import { olderOf } from './olderServer'
 import { useOlderAsk } from './OlderServerDialog'
+import { t, tn } from '../../../i18n'
 
 // One module, with the one thing to do next, wherever it's shown. What can be done comes from
 // what the server says: nothing here decides whether something fits.
 
 // actionFor names the next step, or nothing when there isn't one to take from a list. Anything
 // from another store goes through its own page, because that's where its warning is.
-export function actionFor(it: StoreItem): { label: string; aria: string } | null {
+export function actionFor(it: StoreItem): { label: string; aria: string; install?: boolean } | null {
   const m = it.status
   if (it.kind === 'in-development' || it.kind === 'refused' || it.kind === 'fork') return null
   if (m && isBusy(m)) return null
   if (m?.pending) return null // its page asks for the go-ahead instead
   if (m?.installed) {
-    if (it.failure && m.latest) return { label: 'Try again', aria: `Try again: update ${it.name}` }
-    return m.latest && !m.pin ? { label: 'Update', aria: `Update ${it.name} to ${m.latest.version}` } : null
+    if (it.failure && m.latest) return { label: t('Try again'), aria: t('Try again: update {name}', { name: it.name }) }
+    return m.latest && !m.pin ? { label: t('Update'), aria: t('Update {name} to {version}', { name: it.name, version: m.latest.version }) } : null
   }
-  if (it.fit.ok || it.kind === 'server') return { label: it.failure ? 'Try again' : 'Install', aria: `${it.failure ? 'Try again: install' : 'Install'} ${it.name}${it.version ? ` ${it.version}` : ''}` }
+  const named = `${it.name}${it.version ? ` ${it.version}` : ''}`
+  if (it.fit.ok || it.kind === 'server') return it.failure
+    ? { label: t('Try again'), aria: t('Try again: install {name}', { name: named }) }
+    : { label: t('Install'), aria: t('Install {name}', { name: named }), install: true }
   // Only a version made for an older server: the button asks first, in a pop-up.
-  if (it.fit.kind === 'older-server' && it.official) return { label: 'Install…', aria: `Install ${it.name} ${it.version || ''}, made for an older server: asks first` }
+  if (it.fit.kind === 'older-server' && it.official) return { label: t('Install…'), aria: t('Install {name}, made for an older server: asks first', { name: named }) }
   return null
 }
 
@@ -69,8 +73,8 @@ export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: st
       else if (r) {
         // A release whose need shows only after its download is held, not installed: say so.
         const held = await api.get<ModuleReport>('/modules').then((x) => x.modules.find((y) => y.id === it.id)?.pending).catch(() => undefined)
-        if (held) toast(`${it.name} ${held.version} was downloaded and needs your go-ahead`)
-        else { toast(`${it.name} is ready`); setTimeout(() => focusAfter?.(), 0) }
+        if (held) toast(t('{name} {version} was downloaded and needs your go-ahead', { name: it.name, version: held.version }))
+        else { toast(t('{name} is ready', { name: it.name })); setTimeout(() => focusAfter?.(), 0) }
       }
     } finally { going.current = false; if (alive.current) setWorking(false) }
   }
@@ -92,7 +96,7 @@ export function useInstall(it: StoreItem, onChanged: () => void, repairRoute: st
       else if (old && !confirmOlder) {
         const yes = await older.ask(old)
         if (old.every((o) => yes.includes(o.module))) await run(confirm, undefined, true)
-        else toast(`${it.name} wasn’t installed`)
+        else toast(t('{name} wasn’t installed', { name: it.name }))
       } else if (need) over.open({ id: it.id, name: it.name, need, send: (body) => run(confirm, body, confirmOlder) })
       else setFailure(failureOf(e, it.name))
       return
@@ -115,22 +119,25 @@ export function ActionButton({ it, press, working, primary }: { it: StoreItem; p
   const act = actionFor(it)
   const inProgress = working || isBusy(it.status)
   if (!act && !inProgress) return null
-  const label = inProgress ? 'Working…' : act!.label + (primary && act!.label === 'Install' && it.size ? ` · ${mb(it.size)}` : '')
+  const label = inProgress ? t('Working…') : act!.label + (primary && act!.install && it.size ? ` · ${mb(it.size)}` : '')
   return (
     <Button size={primary ? 'md' : 'sm'} variant={primary ? 'primary' : 'default'} className={primary ? undefined : 'st-card-act'} aria-busy={inProgress || undefined} aria-disabled={inProgress || undefined}
-      aria-label={inProgress ? `Working… ${it.name}` : primary ? undefined : act!.aria} onClick={inProgress ? undefined : press}>{label}</Button>
+      aria-label={inProgress ? t('Working… {name}', { name: it.name }) : primary ? undefined : act!.aria} onClick={inProgress ? undefined : press}>{label}</Button>
   )
 }
 
 // What else comes with a module, explained before anything happens.
 function PlanDialog({ item, plan, onClose, onYes }: { item: StoreItem; plan: RunItem[]; onClose: () => void; onYes: () => void }) {
   const others = plan.filter((p) => p.id !== item.id)
+  const one = others.length === 1
   return (
-    <Dialog title={`${item.name} needs ${others.length === 1 ? 'something else' : 'other modules'}`} onClose={onClose} size="sm"
-      description={`${item.name} is built on ${others.length === 1 ? 'a module that isn’t' : 'modules that aren’t'} on this server yet, so ${others.length === 1 ? 'it' : 'they'} will be installed first, in this order.`}
-      actions={<><Button variant="ghost" autoFocus onClick={onClose}>Cancel</Button><Button variant="primary" onClick={onYes}>Install {plan.length} modules</Button></>}>
+    <Dialog title={one ? t('{name} needs something else', { name: item.name }) : t('{name} needs other modules', { name: item.name })} onClose={onClose} size="sm"
+      description={one
+        ? t('{name} is built on a module that isn’t on this server yet, so it will be installed first, in this order.', { name: item.name })
+        : t('{name} is built on modules that aren’t on this server yet, so they will be installed first, in this order.', { name: item.name })}
+      actions={<><Button variant="ghost" autoFocus onClick={onClose}>{t('Cancel')}</Button><Button variant="primary" onClick={onYes}>{tn('Install {count} module', 'Install {count} modules', plan.length)}</Button></>}>
       <ol className="st-plan">
-        {plan.map((p) => <li key={p.id}><b>{p.name}</b>{p.to && <span className="ms-ver"> {p.to}</span>}{p.why && <span className="muted"> {p.why}</span>}{p.olderServer && <span className="st-older-tag"> Made for an older server: you’ll be asked about it next.</span>}</li>)}
+        {plan.map((p) => <li key={p.id}><b>{p.name}</b>{p.to && <span className="ms-ver"> {p.to}</span>}{p.why && <span className="muted"> {p.why}</span>}{p.olderServer && <span className="st-older-tag"> {t('Made for an older server: you’ll be asked about it next.')}</span>}</li>)}
       </ol>
     </Dialog>
   )
@@ -143,7 +150,7 @@ export function InPlaceProgress({ it }: { it: StoreItem }) {
   const known = m.phase === 'downloading' && !!m.total
   return (
     <div className="st-inplace" role="status">
-      <span>{PHASE[m.phase]}{known ? `, ${mb(m.done)} of ${mb(m.total)}` : '…'}</span>
+      <span>{known ? t('{phase}, {done} of {total}', { phase: PHASE[m.phase], done: mb(m.done), total: mb(m.total) }) : `${PHASE[m.phase]}…`}</span>
       <Progress label={`${it.name}: ${PHASE[m.phase]}`} value={known ? m.done : undefined} max={m.total || undefined} />
     </div>
   )
@@ -153,14 +160,14 @@ export function ItemCard({ item, onChanged, repairRoute }: { item: StoreItem; on
   const link = useRef<HTMLAnchorElement>(null)
   // The button goes once it's installed, and the focus shouldn't go with it.
   const { press, working, dialogs } = useInstall(item, onChanged, repairRoute, () => { if (document.activeElement === document.body) link.current?.focus() })
-  const label = [item.name, item.official || item.kind === 'server' ? '' : `from ${item.storeName}`].filter(Boolean).join(', ')
+  const label = item.official || item.kind === 'server' ? item.name : t('{name}, from {store}', { name: item.name, store: item.storeName })
   return (
     <article className={'st-card' + (item.official || item.kind === 'server' ? '' : ' third')} aria-label={label}>
       <Link ref={link} className="st-card-link" to={itemPath(item)}>
         <ModuleIcon item={item} />
         <span className="st-card-text">
           <b className="st-card-name">{item.name}</b>
-          <span className="st-card-by">{[item.publisher?.name || 'Part of this server', categoryTitle(item.group), moduleKindTitle(itemModuleKind(item))].filter(Boolean).join(' · ')}</span>
+          <span className="st-card-by">{[item.publisher?.name || t('Part of this server'), categoryTitle(item.group), moduleKindTitle(itemModuleKind(item))].filter(Boolean).join(' · ')}</span>
           {item.summary && <span className="st-card-sum">{item.summary}</span>}
         </span>
       </Link>

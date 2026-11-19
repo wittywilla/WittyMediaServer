@@ -8,6 +8,7 @@ import { PREVIEW_MIN } from './tvThemes'
 import { liveNow, liveVideo, useBackgroundPlay, useLive } from './live'
 import { letGo } from './backgroundPlay'
 import Slate from './Slate'
+import { t, tx } from '../../i18n'
 
 // The little TV on the guide. It waits for the highlight to settle before
 // tuning, because each channel it shows runs a stream, and moving on leaves the
@@ -122,27 +123,27 @@ export default function Preview({ channel, label, look, max, start }: { channel:
     e.preventDefault(); e.stopPropagation()
   }
   return (
-    <div className={'ctv-preview side-' + look.previewSide} ref={box} style={{ width }} role="group" aria-label={`Preview: ${label || 'no channel'}`}>
+    <div className={'ctv-preview side-' + look.previewSide} ref={box} style={{ width }} role="group" aria-label={t('Preview: {channel}', { channel: label || t('no channel') })}>
       <div className="ctv-preview-screen">
         <div className="ctv-preview-slot" ref={screen} />
         {state === 'playing' && info?.now?.kind === 'slate' && <Slate name={info.name} next={info.next} />}
         {state !== 'playing' && (
           <div className="ctv-preview-msg" aria-live="polite">
             {/* Only a failure is said aloud: moving through the guide already says each channel, and "Tuning…" on every move is noise. */}
-            {state === 'failed' ? <small>{msg.length > 90 ? 'Not available' : msg || 'Not available'}</small> : state === 'tuning' ? <small aria-hidden="true">{info ? 'Tuning…' : label}</small> : <small aria-hidden="true">{hidden ? 'Paused while this page is in the background' : 'No preview for this channel'}</small>}
+            {state === 'failed' ? <small>{msg.length > 90 ? t('Not available') : tx(msg) || t('Not available')}</small> : state === 'tuning' ? <small aria-hidden="true">{info ? t('Tuning…') : label}</small> : <small aria-hidden="true">{hidden ? t('Paused while this page is in the background') : t('No preview for this channel')}</small>}
           </div>
         )}
-        <span className="ctv-preview-handle" role="slider" tabIndex={0} aria-label="Preview size" aria-orientation="horizontal"
+        <span className="ctv-preview-handle" role="slider" tabIndex={0} aria-label={t('Preview size')} aria-orientation="horizontal"
           aria-valuemin={Math.round(least)} aria-valuemax={Math.round(max)} aria-valuenow={Math.round(width)} aria-valuetext={previewSizeName(width)}
-          title="Drag to resize, or use the arrow keys" onPointerDown={onDrag} onKeyDown={onKey} />
+          title={t('Drag to resize, or use the arrow keys')} onPointerDown={onDrag} onKeyDown={onKey} />
       </div>
       <div className="ctv-preview-bar">
         <span className="ctv-preview-name">{label}</span>
-        <button type="button" onClick={down} disabled={width <= least} aria-label="Smaller preview" title="Smaller">−</button>
-        <button type="button" onClick={up} disabled={width >= max} aria-label="Larger preview" title="Larger">+</button>
-        <button type="button" onClick={() => setLook({ previewSound: !look.previewSound })} aria-pressed={look.previewSound} aria-label="Preview sound" title={look.previewSound ? 'Sound on' : 'Sound off'}>{look.previewSound ? <IconVolume size={15} /> : <IconMute size={15} />}</button>
-        <button type="button" disabled={!channel} onClick={() => nav(`/tv/watch/${channel}`, { state: { fromGuide: true } })} aria-label={`Watch ${label} full screen`} title="Full screen"><IconFull size={15} /></button>
-        <button type="button" onClick={() => setLook({ preview: 'off' })} aria-label="Hide the preview" title="Hide the preview"><IconClose size={15} /></button>
+        <button type="button" onClick={down} disabled={width <= least} aria-label={t('Smaller preview')} title={t('Smaller')}>−</button>
+        <button type="button" onClick={up} disabled={width >= max} aria-label={t('Larger preview')} title={t('Larger')}>+</button>
+        <button type="button" onClick={() => setLook({ previewSound: !look.previewSound })} aria-pressed={look.previewSound} aria-label={t('Preview sound')} title={look.previewSound ? t('Sound on') : t('Sound off')}>{look.previewSound ? <IconVolume size={15} /> : <IconMute size={15} />}</button>
+        <button type="button" disabled={!channel} onClick={() => nav(`/tv/watch/${channel}`, { state: { fromGuide: true } })} aria-label={t('Watch {channel} full screen', { channel: label })} title={t('Full screen')}><IconFull size={15} /></button>
+        <button type="button" onClick={() => setLook({ preview: 'off' })} aria-label={t('Hide the preview')} title={t('Hide the preview')}><IconClose size={15} /></button>
       </div>
     </div>
   )

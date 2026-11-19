@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { STATE_NAMES, taskAction, useActivity } from '../activity'
 import { Progress, toast } from '../ui'
+import { t, tx } from '../i18n'
 
 // Things the server makes for one title while someone waits at its page: a canvas cut from
 // a film, a song's stems. Each is a task (docs/TASKS.md), and the title's own listing names
@@ -47,17 +48,17 @@ export function useWatched<T>(load: (signal: AbortSignal) => Promise<T>, busy: (
 // a bar that says it is being worked on, and nothing they aren't meant to see.
 export function TaskLine({ id, label }: { id: string; label: string }) {
   const a = useActivity()
-  const t = a.tasks.find((x) => x.id === id) || a.recent.find((x) => x.id === id)
-  const waiting = t?.state === 'queued'
-  const words = !t ? 'Working on it…' : waiting ? 'Waiting its turn: the server makes these one at a time.' : t.phase || STATE_NAMES[t.state]
+  const task = a.tasks.find((x) => x.id === id) || a.recent.find((x) => x.id === id)
+  const waiting = task?.state === 'queued'
+  const words = !task ? t('Working on it…') : waiting ? t('Waiting its turn: the server makes these one at a time.') : tx(task.phase || STATE_NAMES[task.state])
   const stop = () => { taskAction(id, 'cancel').catch((e: Error) => toast(e.message, { tone: 'danger' })) }
   return (
     <div className="job-line" role="status">
       <div className="job-line-top">
         <span>{label}</span>
-        {t?.canCancel && !a.access.readOnly && <button type="button" className="btn sm ghost" onClick={stop}>Stop</button>}
+        {task?.canCancel && !a.access.readOnly && <button type="button" className="btn sm ghost" onClick={stop}>{t('Stop')}</button>}
       </div>
-      <Progress label={label} value={t && t.state === 'running' && t.percent >= 0 ? t.percent : undefined} showValue />
+      <Progress label={label} value={task && task.state === 'running' && task.percent >= 0 ? task.percent : undefined} showValue />
       <span className="job-line-sub">{words}</span>
     </div>
   )

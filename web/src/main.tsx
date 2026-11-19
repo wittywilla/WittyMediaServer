@@ -53,6 +53,8 @@ import './tvmode/tvmode.css'
 import { installErrorReporter } from './errorReport'
 import { setStreamQuality } from './api'
 import { deviceChoice, startsStream } from './player/quality'
+import { setLanguage, startingLanguage, t, tn, tx, useLanguage } from './i18n'
+import { setWords } from './sdui/words'
 
 installTVInput()
 installDensity()
@@ -66,10 +68,24 @@ setStreamQuality((method, path) => (startsStream(method, path) ? deviceChoice() 
 // page that fails showing this app's own error screen, not the router's.
 const router = createBrowserRouter([{ path: '*', element: <ErrorBoundary><App /></ErrorBoundary> }])
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <RouterProvider router={router} />
-    </ErrorBoundary>
-  </React.StrictMode>,
-)
+// The whole app is drawn again when the language changes, so every word follows it.
+function InLanguage({ children }: { children: React.ReactNode }) {
+  return <React.Fragment key={useLanguage()}>{children}</React.Fragment>
+}
+
+// Page descriptions built in the app use the app's words (sdui/words.ts stays English in node's tests).
+setWords(t, tn, tx)
+
+// The words come before the first page: the language this browser used last (or its own), corrected by the server's
+// status if the server is set to another.
+void setLanguage(startingLanguage()).catch(() => undefined).finally(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <InLanguage>
+          <RouterProvider router={router} />
+        </InLanguage>
+      </ErrorBoundary>
+    </React.StrictMode>,
+  )
+})

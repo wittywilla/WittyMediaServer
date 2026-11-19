@@ -12,6 +12,7 @@ import { accepts, checkQueue, deviceFeatures, isNavKey, keyboardKey, mediaKindsF
 import { makeQueue, nextId, reported } from './queue'
 import { call, readEvents, sleep } from './stream'
 import { queuedBefore, queueFor, setVideoQueue } from './videoQueue'
+import { t } from '../i18n'
 
 export type RemoteTrack = { id: string; label?: string; lang?: string }
 export type RemoteState = {
@@ -136,13 +137,13 @@ async function play(cmd: RemoteCommand) {
   const ids = cmd.queue?.length ? cmd.queue : cmd.itemId ? [cmd.itemId] : []
   const index = cmd.queue?.length ? cmd.queueIndex || 0 : 0
   const id = ids[index]
-  if (!id || !opener) throw new Error('This device can’t open that.')
+  if (!id || !opener) throw new Error(t('This device can’t open that.'))
   const first = await api.get<Item>(`/items/${id}`)
   const player = playerFor(first.kind)
-  if (!player || !caps.mediaKinds.includes(first.kind)) throw new Error('This device can’t play that kind of thing.')
+  if (!player || !caps.mediaKinds.includes(first.kind)) throw new Error(t('This device can’t play that kind of thing.'))
   const family = queueFamily(player)
   const items = ids.length > 1 ? await loadItems(ids, first) : [first]
-  const wrong = checkQueue(items.map((it) => it.kind))
+  const wrong = checkQueue(items.map((it) => it.kind), t)
   if (wrong) throw new Error(wrong)
   const options = { positionSec: cmd.positionSec, audio: cmd.audio, subtitle: cmd.subtitle, remote: cmd.id || String(Date.now()) }
   if (family === 'audio' || family === 'radio') {
@@ -154,7 +155,7 @@ async function play(cmd: RemoteCommand) {
     return
   }
   const to = routeFor(first, options)
-  if (!to) throw new Error('That can’t be opened in this browser.')
+  if (!to) throw new Error(t('That can’t be opened in this browser.'))
   if (family === 'video') setVideoQueue(makeQueue(ids, index))
   opener.go(to)
 }
@@ -163,10 +164,10 @@ async function play(cmd: RemoteCommand) {
 // controller's would be (tv.ts), so it does whatever that key does wherever the focus is: in
 // TV mode, on a page, in a disc's menu, in a player.
 async function pressKey(cmd: RemoteCommand) {
-  if (!isNavKey(cmd.key)) throw new Error('This device doesn’t know that key.')
+  if (!isNavKey(cmd.key)) throw new Error(t('This device doesn’t know that key.'))
   const p = active()
-  if (p?.kind === 'game') throw new Error(refusal('game', 'navigate'))
-  if (cmd.key === 'home') { if (!opener) throw new Error('This device can’t go there.'); opener.go('/'); return }
+  if (p?.kind === 'game') throw new Error(refusal('game', 'navigate', t))
+  if (cmd.key === 'home') { if (!opener) throw new Error(t('This device can’t go there.')); opener.go('/'); return }
   if (cmd.key === 'playpause') {
     if (p && accepts(p.kind, 'pause')) { await p.command({ type: p.state().status === 'paused' ? 'resume' : 'pause' }); return }
     press('MediaPlayPause')
@@ -193,12 +194,12 @@ async function obey(cmd: RemoteCommand) {
     const p = active()
     if (cmd.type === 'play') await play(cmd)
     else if (cmd.type === 'navigate') await pressKey(cmd)
-    else if (!p) { if (cmd.type !== 'stop') throw new Error('Nothing is playing there.') }
-    else if (cmd.type !== 'stop' && !accepts(p.kind, cmd.type)) throw new Error(refusal(p.kind, cmd.type))
+    else if (!p) { if (cmd.type !== 'stop') throw new Error(t('Nothing is playing there.')) }
+    else if (cmd.type !== 'stop' && !accepts(p.kind, cmd.type)) throw new Error(refusal(p.kind, cmd.type, t))
     else if (!stepQueue(p, cmd)) await p.command(cmd)
   } catch (e) {
     ok = false
-    error = (e as Error).message || 'That didn’t work.'
+    error = (e as Error).message || t('That didn’t work.')
   }
   if (cmd.id) call('POST', `/remote-control/devices/${deviceId}/ack`, { id: cmd.id, ok, error }).catch(() => { /* the controller is told it timed out */ })
   reportSoon()

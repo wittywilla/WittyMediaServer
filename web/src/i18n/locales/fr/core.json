@@ -1,0 +1,15 @@
+{
+  "Language and time zone": "Langue et fuseau horaire",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "Avant toute chose : la langue de ces pages, des menus des disques et des pistes audio, et le fuseau horaire du serveur.",
+  "Language": "Langue",
+  "Everything on these pages, for everyone who uses this server.": "Tout ce qui figure sur ces pages, pour toutes les personnes qui utilisent ce serveur.",
+  "Disc menus and sound tracks": "Menus des disques et pistes audio",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "Les menus des disques, et la piste audio par laquelle commence un film ou une série quand il en a une dans cette langue. Les sous-titres restent désactivés jusqu’à ce que quelqu’un les active.",
+  "The original language": "La langue d’origine",
+  "Time zone": "Fuseau horaire",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "Les journées du guide, les programmations, les enregistrements et les journaux suivent ce fuseau. Le serveur redémarre une fois pour l’appliquer, à la fin de la configuration, si ce n’est pas celui qu’il utilise.",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "Le fuseau horaire de l’ordinateur sur lequel tourne le serveur. Les journées du guide, les programmations, les enregistrements et les journaux le suivent.",
+  "This device is set to {zone}.": "Cet appareil est réglé sur {zone}.",
+  "You can change these again on the Name and address step, and later in Settings.": "Vous pourrez les modifier à l’étape Nom et adresse, et plus tard dans les Paramètres.",
+  "Continue": "Continuer"
+}

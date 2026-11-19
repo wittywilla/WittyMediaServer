@@ -1,0 +1,16 @@
+{
+  "Episode number": "エピソード番号",
+  "Episode {episode}": "第{episode}話",
+  "Episodes {episodes}": "第{episodes}話",
+  "Last episode": "最後のエピソード",
+  "Season number": "シーズン番号",
+  "Show episodes as": "エピソードの表示",
+  "Special {episode}": "特別編 {episode}",
+  "Specials {episodes}": "特別編 {episodes}",
+  "S{season} · E{episode}": "シーズン{season} · 第{episode}話",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "グラフィックチップを使うと、プロセッサーのごく一部の負荷で動画を変換できます。それぞれサーバー起動時にテストされ、このマシンにないものはグレー表示になり、動作するものは選ぶまですべてチェックが入っています。チェックの入った最初の動作するものが使われ、可能な場合は映像がデコードからエンコードまでチップ上に留まります。何もチェックしなければすべてソフトウェアで処理し、サイズに対して最高の画質になりますが、プロセッサーの負荷も最大です。",
+  "{left} of {count} left": {
+    "other": "{count}話中残り{left}話"
+  },
+  "{season}, {count}": "{season}、{count}"
+}

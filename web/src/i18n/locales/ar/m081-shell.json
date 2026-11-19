@@ -1,0 +1,21 @@
+{
+  "Episode number": "رقم الحلقة",
+  "Episode {episode}": "الحلقة {episode}",
+  "Episodes {episodes}": "الحلقات {episodes}",
+  "Last episode": "آخر حلقة",
+  "Season number": "رقم الموسم",
+  "Show episodes as": "عرض الحلقات كـ",
+  "Special {episode}": "حلقة خاصة {episode}",
+  "Specials {episodes}": "حلقات خاصة {episodes}",
+  "S{season} · E{episode}": "الموسم {season} · الحلقة {episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "تستطيع شريحة الرسوميات تحويل الفيديو بجزء صغير من عمل المعالج. يُختبر كل منها عند بدء الخادم، وتظهر باهتة تلك غير الموجودة في جهازك، وكل ما يعمل يبقى محددًا إلى أن تختار بنفسك: يُستخدم أول ما يعمل من المحدد، وتبقى الصورة على الشريحة من فك الترميز إلى الترميز حيثما أمكن. إن لم تحدد شيئًا فكل العمل برمجي، وهذا يعطي أفضل جودة مقابل الحجم ويستهلك أكبر قدر من المعالج.",
+  "{left} of {count} left": {
+    "zero": "تبقّى {left} من {count}",
+    "one": "تبقّى {left} من {count}",
+    "two": "تبقّى {left} من {count}",
+    "few": "تبقّى {left} من {count}",
+    "many": "تبقّى {left} من {count}",
+    "other": "تبقّى {left} من {count}"
+  },
+  "{season}, {count}": "{season}، {count}"
+}

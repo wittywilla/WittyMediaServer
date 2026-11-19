@@ -5,6 +5,7 @@ import { IconShield } from '../../../icons'
 import { useApp } from '../../../state'
 import { Button, Dialog } from '../../../ui'
 import { HelpLink } from '../../../components/HelpLink'
+import { t, tn } from '../../../i18n'
 import './overrides.css'
 import { friction, needsOverrideOf, refusalStatus, warningAddsSomething, overrideLines, overrideRequest, refusalKind, severityOf, stillNeeded, type NeedsOverride, type OverrideAnswers } from './overrides'
 
@@ -54,7 +55,7 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
       const kind = refusalKind(x)
       const message = x instanceof Error ? x.message : String(x)
       if (kind === 'password') {
-        setPwErr(message || 'That password isn’t right.')
+        setPwErr(message || t('That password isn’t right.'))
         setA((y) => ({ ...y, password: '', code: '' }))
         setTimeout(() => pwRef.current?.focus(), 0)
       } else if (kind === 'override') {
@@ -62,17 +63,17 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
         const n = needsOverrideOf(x)!
         setNeed(n)
         setA((y) => ({ ...y, accepted: [], grants: y.grants.filter((g) => (n.permissions || []).includes(g)) }))
-        setErr(refusalStatus(x) === 400 && message ? `${message} Read the warnings again and tick each one.` : 'What this needs has changed. Read the warnings again and tick each one.')
+        setErr(refusalStatus(x) === 400 && message ? `${message} ${t('Read the warnings again and tick each one.')}` : t('What this needs has changed. Read the warnings again and tick each one.'))
       } else setErr(message)
       setWorking(false)
     }
   }
 
   return (
-    <Dialog alert size="md" className={`ov-dialog ov-sev-${f.level}`} title={`Install ${name} anyway?`} onClose={onClose}
-      description={`${lines.length === 1 ? 'One rule that normally stops this install' : `${lines.length} rules that normally stop this install`} would be bypassed. Severity ${f.level} of 4.`}
+    <Dialog alert size="md" className={`ov-dialog ov-sev-${f.level}`} title={t('Install {name} anyway?', { name })} onClose={onClose}
+      description={`${lines.length === 1 ? t('One rule that normally stops this install would be bypassed.') : tn('{count} rule that normally stops this install would be bypassed.', '{count} rules that normally stop this install would be bypassed.', lines.length)} ${t('Severity {level} of 4.', { level: f.level })}`}
       actions={<>
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" onClick={onClose}>{t('Cancel')}</Button>
         <Button variant={f.tone === 'danger' ? 'danger' : 'primary'} type="submit" form={uid + 'f'} busy={working} disabled={missing.length > 0} aria-describedby={uid + 'm'}>{f.button}</Button>
       </>}>
       <form id={uid + 'f'} className="ui-dialog-form ov-form" onSubmit={submit} noValidate>
@@ -81,12 +82,12 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
           <div>
             <strong>{f.heading}</strong>
             {warningAddsSomething(need.warning, lines) && <p>{need.warning}</p>}
-            {need.version && <p className="ov-small">Version {need.version}{need.pending ? ', already downloaded and checked, waiting for your go-ahead' : ''}.</p>}
+            {need.version && <p className="ov-small">{need.pending ? t('Version {version}, already downloaded and checked, waiting for your go-ahead.', { version: need.version }) : t('Version {version}.', { version: need.version })}</p>}
           </div>
         </div>
 
         <fieldset className="ov-set">
-          <legend>Tick each one to say you accept it</legend>
+          <legend>{t('Tick each one to say you accept it')}</legend>
           {lines.map((l, i) => (
             <label key={l.kind} className="ov-check">
               {/* The first warning has the focus, so a long dialog opens at its top. Ticking it alone does nothing. */}
@@ -98,8 +99,8 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
 
         {perms.length > 0 && (
           <fieldset className="ov-set">
-            <legend>Permissions to give it</legend>
-            <p className="ov-small">It gets none of these unless you tick them. Give only what you’re sure it needs.</p>
+            <legend>{t('Permissions to give it')}</legend>
+            <p className="ov-small">{t('It gets none of these unless you tick them. Give only what you’re sure it needs.')}</p>
             {perms.map((p) => (
               <label key={p} className="ov-check">
                 <input type="checkbox" checked={a.grants.includes(p)} onChange={(e) => toggle('grants', p, e.target.checked)} />
@@ -110,23 +111,23 @@ export function OverrideDialog({ id, name, need: first, permissionWords, onSubmi
         )}
 
         {f.typed && (
-          <label className="set-field">To confirm, type the module’s ID: <code className="ov-id">{id}</code>
+          <label className="set-field">{t('To confirm, type the module’s ID:')} <code className="ov-id">{id}</code>
             <input className="input mono" value={a.typed} onChange={(e) => set('typed', e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false}
               aria-invalid={!!a.typed && a.typed.trim() !== id ? true : undefined} />
           </label>
         )}
 
-        <label className="set-field">Your password
+        <label className="set-field">{t('Your password')}
           <input ref={pwRef} className="input" type="password" autoComplete="current-password" value={a.password} onChange={(e) => { set('password', e.target.value); setPwErr('') }}
             aria-invalid={pwErr ? true : undefined} aria-describedby={pwErr ? uid + 'p' : undefined} />
         </label>
-        {twoFactor && <label className="set-field">Code from your authenticator app
+        {twoFactor && <label className="set-field">{t('Code from your authenticator app')}
           <input className="input" inputMode="numeric" autoComplete="one-time-code" value={a.code} onChange={(e) => set('code', e.target.value)} aria-invalid={pwErr ? true : undefined} aria-describedby={pwErr ? uid + 'p' : undefined} />
         </label>}
         {pwErr && <p className="error" id={uid + 'p'} role="alert">{pwErr}</p>}
         {err && <p className="error" role="alert" tabIndex={-1} ref={errRef}>{err}</p>}
 
-        <p className="ov-small" id={uid + 'm'} aria-live="polite">{missing.length ? `To go on, ${missing.join(', ')}.` : 'Ready.'} This is written to the module audit log. <HelpLink newTab to="module-store#installing-past-a-rule">What overrides mean</HelpLink></p>
+        <p className="ov-small" id={uid + 'm'} aria-live="polite">{missing.length ? t('To go on, {steps}.', { steps: missing.join(', ') }) : t('Ready.')} {t('This is written to the module audit log.')} <HelpLink newTab to="module-store#installing-past-a-rule">{t('What overrides mean')}</HelpLink></p>
       </form>
     </Dialog>
   )

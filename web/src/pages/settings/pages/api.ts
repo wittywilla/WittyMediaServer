@@ -9,6 +9,7 @@
 // draft and is kept here, so two pages of the editor never trip over each other.
 
 import { ApiError, getToken, serverBase } from '../../../api'
+import { t } from '../../../i18n'
 import { sduiAsk, SDUI_BASE } from '../../../sdui/client'
 import type { Catalogue, Change, Issue, Navigation, Page, PageEntry, Preset } from './editorModel.ts'
 
@@ -40,7 +41,7 @@ export function getCatalogue(): Promise<Catalogue> {
   const key = serverBase() + ' ' + getToken()
   if (catalogue?.key !== key) {
     const answer = sduiAsk<Catalogue>('GET', `${SDUI_BASE}/catalog`).then((r) => {
-      if (!r.data) throw new ApiError(0, 'The server sent no catalogue.')
+      if (!r.data) throw new ApiError(0, t('The server sent no catalogue.'))
       return r.data
     })
     answer.catch(() => { if (catalogue?.key === key) catalogue = null })
@@ -60,14 +61,14 @@ export async function listPages(draft = true): Promise<{ etag: string; draft: bo
 
 export async function getPage(id: string, draft = true): Promise<PageAnswer> {
   const r = await sduiAsk<PageAnswer>('GET', `${SDUI_BASE}/config/pages/${enc(id)}${draft ? '?' + DRAFT : ''}`)
-  if (!r.data) throw new ApiError(0, 'The server sent no page.')
+  if (!r.data) throw new ApiError(0, t('The server sent no page.'))
   if (draft) keep(r.data.etag)
   return r.data
 }
 
 export async function getNavigation(draft = true): Promise<NavAnswer> {
   const r = await sduiAsk<NavAnswer>('GET', `${SDUI_BASE}/config/navigation${draft ? '?' + DRAFT : ''}`)
-  if (!r.data) throw new ApiError(0, 'The server sent no menu.')
+  if (!r.data) throw new ApiError(0, t('The server sent no menu.'))
   if (draft) keep(r.data.etag)
   return r.data
 }
@@ -81,7 +82,7 @@ export type LookPolicy = { default?: Record<string, string>; allowed?: string[];
 export type LooksAnswer = { etag: string; experiences: LookPolicy; builtin: Record<string, string>; options: LayoutOption[] }
 export async function getLooks(draft = true): Promise<LooksAnswer> {
   const r = await sduiAsk<LooksAnswer>('GET', `${SDUI_BASE}/config/experience${draft ? '?' + DRAFT : ''}`)
-  if (!r.data) throw new ApiError(0, 'The server sent no looks.')
+  if (!r.data) throw new ApiError(0, t('The server sent no looks.'))
   if (draft) keep(r.data.etag)
   return r.data
 }

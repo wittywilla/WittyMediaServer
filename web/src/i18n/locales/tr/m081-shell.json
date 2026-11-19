@@ -1,0 +1,17 @@
+{
+  "Episode number": "Bölüm numarası",
+  "Episode {episode}": "Bölüm {episode}",
+  "Episodes {episodes}": "Bölümler {episodes}",
+  "Last episode": "Son bölüm",
+  "Season number": "Sezon numarası",
+  "Show episodes as": "Bölümleri şöyle göster",
+  "Special {episode}": "Özel bölüm {episode}",
+  "Specials {episodes}": "Özel bölümler {episodes}",
+  "S{season} · E{episode}": "S{season} · B{episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "Grafik yongası videoyu işlemci yükünün çok küçük bir kısmıyla dönüştürebilir. Her biri sunucu başladığında test edilir, makinenizde olmayanlar gri görünür ve siz seçene kadar çalışan her biri işaretlidir: çalışan ilk işaretli kullanılır ve görüntü, mümkün olduğunda kod çözmeden kodlamaya kadar yongada kalır. Hiçbiri işaretli değilse her şey yazılımla yapılır; bu, boyutuna göre en iyi kaliteyi verir ve en çok işlemciyi kullanır.",
+  "{left} of {count} left": {
+    "one": "{count} bölümden {left} kaldı",
+    "other": "{count} bölümden {left} kaldı"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

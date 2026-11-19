@@ -19,6 +19,7 @@ import { useMedia } from '../shell/useNav'
 import { toast, useApp } from '../state'
 import LegalNote from '../components/LegalNote'
 import LogoNotice from '../components/LogoNotice'
+import { t, tn, tx } from '../i18n'
 
 const TitleCanvas = lazy(() => import('../canvas/CanvasVideo').then((m) => ({ default: m.TitleCanvas })))
 const FindIntros = lazy(() => import('../components/FindIntros'))
@@ -46,7 +47,7 @@ export default function ShowPage() {
   useEffect(() => { getPrefs().then(setPrefs) }, [])
   // Coming back from picking a time in the player opens where it was.
   useEffect(() => { if (params.get('edit')) { const p = new URLSearchParams(params); p.delete('edit'); setParams(p, { replace: true }) } }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  if (err) return isGone(err) ? <EmptyState icon={<IconInfo />} title="This show isn’t available" text={GONE_TEXT} action={<Link className="btn" to="/">Back to home</Link>} /> : <EmptyState icon={<IconInfo />} title="This show didn’t load" text={err} />
+  if (err) return isGone(err) ? <EmptyState icon={<IconInfo />} title={t('This show isn’t available')} text={tx(GONE_TEXT)} action={<Link className="btn" to="/">{t('Back to home')}</Link>} /> : <EmptyState icon={<IconInfo />} title={t('This show didn’t load')} text={err} />
   if (!d) return <PageSkeleton shape="item" />
   const { show, seasons, episodes } = d
   const seasonParam = params.get('season')
@@ -80,37 +81,37 @@ export default function ShowPage() {
             {show.year && <span>{show.year}</span>}
             {show.contentRating && <span className="pill">{show.contentRating}</span>}
             {show.network && <span><Link className="meta-brand" to={`/brand/network/${encodeURIComponent(show.network)}?library=${show.libraryId}`} aria-label={show.network}><BrandLogo kind="network" name={show.network} label={false} /></Link></span>}
-            {show.status && <span>{show.status}</span>}
-            <span>{show.seasonCount} {show.seasonCount === 1 ? 'season' : 'seasons'} · {show.episodeCount} episodes</span>
+            {show.status && <span>{tx(show.status)}</span>}
+            <span>{tn('{count} season', '{count} seasons', show.seasonCount)} · {tn('{count} episode', '{count} episodes', show.episodeCount)}</span>
             {(show.genres || []).length > 0 && <span>{show.genres.join(', ')}</span>}
           </div>
           {phone ? (
             <div className="actions item-actions">
-              {next && <button data-tv-first className="btn primary" onClick={() => nav(`/play/${next.id}`)} aria-label={nextResume ? `Resume ${episodeLabel(next)} from ${fmtTime(nextResume.positionSec)}` : undefined}>
-                <IconPlay /> {nextResume ? `Resume ${episodeLabel(next)}` : `Play ${episodeLabel(next) || next.title}`}
+              {next && <button data-tv-first className="btn primary" onClick={() => nav(`/play/${next.id}`)} aria-label={nextResume ? t('Resume {episode} from {time}', { episode: episodeLabel(next), time: fmtTime(nextResume.positionSec) }) : undefined}>
+                <IconPlay /> {nextResume ? t('Resume {episode}', { episode: episodeLabel(next) }) : t('Play {episode}', { episode: episodeLabel(next) || next.title })}
               </button>}
               <SaveButton showId={show.id} />
               {next && <PlayOnButton className="btn square" iconOnly source={playOnSource} />}
-              {user?.isAdmin && <IconButton label="More" hideTip className="item-more" aria-haspopup="dialog" onClick={() => setMore(true)}><IconMore /></IconButton>}
+              {user?.isAdmin && <IconButton label={t('More')} hideTip className="item-more" aria-haspopup="dialog" onClick={() => setMore(true)}><IconMore /></IconButton>}
             </div>
           ) : <div className="actions">
             {next && <button data-tv-first className="btn primary" onClick={() => nav(`/play/${next.id}`)}>
-              <IconPlay /> {nextResume ? `Resume ${episodeLabel(next)} from ${fmtTime(nextResume.positionSec)}` : `Play ${episodeLabel(next) || next.title}`}
+              <IconPlay /> {nextResume ? t('Resume {episode} from {time}', { episode: episodeLabel(next), time: fmtTime(nextResume.positionSec) }) : t('Play {episode}', { episode: episodeLabel(next) || next.title })}
             </button>}
             <SaveButton showId={show.id} />
             {next && <PlayOnButton source={playOnSource} />}
-            {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> Edit</button>}
-            {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> Artwork</button>}
-            {user?.isAdmin && <button className="btn ghost" onClick={() => setRefreshing(true)} title="See what's new about this, and choose what to take"><IconRefresh /> Refresh</button>}
-            {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setFinding(true)} title="Compare each season's episodes by ear, and mark the intro and credits they share"><IconPlay /> Find intros and credits</button>}
+            {user?.isAdmin && <button className="btn ghost" onClick={() => setEdit('match')}><IconEdit /> {t('Edit')}</button>}
+            {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setArt(true)}><IconImage /> {t('Artwork')}</button>}
+            {user?.isAdmin && <button className="btn ghost" onClick={() => setRefreshing(true)} title={t('See what’s new about this, and choose what to take')}><IconRefresh /> {t('Refresh')}</button>}
+            {user?.isAdmin && <button className="btn ghost" aria-haspopup="dialog" onClick={() => setFinding(true)} title={t('Compare each season’s episodes by ear, and mark the intro and credits they share')}><IconPlay /> {t('Find intros and credits')}</button>}
           </div>}
           {more && (
             <RowSheet title={show.title} onClose={() => setMore(false)}>
               <Rows>
-                <SheetRow icon={<IconImage />} label="Artwork" onSelect={() => setArt(true)} />
-                <SheetRow icon={<IconEdit />} label="Edit" onSelect={() => setEdit('match')} />
-                <SheetRow icon={<IconRefresh />} label="Refresh" onSelect={() => setRefreshing(true)} />
-                <SheetRow icon={<IconPlay />} label="Find intros and credits" onSelect={() => setFinding(true)} />
+                <SheetRow icon={<IconImage />} label={t('Artwork')} onSelect={() => setArt(true)} />
+                <SheetRow icon={<IconEdit />} label={t('Edit')} onSelect={() => setEdit('match')} />
+                <SheetRow icon={<IconRefresh />} label={t('Refresh')} onSelect={() => setRefreshing(true)} />
+                <SheetRow icon={<IconPlay />} label={t('Find intros and credits')} onSelect={() => setFinding(true)} />
               </Rows>
             </RowSheet>
           )}
@@ -120,20 +121,20 @@ export default function ShowPage() {
             {seasons.map((s) => (
               <button key={s.number} className={'season-tab' + (s.number === season ? ' active' : '')} onClick={() => setParams({ season: String(s.number) }, { replace: true })}>
                 <div className="season-poster">{<img src={sized(seasonPosterUrl(show, s.number), fitWidth(200))} alt="" loading="lazy" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />}</div>
-                <div className="t">{s.title}</div>
-                <div className="sub">{s.episodeCount} ep{s.unwatched > 0 && s.unwatched < s.episodeCount ? ` · ${s.unwatched} left` : s.unwatched === 0 ? ' · watched' : ''}</div>
+                <div className="t">{tx(s.title)}</div>
+                <div className="sub">{tn('{count} ep', '{count} ep', s.episodeCount)}{s.unwatched > 0 && s.unwatched < s.episodeCount ? ' · ' + tn('{count} left', '{count} left', s.unwatched) : s.unwatched === 0 ? ' · ' + t('watched') : ''}</div>
               </button>
             ))}
-            {unmatched.length > 0 && <button className={'season-tab' + (season === -1 ? ' active' : '')} onClick={() => setParams({ season: '-1' }, { replace: true })}><div className="season-poster" /><div className="t">Other videos</div><div className="sub">{unmatched.length}</div></button>}
+            {unmatched.length > 0 && <button className={'season-tab' + (season === -1 ? ' active' : '')} onClick={() => setParams({ season: '-1' }, { replace: true })}><div className="season-poster" /><div className="t">{t('Other videos')}</div><div className="sub">{unmatched.length}</div></button>}
           </div>
 
           <div className="view-toggle">
-            <span className="muted">Layout</span>
+            <span className="muted">{t('Layout')}</span>
             <div className="seg">
-              <button className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>Cards</button>
-              <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>Playlist</button>
+              <button className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>{t('Cards')}</button>
+              <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>{t('Playlist')}</button>
             </div>
-            {showView && <button className="btn sm ghost" onClick={() => setView('')} title="Use the layout set in Settings">Use default</button>}
+            {showView && <button className="btn sm ghost" onClick={() => setView('')} title={t('Use the layout set in Settings')}>{t('Use default')}</button>}
           </div>
           {view === 'list' ? <EpisodeTable eps={eps} /> : (
             <div className="episodes">
@@ -143,11 +144,11 @@ export default function ShowPage() {
           {/* What the show is first (seasons and episodes), then cast and crew, where else it is listed and the small print. */}
           <TitleExtras target="show" id={show.id} libraryId={show.libraryId} />
           {episodes[0] && <Suspense fallback={null}><WhereToWatch itemId={episodes[0].id} show /></Suspense>}
-          <div className="page-back"><BackLink to={`/library/${show.libraryId}`} label="Back to library" /></div>
-          {show.provider === 'tvdb' && <p className="fine-print">Metadata provided by <a href="https://thetvdb.com" target="_blank" rel="noreferrer">TheTVDB</a>. Please consider adding missing information or subscribing.</p>}
-          {show.provider === 'tmdb-tv' && <p className="fine-print">Details from <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">TMDB</a>. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>}
-          {show.provider === 'anilist' && <p className="fine-print">Anime information from <a href={`https://anilist.co/anime/${show.providerId}`} target="_blank" rel="noreferrer">AniList</a>.</p>}
-          {show.provider === 'tvmaze' && <p className="fine-print">TV information from <a href={`https://www.tvmaze.com/shows/${show.providerId}`} target="_blank" rel="noreferrer">TVmaze</a>, shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.</p>}
+          <div className="page-back"><BackLink to={`/library/${show.libraryId}`} label={t('Back to library')} /></div>
+          {show.provider === 'tvdb' && <p className="fine-print">{t('Metadata provided by')} <a href="https://thetvdb.com" target="_blank" rel="noreferrer">TheTVDB</a>. {t('Please consider adding missing information or subscribing.')}</p>}
+          {show.provider === 'tmdb-tv' && <p className="fine-print">{t('Details from')} <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">TMDB</a>. {t('This product uses the TMDB API but is not endorsed or certified by TMDB.')}</p>}
+          {show.provider === 'anilist' && <p className="fine-print">{t('Anime information from')} <a href={`https://anilist.co/anime/${show.providerId}`} target="_blank" rel="noreferrer">AniList</a>.</p>}
+          {show.provider === 'tvmaze' && <p className="fine-print">{t('TV information from')} <a href={`https://www.tvmaze.com/shows/${show.providerId}`} target="_blank" rel="noreferrer">TVmaze</a>, {t('shared under')} <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>.</p>}
           <LegalNote kind="metadata" />
           {show.network && <LogoNotice logos={[{ kind: 'network', name: show.network }]} />}
         </div>
@@ -165,7 +166,7 @@ function EpisodeTable({ eps }: { eps: Item[] }) {
   const nav = useNavigate()
   return (
     <table className="titles-table episode-table">
-      <thead><tr><th></th><th>#</th><th>Title</th><th>Aired</th><th>Length</th><th></th><th></th></tr></thead>
+      <thead><tr><th></th><th>#</th><th>{t('Title')}</th><th>{t('Aired')}</th><th>{t('Length')}</th><th></th><th></th></tr></thead>
       <tbody>
         {eps.map((e) => {
           const p = e.progress
@@ -178,7 +179,7 @@ function EpisodeTable({ eps }: { eps: Item[] }) {
               <td className="muted">{e.aired || ''}</td>
               <td>{e.runtimeSec ? fmtTime(e.runtimeSec) : ''}</td>
               <td className="muted">{state}</td>
-              <td><button className="btn sm" onClick={(ev) => { ev.stopPropagation(); nav(`/play/${e.id}`) }}><IconPlay /> Play</button></td>
+              <td><button className="btn sm" onClick={(ev) => { ev.stopPropagation(); nav(`/play/${e.id}`) }}><IconPlay /> {t('Play')}</button></td>
             </tr>
           )
         })}
@@ -193,7 +194,7 @@ function EpisodeRow({ ep }: { ep: Item }) {
   return (
     <div className="episode">
       {/* The title's link covers the whole row, so a click anywhere opens it; a remote or keyboard reaches both controls. */}
-      <button type="button" className="thumb" aria-label={`Play ${ep.title}`} onClick={() => nav(`/play/${ep.id}`)}>
+      <button type="button" className="thumb" aria-label={t('Play {title}', { title: ep.title })} onClick={() => nav(`/play/${ep.id}`)}>
         {ep.poster && <img src={sized(posterUrl(ep), fitWidth(320))} alt="" loading="lazy" />}
         <span className="play"><span><IconPlay /></span></span>
         {pct > 0 && <span className="progress"><i style={{ width: pct + '%' }} /></span>}

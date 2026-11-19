@@ -6,6 +6,7 @@ import { api, type Item, type Show } from '../api'
 import { EmptyState, ItemCard, ShowCard, SkeletonGrid } from '../components/common'
 import { IconSearch } from '../icons'
 import LegalNote from '../components/LegalNote'
+import { t } from '../i18n'
 
 // Phones have no search box in the top bar, so the page carries its own.
 function PhoneBox({ q }: { q: string }) {
@@ -15,7 +16,7 @@ function PhoneBox({ q }: { q: string }) {
   return (
     <form className="search-page-box" role="search" onSubmit={(e) => { e.preventDefault(); if (text.trim()) nav('/search?q=' + encodeURIComponent(text.trim())) }}>
       <IconSearch />
-      <input className="input" aria-label="Search" type="search" placeholder="Search your libraries…" value={text} onChange={(e) => setText(e.target.value)} />
+      <input className="input" data-app-search aria-label={t('Search')} type="search" placeholder={t('Search your libraries…')} value={text} onChange={(e) => setText(e.target.value)} />
     </form>
   )
 }
@@ -41,28 +42,28 @@ export default function SearchPage() {
   if (!q) {
     return (
       <>
-        <div className="toolbar"><h1>Search</h1></div>
+        <div className="toolbar"><h1>{t('Search')}</h1></div>
         <PhoneBox q={q} />
-        <EmptyState icon={<IconSearch />} title="Find anything on this server" text="Type a title in the search box: movies, shows, episodes, music, books and games are all included." />
+        <EmptyState icon={<IconSearch />} title={t('Find anything on this server')} text={t('Type a title in the search box: movies, shows, episodes, music, books and games are all included.')} />
       </>
     )
   }
   if (failed) {
     return (
       <>
-        <div className="toolbar"><h1>Search</h1><span className="count">“{q}”</span></div>
-        <EmptyState icon={<IconSearch />} title="The search didn’t work" text={failed} />
+        <div className="toolbar"><h1>{t('Search')}</h1><span className="count">{t('“{query}”', { query: q })}</span></div>
+        <EmptyState icon={<IconSearch />} title={t('The search didn’t work')} text={failed} />
       </>
     )
   }
   return (
     <>
-      <div className="toolbar"><h1>Search</h1><span className="count">“{q}”</span></div>
+      <div className="toolbar"><h1>{t('Search')}</h1><span className="count">{t('“{query}”', { query: q })}</span></div>
       <PhoneBox q={q} />
-      {!items ? <SkeletonGrid className="search-grid" /> : items.length + shows.length === 0 ? <EmptyState icon={<IconSearch />} title="No results" text={q ? `Nothing on this server matches “${q}”. Try a shorter or different word.` : 'Type what you’re looking for in the search box.'} /> : (
+      {!items ? <SkeletonGrid className="search-grid" /> : items.length + shows.length === 0 ? <EmptyState icon={<IconSearch />} title={t('No results')} text={q ? t('Nothing on this server matches “{query}”. Try a shorter or different word.', { query: q }) : t('Type what you’re looking for in the search box.')} /> : (
         <>
-          {shows.length > 0 && <><h2 className="shelf-head">Shows</h2><div className="grid search-grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div></>}
-          {items.length > 0 && <>{shows.length > 0 && <h2 className="shelf-head">Everything else</h2>}<div className="grid search-grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div></>}
+          {shows.length > 0 && <><h2 className="shelf-head">{t('Shows')}</h2><div className="grid search-grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div></>}
+          {items.length > 0 && <>{shows.length > 0 && <h2 className="shelf-head">{t('Everything else')}</h2>}<div className="grid search-grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div></>}
           <LegalNote kind="searchResults" />
         </>
       )}

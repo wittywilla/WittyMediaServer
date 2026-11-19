@@ -1,0 +1,13 @@
+{
+  "Control bar": "Steuerleiste",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Ausführlich legt jede Taste auf die Leiste. Einfach hält das Bild frei: Wiedergabe und die Sprünge in der Mitte, der Rest (Ton, Untertitel, Qualität, Geschwindigkeit, Szenen) in einem Optionen-Menü. Automatisch ist auf einem Handy oder Tablet einfach und auf einem breiteren Bildschirm ausführlich.",
+  "Detailed": "Ausführlich",
+  "Back to options": "Zurück zu den Optionen",
+  "Mono": "Mono",
+  "Styled text": "Text mit Gestaltung",
+  "Keep playing in a corner": "In einer Ecke weiterspielen",
+  "{count} watching": {
+    "one": "{count} schaut zu",
+    "other": "{count} schauen zu"
+  }
+}

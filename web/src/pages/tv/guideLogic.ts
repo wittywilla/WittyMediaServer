@@ -5,6 +5,9 @@
 // sums behind putting a set's channels in order. Nothing here is imported from elsewhere, so it
 // is tested on its own (guideLogic.test.mjs). docs/CHANNELS.md, "The guide", says what it does.
 
+// Marks English to be translated where it's shown (tk in ../../i18n; this file imports nothing, so it's tested on its own).
+const tk = <S extends string>(english: S): S => english
+
 // ------------------------------------------------------------------ sets
 
 export type SetKind = 'all' | 'favourites' | 'custom' | 'source' | 'group'
@@ -35,11 +38,11 @@ export function sectionsOf(sets: readonly TvSet[], q = ''): SetSection[] {
   const hit = (s: TvSet) => words.every((w) => s.name.toLowerCase().includes(w))
   const of = (title: string, test: (s: TvSet) => boolean): SetSection => ({ title, sets: sets.filter((s) => test(s) && hit(s)) })
   return [
-    of('Channels', (s) => s.kind === 'all' || s.kind === 'favourites'),
-    of('Your sets', (s) => s.kind === 'custom' && s.mine !== false),
-    of('Shared sets', (s) => s.kind === 'custom' && s.mine === false),
-    of('Sources', (s) => s.kind === 'source'),
-    of('Groups', (s) => s.kind === 'group'),
+    of(tk('Channels'), (s) => s.kind === 'all' || s.kind === 'favourites'),
+    of(tk('Your sets'), (s) => s.kind === 'custom' && s.mine !== false),
+    of(tk('Shared sets'), (s) => s.kind === 'custom' && s.mine === false),
+    of(tk('Sources'), (s) => s.kind === 'source'),
+    of(tk('Groups'), (s) => s.kind === 'group'),
   ].filter((x) => x.sets.length > 0)
 }
 
@@ -54,7 +57,7 @@ export const setNumber = (id: string) => id.replace(/^set:/, '')
 // How many rows at a time: 0 is all of them, scrolled through.
 export type PageSize = 0 | 25 | 50 | 75 | 100
 export const PAGE_SIZES: readonly PageSize[] = [25, 50, 75, 100, 0]
-export const pageSizeName = (n: PageSize) => (n ? String(n) : 'All')
+export const pageSizeName = (n: PageSize) => (n ? String(n) : tk('All'))
 
 export function readPageSize(v: unknown): PageSize {
   const n = Number(v)

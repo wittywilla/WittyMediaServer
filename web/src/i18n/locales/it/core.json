@@ -1,0 +1,15 @@
+{
+  "Language and time zone": "Lingua e fuso orario",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "Prima di tutto: la lingua di queste pagine, dei menu dei dischi e delle tracce audio, e il fuso orario del server.",
+  "Language": "Lingua",
+  "Everything on these pages, for everyone who uses this server.": "Tutto ciò che c’è in queste pagine, per chiunque usi questo server.",
+  "Disc menus and sound tracks": "Menu dei dischi e tracce audio",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "I menu dei dischi e la traccia audio con cui parte un film o una serie quando ne ha una in questa lingua. I sottotitoli restano spenti finché qualcuno non li attiva.",
+  "The original language": "La lingua originale",
+  "Time zone": "Fuso orario",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "I giorni della guida, le programmazioni, le registrazioni e i log seguono questa impostazione. Il server si riavvia una volta per applicarla, alla fine della configurazione, se non è quella in uso.",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "Il fuso orario del computer su cui gira il server. I giorni della guida, le programmazioni, le registrazioni e i log lo seguono.",
+  "This device is set to {zone}.": "Questo dispositivo è impostato su {zone}.",
+  "You can change these again on the Name and address step, and later in Settings.": "Puoi cambiarli di nuovo al passaggio Nome e indirizzo, e più tardi nelle Impostazioni.",
+  "Continue": "Continua"
+}

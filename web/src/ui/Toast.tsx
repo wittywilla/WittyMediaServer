@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
+import { t } from '../i18n'
 import { IconClose } from '../icons'
 
 // Small messages about something that has just happened. They wait their turn,
@@ -46,7 +47,7 @@ export function ToastHost() {
       {cur && <>
         <span className="toast-text">{cur.text}</span>
         {cur.action && <button type="button" className="linkish" onClick={() => { cur.action!.run(); done() }}>{cur.action.label}</button>}
-        {(cur.action || queue.length > 1) && <button type="button" className="toast-x" aria-label="Dismiss" onClick={done}><IconClose size={16} /></button>}
+        {(cur.action || queue.length > 1) && <button type="button" className="toast-x" aria-label={t('Dismiss')} onClick={done}><IconClose size={16} /></button>}
       </>}
     </div>
   )

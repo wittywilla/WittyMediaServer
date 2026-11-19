@@ -15,6 +15,7 @@ import { Placeholder } from '../../components/common'
 import { albumLink, coverUrl } from '../../pages/music/parts'
 import CoverFlow, { type Cover } from '../../pages/music/CoverFlow'
 import { useApp } from '../../state'
+import { t, tk } from '../../i18n'
 
 const GuidePage = lazy(() => import('../../pages/tv/GuidePage'))
 
@@ -24,14 +25,14 @@ export default function NativeViewHost({ view, library, inert, children, props }
   if (view.includes('.') && !inert) return <ModuleViewHost view={view} props={props || {}}>{children}</ModuleViewHost>
   const lib = libraries.find((l) => String(l.id) === library)
   // A drawing of the page, in the editor: the view's name stands for it.
-  if (inert) return <div className="sdui-native-stand" role="img" aria-label={`The app’s own view: ${view}`}><b>{NAMES[view] || view}</b><span className="muted">The app’s own view is shown here.</span></div>
+  if (inert) return <div className="sdui-native-stand" role="img" aria-label={t('The app’s own view: {name}', { name: NAMES[view] ? t(NAMES[view]) : view })}><b>{NAMES[view] ? t(NAMES[view]) : view}</b><span className="muted">{t('The app’s own view is shown here.')}</span></div>
   if (view === 'guide') return <div className="sdui-native" data-sdui-native="guide"><GuidePage /></div>
   if ((view === 'photoTimeline' || view === 'photoMap') && lib) return <ModuleViewHost view={view === 'photoMap' ? 'wittyphotos.map' : 'wittyphotos.timeline'} props={{ ...props, library: String(lib.id) }}>{children}</ModuleViewHost>
   if (view === 'coverFlow' && lib) return <div className="sdui-native" data-sdui-native="coverFlow"><Covers libId={lib.id} tall={lib.type === 'audiobooks'} /></div>
   return <div className="sdui-stack">{children}</div>
 }
 
-const NAMES: Record<string, string> = { guide: 'TV guide', photoTimeline: 'Photo timeline', photoMap: 'Photo map', coverFlow: 'Cover flow' }
+const NAMES: Record<string, string> = { guide: tk('TV guide'), photoTimeline: tk('Photo timeline'), photoMap: tk('Photo map'), coverFlow: tk('Cover flow') }
 
 function Covers({ libId, tall }: { libId: number; tall: boolean }) {
   const nav = useNavigate()
@@ -44,10 +45,10 @@ function Covers({ libId, tall }: { libId: number; tall: boolean }) {
     return () => { live = false }
   }, [libId])
   const covers = useMemo<Cover<Album>[]>(() => (albums || []).map((a) => ({ key: a.artist + '\u0000' + a.title, url: coverUrl(a.coverItem), label: [a.title, a.artist].filter(Boolean).join(', '), item: a })), [albums])
-  if (failed) return <p className="sdui-error" role="alert">Couldn’t load this</p>
-  if (!albums) return <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>
-  if (!covers.length) return <p className="muted sdui-empty">Nothing here yet.</p>
-  return <CoverFlow covers={covers} tall={tall} onOpen={(c) => nav(albumLink(libId, c.item))} fallback={(c) => <Placeholder title={c.item.title || 'Unknown'} />} />
+  if (failed) return <p className="sdui-error" role="alert">{t('Couldn’t load this')}</p>
+  if (!albums) return <div className="loading-box" role="status" aria-label={t('Loading')}><div className="spinner" /></div>
+  if (!covers.length) return <p className="muted sdui-empty">{t('Nothing here yet.')}</p>
+  return <CoverFlow covers={covers} tall={tall} onOpen={(c) => nav(albumLink(libId, c.item))} fallback={(c) => <Placeholder title={c.item.title || t('Unknown')} />} />
 }
 
 // A module's view: its bundle's component, given what it may use of the app and the
@@ -64,7 +65,7 @@ function ModuleViewHost({ view, props, children }: { view: string; props: Record
   }, [view])
   const module = view.slice(0, view.indexOf('.'))
   const host = useMemo(() => makePageHost(module, !!user?.isAdmin), [module, user?.isAdmin])
-  if (C === undefined) return <div className="loading-box" role="status" aria-label="Loading"><div className="spinner" /></div>
+  if (C === undefined) return <div className="loading-box" role="status" aria-label={t('Loading')}><div className="spinner" /></div>
   if (!C) return <div className="sdui-stack">{children}</div>
   return <div className="sdui-native" data-sdui-native={view}><ViewGuard fallback={children}><C {...props} host={host} view={view} /></ViewGuard></div>
 }

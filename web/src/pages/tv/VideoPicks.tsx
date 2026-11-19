@@ -5,6 +5,7 @@ import { fmtRuntime } from '../../api'
 import { toast, useApp } from '../../state'
 import { Button, Dialog, Input } from '../../ui'
 import { channelVideos, type Bumper, type CommercialPick } from './tvApi'
+import { num, t, tn } from '../../i18n'
 
 // Choosing a channel's commercials and bumper libraries without ever listing a
 // whole library: each library shows its count, and picking particular videos
@@ -17,8 +18,6 @@ export function useShortLibraries() {
   const { libraries } = useApp()
   return libraries.filter((l) => l.type === 'commercials')
 }
-
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
 // LibraryPicks ticks libraries, each whole or only some of its videos.
 export function LibraryPicks({ label, picks, onChange, note: noteOf }: { label: string; picks: CommercialPick[]; onChange: (next: CommercialPick[]) => void; note?: (id: number) => string }) {
@@ -35,19 +34,19 @@ export function LibraryPicks({ label, picks, onChange, note: noteOf }: { label: 
           <li key={l.id} className="tvs-block">
             <label className="check-row">
               <input type="checkbox" checked={!!p} onChange={(e) => toggle(l.id, e.target.checked)} /> <b>{l.name}</b>{' '}
-              <span className="tvs-dim">{plural(l.itemCount, 'video', 'videos')}{p?.only ? ` · ${(p.items || []).length} chosen` : ''}</span>
+              <span className="tvs-dim">{tn('{count} video', '{count} videos', l.itemCount)}{p?.only ? ' · ' + t('{count} chosen', { count: (p.items || []).length }) : ''}</span>
               {note && <span className="tvs-dim"> · {note}</span>}
             </label>
             {p && (
               <>
-                <div className="tvs-days" role="radiogroup" aria-label={`What to use from ${l.name}`}>
-                  <button type="button" role="radio" aria-checked={!p.only} className={'tvs-day' + (!p.only ? ' on' : '')} onClick={() => change(l.id, { only: false })}>All of them</button>
-                  <button type="button" role="radio" aria-checked={!!p.only} className={'tvs-day' + (p.only ? ' on' : '')} onClick={() => change(l.id, { only: true })}>Only these…</button>
+                <div className="tvs-days" role="radiogroup" aria-label={t('What to use from {name}', { name: l.name })}>
+                  <button type="button" role="radio" aria-checked={!p.only} className={'tvs-day' + (!p.only ? ' on' : '')} onClick={() => change(l.id, { only: false })}>{t('All of them')}</button>
+                  <button type="button" role="radio" aria-checked={!!p.only} className={'tvs-day' + (p.only ? ' on' : '')} onClick={() => change(l.id, { only: true })}>{t('Only these…')}</button>
                 </div>
                 {p.only && (
                   <>
-                    <VideoPicker label={`Videos from ${l.name}`} libraries={[l.id]} value={p.items || []} onChange={(items) => change(l.id, { items })} />
-                    {!(p.items || []).length && <p className="tvs-note" role="status">None chosen yet, so nothing from this library will play.</p>}
+                    <VideoPicker label={t('Videos from {name}', { name: l.name })} libraries={[l.id]} value={p.items || []} onChange={(items) => change(l.id, { items })} />
+                    {!(p.items || []).length && <p className="tvs-note" role="status">{t('None chosen yet, so nothing from this library will play.')}</p>}
                   </>
                 )}
               </>
@@ -66,8 +65,8 @@ export function VideoPicker({ label, libraries, own, value, onChange }: { label:
   const [open, setOpen] = useState(false)
   return (
     <div className="tve-vpick">
-      <span><b>{label}</b><span className="tvs-count"> · {value.length} chosen</span></span>
-      <Button size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>{value.length ? 'Change…' : 'Choose videos…'}</Button>
+      <span><b>{label}</b><span className="tvs-count"> · {t('{count} chosen', { count: value.length })}</span></span>
+      <Button size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>{value.length ? t('Change…') : t('Choose videos…')}</Button>
       {open && <PickerDialog label={label} libraries={libraries} own={own} value={value} onChange={onChange} onClose={() => setOpen(false)} />}
     </div>
   )
@@ -82,8 +81,8 @@ function PickerDialog({ label, libraries, own, value, onChange, onClose }: { lab
   const libKey = libraries.join(',')
   // Waits a moment after typing before asking.
   useEffect(() => {
-    const t = setTimeout(() => { setSearch(q.trim()); setOffset(0) }, 250)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => { setSearch(q.trim()); setOffset(0) }, 250)
+    return () => clearTimeout(timer)
   }, [q])
   useEffect(() => { setOffset(0) }, [libKey, own, chosenOnly])
   const idsKey = chosenOnly ? value.join(',') : ''
@@ -98,14 +97,14 @@ function PickerDialog({ label, libraries, own, value, onChange, onClose }: { lab
   const set = (id: number, on: boolean) => onChange(on ? [...value, id] : value.filter((x) => x !== id))
   const total = page?.total || 0
   return (
-    <Dialog className="tve-vpick-dialog" title={`${label} · ${value.length} chosen`} onClose={onClose} actions={<Button variant="primary" onClick={onClose}>Done</Button>}>
+    <Dialog className="tve-vpick-dialog" title={label + ' · ' + t('{count} chosen', { count: value.length })} onClose={onClose} actions={<Button variant="primary" onClick={onClose}>{t('Done')}</Button>}>
       <div className="tve-vpick-bar">
-        <Input type="search" autoFocus aria-label={`Find in ${label}`} placeholder="Find…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <label className="check-row tvs-inline"><input type="checkbox" checked={chosenOnly} onChange={(e) => setChosenOnly(e.target.checked)} /> Chosen only</label>
-        {value.length > 0 && <Button size="sm" variant="ghost" onClick={() => onChange([])}>Clear</Button>}
+        <Input type="search" autoFocus aria-label={t('Find in {name}', { name: label })} placeholder={t('Find…')} value={q} onChange={(e) => setQ(e.target.value)} />
+        <label className="check-row tvs-inline"><input type="checkbox" checked={chosenOnly} onChange={(e) => setChosenOnly(e.target.checked)} /> {t('Chosen only')}</label>
+        {value.length > 0 && <Button size="sm" variant="ghost" onClick={() => onChange([])}>{t('Clear')}</Button>}
       </div>
-      {!page && <p className="muted">Loading…</p>}
-      {page && page.items.length === 0 && <p className="muted">{search ? 'Nothing found.' : chosenOnly ? 'Nothing chosen yet.' : 'Nothing here yet. A library may still be scanning.'}</p>}
+      {!page && <p className="muted">{t('Loading…')}</p>}
+      {page && page.items.length === 0 && <p className="muted">{search ? t('Nothing found.') : chosenOnly ? t('Nothing chosen yet.') : t('Nothing here yet. A library may still be scanning.')}</p>}
       {page && page.items.length > 0 && (
         <ul className="tve-vpick-list">
           {page.items.map((b) => (
@@ -113,7 +112,7 @@ function PickerDialog({ label, libraries, own, value, onChange, onClose }: { lab
               <label className="check-row">
                 <input type="checkbox" checked={value.includes(b.itemId)} onChange={(e) => set(b.itemId, e.target.checked)} />
                 <span className="tve-vpick-title" title={b.title}>{b.title}</span>
-                <small className="tvs-dim">{fmtRuntime(b.durationSec) || `${Math.round(b.durationSec)} s`} · {b.uploaded ? 'Uploaded' : b.library}</small>
+                <small className="tvs-dim">{fmtRuntime(b.durationSec) || t('{n} s', { n: Math.round(b.durationSec) })} · {b.uploaded ? t('Uploaded') : b.library}</small>
               </label>
             </li>
           ))}
@@ -121,9 +120,9 @@ function PickerDialog({ label, libraries, own, value, onChange, onClose }: { lab
       )}
       {total > PAGE && (
         <div className="tve-vpick-pages">
-          <Button size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Previous</Button>
-          <span className="tvs-dim" aria-live="polite">{offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
-          <Button size="sm" disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
+          <Button size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>{t('Previous')}</Button>
+          <span className="tvs-dim" aria-live="polite">{t('{from}–{to} of {total}', { from: num(offset + 1), to: num(Math.min(offset + PAGE, total)), total: num(total) })}</span>
+          <Button size="sm" disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>{t('Next')}</Button>
         </div>
       )}
     </Dialog>

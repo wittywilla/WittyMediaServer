@@ -10,6 +10,7 @@ import type { Action } from '../types'
 import { formValues, saveAction, withValue, type Control } from '../formsModel'
 import type { Node } from '../types'
 import { usePage } from './context'
+import { t, tx } from '../../i18n'
 
 // What a Form is holding: values by control name, and whether it is in one.
 type FormState = { values: Record<string, unknown>; set: (name: string, v: unknown) => void } | null
@@ -28,16 +29,16 @@ export function ControlView({ control, label, action }: { control: Control; labe
   }
   const off = !!control.disabled || !!page.inert
   const id = 'sdui-c-' + name
-  const why = control.disabled && control.why ? <span className="muted sdui-control-why" id={id + 'w'}>{control.why}</span> : null
+  const why = control.disabled && control.why ? <span className="muted sdui-control-why" id={id + 'w'}>{tx(control.why)}</span> : null
   const described = why ? id + 'w' : undefined
   switch (control.type) {
     case 'switch': return <span className="sdui-control">{why}<Switch label={label} checked={value === true} disabled={off} onChange={(v) => change(v, true)} /></span>
-    case 'select': return <span className="sdui-control">{why}<Select inputSize="sm" aria-label={label} aria-describedby={described} disabled={off} value={String(value ?? '')} options={control.options || []} onChange={(e) => change(e.target.value, true)} /></span>
+    case 'select': return <span className="sdui-control">{why}<Select inputSize="sm" aria-label={label} aria-describedby={described} disabled={off} value={String(value ?? '')} options={(control.options || []).map((o) => ({ value: o.value, label: tx(o.label) }))} onChange={(e) => change(e.target.value, true)} /></span>
     case 'field': return <span className="sdui-control">{why}<Input inputSize="sm" aria-label={label} aria-describedby={described} disabled={off} type={control.input === 'number' ? 'number' : control.input === 'url' ? 'url' : control.input === 'search' ? 'search' : control.input === 'password' ? 'password' : 'text'}
-      placeholder={control.placeholder} maxLength={control.maxLength} value={String(value ?? '')} onChange={(e) => change(e.target.value, false)}
+      placeholder={tx(control.placeholder) || undefined} maxLength={control.maxLength} value={String(value ?? '')} onChange={(e) => change(e.target.value, false)}
       onBlur={() => { if (!form && !page.inert) page.act(withValue(action, control, value)) }} onKeyDown={(e) => { if (e.key === 'Enter' && !form) page.act(withValue(action, control, value)) }} /></span>
     case 'slider': return <span className="sdui-control">{why}<input type="range" className="sdui-slider" aria-label={label} aria-describedby={described} disabled={off} min={control.min ?? 0} max={control.max ?? 100} step={control.step ?? 1} value={Number(value ?? control.min ?? 0)}
-      onChange={(e) => change(Number(e.target.value), false)} onPointerUp={() => { if (!form && !page.inert) page.act(withValue(action, control, value)) }} onKeyUp={() => { if (!form && !page.inert) page.act(withValue(action, control, value)) }} />{control.unit && <span className="muted">{Number(value ?? 0)} {control.unit}</span>}</span>
+      onChange={(e) => change(Number(e.target.value), false)} onPointerUp={() => { if (!form && !page.inert) page.act(withValue(action, control, value)) }} onKeyUp={() => { if (!form && !page.inert) page.act(withValue(action, control, value)) }} />{control.unit && <span className="muted">{Number(value ?? 0)} {tx(control.unit)}</span>}</span>
   }
 }
 
@@ -50,11 +51,11 @@ export function FormView({ title, submitLabel, cancelLabel, action, nodes, child
   return (
     <FormCtx.Provider value={{ values, set: (n, v) => setValues((x) => ({ ...x, [n]: v })) }}>
       <form className="sdui-form" onSubmit={(e) => { e.preventDefault(); if (!changed || page.inert) return; setBusy(true); page.act(saveAction(action, formValues(nodes, values))); window.setTimeout(() => { setBusy(false); setValues({}) }, 600) }}>
-        {title && <h2 className="sdui-form-title">{title}</h2>}
+        {title && <h2 className="sdui-form-title">{tx(title)}</h2>}
         {children}
         <div className="sdui-form-actions">
           {cancelLabel && <Button variant="ghost" onClick={() => !page.inert && page.act({ type: 'back' })}>{cancelLabel}</Button>}
-          <Button type="submit" variant="primary" busy={busy} disabled={!changed || page.inert}>{submitLabel || 'Save'}</Button>
+          <Button type="submit" variant="primary" busy={busy} disabled={!changed || page.inert}>{submitLabel || t('Save')}</Button>
         </div>
       </form>
     </FormCtx.Provider>

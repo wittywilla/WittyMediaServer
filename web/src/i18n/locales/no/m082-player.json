@@ -1,0 +1,13 @@
+{
+  "Control bar": "Kontrollinje",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Detaljert legger alle knappene på linjen. Enkel holder bildet fritt: spill av og hoppene i midten, og resten (lyd, undertekster, kvalitet, hastighet, scener) i én Alternativer-meny. Automatisk er enkel på en telefon eller et nettbrett og detaljert på en bredere skjerm.",
+  "Detailed": "Detaljert",
+  "Back to options": "Tilbake til alternativene",
+  "Mono": "Mono",
+  "Styled text": "Tekst med stil",
+  "Keep playing in a corner": "Fortsett avspillingen i et hjørne",
+  "{count} watching": {
+    "one": "{count} ser på",
+    "other": "{count} ser på"
+  }
+}

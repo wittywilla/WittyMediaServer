@@ -5,6 +5,7 @@ import { artPreviewUrl } from '../api'
 import { artHue } from './common'
 import { IconCamera, IconCheck, IconDownload, IconEdit as IconText, IconImage } from '../icons'
 import { announce } from '../a11y'
+import { t, tk, tn, tx } from '../i18n'
 import { Button, Dialog, Tabs } from '../ui'
 import LegalNote from './LegalNote'
 import './artpicker.css'
@@ -27,18 +28,18 @@ export type MakeOptions = { title: string; line: string; hue: number | null; fra
 export type Maker = { title: string; line: string; hasVideo: boolean; make: (o: MakeOptions) => Promise<{ url: string }> }
 
 export const ART_KINDS: PickerKind[] = [
-  { kind: 'poster', label: 'Poster', shape: 'tall' },
-  { kind: 'backdrop', label: 'Backdrop', shape: 'wide' },
-  { kind: 'banner', label: 'Banner', shape: 'strip' },
-  { kind: 'logo', label: 'Title logo', shape: 'logo' },
+  { kind: 'poster', label: tk('Poster'), shape: 'tall' },
+  { kind: 'backdrop', label: tk('Backdrop'), shape: 'wide' },
+  { kind: 'banner', label: tk('Banner'), shape: 'strip' },
+  { kind: 'logo', label: tk('Title logo'), shape: 'logo' },
 ]
 
-// The names of the sources the older artwork route reports by key.
-export const ART_SOURCE: Record<string, string> = { local: 'In the folder', tmdb: 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', anilist: 'AniList', current: 'In use' }
+// The names of the sources the older artwork route reports by key (shown with tx()).
+export const ART_SOURCE: Record<string, string> = { local: tk('In the folder'), tmdb: 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', anilist: 'AniList', current: tk('In use') }
 
 const ADDRESS = /^(https?:\/\/\S+|\/\S.*|[a-zA-Z]:\\.+|\\\\.+)$/
 
-export default function ArtworkPicker({ kinds, start, current, load, apply, stage, frame, onClose, title = 'Change artwork', note, maker }: {
+export default function ArtworkPicker({ kinds, start, current, load, apply, stage, frame, onClose, title, note, maker }: {
   kinds: PickerKind[]
   start?: string
   // The picture each kind has now.
@@ -71,6 +72,9 @@ export default function ArtworkPicker({ kinds, start, current, load, apply, stag
   const file = useRef<HTMLInputElement | null>(null)
   const ids = useId()
   const info = kinds.find((k) => k.kind === kind) || kinds[0]
+  // The kind's name and a choice's source, in the app's language (sources may be the server's words or ART_SOURCE's).
+  const kindName = tx(info.label)
+  const from = (c: PickerChoice) => tx(c.sourceLabel)
 
   useEffect(() => {
     if (found[kind]) return
@@ -105,7 +109,10 @@ export default function ArtworkPicker({ kinds, start, current, load, apply, stag
     setErr('')
     if (say) {
       const c = list.find((x) => x.url === u)
-      announce(`Previewing ${info.label.toLowerCase()}${c?.sourceLabel ? (c.own ? ', ' + c.sourceLabel.toLowerCase() : ' from ' + c.sourceLabel) : ''}`)
+      const kindLower = kindName.toLowerCase()
+      announce(!c?.sourceLabel ? t('Previewing {kind}', { kind: kindLower })
+        : c.own ? t('Previewing {kind}, {source}', { kind: kindLower, source: from(c).toLowerCase() })
+        : t('Previewing {kind} from {source}', { kind: kindLower, source: from(c) }))
     }
   }
   const bring = (c: PickerChoice) => {
@@ -113,7 +120,7 @@ export default function ArtworkPicker({ kinds, start, current, load, apply, stag
     setChosen((x) => ({ ...x, [kind]: c.url }))
     setFocusAt(0)
     setErr('')
-    announce(`Previewing ${c.sourceLabel.toLowerCase()}`)
+    announce(t('Previewing {source}', { source: from(c).toLowerCase() }))
   }
 
   const doApply = async (also?: Record<string, string>) => {
@@ -125,23 +132,23 @@ export default function ArtworkPicker({ kinds, start, current, load, apply, stag
   const doUpload = async (f?: File) => {
     if (!f || !stage) return
     setBusy('upload'); setErr('')
-    try { bring({ url: await stage(kind, f), sourceLabel: 'Your file', own: true }) } catch (e: any) { setErr(e.message) } finally { setBusy('') }
+    try { bring({ url: await stage(kind, f), sourceLabel: tk('Your file'), own: true }) } catch (e: any) { setErr(e.message) } finally { setBusy('') }
   }
   const doFrame = async () => {
     if (!frame) return
     setBusy('frame'); setErr('')
-    try { bring({ url: await frame(), sourceLabel: 'A frame from the video', own: true }) } catch (e: any) { setErr(e.message) } finally { setBusy('') }
+    try { bring({ url: await frame(), sourceLabel: tk('A frame from the video'), own: true }) } catch (e: any) { setErr(e.message) } finally { setBusy('') }
   }
   const [making, setMaking] = useState(false)
   const doMake = async (o: MakeOptions) => {
     if (!maker) return
     setBusy('make'); setErr('')
-    try { bring({ url: (await maker.make(o)).url, sourceLabel: 'Made from its title', own: true }) } catch (e: any) { setErr(e.message) } finally { setBusy('') }
+    try { bring({ url: (await maker.make(o)).url, sourceLabel: tk('Made from its title'), own: true }) } catch (e: any) { setErr(e.message) } finally { setBusy('') }
   }
   const doAddress = () => {
     const u = address.trim()
-    if (!ADDRESS.test(u)) { setErr("That isn't a picture's address. It starts with https://, or is a file in one of your libraries."); return }
-    bring({ url: u, sourceLabel: 'From an address', own: true })
+    if (!ADDRESS.test(u)) { setErr(t("That isn't a picture's address. It starts with https://, or is a file in one of your libraries.")); return }
+    bring({ url: u, sourceLabel: tk('From an address'), own: true })
     setAddress('')
   }
 
@@ -166,10 +173,10 @@ export default function ArtworkPicker({ kinds, start, current, load, apply, stag
 
   const sizeOf = (u: string) => sizes[u] ? `${sizes[u][0]} × ${sizes[u][1]}` : ''
   const nameOf = (c: PickerChoice, i: number) => [
-    `${info.label} ${i + 1} of ${list.length}`,
-    c.own ? c.sourceLabel.toLowerCase() : c.sourceLabel ? `from ${c.sourceLabel}` : '',
-    sizes[c.url] ? `${sizes[c.url][0]} by ${sizes[c.url][1]}` : '',
-    c.url === now ? 'in use now' : '',
+    t('{kind} {n} of {total}', { kind: kindName, n: i + 1, total: list.length }),
+    c.own ? from(c).toLowerCase() : c.sourceLabel ? t('from {source}', { source: from(c) }) : '',
+    sizes[c.url] ? t('{width} by {height}', { width: sizes[c.url][0], height: sizes[c.url][1] }) : '',
+    c.url === now ? t('in use now') : '',
   ].filter(Boolean).join(', ')
   const warnings = found[kind]?.warnings || []
   const loading = !found[kind]
@@ -186,24 +193,24 @@ export default function ArtworkPicker({ kinds, start, current, load, apply, stag
   }, [loading, kind, list.length])
 
   return (
-    <Dialog title={title} onClose={onClose} size="wide" className="art-picker"
+    <Dialog title={title || t('Change artwork')} onClose={onClose} size="wide" className="art-picker"
       actions={<>
-        {changed > 1 && <span className="ap-count muted" aria-live="polite">{changed} pictures to apply</span>}
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" busy={busy === 'apply'} disabled={!changed || !!busy} onClick={() => void doApply()}>Apply</Button>
+        {changed > 1 && <span className="ap-count muted" aria-live="polite">{tn('{count} picture to apply', '{count} pictures to apply', changed)}</span>}
+        <Button variant="ghost" onClick={onClose}>{t('Cancel')}</Button>
+        <Button variant="primary" busy={busy === 'apply'} disabled={!changed || !!busy} onClick={() => void doApply()}>{t('Apply')}</Button>
       </>}>
       {kinds.length > 1 && (
-        <Tabs label="Kind of picture" value={kind} panelId={ids + 'p'} className="ap-tabs"
+        <Tabs label={t('Kind of picture')} value={kind} panelId={ids + 'p'} className="ap-tabs"
           onChange={(k) => { setKind(k); setFocusAt(-1); setErr('') }}
-          items={kinds.map((k) => ({ value: k.kind, label: k.label, badge: chosen[k.kind] !== undefined && chosen[k.kind] !== current(k.kind) ? <span className="ap-dot" aria-label=", changed" /> : undefined }))} />
+          items={kinds.map((k) => ({ value: k.kind, label: tx(k.label), badge: chosen[k.kind] !== undefined && chosen[k.kind] !== current(k.kind) ? <span className="ap-dot" aria-label={t(', changed')} /> : undefined }))} />
       )}
       <div className={'ap-body ' + info.shape} id={ids + 'p'} role={kinds.length > 1 ? 'tabpanel' : undefined}>
         <div className="ap-left">
           {warnings.map((w) => <p key={w} className="muted ap-warn">{w}</p>)}
           {loading ? <div className="loading-box"><div className="spinner" /></div> : list.length === 0 ? (
-            <p className="muted ap-none">No pictures were found for this. Bring your own below.</p>
+            <p className="muted ap-none">{t('No pictures were found for this. Bring your own below.')}</p>
           ) : (
-            <div className={'ap-grid ' + info.shape} ref={grid} role="group" aria-label={`${info.label} choices`} data-nav-group onKeyDown={keys}>
+            <div className={'ap-grid ' + info.shape} ref={grid} role="group" aria-label={t('{kind} choices', { kind: kindName })} data-nav-group onKeyDown={keys}>
               {list.map((c, i) => {
                 const on = c.url === pick
                 return (
@@ -214,7 +221,7 @@ export default function ArtworkPicker({ kinds, start, current, load, apply, stag
                       onLoad={(e) => { const m = e.currentTarget; if (m.naturalWidth) setSizes((s) => ({ ...s, [c.url]: [m.naturalWidth, m.naturalHeight] })) }}
                       onError={() => setBroken((b) => ({ ...b, [c.url]: true }))} />
                     <span className="ap-meta" aria-hidden="true">
-                      <span>{c.url === now ? 'In use' : c.sourceLabel}</span>
+                      <span>{c.url === now ? t('In use') : from(c)}</span>
                       {sizeOf(c.url) && <span>{sizeOf(c.url)}</span>}
                     </span>
                     {on && <span className="ap-check" aria-hidden="true"><IconCheck size={18} /></span>}
@@ -223,36 +230,36 @@ export default function ArtworkPicker({ kinds, start, current, load, apply, stag
               })}
             </div>
           )}
-          <div className="ap-own" role="group" aria-label="Bring your own">
+          <div className="ap-own" role="group" aria-label={t('Bring your own')}>
             {stage && <>
-              <Button size="sm" icon={<IconImage size={16} />} busy={busy === 'upload'} disabled={!!busy && busy !== 'upload'} onClick={() => file.current?.click()}>Upload a file</Button>
-              <input ref={file} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden aria-label={`Upload a picture for the ${info.label.toLowerCase()}`}
+              <Button size="sm" icon={<IconImage size={16} />} busy={busy === 'upload'} disabled={!!busy && busy !== 'upload'} onClick={() => file.current?.click()}>{t('Upload a file')}</Button>
+              <input ref={file} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden aria-label={t('Upload a picture for the {kind}', { kind: kindName.toLowerCase() })}
                 onChange={(e) => { void doUpload(e.target.files?.[0]); e.target.value = '' }} />
             </>}
             {frame && (info.shape === 'tall' || info.shape === 'wide') && (
-              <Button size="sm" icon={<IconCamera size={16} />} busy={busy === 'frame'} disabled={!!busy && busy !== 'frame'} onClick={doFrame}>Use a frame from the video</Button>
+              <Button size="sm" icon={<IconCamera size={16} />} busy={busy === 'frame'} disabled={!!busy && busy !== 'frame'} onClick={doFrame}>{t('Use a frame from the video')}</Button>
             )}
             {maker && info.shape === 'tall' && (
-              <Button size="sm" icon={<IconText size={16} />} aria-expanded={making} onClick={() => setMaking((m) => !m)}>Make a title poster</Button>
+              <Button size="sm" icon={<IconText size={16} />} aria-expanded={making} onClick={() => setMaking((m) => !m)}>{t('Make a title poster')}</Button>
             )}
             <form className="ap-address" onSubmit={(e) => { e.preventDefault(); doAddress() }}>
-              <input className="input" aria-label="A picture's address" placeholder="Or paste a picture's address" value={address} onChange={(e) => setAddress(e.target.value)} />
-              <Button size="sm" type="submit" icon={<IconDownload size={16} />} disabled={!address.trim()}>Preview</Button>
+              <input className="input" aria-label={t("A picture's address")} placeholder={t("Or paste a picture's address")} value={address} onChange={(e) => setAddress(e.target.value)} />
+              <Button size="sm" type="submit" icon={<IconDownload size={16} />} disabled={!address.trim()}>{t('Preview')}</Button>
             </form>
           </div>
           {maker && making && info.shape === 'tall' && <TitleMaker maker={maker} busy={busy === 'make'} onMake={doMake} />}
           {err && <div className="error ap-err" role="alert">{err}</div>}
         </div>
-        <aside className="ap-preview" aria-label="Preview">
+        <aside className="ap-preview" aria-label={t('Preview')}>
           <div className={'ap-big ' + info.shape}>
-            {pick ? <img src={artPreviewUrl(pick)} alt={`The ${info.label.toLowerCase()} being previewed`} /> : <span className="muted">None yet</span>}
+            {pick ? <img src={artPreviewUrl(pick)} alt={t('The {kind} being previewed', { kind: kindName.toLowerCase() })} /> : <span className="muted">{t('None yet')}</span>}
           </div>
           <div className="ap-facts">
-            <b>{!pick ? 'No picture' : pick === now ? 'In use now' : 'Not applied yet'}</b>
-            {shown?.sourceLabel && <span>{shown.own ? shown.sourceLabel : `From ${shown.sourceLabel}`}</span>}
-            {sizeOf(pick) && <span>{sizeOf(pick)} pixels</span>}
+            <b>{!pick ? t('No picture') : pick === now ? t('In use now') : t('Not applied yet')}</b>
+            {shown?.sourceLabel && <span>{shown.own ? from(shown) : t('From {source}', { source: from(shown) })}</span>}
+            {sizeOf(pick) && <span>{t('{size} pixels', { size: sizeOf(pick) })}</span>}
           </div>
-          {pick && pick !== now && <p className="muted ap-hint">Apply to use it. Cancel leaves everything as it was.</p>}
+          {pick && pick !== now && <p className="muted ap-hint">{t('Apply to use it. Cancel leaves everything as it was.')}</p>}
         </aside>
       </div>
       {note && <p className="muted ap-note">{note}</p>}
@@ -272,27 +279,27 @@ function TitleMaker({ maker, busy, onMake }: { maker: Maker; busy: boolean; onMa
   const own = artHue(words.trim().split(/\s+/).join(' ') || maker.title)
   const shown = hue ?? own
   return (
-    <form className="ap-maker" aria-label="Title poster" onSubmit={(e) => { e.preventDefault(); onMake({ title: words, line, hue, frame }) }}>
-      <label htmlFor={id + 'w'}>Words</label>
+    <form className="ap-maker" aria-label={t('Title poster')} onSubmit={(e) => { e.preventDefault(); onMake({ title: words, line, hue, frame }) }}>
+      <label htmlFor={id + 'w'}>{t('Words')}</label>
       <input id={id + 'w'} className="input" value={words} maxLength={120} onChange={(e) => setWords(e.target.value)} />
-      <label htmlFor={id + 'l'}>Second line <span className="muted">(optional)</span></label>
-      <input id={id + 'l'} className="input" value={line} maxLength={60} placeholder="The year, an edition" onChange={(e) => setLine(e.target.value)} />
-      <span className="ap-maker-label" id={id + 'b'}>Behind the words</span>
+      <label htmlFor={id + 'l'}>{t('Second line')} <span className="muted">{t('(optional)')}</span></label>
+      <input id={id + 'l'} className="input" value={line} maxLength={60} placeholder={t('The year, an edition')} onChange={(e) => setLine(e.target.value)} />
+      <span className="ap-maker-label" id={id + 'b'}>{t('Behind the words')}</span>
       <div className="ap-maker-bg" role="radiogroup" aria-labelledby={id + 'b'}>
-        <label><input type="radio" name={id + 'bg'} checked={!frame} onChange={() => setFrame(false)} /> A colour</label>
-        {maker.hasVideo && <label><input type="radio" name={id + 'bg'} checked={frame} onChange={() => setFrame(true)} /> A frame from the video</label>}
+        <label><input type="radio" name={id + 'bg'} checked={!frame} onChange={() => setFrame(false)} /> {t('A colour')}</label>
+        {maker.hasVideo && <label><input type="radio" name={id + 'bg'} checked={frame} onChange={() => setFrame(true)} /> {t('A frame from the video')}</label>}
       </div>
       {!frame && <>
-        <label htmlFor={id + 'h'}>Colour</label>
+        <label htmlFor={id + 'h'}>{t('Colour')}</label>
         <div className="ap-maker-hue">
           <span className="ap-swatch" aria-hidden="true" style={{ background: `linear-gradient(155deg, hsl(${shown} 32% 32%), hsl(${(shown + 40) % 360} 38% 15%))` }} />
-          <input id={id + 'h'} type="range" min={0} max={359} value={shown} aria-valuetext={hue === null ? 'Its own colour' : `Hue ${shown}`} onChange={(e) => setHue(Number(e.target.value))} />
-          {hue !== null && <Button size="sm" variant="ghost" onClick={() => setHue(null)}>Its own colour</Button>}
+          <input id={id + 'h'} type="range" min={0} max={359} value={shown} aria-valuetext={hue === null ? t('Its own colour') : t('Hue {hue}', { hue: shown })} onChange={(e) => setHue(Number(e.target.value))} />
+          {hue !== null && <Button size="sm" variant="ghost" onClick={() => setHue(null)}>{t('Its own colour')}</Button>}
         </div>
       </>}
       <div className="ap-maker-go">
-        <Button size="sm" type="submit" variant="primary" busy={busy} disabled={!words.trim()}>Preview it</Button>
-        <span className="muted">Then Apply to use it, over any poster it has.</span>
+        <Button size="sm" type="submit" variant="primary" busy={busy} disabled={!words.trim()}>{t('Preview it')}</Button>
+        <span className="muted">{t('Then Apply to use it, over any poster it has.')}</span>
       </div>
     </form>
   )

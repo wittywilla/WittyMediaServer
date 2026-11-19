@@ -11,6 +11,7 @@ import { artSet, CARD_SIZES, episodeLabel, fmtRuntime, discName, isBluray, isDis
 import { useApp } from '../state'
 import { IconCheck, IconLeft } from '../icons'
 import { ScanControl, type ScanMode, type ScanProgress } from './ScanControl'
+import { t, tn } from '../i18n'
 
 // The shared parts, under the names pages import them by.
 export { CardRow, EmptyState, LoadError, PageSkeleton, SkeletonGrid, Spinner } from '../ui/Surface'
@@ -84,7 +85,7 @@ export const ItemCard = memo(function ItemCard({ item, wide = item.showId != nul
 
 // SeenBadge: the mark on a finished title.
 export function SeenBadge() {
-  return <span className="badge seen" role="img" aria-label="Watched"><IconCheck /></span>
+  return <span className="badge seen" role="img" aria-label={t('Watched')}><IconCheck /></span>
 }
 
 export const ShowCard = memo(function ShowCard({ show }: { show: Show }) {
@@ -96,10 +97,10 @@ export const ShowCard = memo(function ShowCard({ show }: { show: Show }) {
         <img src={sized(showPosterUrl(show), 320)} srcSet={artSet(showPosterUrl(show))} sizes={CARD_SIZES} alt="" loading="lazy" style={{ position: 'relative' }} onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />
       </>}
       badges={<>
-        {show.unwatched > 0 && show.unwatched < show.episodeCount && <span className="badge count" role="img" aria-label={`${show.unwatched} unwatched`}>{show.unwatched}</span>}
+        {show.unwatched > 0 && show.unwatched < show.episodeCount && <span className="badge count" role="img" aria-label={t('{count} unwatched', { count: show.unwatched })}>{show.unwatched}</span>}
         {show.unwatched === 0 && <SeenBadge />}
       </>}
-      sub={<span title={`${show.episodeCount} episodes`}>{[show.year, `${show.seasonCount} ${show.seasonCount === 1 ? 'season' : 'seasons'}`].filter(Boolean).join(' · ')}</span>} />
+      sub={<span title={tn('{count} episode', '{count} episodes', show.episodeCount)}>{[show.year, tn('{count} season', '{count} seasons', show.seasonCount)].filter(Boolean).join(' · ')}</span>} />
   )
 })
 
@@ -172,5 +173,5 @@ export function Brand({ name, colouring, parts: given, oneLine }: { name: string
 export function UpdateDot() {
   const { update, user } = useApp()
   if (!update || !user?.isAdmin) return null
-  return <i className="upd-dot" role="img" aria-label={`Version ${update} is available`} title={`Version ${update} is available: Settings, About`} />
+  return <i className="upd-dot" role="img" aria-label={t('Version {version} is available', { version: update })} title={t('Version {version} is available: Settings, About', { version: update })} />
 }

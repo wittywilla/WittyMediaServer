@@ -9,6 +9,7 @@ import { tdarrSpec, type TdarrView } from '../../spec/specs/tdarr'
 import { ConfirmOwner, type OwnerAsk } from './ConfirmOwner'
 import { Section } from './ui'
 import type { Library, TdarrMapping, TdarrReport, TdarrSettings } from './libraryTranscodingTypes'
+import { t, tx } from '../../i18n'
 
 // Connecting someone's own Tdarr server. Tdarr is a separate program under its own licence:
 // nothing of it is included here, and they install it and agree to its terms themselves.
@@ -31,7 +32,7 @@ export default function TdarrSection({ libs }: { libs: Library[] }) {
     api.get<TdarrSettings>('/libtranscode/tdarr').then(adopt).catch(() => setFailed(true))
   }, [])
   useEffect(load, [load])
-  if (failed) return <Section title="Tdarr"><LoadError what="This section" onRetry={load} /></Section>
+  if (failed) return <Section title="Tdarr"><LoadError what={t('This section')} onRetry={load} /></Section>
   if (!saved) return <Section title="Tdarr"><Spinner /></Section>
 
   // Talking to a new address asks for the password. The dialog says what was wrong with one.
@@ -44,16 +45,16 @@ export default function TdarrSection({ libs }: { libs: Library[] }) {
     setBusy('save')
     try {
       adopt(await api.put<TdarrSettings>('/libtranscode/tdarr', { enabled: next.enabled ?? enabled, url, apiKey: key, clearKey: !!next.clearKey, mappings, ...secrets }))
-      toast('Saved')
+      toast(t('Saved'))
     } catch (e) { if (secrets) throw e; toast((e as Error).message) } finally { setBusy('') }
   }
   const askThen = (title: string, action: string, run: (secrets?: Secrets) => Promise<void>) => {
     if (!newAddress) { void run(); return }
-    setAsk({ title, action, body: <p>This server will talk to an address it hasn’t been talking to, so this asks for your password.</p>, run: (password, code) => run({ password, code }) })
+    setAsk({ title, action, body: <p>{t('This server will talk to an address it hasn’t been talking to, so this asks for your password.')}</p>, run: (password, code) => run({ password, code }) })
   }
   const send = async (libraryId: number) => {
     setBusy('send' + libraryId)
-    try { toast((await api.post<{ message: string }>('/libtranscode/tdarr/send', { libraryId })).message) } catch (e) { toast((e as Error).message) } finally { setBusy('') }
+    try { toast(tx((await api.post<{ message: string }>('/libtranscode/tdarr/send', { libraryId })).message)) } catch (e) { toast((e as Error).message) } finally { setBusy('') }
   }
   const mapOf = (id: number) => mappings.find((m) => m.libraryId === id) ?? { libraryId: id, tdarrId: '', from: '', to: '' }
   const setMap = (id: number, patch: Partial<TdarrMapping>) => setMappings([...mappings.filter((m) => m.libraryId !== id), { ...mapOf(id), ...patch }])
@@ -63,16 +64,16 @@ export default function TdarrSection({ libs }: { libs: Library[] }) {
     url, key, keySet: saved.keySet, enabled, dirty, busy,
     libs: libs.map((l) => { const m = mapOf(l.id); return { id: l.id, name: l.name, tdarrId: m.tdarrId, from: m.from, to: m.to, canSend: saved.enabled && saved.mappings.some((x) => x.libraryId === l.id && x.tdarrId) } }),
     known: known.map((k) => ({ id: k.id, name: k.name })),
-    report: report && { ok: report.ok, error: report.error, version: report.version, libraries: report.libraries.length, nodes: report.nodes.map((n) => { const w = n.workers.filter((x) => x.file); return { id: n.id, name: n.name, paused: n.paused, doing: w.length ? w.map((x) => `${x.file.split(/[\\/]/).pop()} (${Math.round(x.percent)}%)`).join(', ') : 'nothing to do' } }) },
+    report: report && { ok: report.ok, error: report.error, version: report.version, libraries: report.libraries.length, nodes: report.nodes.map((n) => { const w = n.workers.filter((x) => x.file); return { id: n.id, name: n.name, paused: n.paused, doing: w.length ? w.map((x) => `${x.file.split(/[\\/]/).pop()} (${Math.round(x.percent)}%)`).join(', ') : t('nothing to do') } }) },
   }
   const onField = (id: string, v: string | number | boolean | File) => {
     if (id === 'url') setUrl(String(v)); else if (id === 'key') setKey(String(v)); else if (id === 'enabled') setEnabled(!!v)
     else if (id.startsWith('map:')) { const [, lib, part] = id.split(':'); setMap(Number(lib), part === 'tdarr' ? { tdarrId: String(v) } : part === 'from' ? { from: String(v) } : { to: String(v) }) }
   }
   const onAction = (id: string) => {
-    if (id === 'test') askThen('Try this address?', 'Test the connection', test)
-    else if (id === 'forget') askThen('Save this address?', 'Forget the saved key', (s) => save({ clearKey: true }, s))
-    else if (id === 'save') askThen('Save this address?', 'Save the connection', (s) => save({}, s))
+    if (id === 'test') askThen(t('Try this address?'), t('Test the connection'), test)
+    else if (id === 'forget') askThen(t('Save this address?'), t('Forget the saved key'), (s) => save({ clearKey: true }, s))
+    else if (id === 'save') askThen(t('Save this address?'), t('Save the connection'), (s) => save({}, s))
     else if (id.startsWith('send:')) void send(Number(id.slice(5)))
   }
   const handled = new Set(['test', 'forget', 'save', ...libs.map((l) => 'send:' + l.id)])

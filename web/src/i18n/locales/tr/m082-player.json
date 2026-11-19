@@ -1,0 +1,13 @@
+{
+  "Control bar": "Denetim çubuğu",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Ayrıntılı, her düğmeyi çubuğa koyar. Basit, resmi açık bırakır: oynatma ve atlamalar ortada, geri kalanı (ses, altyazılar, kalite, hız, sahneler) tek bir Seçenekler menüsünde. Otomatik, telefonda veya tablette basit, daha geniş bir ekranda ayrıntılıdır.",
+  "Detailed": "Ayrıntılı",
+  "Back to options": "Seçeneklere dön",
+  "Mono": "Mono",
+  "Styled text": "Biçimli metin",
+  "Keep playing in a corner": "Bir köşede oynatmaya devam et",
+  "{count} watching": {
+    "one": "{count} kişi izliyor",
+    "other": "{count} kişi izliyor"
+  }
+}

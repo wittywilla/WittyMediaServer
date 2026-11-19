@@ -5,6 +5,7 @@ import { fitWidth, sized } from '../../api'
 import { useArtColour } from '../../audio/art'
 import { Placeholder } from '../../components/common'
 import { Art } from './ui'
+import { t } from '../../i18n'
 
 // The top of an album or playlist page: the cover, and behind it a wash of a colour taken
 // from the cover that fades into the page. The colour comes from a 32-pixel copy, read once
@@ -13,7 +14,7 @@ export function ListHeader({ art, title, kind, children, tile }: { art: string; 
   const rgb = useArtColour(art ? sized(art, 32) : null)
   return (
     <header className="mus-head" style={{ '--art': rgb } as React.CSSProperties}>
-      <div className="mus-head-cover"><Art src={art ? sized(art, fitWidth(232)) : ''} fallback={tile ?? <Placeholder title={title || 'Unknown'} />} /></div>
+      <div className="mus-head-cover"><Art src={art ? sized(art, fitWidth(232)) : ''} fallback={tile ?? <Placeholder title={title || t('Unknown')} />} /></div>
       <div className="mus-head-words">
         <span className="mus-kind">{kind}</span>
         <h1 className={'mus-title' + (title.length > 40 ? ' long' : '')} title={title}>{title}</h1>

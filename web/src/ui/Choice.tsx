@@ -3,6 +3,7 @@
 import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { IconClose } from '../icons'
+import { t } from '../i18n'
 
 // Picking one of a few: Segmented (a radio group), Tabs (sections of a page),
 // and Chips (filters that can be on or off). All three keep the Tab key to one
@@ -68,7 +69,7 @@ export function Chips({ label, children, className }: { label: string; children:
 // A filter that is on or off, or with onRemove a value that can be taken away.
 export function Chip({ selected, onClick, onRemove, removeLabel, children, icon }: { selected?: boolean; onClick?: () => void; onRemove?: () => void; removeLabel?: string; children: ReactNode; icon?: ReactNode }) {
   if (onRemove) {
-    return <span className="chip tag">{icon}{children}<button type="button" aria-label={removeLabel || 'Remove'} onClick={onRemove}><IconClose /></button></span>
+    return <span className="chip tag">{icon}{children}<button type="button" aria-label={removeLabel || t('Remove')} onClick={onRemove}><IconClose /></button></span>
   }
   return <button type="button" className={'chip' + (selected ? ' active' : '')} aria-pressed={!!selected} onClick={onClick}>{icon}{children}</button>
 }

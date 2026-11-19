@@ -7,11 +7,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { announce } from '../../../a11y'
+import { t, tn } from '../../../i18n'
 import { forgetPages, bump, getPreview, onPreview, setPreview } from '../../../sdui/client'
 import { useApp } from '../../../state'
 import { ask, Button, LoadError, Notice, Spinner, toast } from '../../../ui'
 import { discardDraft, getCatalogue, getDiff, isConflict, listPages, mergeConflicts, message, previewToken, publishDraft } from './api'
-import { describeChanges, pageName, type Catalogue, type Change, type LibraryRef, type PageEntry } from './editorModel.ts'
+import { describeChanges, pageName, setModelWords, type Catalogue, type Change, type LibraryRef, type PageEntry } from './editorModel.ts'
+
+// The editor's model writes its sentences in the app's language from here on.
+setModelWords({ t, tn })
 
 type Status = { draft: boolean; pages: PageEntry[]; changes: Change[] }
 
@@ -65,9 +69,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }, [attempt, refresh])
 
   const onConflict = useCallback(() => ask({
-    title: 'Someone else saved in between',
-    body: 'The draft changed after you opened it, here in another window or by another administrator. Your change can be made again on top of theirs.',
-    confirm: 'Make my change again', cancel: 'Not now',
+    title: t('Someone else saved in between'),
+    body: t('The draft changed after you opened it, here in another window or by another administrator. Your change can be made again on top of theirs.'),
+    confirm: t('Make my change again'), cancel: t('Not now'),
   }), [])
 
   const token = useCallback(async () => {
@@ -77,16 +81,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const showInApp = useCallback(async (route: string) => {
-    const t = await token()
-    if (!t) { toast('There is no draft to look at yet. Save a change first.'); return }
-    setPreview(t)
+    const tok = await token()
+    if (!tok) { toast(t('There is no draft to look at yet. Save a change first.')); return }
+    setPreview(tok)
     navigate(route || '/')
   }, [token, navigate])
 
   const libs = useMemo<LibraryRef[]>(() => libraries.map((l) => ({ id: l.id, name: l.name, type: l.type })), [libraries])
   const value = useMemo<Editor | null>(() => (cat && status ? { cat, libraries: libs, status, refresh, onConflict, token, unsaved, showInApp } : null), [cat, libs, status, refresh, onConflict, token, showInApp])
 
-  if (failed) return <LoadError what="The page editor" onRetry={() => setAttempt((n) => n + 1)} />
+  if (failed) return <LoadError what={t('The page editor')} onRetry={() => setAttempt((n) => n + 1)} />
   if (!value) return <Spinner />
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -103,9 +107,11 @@ export function DraftBar({ route }: { route?: string }) {
   const publish = async () => {
     const waiting = unsaved.current
     if (!await ask({
-      title: 'Publish the draft?',
-      body: `Everyone gets these pages and this menu from now on. You can go back to how it was from History.${waiting ? ` Your latest changes to ${waiting} aren’t saved to the draft yet, so they won’t be published.` : ''}`,
-      confirm: 'Publish',
+      title: t('Publish the draft?'),
+      body: waiting
+        ? t('Everyone gets these pages and this menu from now on. You can go back to how it was from History. Your latest changes to {what} aren’t saved to the draft yet, so they won’t be published.', { what: waiting })
+        : t('Everyone gets these pages and this menu from now on. You can go back to how it was from History.'),
+      confirm: t('Publish'),
     })) return
     setBusy('publish')
     try {
@@ -116,41 +122,41 @@ export function DraftBar({ route }: { route?: string }) {
         const clash = mergeConflicts(e)
         if (!clash) throw e
         const whole = clash.includes('/')
-        const named = clash.map((c) => c.replace(/^\/pages\//, '').replace(/^\/navigation$/, 'the menu').replace(/^\/theme$/, 'the theme').replace(/^\/personal$/, 'rearranging')).join(', ')
+        const named = clash.map((c) => c.replace(/^\/pages\//, '').replace(/^\/navigation$/, t('the menu')).replace(/^\/theme$/, t('the theme')).replace(/^\/personal$/, t('rearranging'))).join(', ')
         const keepDraft = await ask({
-          title: 'Changed in both places',
+          title: t('Changed in both places'),
           body: whole
-            ? 'What was published when this draft was begun is no longer kept, so the two can’t be merged. Publish the draft as it is, replacing what is published now?'
-            : `Since this draft was begun, someone published changes to ${named}, and the draft changes them too. Use the draft’s version of those? Everything else from both is kept either way.`,
-          confirm: whole ? 'Publish the draft' : 'Use the draft’s',
-          cancel: whole ? 'Cancel' : 'Keep what’s published',
+            ? t('What was published when this draft was begun is no longer kept, so the two can’t be merged. Publish the draft as it is, replacing what is published now?')
+            : t('Since this draft was begun, someone published changes to {what}, and the draft changes them too. Use the draft’s version of those? Everything else from both is kept either way.', { what: named }),
+          confirm: whole ? t('Publish the draft') : t('Use the draft’s'),
+          cancel: whole ? t('Cancel') : t('Keep what’s published'),
         })
         if (whole && !keepDraft) return
         // Closing the question is not an answer: say what publishing now would do, and ask once more.
-        if (!keepDraft && !await ask({ title: 'Publish, keeping what’s published for those?', body: `The draft’s other changes are published; ${named} stay as they are now.`, confirm: 'Publish' })) return
+        if (!keepDraft && !await ask({ title: t('Publish, keeping what’s published for those?'), body: t('The draft’s other changes are published; {what} stay as they are now.', { what: named }), confirm: t('Publish') })) return
         await publishDraft(keepDraft ? 'draft' : 'published')
       }
       setPreview('')
       forgetPages(); bump()
       await refresh()
-      toast('Published. Everyone has it now.', { tone: 'ok' })
-      announce('The draft was published')
+      toast(t('Published. Everyone has it now.'), { tone: 'ok' })
+      announce(t('The draft was published'))
     } catch (e) {
       if (isConflict(e)) {
         await refresh()
-        toast('The draft changed since you last looked. Check what it holds now, then publish.', { tone: 'warn' })
+        toast(t('The draft changed since you last looked. Check what it holds now, then publish.'), { tone: 'warn' })
       } else toast(message(e), { tone: 'danger' })
     } finally { setBusy('') }
   }
 
   const discard = async () => {
-    if (!await ask({ title: 'Discard the draft?', body: 'Everything in the draft is thrown away. What everyone sees now stays as it is.', confirm: 'Discard the draft', danger: true })) return
+    if (!await ask({ title: t('Discard the draft?'), body: t('Everything in the draft is thrown away. What everyone sees now stays as it is.'), confirm: t('Discard the draft'), danger: true })) return
     setBusy('discard')
     try {
       await discardDraft()
       setPreview('')
       await refresh()
-      toast('The draft was discarded')
+      toast(t('The draft was discarded'))
     } catch (e) { toast(message(e), { tone: 'danger' }) } finally { setBusy('') }
   }
 
@@ -158,24 +164,24 @@ export function DraftBar({ route }: { route?: string }) {
     return (
       <div className="pe-draft none" role="status">
         <span className="pe-draft-dot" aria-hidden="true" />
-        <span>Nothing is waiting to be published. What you save here goes to a draft first, which only you see until you publish it.</span>
+        <span>{t('Nothing is waiting to be published. What you save here goes to a draft first, which only you see until you publish it.')}</span>
       </div>
     )
   }
   return (
     <div className="pe-draftbar">
-    <Notice tone="warn" title={lines.length ? `A draft is waiting with ${lines.length === 1 ? '1 change' : lines.length + ' changes'}` : 'A draft is waiting'}
+    <Notice tone="warn" title={lines.length ? tn('A draft is waiting with {count} change', 'A draft is waiting with {count} changes', lines.length) : t('A draft is waiting')}
       action={<span className="pe-draft-actions">
         {previewing
-          ? <Button size="sm" variant="ghost" onClick={() => { setPreview(''); toast('The app shows what is published again') }}>Stop showing the draft</Button>
-          : <Button size="sm" variant="ghost" onClick={() => void showInApp(route || '/')}>Open the draft in the app</Button>}
-        <Button size="sm" variant="ghost" busy={busy === 'discard'} disabled={!!busy} onClick={discard}>Discard draft</Button>
-        <Button size="sm" variant="primary" busy={busy === 'publish'} disabled={!!busy} onClick={publish}>Publish</Button>
+          ? <Button size="sm" variant="ghost" onClick={() => { setPreview(''); toast(t('The app shows what is published again')) }}>{t('Stop showing the draft')}</Button>
+          : <Button size="sm" variant="ghost" onClick={() => void showInApp(route || '/')}>{t('Open the draft in the app')}</Button>}
+        <Button size="sm" variant="ghost" busy={busy === 'discard'} disabled={!!busy} onClick={discard}>{t('Discard draft')}</Button>
+        <Button size="sm" variant="primary" busy={busy === 'publish'} disabled={!!busy} onClick={publish}>{t('Publish')}</Button>
       </span>}>
-      <span>Nobody else sees it until you publish.{previewing ? ' The app is showing you the draft.' : ''}</span>
+      <span>{previewing ? t('Nobody else sees it until you publish. The app is showing you the draft.') : t('Nobody else sees it until you publish.')}</span>
       {lines.length > 0 && (
         <details className="pe-draft-what">
-          <summary>What the draft changes</summary>
+          <summary>{t('What the draft changes')}</summary>
           <ul>
             {lines.map((l) => <li key={l.title}>{l.title}{l.details.length > 0 && <ul>{l.details.map((d) => <li key={d}>{d}</li>)}</ul>}</li>)}
           </ul>

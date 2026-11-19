@@ -24,7 +24,7 @@
 .ui-menu-head .muted { font-size: var(--text-xs); }
 .ui-menu-heading { padding: var(--sp-2) var(--sp-3) var(--sp-1); color: var(--fg-3); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); }
 .ui-menu-sep { height: 1px; margin: var(--sp-1) var(--sp-2); background: var(--border); }
-.ui-menu-item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--control-h); padding: var(--sp-1) var(--sp-3); border: 0; border-radius: var(--r-md); background: none; color: var(--fg); font-size: var(--text-md); text-align: left; }
+.ui-menu-item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--control-h); padding: var(--sp-1) var(--sp-3); border: 0; border-radius: var(--r-md); background: none; color: var(--fg); font-size: var(--text-md); text-align: start; }
 .ui-menu-item svg { width: 18px; height: 18px; color: var(--fg-3); }
 .ui-menu-item:hover, .ui-menu-item:focus { background: var(--hover); outline: none; }
 .ui-menu-item:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: -2px; }
@@ -54,7 +54,7 @@
 .toast.warn { border-color: color-mix(in srgb, var(--warn) 60%, transparent); }
 .toast.danger { border-color: color-mix(in srgb, var(--danger) 70%, transparent); }
 .toast-text { min-width: 0; overflow-wrap: anywhere; }
-.toast-x { display: grid; place-items: center; flex: none; width: var(--sp-6); height: var(--sp-6); margin-right: calc(-1 * var(--sp-1)); padding: 0; border: 0; border-radius: 50%; background: none; color: var(--fg-2); }
+.toast-x { display: grid; place-items: center; flex: none; width: var(--sp-6); height: var(--sp-6); margin-inline-end: calc(-1 * var(--sp-1)); padding: 0; border: 0; border-radius: 50%; background: none; color: var(--fg-2); }
 .toast-x:hover { background: var(--hover); color: var(--fg); }
 
 /* ---------------------------------------------------------------- card */
@@ -66,7 +66,7 @@
 .ui-card-actions { flex: none; display: flex; align-items: center; gap: var(--sp-2); }
 @media (max-width: 600px) { .ui-card { padding: var(--sp-4); } .ui-card-head { flex-direction: column; } }
 /* A poster card that does something rather than goes somewhere. */
-.ui-card-button { padding: 0; border: 0; background: none; color: inherit; text-align: left; }
+.ui-card-button { padding: 0; border: 0; background: none; color: inherit; text-align: start; }
 
 /* ---------------------------------------------------------------- notice */
 .ui-notice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) var(--sp-4); border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--bg-3); color: var(--fg); font-size: var(--text-md); line-height: var(--leading-snug); }
@@ -119,11 +119,11 @@
 /* Any button or link put in it is a row. */
 .ui-rows > :is(.ui-row, .btn, a) {
   position: relative; display: flex; align-items: center; justify-content: flex-start; gap: var(--sp-3); width: 100%; min-height: 52px; padding: 0 var(--sp-4);
-  border: 0; border-radius: 0; background: none; color: var(--fg); font: inherit; font-size: var(--text-base); font-weight: 500; text-align: left; white-space: normal; transform: none;
+  border: 0; border-radius: 0; background: none; color: var(--fg); font: inherit; font-size: var(--text-base); font-weight: 500; text-align: start; white-space: normal; transform: none;
 }
-.ui-rows > * + *::before { content: ''; position: absolute; top: 0; left: calc(var(--sp-4) + 20px + var(--sp-3)); right: 0; border-top: 1px solid var(--border); }
+.ui-rows > * + *::before { content: ''; position: absolute; top: 0; inset-inline: calc(var(--sp-4) + 20px + var(--sp-3)) 0; border-top: 1px solid var(--border); }
 /* A row with no icon keeps its words in line with the others'. */
-.ui-rows > :is(.btn, a):not(:has(> svg, > .ui-row-ic)) { padding-left: calc(var(--sp-4) + 20px + var(--sp-3)); }
+.ui-rows > :is(.btn, a):not(:has(> svg, > .ui-row-ic)) { padding-inline-start: calc(var(--sp-4) + 20px + var(--sp-3)); }
 .ui-rows > :is(.ui-row, .btn, a):hover { background: var(--hover); }
 .ui-rows > :is(.ui-row, .btn, a):active { background: var(--pressed); transform: none; }
 .ui-rows > :is(.ui-row, .btn, a):focus-visible { outline-offset: calc(-1 * var(--focus-width)); }
@@ -134,7 +134,7 @@
 .ui-row-text { flex: 1; min-width: 0; }
 .ui-rows svg.ui-row-go { width: 18px; height: 18px; color: var(--fg-3); }
 .ui-row.danger, .ui-row.danger svg { color: var(--danger); }
-.ui-rows .lib-badge { margin-left: auto; }
+.ui-rows .lib-badge { margin-inline-start: auto; }
 
 /* ---------------------------------------------------------------- progress */
 .ui-progress { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; --bar: var(--accent); }
@@ -156,9 +156,9 @@
 /* ---------------------------------------------------------------- data table */
 .ui-table-wrap { min-width: 0; overflow-x: auto; }
 .ui-table { width: 100%; border-collapse: collapse; font-size: var(--text-md); }
-.ui-table th { padding: var(--sp-2) var(--sp-3); text-align: left; color: var(--fg-3); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); border-bottom: 1px solid var(--border-strong); white-space: nowrap; }
+.ui-table th { padding: var(--sp-2) var(--sp-3); text-align: start; color: var(--fg-3); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); border-bottom: 1px solid var(--border-strong); white-space: nowrap; }
 .ui-table td { padding: var(--sp-3); border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; vertical-align: middle; }
-.ui-table .end { text-align: right; }
+.ui-table .end { text-align: end; }
 .ui-table tbody tr:hover td { background: var(--hover); }
 .ui-table tbody tr:last-child td { border-bottom: 0; }
 .compact .ui-table td { padding: var(--sp-2) var(--sp-3); }
@@ -169,8 +169,8 @@
   .ui-table, .ui-table tbody, .ui-table tr, .ui-table td { display: block; }
   .ui-table tr { padding: var(--sp-2) 0; border-bottom: 1px solid var(--border); }
   .ui-table tbody tr:hover td { background: none; }
-  .ui-table td { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); padding: var(--sp-1) 0; border: 0; text-align: right; }
-  .ui-table td::before { content: attr(data-label); flex: none; color: var(--fg-3); font-size: var(--text-xs); text-align: left; }
+  .ui-table td { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); padding: var(--sp-1) 0; border: 0; text-align: end; }
+  .ui-table td::before { content: attr(data-label); flex: none; color: var(--fg-3); font-size: var(--text-xs); text-align: start; }
 }
 
 /* ---------------------------------------------------------------- the /design page */

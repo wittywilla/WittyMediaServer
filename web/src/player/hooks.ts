@@ -7,6 +7,7 @@ import { reportClient, reportHlsError, watchPlayback } from '../errorReport'
 import { mediaSourceWorks } from './mse'
 import { settleSeeks } from './seekSettle'
 import { rememberSpeed } from './streaming'
+import { t, tk } from '../i18n'
 
 type HlsClass = typeof Hls
 let loaded: HlsClass | null = null
@@ -109,7 +110,7 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
           reportHlsError(data)
           if (watch && data.type === Hls.ErrorTypes.NETWORK_ERROR) { watch.lost(data.response?.code); return }
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            if (data.response?.code === 404 && ++gone >= 2) optsRef.current.onError?.('The stream has ended on the server. Start playback again.')
+            if (data.response?.code === 404 && ++gone >= 2) optsRef.current.onError?.(tk('The stream has ended on the server. Start playback again.'))
             else hls.startLoad()
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             // Once is worth it; a stream this browser really can't decode would go round for ever.
@@ -147,7 +148,7 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
 type Opts = React.RefObject<{ robust?: StreamingHints | null; onNote?: (n: NetNote) => void; onReopen?: (at: number) => void }>
 
 // A level's height as a viewer would say it.
-const lines = (l?: { height?: number }) => (l?.height ? `${l.height}p` : 'a lower quality')
+const lines = (l?: { height?: number }) => (l?.height ? `${l.height}p` : t('a lower quality'))
 
 // robustWatch is what a robust HLS stream's player does by itself: step down when the
 // picture stalls, and when the connection is lost, keep the place and keep trying, with
@@ -175,14 +176,14 @@ function robustWatch(Hls: HlsClass, hls: Hls, v: HTMLVideoElement, opts: Opts) {
   // A stream the server has forgotten (404) or a sign-in that ran out (401, 403) won't
   // come back by itself: ask for a new one at the same place.
   const lost = (code?: number) => {
-    if (code === 404 || code === 401 || code === 403) { reopen('The stream had ended on the server, so it was started again from the same place.'); return }
-    if (!lostSince) { lostSince = Date.now(); note({ kind: 'lost', text: 'Connection lost. Trying again…' }) }
+    if (code === 404 || code === 401 || code === 403) { reopen(tk('The stream had ended on the server, so it was started again from the same place.')); return }
+    if (!lostSince) { lostSince = Date.now(); note({ kind: 'lost', text: tk('Connection lost. Trying again…') }) }
     if (lostTimer) return
     const wait = Math.min(hints.firstRetryMs * 2 ** lostTries, hints.maxRetryMs)
     lostTries++
     lostTimer = window.setTimeout(() => {
       lostTimer = 0
-      if (Date.now() - lostSince > REOPEN_AFTER_MS * 2) { reopen('The connection was gone for a long time, so the stream was asked for again from the same place.'); return }
+      if (Date.now() - lostSince > REOPEN_AFTER_MS * 2) { reopen(tk('The connection was gone for a long time, so the stream was asked for again from the same place.')); return }
       hls.startLoad(v.currentTime)
     }, wait)
   }
@@ -191,7 +192,7 @@ function robustWatch(Hls: HlsClass, hls: Hls, v: HTMLVideoElement, opts: Opts) {
   const loaded = () => {
     kicked = false
     if (lostSince) {
-      note({ kind: 'back', text: `Reconnected after ${Math.round((Date.now() - lostSince) / 1000)} s, at the same place.` })
+      note({ kind: 'back', text: t('Reconnected after {count} s, at the same place.', { count: Math.round((Date.now() - lostSince) / 1000) }) })
       lostSince = 0
       lostTries = 0
     }
@@ -202,7 +203,7 @@ function robustWatch(Hls: HlsClass, hls: Hls, v: HTMLVideoElement, opts: Opts) {
     const l = hls.levels[d.level]
     const h = l?.height || 0
     if (shownHeight && h && h !== shownHeight) {
-      note(h < shownHeight ? { kind: 'down', text: `Picture lowered to ${lines(l)} to keep playing.` } : { kind: 'up', text: `Picture back up to ${lines(l)}.` })
+      note(h < shownHeight ? { kind: 'down', text: t('Picture lowered to {quality} to keep playing.', { quality: lines(l) }) } : { kind: 'up', text: t('Picture back up to {quality}.', { quality: lines(l) }) })
     }
     shownHeight = h || shownHeight
   }
@@ -231,7 +232,7 @@ function robustWatch(Hls: HlsClass, hls: Hls, v: HTMLVideoElement, opts: Opts) {
     }
     // hls.js can sit waiting on a request that will never be answered: ask again.
     if (stuck >= KICK_AFTER_MS && !kicked) { kicked = true; hls.startLoad(v.currentTime); return }
-    if (stuck >= REOPEN_AFTER_MS) reopen('Nothing arrived for a while, so the stream was asked for again from the same place.')
+    if (stuck >= REOPEN_AFTER_MS) reopen(tk('Nothing arrived for a while, so the stream was asked for again from the same place.'))
   }, 1000)
   return {
     lost,
@@ -258,9 +259,9 @@ function fileWatch(v: HTMLVideoElement, opts: Opts) {
     lastTime = v.currentTime
     if (!started || v.paused || v.ended || v.seeking || moving || v.readyState >= 3) { stuckSince = 0; return }
     if (!stuckSince) stuckSince = Date.now()
-    else if (Date.now() - stuckSince >= 6000) reopen('The file wasn’t arriving fast enough, so a steadier stream was asked for, from the same place.')
+    else if (Date.now() - stuckSince >= 6000) reopen(tk('The file wasn’t arriving fast enough, so a steadier stream was asked for, from the same place.'))
   }, 1000)
-  const failed = () => { if (v.error?.code === MediaError.MEDIA_ERR_NETWORK) reopen('The connection failed, so the video was asked for again from the same place.') }
+  const failed = () => { if (v.error?.code === MediaError.MEDIA_ERR_NETWORK) reopen(tk('The connection failed, so the video was asked for again from the same place.')) }
   v.addEventListener('error', failed)
   return () => { clearInterval(tick); v.removeEventListener('error', failed) }
 }

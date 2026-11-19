@@ -8,6 +8,7 @@ import { IconCheck, IconEdit, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
 import { Dialog, ask } from '../../ui/Overlay'
 import { Button } from '../../ui/Button'
+import { t, tn } from '../../i18n'
 
 // What WittyShorts and WittyChannels share: a creator's picture, video tiles,
 // like buttons, a subscribe button and comments.
@@ -31,7 +32,7 @@ export function VideoTile({ v, to, showCreator = true, onClick }: { v: VideoCard
       <span className="cr-thumb">
         <img src={videoThumb(v.id, 480, v.updatedAt)} alt="" loading="lazy" decoding="async" onError={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />
         {v.durationSec > 0 && <span className="cr-dur">{fmtTime(v.durationSec)}</span>}
-        {v.watched && <span className="cr-seen" aria-label="Watched"><IconCheck size={14} /></span>}
+        {v.watched && <span className="cr-seen" aria-label={t('Watched')}><IconCheck size={14} /></span>}
         {pct > 0 && <span className="cr-prog"><i style={{ width: pct + '%' }} /></span>}
       </span>
       <span className="cr-meta">
@@ -39,7 +40,7 @@ export function VideoTile({ v, to, showCreator = true, onClick }: { v: VideoCard
         <span className="cr-text">
           <b>{v.title}</b>
           {showCreator && <span className="muted">{v.creator}</span>}
-          <span className="muted">{[viewsOf(v) ? `${fmtCount(viewsOf(v))} views` : '', timeAgo(v.uploadDate)].filter(Boolean).join(' · ')}</span>
+          <span className="muted">{[viewsOf(v) ? tn('{count} view', '{count} views', viewsOf(v), { count: fmtCount(viewsOf(v)) }) : '', timeAgo(v.uploadDate)].filter(Boolean).join(' · ')}</span>
         </span>
       </span>
     </Link>
@@ -79,7 +80,7 @@ export function LoadMore({ more, onMore }: { more: boolean; onMore: () => void }
     return () => io.disconnect()
   }, [more, onMore])
   if (!more) return null
-  return <div className="cr-more"><button ref={ref} className="btn ghost" onClick={onMore}>Show more</button></div>
+  return <div className="cr-more"><button ref={ref} className="btn ghost" onClick={onMore}>{t('Show more')}</button></div>
 }
 
 export function LikeButtons({ v, onChange }: { v: VideoCard; onChange: (reaction: number) => void }) {
@@ -88,13 +89,13 @@ export function LikeButtons({ v, onChange }: { v: VideoCard; onChange: (reaction
     if (!canReact(user)) return
     const next = v.reaction === value ? 0 : value
     onChange(next)
-    try { await setReaction(v.id, next) } catch { onChange(v.reaction); toast("Couldn't save that") }
+    try { await setReaction(v.id, next) } catch { onChange(v.reaction); toast(t('Couldn’t save that')) }
   }
   const likes = likesOf(v) + (v.reaction > 0 ? 0 : 0)
   return (
-    <div className="seg cr-likes" role="group" aria-label="Rate this video">
-      <button className={v.reaction > 0 ? 'active' : ''} aria-pressed={v.reaction > 0} disabled={!canReact(user)} onClick={() => set(1)}>♥ Like{likes ? ` · ${fmtCount(likes)}` : ''}</button>
-      <button className={v.reaction < 0 ? 'active' : ''} aria-pressed={v.reaction < 0} disabled={!canReact(user)} aria-label="Not for me" title="Show less like this" onClick={() => set(-1)}>✕</button>
+    <div className="seg cr-likes" role="group" aria-label={t('Rate this video')}>
+      <button className={v.reaction > 0 ? 'active' : ''} aria-pressed={v.reaction > 0} disabled={!canReact(user)} onClick={() => set(1)}>♥ {t('Like')}{likes ? ` · ${fmtCount(likes)}` : ''}</button>
+      <button className={v.reaction < 0 ? 'active' : ''} aria-pressed={v.reaction < 0} disabled={!canReact(user)} aria-label={t('Not for me')} title={t('Show less like this')} onClick={() => set(-1)}>✕</button>
     </div>
   )
 }
@@ -105,9 +106,9 @@ export function SubscribeButton({ c, onChange }: { c: Pick<Creator, 'id' | 'subs
   const toggle = async () => {
     const on = !c.subscribed
     onChange(on)
-    try { await api.put(`/creators/${c.id}/subscribe`, { on }) } catch { onChange(!on); toast("Couldn't save that") }
+    try { await api.put(`/creators/${c.id}/subscribe`, { on }) } catch { onChange(!on); toast(t('Couldn’t save that')) }
   }
-  return <button className={'btn sm ' + (c.subscribed ? 'ghost' : 'primary')} aria-pressed={c.subscribed} onClick={toggle}>{c.subscribed ? 'Subscribed' : 'Subscribe'}</button>
+  return <button className={'btn sm ' + (c.subscribed ? 'ghost' : 'primary')} aria-pressed={c.subscribed} onClick={toggle}>{c.subscribed ? t('Subscribed') : t('Subscribe')}</button>
 }
 
 // Comments: those of profiles on this server first, then those saved with an archive.
@@ -134,37 +135,37 @@ export function Comments({ itemId, count }: { itemId: number; count?: number }) 
     } catch (x: any) { toast(x.message) } finally { setBusy(false) }
   }
   const remove = async (c: Comment) => {
-    if (!await ask({ title: 'Delete this comment?', confirm: 'Delete', danger: true })) return
+    if (!await ask({ title: t('Delete this comment?'), confirm: t('Delete'), danger: true })) return
     try { await api.del(`/comments/${c.id}`); load() } catch (x: any) { toast(x.message) }
   }
   const top = (list || []).filter((c) => !c.parentId)
   const repliesOf = (id: number) => (list || []).filter((c) => c.parentId === id)
   const row = (c: Comment) => (
     <li key={c.id} className="cr-comment">
-      <div className="cr-comment-head"><b>{c.author || 'Someone'}</b><span className="muted">{c.createdAt ? timeAgo(c.createdAt) : ''}{c.editedAt ? ' · edited' : ''}{c.imported ? ' · from the archive' : ''}{c.likes ? ` · ♥ ${fmtCount(c.likes)}` : ''}</span></div>
+      <div className="cr-comment-head"><b>{c.author || t('Someone')}</b><span className="muted">{c.createdAt ? timeAgo(c.createdAt) : ''}{c.editedAt ? ' · ' + t('edited') : ''}{c.imported ? ' · ' + t('from the archive') : ''}{c.likes ? ` · ♥ ${fmtCount(c.likes)}` : ''}</span></div>
       <p>{c.body}</p>
       <div className="cr-comment-acts">
-        {canPost(user) && !c.imported && <button className="btn sm ghost" onClick={() => { setReply(c); setEditing(null) }}>Reply</button>}
-        {!c.imported && c.userId === user?.id && <button className="btn sm ghost" aria-label="Edit comment" onClick={() => { setEditing(c.id); setBody(c.body); setReply(null) }}><IconEdit /></button>}
-        {(c.userId === user?.id || user?.isAdmin) && <button className="btn sm ghost" aria-label="Delete comment" onClick={() => remove(c)}><IconTrash /></button>}
+        {canPost(user) && !c.imported && <button className="btn sm ghost" onClick={() => { setReply(c); setEditing(null) }}>{t('Reply')}</button>}
+        {!c.imported && c.userId === user?.id && <button className="btn sm ghost" aria-label={t('Edit comment')} onClick={() => { setEditing(c.id); setBody(c.body); setReply(null) }}><IconEdit /></button>}
+        {(c.userId === user?.id || user?.isAdmin) && <button className="btn sm ghost" aria-label={t('Delete comment')} onClick={() => remove(c)}><IconTrash /></button>}
       </div>
       {repliesOf(c.id).length > 0 && <ul className="cr-replies">{repliesOf(c.id).map(row)}</ul>}
     </li>
   )
   return (
-    <section className="cr-comments" aria-label="Comments">
-      <h2>{total} {total === 1 ? 'comment' : 'comments'}</h2>
+    <section className="cr-comments" aria-label={t('Comments')}>
+      <h2>{tn('{count} comment', '{count} comments', total)}</h2>
       {canPost(user) && (
         <form className="cr-comment-form" onSubmit={send}>
-          {reply && <div className="muted cr-replying">Replying to {reply.author} <button type="button" className="btn sm ghost" onClick={() => setReply(null)}>Cancel</button></div>}
-          <textarea className="input" rows={2} maxLength={2000} placeholder={editing ? 'Edit your comment' : 'Add a comment'} aria-label="Your comment" value={body} onChange={(e) => setBody(e.target.value)} />
+          {reply && <div className="muted cr-replying">{t('Replying to {name}', { name: reply.author })} <button type="button" className="btn sm ghost" onClick={() => setReply(null)}>{t('Cancel')}</button></div>}
+          <textarea className="input" rows={2} maxLength={2000} placeholder={editing ? t('Edit your comment') : t('Add a comment')} aria-label={t('Your comment')} value={body} onChange={(e) => setBody(e.target.value)} />
           <div className="cr-comment-send">
-            {editing && <button type="button" className="btn sm ghost" onClick={() => { setEditing(null); setBody('') }}>Cancel</button>}
-            <button className="btn sm primary" disabled={busy || !body.trim()}>{editing ? 'Save' : 'Comment'}</button>
+            {editing && <button type="button" className="btn sm ghost" onClick={() => { setEditing(null); setBody('') }}>{t('Cancel')}</button>}
+            <button className="btn sm primary" disabled={busy || !body.trim()}>{editing ? t('Save') : t('Comment')}</button>
           </div>
         </form>
       )}
-      {list === null ? null : top.length === 0 ? <p className="muted">No comments yet.</p> : <ul className="cr-comment-list">{top.map(row)}</ul>}
+      {list === null ? null : top.length === 0 ? <p className="muted">{t('No comments yet.')}</p> : <ul className="cr-comment-list">{top.map(row)}</ul>}
     </section>
   )
 }
@@ -188,7 +189,7 @@ export function EditVideoDialog({ v, onClose, onSaved }: { v: { id: number; titl
     for (const line of custom.split('\n')) { const i = line.indexOf(':'); if (i > 0) fields[line.slice(0, i).trim()] = line.slice(i + 1).trim() }
     try {
       await api.put(`/items/${v.id}`, { title, overview: description, contentRating: rating })
-      await api.put(`/videos/${v.id}`, { platform, sourceUrl: source, uploadDate: date, tags: tags.split(',').map((t) => t.trim()).filter(Boolean), creator, playlist, custom: fields })
+      await api.put(`/videos/${v.id}`, { platform, sourceUrl: source, uploadDate: date, tags: tags.split(',').map((x) => x.trim()).filter(Boolean), creator, playlist, custom: fields })
       onSaved()
     } catch (x: any) { setErr(x.message) }
   }
@@ -196,23 +197,23 @@ export function EditVideoDialog({ v, onClose, onSaved }: { v: { id: number; titl
     <label className="oobe-field">{label}<input className="input" value={value} onChange={(e) => set(e.target.value)} {...extra} /></label>
   )
   return (
-    <Dialog title="Edit details" size="wide" className="cr-edit" onClose={onClose} description="Saved on this server; the video and its files stay as they are."
-      actions={<><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button variant="primary" form="video-form">Save</Button></>}>
+    <Dialog title={t('Edit details')} size="wide" className="cr-edit" onClose={onClose} description={t('Saved on this server; the video and its files stay as they are.')}
+      actions={<><Button type="button" variant="ghost" onClick={onClose}>{t('Cancel')}</Button><Button variant="primary" form="video-form">{t('Save')}</Button></>}>
       <form id="video-form" className="ui-dialog-form" onSubmit={save}>
-        {field('Title', title, setTitle, { required: true })}
-        <label className="oobe-field">Description<textarea className="input" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
+        {field(t('Title'), title, setTitle, { required: true })}
+        <label className="oobe-field">{t('Description')}<textarea className="input" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></label>
         <div className="cr-edit-row">
-          {field('Creator', creator, setCreator, { required: true })}
-          {field('Platform of origin', platform, setPlatform, { placeholder: 'e.g. the site it came from' })}
-          {field('Date', date, setDate, { placeholder: '2024-05-31' })}
+          {field(t('Creator'), creator, setCreator, { required: true })}
+          {field(t('Platform of origin'), platform, setPlatform, { placeholder: t('e.g. the site it came from') })}
+          {field(t('Date'), date, setDate, { placeholder: '2024-05-31' })}
         </div>
-        {field('Source address', source, setSource, { placeholder: 'https://…', type: 'url' })}
+        {field(t('Source address'), source, setSource, { placeholder: 'https://…', type: 'url' })}
         <div className="cr-edit-row">
-          {field('Tags, separated by commas', tags, setTags)}
-          {field('Playlist', playlist, setPlaylist)}
-          {field('Content rating', rating, setRating, { placeholder: 'e.g. PG, TV-Y7, 16+' })}
+          {field(t('Tags, separated by commas'), tags, setTags)}
+          {field(t('Playlist'), playlist, setPlaylist)}
+          {field(t('Content rating'), rating, setRating, { placeholder: t('e.g. PG, TV-Y7, 16+') })}
         </div>
-        <label className="oobe-field">Your own fields, one per line (name: value)<textarea className="input" rows={3} value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Recorded by: Sam" /></label>
+        <label className="oobe-field">{t('Your own fields, one per line (name: value)')}<textarea className="input" rows={3} value={custom} onChange={(e) => setCustom(e.target.value)} placeholder={t('Recorded by: Sam')} /></label>
         {err && <div className="error" role="alert">{err}</div>}
       </form>
     </Dialog>

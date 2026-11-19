@@ -1,0 +1,13 @@
+{
+  "Control bar": "Γραμμή χειριστηρίων",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Η Λεπτομερής βάζει κάθε κουμπί στη γραμμή. Η Απλή αφήνει την εικόνα καθαρή: αναπαραγωγή και τα άλματα στη μέση, και τα υπόλοιπα (ήχος, υπότιτλοι, ποιότητα, ταχύτητα, σκηνές) σε ένα μενού Επιλογές. Η Αυτόματη είναι απλή σε τηλέφωνο ή tablet και λεπτομερής σε πιο φαρδιά οθόνη.",
+  "Detailed": "Λεπτομερής",
+  "Back to options": "Πίσω στις επιλογές",
+  "Mono": "Μονοφωνικό",
+  "Styled text": "Μορφοποιημένο κείμενο",
+  "Keep playing in a corner": "Συνέχεια αναπαραγωγής σε μια γωνία",
+  "{count} watching": {
+    "one": "{count} θεατής",
+    "other": "{count} θεατές"
+  }
+}

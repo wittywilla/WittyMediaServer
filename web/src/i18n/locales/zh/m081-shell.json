@@ -1,0 +1,16 @@
+{
+  "Episode number": "集数",
+  "Episode {episode}": "第 {episode} 集",
+  "Episodes {episodes}": "第 {episodes} 集",
+  "Last episode": "最后一集",
+  "Season number": "季数",
+  "Show episodes as": "剧集显示方式",
+  "Special {episode}": "特别篇 {episode}",
+  "Specials {episodes}": "特别篇 {episodes}",
+  "S{season} · E{episode}": "第 {season} 季 · 第 {episode} 集",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "你的显卡芯片只需一小部分处理器工作量就能转换视频。服务器启动时会逐一测试，你的机器上没有的会显示为灰色，在你自己选择之前，所有可用的都会被勾选：将使用第一个勾选且可用的编码器，并尽可能让画面从解码到编码都留在芯片上。都不勾选则全部使用软件编码，同等大小下画质最好，但处理器占用最高。",
+  "{left} of {count} left": {
+    "other": "共 {count} 集，剩 {left} 集"
+  },
+  "{season}, {count}": "{season}，{count}"
+}

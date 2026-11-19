@@ -9,6 +9,7 @@ import { toast } from '../../state'
 import SpecPage from '../../spec/SpecPage'
 import { bulkRequest, bulkSpec, bulkTitle } from '../../spec/specs/bulkedit'
 import { Button, Dialog, Field } from '../../ui'
+import { t } from '../../i18n'
 import './library.css'
 
 // Changing many titles at once. Everything can be undone in one go.
@@ -33,7 +34,7 @@ export default function BulkEdit({ titles, onClose, onDone }: { titles: BulkTitl
     const all = ['title', 'sortTitle', 'year', 'overview', 'tagline', 'genres', 'tags', 'contentRating', 'rating', 'studios', 'network', 'director', 'edition', 'poster', 'backdrop', 'banner', 'logo']
     try {
       const r = await api.post<{ done: number; failed: string[]; batch: string }>('/meta/bulk', {
-        titles: titles.map((t) => ({ target: t.target, id: t.id })), set, addGenres, removeGenres, addTags, removeTags,
+        titles: titles.map((x) => ({ target: x.target, id: x.id })), set, addGenres, removeGenres, addTags, removeTags,
         lock: lock === 'lock' ? all : [], unlock: lock === 'unlock' ? all : [],
       })
       setDone(r)
@@ -48,23 +49,23 @@ export default function BulkEdit({ titles, onClose, onDone }: { titles: BulkTitl
   }
   return (
     <Dialog title={bulkTitle(titles.length)} className="lib-bulk-dialog" onClose={done ? onDone : onClose}
-      description={done ? undefined : "Only what you fill in changes. What you change is locked on each title, so nothing changes it back."}
+      description={done ? undefined : t('Only what you fill in changes. What you change is locked on each title, so nothing changes it back.')}
       actions={done
         ? <>
-            <Button variant="ghost" onClick={async () => { try { await undoBatch(done.batch); toast('Undone'); onDone() } catch (e: any) { setErr(e.message) } }}>Undo all of it</Button>
-            <Button variant="primary" autoFocus onClick={onDone}>Done</Button>
+            <Button variant="ghost" onClick={async () => { try { await undoBatch(done.batch); toast(t('Undone')); onDone() } catch (e: any) { setErr(e.message) } }}>{t('Undo all of it')}</Button>
+            <Button variant="primary" autoFocus onClick={onDone}>{t('Done')}</Button>
           </>
         : <>
-            <Button variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button variant="primary" busy={busy} disabled={nothing} onClick={apply}>Change {titles.length}</Button>
+            <Button variant="ghost" onClick={onClose}>{t('Cancel')}</Button>
+            <Button variant="primary" busy={busy} disabled={nothing} onClick={apply}>{t('Change {count}', { count: titles.length })}</Button>
           </>}>
       <SpecPage embedded page={spec} onField={onField} after={done ? undefined : {
         0: (
           <div className="lib-bulk-tokens">
-            <Field label="Add genres"><TokenField id="bulk-ag" value={addGenres} onChange={setAddGenres} placeholder="Comedy" /></Field>
-            <Field label="Take away genres"><TokenField id="bulk-rg" value={removeGenres} onChange={setRemoveGenres} /></Field>
-            <Field label="Add tags"><TokenField id="bulk-at" value={addTags} onChange={setAddTags} placeholder="Box set" /></Field>
-            <Field label="Take away tags"><TokenField id="bulk-rt" value={removeTags} onChange={setRemoveTags} /></Field>
+            <Field label={t('Add genres')}><TokenField id="bulk-ag" value={addGenres} onChange={setAddGenres} placeholder={t('Comedy')} /></Field>
+            <Field label={t('Take away genres')}><TokenField id="bulk-rg" value={removeGenres} onChange={setRemoveGenres} /></Field>
+            <Field label={t('Add tags')}><TokenField id="bulk-at" value={addTags} onChange={setAddTags} placeholder={t('Box set')} /></Field>
+            <Field label={t('Take away tags')}><TokenField id="bulk-rt" value={removeTags} onChange={setRemoveTags} /></Field>
           </div>
         ),
         1: setRatingOn ? <RatingField value={rating} onChange={setRating} /> : null,

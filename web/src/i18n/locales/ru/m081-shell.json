@@ -1,0 +1,19 @@
+{
+  "Episode number": "Номер серии",
+  "Episode {episode}": "Серия {episode}",
+  "Episodes {episodes}": "Серии {episodes}",
+  "Last episode": "Последняя серия",
+  "Season number": "Номер сезона",
+  "Show episodes as": "Показывать серии как",
+  "Special {episode}": "Спецвыпуск {episode}",
+  "Specials {episodes}": "Спецвыпуски {episodes}",
+  "S{season} · E{episode}": "Сезон {season} · серия {episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "Видеочип может конвертировать видео при малой доле нагрузки на процессор. Каждый проверяется при запуске сервера, отсутствующие на вашем компьютере показаны серым, а все работающие отмечены, пока вы не выберете сами: используется первый отмеченный работающий, и изображение по возможности остаётся на чипе от декодирования до кодирования. Если ничего не отмечено, всё делается программно — это лучшее качество при данном размере, но и наибольшая нагрузка на процессор.",
+  "{left} of {count} left": {
+    "one": "осталось {left} из {count}",
+    "few": "осталось {left} из {count}",
+    "many": "осталось {left} из {count}",
+    "other": "осталось {left} из {count}"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

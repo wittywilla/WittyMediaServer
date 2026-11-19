@@ -5,6 +5,7 @@ import { toast } from '../../state'
 import { ask } from '../../ui'
 import { forgetLineup } from './tvApi'
 import './reminders.css'
+import { list, t, tn } from '../../i18n'
 
 // Reset channel: asks first, in plain words, then makes the channel's schedule
 // again from its settings and the files that match them now. Shared by the
@@ -15,16 +16,16 @@ type Reminders = { kept: number; moved: number; dropped: number; droppedTitles?:
 export async function resetChannel(id: number, name: string): Promise<boolean> {
   let startOver = false
   const yes = await ask({
-    title: `Reset “${name}”?`,
+    title: t('Reset “{name}”?', { name }),
     // The dialog's description is a paragraph already, so these are spans laid out as paragraphs.
     body: (
       <>
-        <span className="tv-reset-para">What’s on now stops, and the guide is rebuilt from the channel’s current settings and the files that match them now. Anyone watching moves straight to the new schedule.</span>
-        <span className="tv-reset-para">Reminders follow their programme to its new time. A reminder for something that no longer airs is removed, and you’ll be told which.</span>
-        <label className="check-row"><input type="checkbox" onChange={(e) => { startOver = e.target.checked }} /> Also start every show from its first episode, and shuffle again</label>
+        <span className="tv-reset-para">{t('What’s on now stops, and the guide is rebuilt from the channel’s current settings and the files that match them now. Anyone watching moves straight to the new schedule.')}</span>
+        <span className="tv-reset-para">{t('Reminders follow their programme to its new time. A reminder for something that no longer airs is removed, and you’ll be told which.')}</span>
+        <label className="check-row"><input type="checkbox" onChange={(e) => { startOver = e.target.checked }} /> {t('Also start every show from its first episode, and shuffle again')}</label>
       </>
     ),
-    confirm: 'Reset channel',
+    confirm: t('Reset channel'),
     danger: true,
   })
   if (!yes) return false
@@ -39,18 +40,16 @@ export async function resetChannel(id: number, name: string): Promise<boolean> {
   }
 }
 
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
-
 export function resetNote(name: string, r: Reminders, watching: boolean) {
-  const parts = [`${name} has a new schedule${watching ? ', and everyone watching is on it' : ''}.`]
-  const said = [
-    r.kept ? `${count(r.kept, 'reminder', 'reminders')} kept` : '',
-    r.moved ? `${count(r.moved, 'reminder', 'reminders')} moved to a new time` : '',
-  ].filter(Boolean)
-  if (said.length) parts.push(said.join(', ') + '.')
+  const parts = [watching ? t('{name} has a new schedule, and everyone watching is on it.', { name }) : t('{name} has a new schedule.', { name })]
+  if (r.kept) parts.push(tn('{count} reminder kept.', '{count} reminders kept.', r.kept))
+  if (r.moved) parts.push(tn('{count} reminder moved to a new time.', '{count} reminders moved to a new time.', r.moved))
   if (r.dropped) {
-    const titles = r.droppedTitles?.length ? `: ${r.droppedTitles.slice(0, 5).join(', ')}${r.droppedTitles.length > 5 ? ' and others' : ''}` : ''
-    parts.push(`${count(r.dropped, 'reminder was', 'reminders were')} removed, as ${r.dropped === 1 ? 'that programme no longer airs' : 'those programmes no longer air'}${titles}.`)
+    const shown = r.droppedTitles?.slice(0, 5) || []
+    const titles = shown.length ? (r.droppedTitles!.length > 5 ? t('{titles} and others', { titles: shown.join(', ') }) : list(shown)) : ''
+    parts.push(titles
+      ? tn('{count} reminder was removed, as that programme no longer airs: {titles}.', '{count} reminders were removed, as those programmes no longer air: {titles}.', r.dropped, { titles })
+      : tn('{count} reminder was removed, as that programme no longer airs.', '{count} reminders were removed, as those programmes no longer air.', r.dropped))
   }
   return parts.join(' ')
 }

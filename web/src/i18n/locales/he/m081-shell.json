@@ -1,0 +1,18 @@
+{
+  "Episode number": "מספר פרק",
+  "Episode {episode}": "פרק {episode}",
+  "Episodes {episodes}": "פרקים {episodes}",
+  "Last episode": "הפרק האחרון",
+  "Season number": "מספר עונה",
+  "Show episodes as": "הצגת פרקים כ־",
+  "Special {episode}": "פרק מיוחד {episode}",
+  "Specials {episodes}": "פרקים מיוחדים {episodes}",
+  "S{season} · E{episode}": "עונה {season} · פרק {episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "שבב הגרפיקה יכול להמיר וידאו בשבריר מעבודת המעבד. כל אחד נבדק כשהשרת עולה, אלה שאין במחשב שלך מוצגים באפור, וכל מי שעובד מסומן עד שבוחרים אחרת: הראשון המסומן שעובד ייבחר, והתמונה נשארת על השבב מהפענוח ועד הקידוד כשאפשר. כשאף אחד לא מסומן הכול בתוכנה, שנותנת את האיכות הטובה ביותר לגודל ומשתמשת הכי הרבה במעבד.",
+  "{left} of {count} left": {
+    "one": "נותרו {left} מתוך {count}",
+    "two": "נותרו {left} מתוך {count}",
+    "other": "נותרו {left} מתוך {count}"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

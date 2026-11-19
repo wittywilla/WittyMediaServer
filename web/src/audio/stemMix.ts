@@ -6,6 +6,12 @@
 // from the song's own clock. No sound and no page here, so it's tested on its own. The same
 // rules are in the phone and TV apps: docs/CLIENT-API.md, "Karaoke that sets itself up".
 
+// The words go through say(): English filled in here, so the tests need nothing else; the app passes t() from its
+// translation layer, so they're in the app's language.
+type Say = (english: string, vars?: Record<string, string | number | null | undefined>) => string
+const tk = <S extends string>(english: S): S => english // marks labels translated where they're shown (no i18n import: node tests load this file)
+const english: Say = (s, v) => s.replace(/\{(\w+)\}/g, (m, k: string) => (v && v[k] != null ? String(v[k]) : m))
+
 export type Stem = { id: string; label: string; role: 'vocals' | 'music' | 'full' | string; url: string; mime?: string; defaultGain: number }
 export type KaraokeAnswer = {
   state: 'ready' | 'preparing' | 'unavailable' | string
@@ -33,7 +39,7 @@ const voiceStem = (a: Pick<KaraokeAnswer, 'mix' | 'stems'>) => a.stems.find((s) 
 // The three sliders, the same whatever version is playing: the singer, everything else (every other part
 // together, so the voice can stand out), and the whole song.
 export type MixId = 'vocals' | 'music' | 'track'
-export const MIX: readonly { id: MixId; label: string }[] = [{ id: 'vocals', label: 'Voice' }, { id: 'music', label: 'Background Music' }, { id: 'track', label: 'Track' }]
+export const MIX: readonly { id: MixId; label: string }[] = [{ id: 'vocals', label: tk('Voice') }, { id: 'music', label: tk('Background Music') }, { id: 'track', label: tk('Track') }]
 
 // What a slider starts at: the server's default for the voice, and full for the others.
 export function defaultLevel(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, id: string) {
@@ -43,7 +49,7 @@ export function defaultLevel(a: Pick<KaraokeAnswer, 'mix' | 'stems'>, id: string
 export const levelOf = (a: Pick<KaraokeAnswer, 'mix' | 'stems'>, levels: Levels, id: string) => (id in levels ? clamp01(levels[id]) : defaultLevel(a, id))
 
 // What can be hidden from karaoke's bar: the Mix's three sliders, the key, the words' timing and the Voice settings button.
-export const KAR_PARTS: readonly { id: string; label: string }[] = [...MIX, { id: 'key', label: 'Key' }, { id: 'timing', label: 'Timing of the words' }, { id: 'fx', label: 'Voice settings' }]
+export const KAR_PARTS: readonly { id: string; label: string }[] = [...MIX, { id: 'key', label: tk('Key') }, { id: 'timing', label: tk('Timing of the words') }, { id: 'fx', label: tk('Voice settings') }]
 
 export function sliders(_a?: Pick<KaraokeAnswer, 'mix' | 'stems'>) { return MIX }
 
@@ -107,16 +113,16 @@ export function decodeLevels(text: string | null | undefined): Levels {
   } catch { return {} }
 }
 
-export const qualityName = (a: KaraokeAnswer) => (a.quality === 'stems' ? 'Separated' : 'Quick version')
+export const qualityName = (a: KaraokeAnswer, t: Say = english) => (a.quality === 'stems' ? t('Separated') : t('Quick version'))
 const pct = (n: number) => (n >= 0 && n <= 100 ? ` ${Math.round(n)}%` : '')
 
 // The one line that says where things stand, or '' when there's nothing to say.
-export function statusLine(a: KaraokeAnswer | null, fallback = ''): string {
+export function statusLine(a: KaraokeAnswer | null, fallback = '', t: Say = english): string {
   if (fallback) return fallback
   if (!a) return ''
-  if (a.state === 'preparing') return `Preparing karaoke…${pct(a.progress)}`
-  if (a.state === 'unavailable') return a.reason === 'not-made' ? '' : a.message || 'There\'s no karaoke version of this song.'
-  if (a.improving) return `Preparing a better version…${pct(a.progress)}`
+  if (a.state === 'preparing') return t('Preparing karaoke…{percent}', { percent: pct(a.progress) })
+  if (a.state === 'unavailable') return a.reason === 'not-made' ? '' : a.message || t('There\'s no karaoke version of this song.')
+  if (a.improving) return t('Preparing a better version…{percent}', { percent: pct(a.progress) })
   return ''
 }
 

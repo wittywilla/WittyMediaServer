@@ -6,6 +6,7 @@ import { Thumb } from './ChapterThumb'
 import { announce } from '../a11y'
 import { SPEEDS, setSpeed } from './speed'
 import { IconAngle, IconAudio, IconBolt, IconChapters, IconCheck, IconTune, IconBack, IconClose, IconFull, IconMute, IconInfo, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
+import { t, tk, tn, tx } from '../i18n'
 
 export type TrackOpt = { id: number; label: string; active: boolean }
 
@@ -121,13 +122,13 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
     if (!v) return
     let tSeek: ReturnType<typeof setTimeout>, tVol: ReturnType<typeof setTimeout>
     let muted = v.muted
-    const onPlay = () => announce('Playing')
-    const onPause = () => { if (!v.ended) announce('Paused') }
-    const onSeeked = () => { clearTimeout(tSeek); tSeek = setTimeout(() => announce(`At ${fmtTime(v.currentTime + offset)}`), 400) }
+    const onPlay = () => announce(t('Playing'))
+    const onPause = () => { if (!v.ended) announce(t('Paused')) }
+    const onSeeked = () => { clearTimeout(tSeek); tSeek = setTimeout(() => announce(t('At {time}', { time: fmtTime(v.currentTime + offset) })), 400) }
     const onVol = () => {
       clearTimeout(tVol)
-      if (v.muted !== muted) { muted = v.muted; announce(v.muted ? 'Muted' : 'Sound on'); return }
-      tVol = setTimeout(() => announce(`Volume ${Math.round(v.volume * 100)}%`), 300)
+      if (v.muted !== muted) { muted = v.muted; announce(v.muted ? t('Muted') : t('Sound on')); return }
+      tVol = setTimeout(() => announce(t('Volume {percent}%', { percent: Math.round(v.volume * 100) })), 300)
     }
     v.addEventListener('play', onPlay); v.addEventListener('pause', onPause); v.addEventListener('seeked', onSeeked); v.addEventListener('volumechange', onVol)
     return () => {
@@ -146,8 +147,8 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
     return () => window.removeEventListener('keydown', onKey)
   }, [])
   const seekRef = useRef<HTMLDivElement | null>(null)
-  const t = st.time + offset
-  const pct = duration > 0 ? Math.min(100, (t / duration) * 100) : 0
+  const now = st.time + offset
+  const pct = duration > 0 ? Math.min(100, (now / duration) * 100) : 0
   const bpct = duration > 0 ? Math.min(100, ((st.buffered + offset) / duration) * 100) : 0
   const toggle = () => { const v = video.current; if (!v) return; v.paused ? v.play().catch(() => {}) : v.pause() }
   const fracAt = (e: React.PointerEvent | React.MouseEvent) => {
@@ -168,19 +169,19 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
   }
   // Keyboard/remote seeking while the timeline has focus.
   const seekKey = (e: React.KeyboardEvent) => {
-    const to = e.key === 'ArrowRight' ? t + 10 : e.key === 'ArrowLeft' ? t - 10 : e.key === 'PageUp' ? t + 60 : e.key === 'PageDown' ? t - 60 : e.key === 'Home' ? 0 : e.key === 'End' ? duration - 5 : null
+    const to = e.key === 'ArrowRight' ? now + 10 : e.key === 'ArrowLeft' ? now - 10 : e.key === 'PageUp' ? now + 60 : e.key === 'PageDown' ? now - 60 : e.key === 'Home' ? 0 : e.key === 'End' ? duration - 5 : null
     if (to !== null) {
       e.preventDefault(); e.stopPropagation()
       onSeek(Math.max(0, Math.min(duration, to)))
     }
   }
-  const curChapter = chapters.filter((c) => c <= t + 0.5).length
-  const chapName = (i: number) => chapterNames?.[i] || `Scene ${i + 1}`
+  const curChapter = chapters.filter((c) => c <= now + 0.5).length
+  const chapName = (i: number) => chapterNames?.[i] || t('Scene {n}', { n: i + 1 })
   return (
     <div className="bottom" ref={barRef} onClick={(e) => e.stopPropagation()}>
       {showSeek && (
-        <div className={'seek' + (aim?.drag ? ' scrubbing' : '')} ref={seekRef} onPointerDown={seekDown} onPointerMove={seekMove} onPointerUp={seekUp} onPointerLeave={() => setAim((a) => (a?.drag ? a : null))} onPointerCancel={() => setAim(null)} tabIndex={0} role="slider" aria-label="Position" aria-valuemin={0}
-          aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(t)} aria-valuetext={`${fmtTime(t)} of ${fmtTime(duration)}`} onKeyDown={seekKey}>
+        <div className={'seek' + (aim?.drag ? ' scrubbing' : '')} ref={seekRef} onPointerDown={seekDown} onPointerMove={seekMove} onPointerUp={seekUp} onPointerLeave={() => setAim((a) => (a?.drag ? a : null))} onPointerCancel={() => setAim(null)} tabIndex={0} role="slider" aria-label={t('Position')} aria-valuemin={0}
+          aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(now)} aria-valuetext={t('{time} of {total}', { time: fmtTime(now), total: fmtTime(duration) })} onKeyDown={seekKey}>
           <div className="track" />
           <div className="buf" style={{ width: bpct + '%' }} />
           <div className="fill" style={{ width: (aim?.drag ? aim.f * 100 : pct) + '%' }} />
@@ -191,53 +192,53 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
       )}
       {compact ? (
         <div className="ctl compact">
-          <span className="time" aria-hidden="true">{fmtTime(t)}{showSeek ? ` / ${fmtTime(duration)}` : ''}</span>
-          <div className="ctl-mid" role="group" aria-label="Playback">
-            <button className="pbig step" onClick={() => onSeek(Math.max(0, t - 10))} aria-label="Back 10 seconds"><span aria-hidden="true">−10</span></button>
-            <button className="ibtn big play" onClick={toggle} aria-label={st.playing ? 'Pause' : 'Play'}>{st.playing ? <IconPause /> : <IconPlay />}</button>
-            <button className="pbig step" onClick={() => onSeek(Math.min(duration || t + 30, t + 30))} aria-label="Forward 30 seconds"><span aria-hidden="true">+30</span></button>
+          <span className="time" aria-hidden="true">{fmtTime(now)}{showSeek ? ` / ${fmtTime(duration)}` : ''}</span>
+          <div className="ctl-mid" role="group" aria-label={t('Playback')}>
+            <button className="pbig step" onClick={() => onSeek(Math.max(0, now - 10))} aria-label={t('Back 10 seconds')}><span aria-hidden="true">−10</span></button>
+            <button className="ibtn big play" onClick={toggle} aria-label={st.playing ? t('Pause') : t('Play')}>{st.playing ? <IconPause /> : <IconPlay />}</button>
+            <button className="pbig step" onClick={() => onSeek(Math.min(duration || now + 30, now + 30))} aria-label={t('Forward 30 seconds')}><span aria-hidden="true">+30</span></button>
           </div>
           <div className="ctl-right">
-            {onRemote && <button className={'ibtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-label="WittyRemote" aria-pressed={!!remoteOn} title="Show or hide WittyRemote (R)"><IconRemote /></button>}
-            <button className="ibtn" onClick={() => setSheet('main')} aria-label="Options" title="Options" aria-haspopup="dialog" aria-expanded={!!sheet}><IconSettings /></button>
-            <button className="ibtn" onClick={onFullscreen} aria-label="Full screen" title="Full screen"><IconFull /></button>
+            {onRemote && <button className={'ibtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-label="WittyRemote" aria-pressed={!!remoteOn} title={t('Show or hide WittyRemote (R)')}><IconRemote /></button>}
+            <button className="ibtn" onClick={() => setSheet('main')} aria-label={t('Options')} title={t('Options')} aria-haspopup="dialog" aria-expanded={!!sheet}><IconSettings /></button>
+            <button className="ibtn" onClick={onFullscreen} aria-label={t('Full screen')} title={t('Full screen')}><IconFull /></button>
           </div>
         </div>
       ) : (
       <div className="ctl">
         <div className="ctl-left">
           <span className="time" aria-hidden="true">
-            {fmtTime(t)}{showSeek ? ` / ${fmtTime(duration)}` : ''}
+            {fmtTime(now)}{showSeek ? ` / ${fmtTime(duration)}` : ''}
             {!showSeek && chapters.length > 1 ? ` · ${chapName(Math.max(0, curChapter - 1))}` : ''}
           </span>
-          <button className="ibtn hide-narrow" onClick={() => { const v = video.current; if (v) v.muted = !v.muted }} title="Mute (M)" aria-label="Mute" aria-pressed={st.muted}>{st.muted || st.volume === 0 ? <IconMute /> : <IconVolume />}</button>
-          <input className="range vol hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label="Volume" aria-valuetext={st.muted ? 'Muted' : `${Math.round(st.volume * 100)}%`}
+          <button className="ibtn hide-narrow" onClick={() => { const v = video.current; if (v) v.muted = !v.muted }} title={t('Mute (M)')} aria-label={t('Mute')} aria-pressed={st.muted}>{st.muted || st.volume === 0 ? <IconMute /> : <IconVolume />}</button>
+          <input className="range vol hide-narrow" type="range" min={0} max={1} step={0.02} value={st.muted ? 0 : st.volume} aria-label={t('Volume')} aria-valuetext={st.muted ? t('Muted') : `${Math.round(st.volume * 100)}%`}
             onChange={(e) => { const v = video.current; if (v) { v.volume = Number(e.target.value); v.muted = false } }} style={{ '--pct': (st.muted ? 0 : st.volume * 100) + '%' } as React.CSSProperties} />
         </div>
-        <div className="ctl-mid" role="group" aria-label="Playback">
-          {onPrev && <button className="cbtn chap-step" onClick={onPrev} title="Previous chapter, or the start" aria-label="Previous"><IconPrev /><span className="lbl">Prev</span></button>}
-          <button className="cbtn step" onClick={() => onSeek(Math.max(0, t - 10))} title="Back 10 seconds (←)" aria-label="Back 10 seconds"><span className="lbl">−10</span></button>
-          <button className="ibtn big play" onClick={toggle} title={st.playing ? 'Pause (Space)' : 'Play (Space)'} aria-label={st.playing ? 'Pause' : 'Play'}>{st.playing ? <IconPause /> : <IconPlay />}</button>
-          <button className="cbtn step" onClick={() => onSeek(Math.min(duration || t + 30, t + 30))} title="Forward 30 seconds" aria-label="Forward 30 seconds"><span className="lbl">+30</span></button>
-          {onNext && <button className="cbtn chap-step" onClick={onNext} title="Next chapter, or the next one" aria-label="Next"><span className="lbl">Next</span><IconNext /></button>}
+        <div className="ctl-mid" role="group" aria-label={t('Playback')}>
+          {onPrev && <button className="cbtn chap-step" onClick={onPrev} title={t('Previous chapter, or the start')} aria-label={t('Previous')}><IconPrev /><span className="lbl">{t('Prev')}</span></button>}
+          <button className="cbtn step" onClick={() => onSeek(Math.max(0, now - 10))} title={t('Back 10 seconds (←)')} aria-label={t('Back 10 seconds')}><span className="lbl">−10</span></button>
+          <button className="ibtn big play" onClick={toggle} title={st.playing ? t('Pause (Space)') : t('Play (Space)')} aria-label={st.playing ? t('Pause') : t('Play')}>{st.playing ? <IconPause /> : <IconPlay />}</button>
+          <button className="cbtn step" onClick={() => onSeek(Math.min(duration || now + 30, now + 30))} title={t('Forward 30 seconds')} aria-label={t('Forward 30 seconds')}><span className="lbl">+30</span></button>
+          {onNext && <button className="cbtn chap-step" onClick={onNext} title={t('Next chapter, or the next one')} aria-label={t('Next')}><span className="lbl">{t('Next')}</span><IconNext /></button>}
         </div>
         <div className="ctl-right">
           {extra}
-          {audio && audio.length > 1 && <button className="cbtn" title="Audio & language" aria-label="Audio and language" aria-haspopup={onPick ? 'dialog' : 'menu'} aria-expanded={pop === 'audio'} onClick={() => (onPick ? onPick('audio') : setPop(pop === 'audio' ? null : 'audio'))}><IconAudio /><span className="lbl">Audio</span></button>}
-          {subtitles && subtitles.length > 0 && <button className="cbtn" title="Subtitles" aria-label="Subtitles" aria-haspopup={onPick ? 'dialog' : 'menu'} aria-expanded={pop === 'subs'} onClick={() => (onPick ? onPick('subtitle') : setPop(pop === 'subs' ? null : 'subs'))}><IconSubs /><span className="lbl">Subtitles</span></button>}
-          {onPick && angles > 1 && <button className="cbtn" title="Video version (camera angle)" aria-label="Video version" onClick={() => onPick('angle')}><IconAngle /><span className="lbl">Angle</span></button>}
+          {audio && audio.length > 1 && <button className="cbtn" title={t('Audio & language')} aria-label={t('Audio and language')} aria-haspopup={onPick ? 'dialog' : 'menu'} aria-expanded={pop === 'audio'} onClick={() => (onPick ? onPick('audio') : setPop(pop === 'audio' ? null : 'audio'))}><IconAudio /><span className="lbl">{t('Audio')}</span></button>}
+          {subtitles && subtitles.length > 0 && <button className="cbtn" title={t('Subtitles')} aria-label={t('Subtitles')} aria-haspopup={onPick ? 'dialog' : 'menu'} aria-expanded={pop === 'subs'} onClick={() => (onPick ? onPick('subtitle') : setPop(pop === 'subs' ? null : 'subs'))}><IconSubs /><span className="lbl">{t('Subtitles')}</span></button>}
+          {onPick && angles > 1 && <button className="cbtn" title={t('Video version (camera angle)')} aria-label={t('Video version')} onClick={() => onPick('angle')}><IconAngle /><span className="lbl">{t('Angle')}</span></button>}
           {quality && (onQualityMenu
-            ? <button className={'cbtn chip-q' + (qualityMenuOpen ? ' on' : '')} title="Quality (Q)" aria-label={`Quality: ${quality}`} aria-haspopup="dialog" aria-expanded={!!qualityMenuOpen} onClick={onQualityMenu}><span className="lbl always">{quality}</span></button>
-            : <button className="cbtn chip-q" title="How this is playing (I)" aria-label={`Picture ${quality}. How this is playing`} onClick={onQuality} disabled={!onQuality}><span className="lbl always">{quality}</span></button>)}
-          <button className="cbtn chip-s" title="Playback speed (< and >)" aria-label={`Playback speed ${rate} times`} aria-haspopup="menu" aria-expanded={pop === 'speed'} onClick={() => setPop(pop === 'speed' ? null : 'speed')}><span className="lbl always">{rate}×</span></button>
-          {chapters.length > 1 && <button className={'cbtn' + (pop === 'chapters' ? ' on' : '')} title="Scenes" aria-label="Chapters" aria-expanded={pop === 'chapters'} onClick={() => setPop(pop === 'chapters' ? null : 'chapters')}><IconChapters /><span className="lbl">Chapters</span></button>}
+            ? <button className={'cbtn chip-q' + (qualityMenuOpen ? ' on' : '')} title={t('Quality (Q)')} aria-label={t('Quality: {quality}', { quality })} aria-haspopup="dialog" aria-expanded={!!qualityMenuOpen} onClick={onQualityMenu}><span className="lbl always">{quality}</span></button>
+            : <button className="cbtn chip-q" title={t('How this is playing (I)')} aria-label={t('Picture {quality}. How this is playing', { quality })} onClick={onQuality} disabled={!onQuality}><span className="lbl always">{quality}</span></button>)}
+          <button className="cbtn chip-s" title={t('Playback speed (< and >)')} aria-label={t('Playback speed {rate} times', { rate })} aria-haspopup="menu" aria-expanded={pop === 'speed'} onClick={() => setPop(pop === 'speed' ? null : 'speed')}><span className="lbl always">{rate}×</span></button>
+          {chapters.length > 1 && <button className={'cbtn' + (pop === 'chapters' ? ' on' : '')} title={t('Scenes')} aria-label={t('Chapters')} aria-expanded={pop === 'chapters'} onClick={() => setPop(pop === 'chapters' ? null : 'chapters')}><IconChapters /><span className="lbl">{t('Chapters')}</span></button>}
           {onRemote && (
-            <button className={'cbtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-pressed={remoteOn} title="Show or hide WittyRemote (R)">
+            <button className={'cbtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-pressed={remoteOn} title={t('Show or hide WittyRemote (R)')}>
               <IconRemote /><span className="lbl">WittyRemote</span>
             </button>
           )}
-          <button className={'cbtn more' + (pop === 'more' ? ' on' : '')} title="More" aria-label="More" aria-haspopup="menu" aria-expanded={pop === 'more'} onClick={() => setPop(pop === 'more' ? null : 'more')}><IconMore /></button>
-          <button className="ibtn" title="Full screen (F)" aria-label="Full screen" onClick={onFullscreen}><IconFull /></button>
+          <button className={'cbtn more' + (pop === 'more' ? ' on' : '')} title={t('More')} aria-label={t('More')} aria-haspopup="menu" aria-expanded={pop === 'more'} onClick={() => setPop(pop === 'more' ? null : 'more')}><IconMore /></button>
+          <button className="ibtn" title={t('Full screen (F)')} aria-label={t('Full screen')} onClick={onFullscreen}><IconFull /></button>
         </div>
       </div>
       )}
@@ -247,44 +248,44 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
         const activeAudio = audio?.find((a) => a.active)
         const activeSub = subtitles?.find((x) => x.active)
         const rows: SheetItem[] = [
-          ...(audio && audio.length > 1 ? [{ key: 'audio', icon: <IconAudio />, label: 'Audio', value: activeAudio?.label, onClick: onPick ? then(() => onPick('audio')) : () => setSheet('audio') }] : []),
-          ...(subtitles && subtitles.length > 0 ? [{ key: 'subs', icon: <IconSubs />, label: 'Subtitles', value: activeSub?.label || 'Off', onClick: onPick ? then(() => onPick('subtitle')) : () => setSheet('subs') }] : []),
-          ...(onPick && angles > 1 ? [{ key: 'angle', icon: <IconAngle />, label: 'Video version', onClick: then(() => onPick('angle')) }] : []),
-          ...(quality && (onQualityMenu || onQuality) ? [{ key: 'quality', icon: <IconTune />, label: 'Quality', value: quality, onClick: then(onQualityMenu || onQuality) }] : []),
-          { key: 'speed', icon: <IconBolt />, label: 'Playback speed', value: rate === 1 ? 'Normal' : `${rate}×`, onClick: () => setSheet('speed') },
-          ...(chapters.length > 1 ? [{ key: 'scenes', icon: <IconChapters />, label: 'Scenes', value: chapName(Math.max(0, curChapter - 1)), onClick: then(() => setPop('chapters')) }] : []),
+          ...(audio && audio.length > 1 ? [{ key: 'audio', icon: <IconAudio />, label: t('Audio'), value: activeAudio?.label, onClick: onPick ? then(() => onPick('audio')) : () => setSheet('audio') }] : []),
+          ...(subtitles && subtitles.length > 0 ? [{ key: 'subs', icon: <IconSubs />, label: t('Subtitles'), value: activeSub?.label || t('Off'), onClick: onPick ? then(() => onPick('subtitle')) : () => setSheet('subs') }] : []),
+          ...(onPick && angles > 1 ? [{ key: 'angle', icon: <IconAngle />, label: t('Video version'), onClick: then(() => onPick('angle')) }] : []),
+          ...(quality && (onQualityMenu || onQuality) ? [{ key: 'quality', icon: <IconTune />, label: t('Quality'), value: quality, onClick: then(onQualityMenu || onQuality) }] : []),
+          { key: 'speed', icon: <IconBolt />, label: t('Playback speed'), value: rate === 1 ? t('Normal') : `${rate}×`, onClick: () => setSheet('speed') },
+          ...(chapters.length > 1 ? [{ key: 'scenes', icon: <IconChapters />, label: t('Scenes'), value: chapName(Math.max(0, curChapter - 1)), onClick: then(() => setPop('chapters')) }] : []),
           ...sheetItems.map((x) => ({ ...x, onClick: then(x.onClick) })),
-          ...(onSettings ? [{ key: 'view', icon: <IconSettings />, label: 'Viewing settings', onClick: then(onSettings) }] : []),
-          ...(onQuality && onQualityMenu ? [{ key: 'info', icon: <IconInfo />, label: 'How this is playing', onClick: then(onQuality) }] : []),
+          ...(onSettings ? [{ key: 'view', icon: <IconSettings />, label: t('Viewing settings'), onClick: then(onSettings) }] : []),
+          ...(onQuality && onQualityMenu ? [{ key: 'info', icon: <IconInfo />, label: t('How this is playing'), onClick: then(onQuality) }] : []),
         ]
         return (
           <OptionsSheet page={sheet} onPage={setSheet} onClose={close} rows={rows}
-            speeds={speeds.map((x) => ({ id: x, label: x === 1 ? 'Normal' : `${x}×`, on: x === rate, note: x > 4 ? 'may be muted' : undefined }))} onSpeed={(x) => { changeSpeed(x); close() }}
+            speeds={speeds.map((x) => ({ id: x, label: x === 1 ? t('Normal') : `${x}×`, on: x === rate, note: x > 4 ? t('may be muted') : undefined }))} onSpeed={(x) => { changeSpeed(x); close() }}
             audio={audio?.map((a) => ({ id: a.id, label: a.label, on: a.active }))} onAudio={(id) => { onAudio?.(id); close() }}
-            subtitles={subtitles && [{ id: -1, label: 'Off', on: !activeSub }, ...subtitles.map((x) => ({ id: x.id, label: x.label, on: x.active }))]} onSubtitle={(id) => { onSubtitle?.(id); close() }} />
+            subtitles={subtitles && [{ id: -1, label: t('Off'), on: !activeSub }, ...subtitles.map((x) => ({ id: x.id, label: x.label, on: x.active }))]} onSubtitle={(id) => { onSubtitle?.(id); close() }} />
         )
       })()}
       {pop === 'more' && (
-        <Menu label="More" className="more-pop" onClose={closePop}>
-          {onSettings && <button role="menuitem" onClick={() => { setPop(null); onSettings() }}><IconSettings /> Viewing settings</button>}
-          {onQuality && <button role="menuitem" onClick={() => { setPop(null); onQuality() }}><IconInfo /> How this is playing</button>}
-          <button role="menuitem" onClick={() => { setPop(null); setHelp(true) }}><span className="kbd-help" aria-hidden="true">?</span> Keyboard shortcuts</button>
+        <Menu label={t('More')} className="more-pop" onClose={closePop}>
+          {onSettings && <button role="menuitem" onClick={() => { setPop(null); onSettings() }}><IconSettings /> {t('Viewing settings')}</button>}
+          {onQuality && <button role="menuitem" onClick={() => { setPop(null); onQuality() }}><IconInfo /> {t('How this is playing')}</button>}
+          <button role="menuitem" onClick={() => { setPop(null); setHelp(true) }}><span className="kbd-help" aria-hidden="true">?</span> {t('Keyboard shortcuts')}</button>
         </Menu>
       )}
       {pop === 'audio' && audio && (
-        <Menu label="Audio" onClose={closePop}>
+        <Menu label={t('Audio')} onClose={closePop}>
           {audio.map((a) => <MenuChoice key={a.id} on={a.active} onPick={() => { onAudio?.(a.id); setPop(null) }}>{a.label}</MenuChoice>)}
         </Menu>
       )}
       {pop === 'subs' && subtitles && (
-        <Menu label="Subtitles" onClose={closePop}>
-          <MenuChoice on={!subtitles.some((s) => s.active)} onPick={() => { onSubtitle?.(-1); setPop(null) }}>Off</MenuChoice>
+        <Menu label={t('Subtitles')} onClose={closePop}>
+          <MenuChoice on={!subtitles.some((s) => s.active)} onPick={() => { onSubtitle?.(-1); setPop(null) }}>{t('Off')}</MenuChoice>
           {subtitles.map((s) => <MenuChoice key={s.id} on={s.active} onPick={() => { onSubtitle?.(s.id); setPop(null) }}>{s.label}</MenuChoice>)}
         </Menu>
       )}
       {pop === 'speed' && (
-        <Menu label="Playback speed" className="speed-pop" onClose={closePop}>
-          {speeds.map((s) => <MenuChoice key={s} on={s === rate} onPick={() => { changeSpeed(s); setPop(null) }} note={s > 4 ? 'may be muted' : undefined}>{s === 1 ? 'Normal' : `${s}×`}</MenuChoice>)}
+        <Menu label={t('Playback speed')} className="speed-pop" onClose={closePop}>
+          {speeds.map((s) => <MenuChoice key={s} on={s === rate} onPick={() => { changeSpeed(s); setPop(null) }} note={s > 4 ? t('may be muted') : undefined}>{s === 1 ? t('Normal') : `${s}×`}</MenuChoice>)}
         </Menu>
       )}
       {help && <ShortcutHelp disc={disc} copy={copy} onClose={() => setHelp(false)} />}
@@ -374,16 +375,16 @@ function OptionsSheet({ page, onPage, onClose, rows, speeds, onSpeed, audio, onA
   }, [page, onClose, onPage])
   const list = page === 'speed' ? speeds : page === 'audio' ? audio : page === 'subs' ? subtitles : null
   const pick = page === 'speed' ? onSpeed : page === 'audio' ? onAudio : onSubtitle
-  const title = page === 'speed' ? 'Playback speed' : page === 'audio' ? 'Audio' : page === 'subs' ? 'Subtitles' : 'Options'
+  const title = page === 'speed' ? t('Playback speed') : page === 'audio' ? t('Audio') : page === 'subs' ? t('Subtitles') : t('Options')
   return (
     <div className="psheet-backdrop" onClick={onClose}>
       <div className="psheet" ref={box} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="psheet-head">
           {page !== 'main'
-            ? <button className="ibtn" onClick={() => onPage('main')} aria-label="Back to options"><IconBack /></button>
+            ? <button className="ibtn" onClick={() => onPage('main')} aria-label={t('Back to options')}><IconBack /></button>
             : <span className="psheet-grip" aria-hidden="true" />}
           <h3>{title}</h3>
-          <button className="ibtn" onClick={onClose} aria-label="Close"><IconClose /></button>
+          <button className="ibtn" onClick={onClose} aria-label={t('Close')}><IconClose /></button>
         </div>
         {list ? (
           <div role="menu" aria-label={title}>
@@ -426,18 +427,18 @@ function ScenePanel({ chapters, name, thumb, current, onPick, onClose }: {
     grid.current?.querySelector<HTMLButtonElement>('.scene.now .scene-thumb')?.focus({ preventScroll: true })
   }, [])
   return (
-    <div className="scene-panel" role="dialog" aria-label="Scenes" onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}>
+    <div className="scene-panel" role="dialog" aria-label={t('Scenes')} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }}>
       <div className="scene-panel-head">
-        <h3>Scenes</h3>
-        <span className="muted">{chapters.length} scenes</span>
-        <button className="ibtn" onClick={onClose} title="Close" aria-label="Close scenes"><IconClose /></button>
+        <h3>{t('Scenes')}</h3>
+        <span className="muted">{tn('{count} scene', '{count} scenes', chapters.length)}</span>
+        <button className="ibtn" onClick={onClose} title={t('Close')} aria-label={t('Close scenes')}><IconClose /></button>
       </div>
       <div className="scene-grid" ref={grid}>
         {chapters.map((c, i) => (
           <div key={i} className={'scene' + (i === current ? ' now' : '')}>
-            <button className="scene-thumb" onClick={() => onPick(c)} aria-label={`Play ${name(i)}, from ${fmtTime(c)}`} aria-current={i === current || undefined}>
+            <button className="scene-thumb" onClick={() => onPick(c)} aria-label={t('Play {name}, from {time}', { name: name(i), time: fmtTime(c) })} aria-current={i === current || undefined}>
               {thumb ? <Thumb src={thumb(i)} /> : <span className="scene-num">{i + 1}</span>}
-              {i === current && <span className="scene-now">Now playing</span>}
+              {i === current && <span className="scene-now">{t('Now playing')}</span>}
               <span className="scene-time">{fmtTime(c)}</span>
             </button>
             <div className="scene-name"><span className="muted">{i + 1}.</span> {name(i)}</div>
@@ -452,38 +453,38 @@ function ScenePanel({ chapters, name, thumb, current, onPick, onClose }: {
 // The third column keeps a line to discs, or to everything else: the two handle some keys differently.
 // chapters: discs, and copies of a disc's film.
 const KEYS: [string, string, ('disc' | 'file' | 'chapters')?][] = [
-  ['Space or K', 'Play or pause'],
-  ['← and →', 'Back 10 seconds, forward 10 seconds'],
-  ['Page Up and Page Down', 'Forward or back a minute (on the timeline)'],
-  ['Home and End', 'The start or the end (on the timeline)'],
-  ['↑ and ↓', 'Volume up or down', 'file'],
-  ['M', 'Mute or unmute', 'file'],
-  ['I', 'Details of what’s playing', 'file'],
-  ['Q', 'Quality: picture size and data', 'file'],
-  ['< and >', 'Slower or faster'],
-  ['F', 'Fullscreen'],
-  ['R', 'Show or hide the remote'],
-  ['M', 'The disc’s menu, or its pop-up menu', 'disc'],
-  ['T', 'The disc’s title menu', 'disc'],
-  ['A and S', 'Next sound track, next subtitles', 'disc'],
-  ['N and P', 'Next chapter, previous chapter', 'chapters'],
-  ['1 to 9', 'Jump to that scene, or press that menu button', 'disc'],
-  ['Arrow keys and Enter', 'Move around a disc menu and choose', 'disc'],
-  ['F1 to F4', 'The red, green, yellow and blue keys of a Blu-ray’s Java menu', 'disc'],
-  ['↑ and ↓', 'Reach the player’s buttons', 'disc'],
-  ['Esc', 'Close a window, or shrink the player'],
-  ['?', 'This list'],
+  [tk('Space or K'), tk('Play or pause')],
+  ['← and →', tk('Back 10 seconds, forward 10 seconds')],
+  [tk('Page Up and Page Down'), tk('Forward or back a minute (on the timeline)')],
+  [tk('Home and End'), tk('The start or the end (on the timeline)')],
+  ['↑ and ↓', tk('Volume up or down'), 'file'],
+  ['M', tk('Mute or unmute'), 'file'],
+  ['I', tk('Details of what’s playing'), 'file'],
+  ['Q', tk('Quality: picture size and data'), 'file'],
+  ['< and >', tk('Slower or faster')],
+  ['F', tk('Fullscreen')],
+  ['R', tk('Show or hide the remote')],
+  ['M', tk('The disc’s menu, or its pop-up menu'), 'disc'],
+  ['T', tk('The disc’s title menu'), 'disc'],
+  ['A and S', tk('Next sound track, next subtitles'), 'disc'],
+  ['N and P', tk('Next chapter, previous chapter'), 'chapters'],
+  [tk('1 to 9'), tk('Jump to that scene, or press that menu button'), 'disc'],
+  [tk('Arrow keys and Enter'), tk('Move around a disc menu and choose'), 'disc'],
+  [tk('F1 to F4'), tk('The red, green, yellow and blue keys of a Blu-ray’s Java menu'), 'disc'],
+  ['↑ and ↓', tk('Reach the player’s buttons'), 'disc'],
+  [tk('Esc'), tk('Close a window, or shrink the player')],
+  ['?', tk('This list')],
 ]
 function ShortcutHelp({ disc, copy, onClose }: { disc: boolean; copy: boolean; onClose: () => void }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal kbd-modal" role="dialog" aria-modal="true" aria-labelledby="kbd-h" onClick={(e) => e.stopPropagation()}>
-        <h2 id="kbd-h">Keyboard shortcuts</h2>
+        <h2 id="kbd-h">{t('Keyboard shortcuts')}</h2>
         <dl className="kbd-list">
-          {KEYS.filter(([, , only]) => !only || (only === 'chapters' ? disc || copy : only === (disc ? 'disc' : 'file'))).map(([k, what]) => <div key={k}><dt><kbd>{k}</kbd></dt><dd>{what}</dd></div>)}
+          {KEYS.filter(([, , only]) => !only || (only === 'chapters' ? disc || copy : only === (disc ? 'disc' : 'file'))).map(([k, what]) => <div key={k + what}><dt><kbd>{tx(k)}</kbd></dt><dd>{tx(what)}</dd></div>)}
         </dl>
-        <p className="small-note">Game controllers and TV remotes work too: the D-pad moves, A or OK chooses, B goes back.</p>
-        <div className="actions"><button className="btn primary" onClick={onClose}>Close</button></div>
+        <p className="small-note">{t('Game controllers and TV remotes work too: the D-pad moves, A or OK chooses, B goes back.')}</p>
+        <div className="actions"><button className="btn primary" onClick={onClose}>{t('Close')}</button></div>
       </div>
     </div>
   )

@@ -9,6 +9,7 @@ import { toast, useApp } from '../state'
 import { reportClient } from '../errorReport'
 import { BundledReaderView, readerKitOf, readerOf, useBundledReader, useReaderBundles } from '../moduleBundles'
 import { useBookRemote } from '../remote/pageTargets'
+import { t } from '../i18n'
 import './reader.css'
 
 // Books libraries in WittyMediaServer: whichever module reads the kind of book (its
@@ -90,7 +91,7 @@ export default function ReaderPage() {
   // The reader from its own release, when one is in use; otherwise null.
   const bundled = useBundledReader(host?.format, bundles)
 
-  if (err) return <div className="reader center"><div className="error">{err}<br /><button className="btn" onClick={close}>Back</button></div></div>
+  if (err) return <div className="reader center"><div className="error">{err}<br /><button className="btn" onClick={close}>{t('Back')}</button></div></div>
   if (!host || bundled === undefined) return <div className="reader center"><div className="spinner" /></div>
   const missing = <div className="reader center">{kit && !reader ? <NoReader format={host.format} /> : <ModuleMissing ids={[reader?.id, 'wittyink'].filter(Boolean) as string[]} what={it?.title} onReady={() => window.location.reload()} />}</div>
   if (!bundled) return missing
@@ -103,9 +104,9 @@ function NoReader({ format }: { format: string }) {
   const { user } = useApp()
   return (
     <div className="empty" role="status">
-      <h2>No reader for {format.toUpperCase()} books is in use here</h2>
-      <p className="muted">{user?.isAdmin ? 'Add one from the module store.' : 'Ask whoever runs this server to add one.'}</p>
-      {user?.isAdmin && <Link className="btn" to="/settings/modules/store">Open the module store</Link>}
+      <h2>{t('No reader for {format} books is in use here', { format: format.toUpperCase() })}</h2>
+      <p className="muted">{user?.isAdmin ? t('Add one from the module store.') : t('Ask whoever runs this server to add one.')}</p>
+      {user?.isAdmin && <Link className="btn" to="/settings/modules/store">{t('Open the module store')}</Link>}
     </div>
   )
 }

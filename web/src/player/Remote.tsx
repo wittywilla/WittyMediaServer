@@ -6,6 +6,7 @@ import { IconClose, IconContrast, IconDown, IconEject, IconFf, IconLeft, IconNex
 import { useMedia } from '../shell/useNav'
 import { COLOUR_KEYS, keyLabel, kindLabel, remoteRule, type RemoteForm, type RemoteKey } from './remoteKeys'
 import { useTvMode } from '../tvmode/mode'
+import { t, tk, tx } from '../i18n'
 
 // The on-screen remote of a disc player. Which keys work for what's playing is in remoteKeys.ts.
 export type { RemoteKey }
@@ -18,8 +19,8 @@ type Props = {
   note?: string // why the menu keys are greyed out, when they are
 }
 
-const COLOUR_NAMES: Record<string, string> = { red: 'Red', green: 'Green', yellow: 'Yellow', blue: 'Blue' }
-const ejectTip = (label: string) => (label === 'WittyDVD' ? 'Eject the DVD' : label === 'WittyBluray' ? 'Eject the Blu-ray' : 'Stop and close')
+const COLOUR_NAMES: Record<string, string> = { red: tk('Red'), green: tk('Green'), yellow: tk('Yellow'), blue: tk('Blue') }
+const ejectTip = (label: string) => (label === 'WittyDVD' ? t('Eject the DVD') : label === 'WittyBluray' ? t('Eject the Blu-ray') : t('Stop and close'))
 
 // The floating remote doesn't fit a phone, or a window as short as one on its side, and a television is far from the
 // screen: there the remote is a sheet (large keys, a focus ring) along the bottom.
@@ -41,8 +42,8 @@ function loadGeom(): Geom {
 
 export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD', note }: Props) {
   const [pressed, setPressed] = useState<RemoteKey | null>(null)
-  const t = useRef<any>(null)
-  useEffect(() => () => clearTimeout(t.current), [])
+  const timer = useRef<any>(null)
+  useEffect(() => () => clearTimeout(timer.current), [])
   const el = useRef<HTMLDivElement | null>(null)
   const [geom, setGeomState] = useState<Geom>(loadGeom)
   const setGeom = useCallback((g: Geom, persist = true) => {
@@ -101,50 +102,50 @@ export default function Remote({ onKey, enabled, onClose, label = 'WittyDVD', no
     left: geom.x ?? undefined, top: geom.y ?? undefined, right: geom.x == null ? 18 : 'auto', bottom: geom.y == null ? 96 : 'auto',
     transform: 'scale(' + geom.scale + ')', '--ra': geom.alpha,
   } as React.CSSProperties
-  const press = (k: RemoteKey) => { setPressed(k); clearTimeout(t.current); t.current = setTimeout(() => setPressed(null), 140); onKey(k) }
+  const press = (k: RemoteKey) => { setPressed(k); clearTimeout(timer.current); timer.current = setTimeout(() => setPressed(null), 140); onKey(k) }
   return (
     <KeyCtx.Provider value={{ enabled, press, pressed }}>
-    <div className="remote" ref={el} style={style} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} role="group" aria-label={label + ' remote'}>
+    <div className="remote" ref={el} style={style} onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()} role="group" aria-label={t('{name} remote', { name: label })}>
       <div className="remote-head" onPointerDown={startDrag}>
         <B k="eject" cls="round red" tip={ejectTip(label)}><IconEject size={16} /></B>
         <span className="remote-brand">{label}</span>
-        <button type="button" className="rk round ghost" data-tip="See-through" aria-label="Change how see-through the remote is" onClick={(e) => { e.stopPropagation(); cycleAlpha() }}><IconContrast size={14} /></button>
-        <button type="button" className="rk round ghost" data-tip="Close the Remote" aria-label="Close the Remote (r)" onClick={(e) => { e.stopPropagation(); onClose() }}><IconClose size={14} /></button>
+        <button type="button" className="rk round ghost" data-tip={t('See-through')} aria-label={t('Change how see-through the remote is')} onClick={(e) => { e.stopPropagation(); cycleAlpha() }}><IconContrast size={14} /></button>
+        <button type="button" className="rk round ghost" data-tip={t('Close the Remote')} aria-label={t('Close the Remote (r)')} onClick={(e) => { e.stopPropagation(); onClose() }}><IconClose size={14} /></button>
       </div>
-      {note ? <div className="remote-note" role="note">{note}</div> : <div className="remote-note faint" role="note">{remoteRule()}</div>}
+      {note ? <div className="remote-note" role="note">{tx(note)}</div> : <div className="remote-note faint" role="note">{tx(remoteRule())}</div>}
       <div className="remote-row2">
-        <B k="topmenu" cls="pill" title="Top menu (disc title menu)">{keyLabel('topmenu', 'TOP MENU')}</B>
-        <B k="menu" cls="pill" title="Menu (the root menu, or a Blu-ray's pop-up menu)">{keyLabel('menu', 'MENU')}</B>
+        <B k="topmenu" cls="pill" title={t('Top menu (disc title menu)')}>{tx(keyLabel('topmenu', tk('TOP MENU')))}</B>
+        <B k="menu" cls="pill" title={t("Menu (the root menu, or a Blu-ray's pop-up menu)")}>{tx(keyLabel('menu', tk('MENU')))}</B>
       </div>
       <div className="remote-dpad">
-        <B k="up" cls="d up" title="Up"><IconUp /></B>
-        <B k="left" cls="d left" title="Left"><IconLeft /></B>
-        <B k="enter" cls="d enter" title="Enter">ENTER</B>
-        <B k="right" cls="d right" title="Right"><IconRight /></B>
-        <B k="down" cls="d down" title="Down"><IconDown /></B>
+        <B k="up" cls="d up" title={t('Up')}><IconUp /></B>
+        <B k="left" cls="d left" title={t('Left')}><IconLeft /></B>
+        <B k="enter" cls="d enter" title={t('Enter')}>{t('ENTER')}</B>
+        <B k="right" cls="d right" title={t('Right')}><IconRight /></B>
+        <B k="down" cls="d down" title={t('Down')}><IconDown /></B>
       </div>
       <div className="remote-row2">
-        <B k="return" cls="pill" title="Return (go back)">{keyLabel('return', 'RETURN')}</B>
-        <B k="angle" cls="pill" title="Video version (camera angle)">{keyLabel('angle', 'ANGLE')}</B>
+        <B k="return" cls="pill" title={t('Return (go back)')}>{tx(keyLabel('return', tk('RETURN')))}</B>
+        <B k="angle" cls="pill" title={t('Video version (camera angle)')}>{tx(keyLabel('angle', tk('ANGLE')))}</B>
       </div>
       <div className="remote-row2">
-        <B k="audio" cls="pill" title="Audio & language">{keyLabel('audio', 'AUDIO')}</B>
-        <B k="subtitle" cls="pill" title="Subtitles">{keyLabel('subtitle', 'SUBTITLE')}</B>
+        <B k="audio" cls="pill" title={t('Audio & language')}>{tx(keyLabel('audio', tk('AUDIO')))}</B>
+        <B k="subtitle" cls="pill" title={t('Subtitles')}>{tx(keyLabel('subtitle', tk('SUBTITLE')))}</B>
       </div>
       <div className="remote-row4">
-        <B k="prev" title="Previous chapter"><IconPrev size={16} /></B>
-        <B k="rew" title="Rewind 10 s"><IconRew size={16} /></B>
-        <B k="ff" title="Forward 30 s"><IconFf size={16} /></B>
-        <B k="next" title="Next chapter"><IconNext size={16} /></B>
+        <B k="prev" title={t('Previous chapter')}><IconPrev size={16} /></B>
+        <B k="rew" title={t('Rewind 10 s')}><IconRew size={16} /></B>
+        <B k="ff" title={t('Forward 30 s')}><IconFf size={16} /></B>
+        <B k="next" title={t('Next chapter')}><IconNext size={16} /></B>
       </div>
       <div className="remote-row3">
-        <B k="stop" title="Stop"><IconStop size={14} /></B>
-        <B k="play" cls="accent" title="Play"><IconPlay size={16} /></B>
-        <B k="pause" title="Pause"><IconPause size={16} /></B>
+        <B k="stop" title={t('Stop')}><IconStop size={14} /></B>
+        <B k="play" cls="accent" title={t('Play')}><IconPlay size={16} /></B>
+        <B k="pause" title={t('Pause')}><IconPause size={16} /></B>
       </div>
       <Colours />
       <div className="remote-digits">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => <B key={d} k={`digit${d}` as RemoteKey} title={`Button / chapter ${d}`}>{d}</B>)}
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => <B key={d} k={`digit${d}` as RemoteKey} title={t('Button / chapter {n}', { n: d })}>{d}</B>)}
         <span />
         <B k="digit0" title="0">0</B>
         <span />
@@ -178,7 +179,7 @@ function B({ k, children, cls = '', title, tip }: { k: RemoteKey; children: Reac
 function Colours() {
   return (
     <div className="remote-colours">
-      {COLOUR_KEYS.map((c) => <B key={c} k={c} cls={'colour key-' + c} title={`${COLOUR_NAMES[c]} (F${COLOUR_KEYS.indexOf(c) + 1})`}><span aria-hidden="true" /></B>)}
+      {COLOUR_KEYS.map((c) => <B key={c} k={c} cls={'colour key-' + c} title={t('{colour} (F{n})', { colour: tx(COLOUR_NAMES[c]), n: COLOUR_KEYS.indexOf(c) + 1 })}><span aria-hidden="true" /></B>)}
     </div>
   )
 }
@@ -189,31 +190,31 @@ export function RemoteBar({ onKey, enabled, disc = true, note, below = false, fo
   const head = form ? kindLabel(form) : ''
   return (
     <KeyCtx.Provider value={{ enabled, press: onKey, pressed: null }}>
-    <div className={'remote-bar' + (below ? ' below' : '')} role="toolbar" aria-label="Disc remote" onClick={(e) => e.stopPropagation()}>
-      {head && <span className="rb-title">{head} remote</span>}
-      {note && <span className="rb-note" role="note">{note}</span>}
-      <BarKey k="topmenu" label="Top menu">{keyLabel('topmenu', 'TOP MENU')}</BarKey>
-      <BarKey k="menu" label="Menu">{keyLabel('menu', 'MENU')}</BarKey>
-      <BarKey k="return" label="Return">{keyLabel('return', 'RETURN')}</BarKey>
+    <div className={'remote-bar' + (below ? ' below' : '')} role="toolbar" aria-label={t('Disc remote')} onClick={(e) => e.stopPropagation()}>
+      {head && <span className="rb-title">{t('{name} remote', { name: tx(head) })}</span>}
+      {note && <span className="rb-note" role="note">{tx(note)}</span>}
+      <BarKey k="topmenu" label={t('Top menu')}>{tx(keyLabel('topmenu', tk('TOP MENU')))}</BarKey>
+      <BarKey k="menu" label={t('Menu')}>{tx(keyLabel('menu', tk('MENU')))}</BarKey>
+      <BarKey k="return" label={t('Return')}>{tx(keyLabel('return', tk('RETURN')))}</BarKey>
       <span className="rb-sep" />
-      <BarKey k="left" label="Left"><IconLeft size={16} /></BarKey>
-      <BarKey k="up" label="Up"><IconUp size={16} /></BarKey>
-      <BarKey k="enter" label="Enter" cls="accent">OK</BarKey>
-      <BarKey k="down" label="Down"><IconDown size={16} /></BarKey>
-      <BarKey k="right" label="Right"><IconRight size={16} /></BarKey>
+      <BarKey k="left" label={t('Left')}><IconLeft size={16} /></BarKey>
+      <BarKey k="up" label={t('Up')}><IconUp size={16} /></BarKey>
+      <BarKey k="enter" label={t('Enter')} cls="accent">OK</BarKey>
+      <BarKey k="down" label={t('Down')}><IconDown size={16} /></BarKey>
+      <BarKey k="right" label={t('Right')}><IconRight size={16} /></BarKey>
       <span className="rb-sep" />
-      <BarKey k="audio" label="Audio & language">{keyLabel('audio', 'AUDIO')}</BarKey>
-      <BarKey k="subtitle" label="Subtitles">{keyLabel('subtitle', 'SUBTITLE')}</BarKey>
-      <BarKey k="angle" label="Video version (camera angle)">{keyLabel('angle', 'ANGLE')}</BarKey>
+      <BarKey k="audio" label={t('Audio & language')}>{tx(keyLabel('audio', tk('AUDIO')))}</BarKey>
+      <BarKey k="subtitle" label={t('Subtitles')}>{tx(keyLabel('subtitle', tk('SUBTITLE')))}</BarKey>
+      <BarKey k="angle" label={t('Video version (camera angle)')}>{tx(keyLabel('angle', tk('ANGLE')))}</BarKey>
       <span className="rb-sep hide-narrow" />
       <span className="rb-digits hide-narrow">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => <BarKey key={d} k={`digit${d}` as RemoteKey} label={`Button or chapter ${d}`}>{d}</BarKey>)}
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => <BarKey key={d} k={`digit${d}` as RemoteKey} label={t('Button or chapter {n}', { n: d })}>{d}</BarKey>)}
       </span>
       <span className="rb-sep hide-narrow" />
       <span className="rb-colours hide-narrow">
-        {COLOUR_KEYS.map((c, i) => <BarKey key={c} k={c} label={`${COLOUR_NAMES[c]} (F${i + 1})`} cls={'colour key-' + c}><span aria-hidden="true" /></BarKey>)}
+        {COLOUR_KEYS.map((c, i) => <BarKey key={c} k={c} label={t('{colour} (F{n})', { colour: tx(COLOUR_NAMES[c]), n: i + 1 })} cls={'colour key-' + c}><span aria-hidden="true" /></BarKey>)}
       </span>
-      <BarKey k="eject" label={disc ? 'Eject the disc' : 'Stop and close'} cls="red"><IconEject size={14} /></BarKey>
+      <BarKey k="eject" label={disc ? t('Eject the disc') : t('Stop and close')} cls="red"><IconEject size={14} /></BarKey>
     </div>
     </KeyCtx.Provider>
   )
@@ -230,9 +231,9 @@ function BarKey({ k, children, label, cls = '' }: { k: RemoteKey; children: Reac
 export function RemoteSheet({ onKey, enabled, onClose, label = 'WittyDVD', note, docked = false }: Props & { docked?: boolean }) {
   const [page, setPage] = useState<'keys' | 'numbers'>('keys')
   const [pressed, setPressed] = useState<RemoteKey | null>(null)
-  const t = useRef<any>(null)
-  useEffect(() => () => clearTimeout(t.current), [])
-  const press = (k: RemoteKey) => { setPressed(k); clearTimeout(t.current); t.current = setTimeout(() => setPressed(null), 140); onKey(k) }
+  const timer = useRef<any>(null)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const press = (k: RemoteKey) => { setPressed(k); clearTimeout(timer.current); timer.current = setTimeout(() => setPressed(null), 140); onKey(k) }
   // Esc closes it, before anything else hears the key.
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopImmediatePropagation(); e.preventDefault(); onClose() } }
@@ -255,51 +256,51 @@ export function RemoteSheet({ onKey, enabled, onClose, label = 'WittyDVD', note,
   }, [docked])
   const sheet = (
     <KeyCtx.Provider value={{ enabled, press, pressed }}>
-    <div ref={own} className={'remote remote-sheet' + (docked ? ' docked' : '')} role="dialog" aria-label={label + ' remote'}
+    <div ref={own} className={'remote remote-sheet' + (docked ? ' docked' : '')} role="dialog" aria-label={t('{name} remote', { name: label })}
       onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
       <div className="sheet-head">
         <B k="eject" cls="round red" title={ejectTip(label)}><IconEject size={16} /></B>
         <span className="remote-brand">{label}</span>
-        <div className="sheet-pages" role="group" aria-label="Remote page">
-          <button type="button" className={'sheet-page' + (page === 'keys' ? ' on' : '')} aria-pressed={page === 'keys'} onClick={() => setPage('keys')}>Keys</button>
+        <div className="sheet-pages" role="group" aria-label={t('Remote page')}>
+          <button type="button" className={'sheet-page' + (page === 'keys' ? ' on' : '')} aria-pressed={page === 'keys'} onClick={() => setPage('keys')}>{t('Keys')}</button>
           <button type="button" className={'sheet-page' + (page === 'numbers' ? ' on' : '')} aria-pressed={page === 'numbers'} onClick={() => setPage('numbers')}>1 2 3</button>
         </div>
-        <button type="button" className="rk round ghost" aria-label="Close the remote" title="Close the remote" onClick={onClose}><IconClose size={14} /></button>
+        <button type="button" className="rk round ghost" aria-label={t('Close the remote')} title={t('Close the remote')} onClick={onClose}><IconClose size={14} /></button>
       </div>
-      {note && <div className="remote-note" role="note">{note}</div>}
+      {note && <div className="remote-note" role="note">{tx(note)}</div>}
       {page === 'keys' ? (
         <div className="sheet-keys">
           <div className="sheet-menus">
-            <B k="topmenu" cls="pill" title="Top menu (disc title menu)">{keyLabel('topmenu', 'TOP MENU')}</B>
-            <B k="menu" cls="pill" title="Menu (the root menu, or a Blu-ray's pop-up menu)">{keyLabel('menu', 'MENU')}</B>
-            <B k="return" cls="pill" title="Return (go back)">{keyLabel('return', 'RETURN')}</B>
+            <B k="topmenu" cls="pill" title={t('Top menu (disc title menu)')}>{tx(keyLabel('topmenu', tk('TOP MENU')))}</B>
+            <B k="menu" cls="pill" title={t("Menu (the root menu, or a Blu-ray's pop-up menu)")}>{tx(keyLabel('menu', tk('MENU')))}</B>
+            <B k="return" cls="pill" title={t('Return (go back)')}>{tx(keyLabel('return', tk('RETURN')))}</B>
           </div>
           <div className="remote-dpad">
-            <B k="up" cls="d up" title="Up"><IconUp /></B>
-            <B k="left" cls="d left" title="Left"><IconLeft /></B>
-            <B k="enter" cls="d enter" title="Enter">OK</B>
-            <B k="right" cls="d right" title="Right"><IconRight /></B>
-            <B k="down" cls="d down" title="Down"><IconDown /></B>
+            <B k="up" cls="d up" title={t('Up')}><IconUp /></B>
+            <B k="left" cls="d left" title={t('Left')}><IconLeft /></B>
+            <B k="enter" cls="d enter" title={t('Enter')}>OK</B>
+            <B k="right" cls="d right" title={t('Right')}><IconRight /></B>
+            <B k="down" cls="d down" title={t('Down')}><IconDown /></B>
           </div>
           <div className="sheet-tracks">
-            <B k="audio" cls="pill" title="Audio & language">{keyLabel('audio', 'AUDIO')}</B>
-            <B k="subtitle" cls="pill" title="Subtitles">{keyLabel('subtitle', 'SUBTITLE')}</B>
-            <B k="angle" cls="pill" title="Video version (camera angle)">{keyLabel('angle', 'ANGLE')}</B>
+            <B k="audio" cls="pill" title={t('Audio & language')}>{tx(keyLabel('audio', tk('AUDIO')))}</B>
+            <B k="subtitle" cls="pill" title={t('Subtitles')}>{tx(keyLabel('subtitle', tk('SUBTITLE')))}</B>
+            <B k="angle" cls="pill" title={t('Video version (camera angle)')}>{tx(keyLabel('angle', tk('ANGLE')))}</B>
           </div>
           <div className="sheet-transport">
-            <B k="prev" title="Previous chapter"><IconPrev size={16} /></B>
-            <B k="rew" title="Rewind 10 s"><IconRew size={16} /></B>
-            <B k="play" cls="accent" title="Play"><IconPlay size={16} /></B>
-            <B k="pause" title="Pause"><IconPause size={16} /></B>
-            <B k="ff" title="Forward 30 s"><IconFf size={16} /></B>
-            <B k="next" title="Next chapter"><IconNext size={16} /></B>
-            <B k="stop" title="Stop"><IconStop size={14} /></B>
+            <B k="prev" title={t('Previous chapter')}><IconPrev size={16} /></B>
+            <B k="rew" title={t('Rewind 10 s')}><IconRew size={16} /></B>
+            <B k="play" cls="accent" title={t('Play')}><IconPlay size={16} /></B>
+            <B k="pause" title={t('Pause')}><IconPause size={16} /></B>
+            <B k="ff" title={t('Forward 30 s')}><IconFf size={16} /></B>
+            <B k="next" title={t('Next chapter')}><IconNext size={16} /></B>
+            <B k="stop" title={t('Stop')}><IconStop size={14} /></B>
           </div>
         </div>
       ) : (
         <div className="sheet-numbers">
           <div className="sheet-digits">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => <B key={d} k={`digit${d}` as RemoteKey} title={`Button / chapter ${d}`}>{d}</B>)}
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => <B key={d} k={`digit${d}` as RemoteKey} title={t('Button / chapter {n}', { n: d })}>{d}</B>)}
           </div>
           <Colours />
         </div>

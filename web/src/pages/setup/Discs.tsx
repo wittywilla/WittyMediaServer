@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { Button } from '../../ui'
 import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
+import { t } from '../../i18n'
 
 // Belongs to the disc modules, so it's only here when one of them is.
 export function Discs({ info, next, back }: StepProps) {
@@ -19,15 +20,15 @@ export function Discs({ info, next, back }: StepProps) {
   }
   return (
     <section>
-      <StepHead title="DVDs and Blu-rays" lead="Copies of your discs play the way they do in a disc player. When someone presses play on a disc, what should happen?" />
-      <ChoiceCards label="When a disc starts" value={start} onChange={setStart} cards={[
-        { value: 'menu', title: 'Show the disc’s menu', text: 'Studio intros, then the menu with its buttons, chapters and extras.', pic: <span className="oobe-choice-pic menu" aria-hidden="true"><i /><i /><i /></span> },
-        { value: 'title', title: 'Play the movie straight away', text: 'Skips the intros and menus. The menu is still one button away.', pic: <span className="oobe-choice-pic film" aria-hidden="true"><i /></span> },
+      <StepHead title={t('DVDs and Blu-rays')} lead={t('Copies of your discs play the way they do in a disc player. When someone presses play on a disc, what should happen?')} />
+      <ChoiceCards label={t('When a disc starts')} value={start} onChange={setStart} cards={[
+        { value: 'menu', title: t('Show the disc’s menu'), text: t('Studio intros, then the menu with its buttons, chapters and extras.'), pic: <span className="oobe-choice-pic menu" aria-hidden="true"><i /><i /><i /></span> },
+        { value: 'title', title: t('Play the movie straight away'), text: t('Skips the intros and menus. The menu is still one button away.'), pic: <span className="oobe-choice-pic film" aria-hidden="true"><i /></span> },
       ]} />
-      <TickRow kind="checkbox" checked={fx} onChange={setFx} title="Disc animation" text="A tray slides in when a disc starts, with drive sounds." />
-      <p className="muted oobe-hint su-gap">Discs with copy protection can’t be played. They’re listed with a plain reason, and nothing is ever unlocked.</p>
+      <TickRow kind="checkbox" checked={fx} onChange={setFx} title={t('Disc animation')} text={t('A tray slides in when a disc starts, with drive sounds.')} />
+      <p className="muted oobe-hint su-gap">{t('Discs with copy protection can’t be played. They’re listed with a plain reason, and nothing is ever unlocked.')}</p>
       <LaterNote info={info} />
-      <StepActions back={back}><Button variant="primary" size="big" busy={busy} onClick={save}>Continue</Button></StepActions>
+      <StepActions back={back}><Button variant="primary" size="big" busy={busy} onClick={save}>{t('Continue')}</Button></StepActions>
     </section>
   )
 }

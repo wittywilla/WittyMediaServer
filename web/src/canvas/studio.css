@@ -28,7 +28,7 @@
 .cs-vids { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); max-block-size: 340px; overflow-y: auto; }
 .cs-vid { display: grid; gap: var(--sp-2); inline-size: 100%; padding: 0; border: 0; background: none; color: var(--fg); text-align: left; font: inherit; cursor: pointer; }
 .cs-vid-pic { display: block; aspect-ratio: 16 / 9; border-radius: var(--r-md); background: var(--bg-3) center / cover; transition: transform var(--dur-2), box-shadow var(--dur-2); }
-.cs-vid:hover .cs-vid-pic, .cs-vid:focus-visible .cs-vid-pic { transform: translateY(-2px); box-shadow: var(--e-2), 0 0 0 2px var(--accent); }
+.cs-vid:hover .cs-vid-pic, .cs-vid:focus-visible .cs-vid-pic { transform: translateY(-2px); box-shadow: var(--e-2), 0 0 0 2px var(--focus); }
 .cs-vid:focus-visible { outline: none; }
 .cs-vid-t { display: grid; gap: 2px; font-size: var(--text-sm); }
 .cs-vid-t b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

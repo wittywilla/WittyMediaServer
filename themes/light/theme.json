@@ -3,7 +3,7 @@
   "name": "Light",
   "description": "Clean, bright grey with a violet accent.",
   "author": "WittyMediaServer",
-  "version": "9",
+  "version": "10",
   "scheme": "light",
   "builtin": true,
   "preview": {

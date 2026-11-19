@@ -14,6 +14,10 @@
 @keyframes oobe-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .oobe-card h1 { margin: 0 0 var(--sp-2); font-size: var(--page-title); letter-spacing: var(--tracking-display); }
 .oobe-card .lead { color: var(--fg-2); font-size: var(--text-base); margin: 0 0 var(--sp-6); max-width: 62ch; }
+/* An address or a code (the pairing page, a folder) breaks where it must on a phone instead of pushing the card
+   past the edge of the screen. */
+.oobe-card { min-inline-size: 0; }
+.oobe-card :is(code, kbd, samp, a) { overflow-wrap: anywhere; }
 .oobe-field { display: grid; gap: 6px; font-weight: 500; font-size: var(--text-sm); color: var(--fg-2); margin-bottom: var(--sp-4); }
 .oobe-field .input, .oobe-field .select { color: var(--fg); font-weight: 400; }
 .oobe-form { display: grid; gap: 2px; max-width: 420px; }

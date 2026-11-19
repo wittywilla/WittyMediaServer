@@ -11,6 +11,7 @@ import { THEMES as TV_THEMES, themeById, themeTokens, type ThemeId } from '../tv
 import { ThemePicture } from '../tv/LookPanel'
 import { appColours } from '../tv/look'
 import { Brand } from '../../components/common'
+import { contrastRatio } from '../../themeColours'
 import { Button, Segmented } from '../../ui'
 import { TvPart } from '../../tvmode/OnAComputer'
 import { LayoutThumb } from '../../ui/LayoutThumb'
@@ -52,12 +53,23 @@ function LookHome({ home, cards }: { home: Home; cards: Cards }) {
   return <>{hero()}{row(5)}</>
 }
 
+// The name in a look's preview is drawn in that look's colours, not the page's: white or black, whichever reads on
+// the look's own bar, and its accent for the coloured word only where that reads too (4.5:1). Without this a light
+// theme drew its dark words on a dark look's bar.
+function previewInk(pv: Card['preview']): Record<string, string> {
+  if (!pv?.surface) return {}
+  const white = contrastRatio('#ffffff', pv.surface) ?? 21, black = contrastRatio('#000000', pv.surface) ?? 21
+  const ink = white >= black ? 'var(--on-image)' : 'var(--picture-bg)'
+  const accent = (contrastRatio(pv.accent, pv.surface) ?? 0) >= 4.5 ? 'var(--lp-accent)' : ink
+  return { '--lp-fg': ink, '--lp-brand': accent }
+}
+
 function LookPreview({ card, device }: { card: Card; device: Device }) {
   const spec = specFor(card.wire, device)
   const nav = card.nav[device] || card.nav.desktop || 'topTabs'
   const kind = spec.nav === 'none' || spec.nav === 'crossbar' ? 'none' : spec.nav === 'bottom' || BOTTOM.has(nav) ? 'bottom' : ['sidebar', 'rail', 'railDrawer'].includes(spec.nav) || SIDE.has(nav) ? 'side' : 'top'
   const pv = card.preview
-  const style = { ['--lp-bg' as string]: pv?.bg, ['--lp-surface' as string]: pv?.surface, ['--lp-accent' as string]: pv?.accent }
+  const style = { ['--lp-bg' as string]: pv?.bg, ['--lp-surface' as string]: pv?.surface, ['--lp-accent' as string]: pv?.accent, ...previewInk(pv) }
   const where = kind === 'side' ? t('the menu is at the side') : kind === 'bottom' ? t('the menu is at the bottom') : kind === 'none' ? t('the menu is part of Home') : t('the menu is along the top')
   const on = { tv: t('on a TV'), desktop: t('on a desktop'), phone: t('on a phone'), headset: t('in VR') }[device]
   return (

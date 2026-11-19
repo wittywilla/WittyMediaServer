@@ -81,6 +81,27 @@ def move(color, against, need, lighter):
     return c
 
 
+# The soft fills of web/src/styles.css: --accent-soft is the accent at .14, --ok-soft and --warn-soft 13%, --danger-soft 11%.
+ACCENT_SOFT = .14
+STATUS_SOFT = {'ok': .13, 'warn': .13, 'danger': .11}
+
+
+def status_worst(c, surfaces, a):
+    """A status colour as text, on each surface and on its own soft fill over each surface."""
+    return min(min(ratio(c, s), ratio(c, mix(c, s, a))) for s in surfaces)
+
+
+def move_status(color, surfaces, a, lighter):
+    """move(), for a colour whose fill is made of itself: its soft fill moves with it."""
+    h, l, s_ = colorsys.rgb_to_hls(*rgb(color))
+    for _ in range(200):
+        c = hexs(colorsys.hls_to_rgb(h, l, s_))
+        if status_worst(c, surfaces, a) >= 4.5:
+            return c
+        l = min(1, l + 0.005) if lighter else max(0, l - 0.005)
+    return c
+
+
 changed = 0
 failed = 0
 for f in FILES:
@@ -115,17 +136,20 @@ for f in FILES:
             notes.append(f'--accent {v["accent"]} on --accent-fg ({r:.2f}) -> {new["accent"]} ({ratio(v["accent-fg"], new["accent"]):.2f})')
     # The accent as text (links, highlighted words, the active item): its own
     # colour, readable on every surface.
+    # It also sits on --accent-soft (the accent at 14% over a surface): the selected row, the chosen page in a menu.
     text = v.get('accent-text', new['accent'])
-    if min(ratio(text, x) for x in surfaces) < 4.5:
-        text = move(text, surfaces, 4.5, lighter=dark)
+    on_soft = surfaces + [mix(new['accent'], s, ACCENT_SOFT) for s in surfaces]
+    if min(ratio(text, x) for x in on_soft) < 4.5:
+        text = move(text, on_soft, 4.5, lighter=dark)
     if text != v.get('accent-text') and f.name != 'styles.css':  # the app's default leaves it to the theme
         new['accent-text'] = text
-        notes.append(f'--accent-text {text} ({min(ratio(text, x) for x in surfaces):.2f})')
-    # Status colours are also text, and the outlines of fields must be visible.
+        notes.append(f'--accent-text {text} ({min(ratio(text, x) for x in on_soft):.2f}, its soft fill included)')
+    # Status colours are also text, on the surfaces and on their own soft fill (a badge, a notice: the colour at
+    # 11-13% over a surface, web/src/styles.css --ok-soft), and the outlines of fields must be visible.
     for k in ('danger', 'ok', 'warn'):
-        if k in v and min(ratio(v[k], s) for s in surfaces) < 4.5:
-            new[k] = move(v[k], surfaces, 4.5, lighter=dark)
-            notes.append(f'--{k} {v[k]} -> {new[k]} ({min(ratio(new[k], s) for s in surfaces):.2f})')
+        if k in v and status_worst(v[k], surfaces, STATUS_SOFT[k]) < 4.5:
+            new[k] = move_status(v[k], surfaces, STATUS_SOFT[k], lighter=dark)
+            notes.append(f'--{k} {v[k]} -> {new[k]} ({status_worst(new[k], surfaces, STATUS_SOFT[k]):.2f}, its soft fill included)')
     if 'control-line' in v:
         worst = min(ratio(v['control-line'], s) for s in surfaces)
         # Only as strong as it has to be: a heavier outline is just noise. The high
@@ -199,14 +223,14 @@ for f in FILES:
         if new['accent'] != v['accent']:
             r8, g8, b8 = (round(x * 255) for x in rgb(new['accent']))
             css = re.sub(r'(--accent-rgb:\s*)[\d ]+', rf'\g<1>{r8} {g8} {b8}', css, count=1)
-        f.write_text(css, encoding='utf-8')
+        f.write_text(css, encoding='utf-8', newline='\n')
         meta = f.parent / 'theme.json'
         if meta.exists():
             m = json.loads(meta.read_text(encoding='utf-8'))
             m['version'] = str(int(m.get('version', '1')) + 1)
             if 'preview' in m and new['accent'] != v['accent'] and m['preview'].get('accent', '').lower() == v['accent'].lower():
                 m['preview']['accent'] = new['accent']
-            meta.write_text(json.dumps(m, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+            meta.write_text(json.dumps(m, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
 def gloss_worst(gloss, label):
     """The lowest contrast of label over the gloss paint from 30% to 70% of the way down."""
     def point(p):
@@ -246,10 +270,10 @@ for meta in sorted(pathlib.Path('themes').glob('*/theme.json')):
         css = re.sub(r'(--accent:\s*)' + re.escape(accent), r'\g<1>' + new, css, count=1, flags=re.I)
         r8, g8, b8 = (round(x * 255) for x in rgb(new))
         css = re.sub(r'(--accent-rgb:\s*)[\d ]+', rf'\g<1>{r8} {g8} {b8}', css, count=1)
-        css_f.write_text(css, encoding='utf-8')
+        css_f.write_text(css, encoding='utf-8', newline='\n')
         if m.get('preview', {}).get('accent', '').lower() == accent.lower():
             m['preview']['accent'] = new
-            meta.write_text(json.dumps(m, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+            meta.write_text(json.dumps(m, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
         print(f'{meta}: gloss label: --accent {accent} -> {new} ({worst:.2f}:1 -> {gloss_worst(derived_gloss(new), label):.2f}:1)')
         changed += 1
         continue
@@ -338,11 +362,11 @@ for meta in sorted(pathlib.Path('themes').glob('*/theme.json')):
                 notes.append(f'--{k} {texts[k]} -> {to}: reads on the scene')
                 css = re.sub(r'(--' + re.escape(k) + r':\s*)' + re.escape(texts[k]), rf'\g<1>{to}', css, count=1)
                 texts[k] = to
-                (meta.parent / 'theme.css').write_text(css, encoding='utf-8')
+                (meta.parent / 'theme.css').write_text(css, encoding='utf-8', newline='\n')
                 moved = True
     if FIX and moved:
         m['version'] = str(int(m.get('version', '1')) + 1)
-        meta.write_text(json.dumps(m, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+        meta.write_text(json.dumps(m, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
         print(f'{meta}: scene ' + '; '.join(notes))
         changed += 1
     else:

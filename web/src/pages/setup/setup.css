@@ -192,6 +192,8 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .lp-nav { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); background: var(--lp-surface); font-size: var(--text-xs); }
 .lp.nav-side .lp-nav { flex-direction: column; align-items: flex-start; padding: var(--sp-3); }
 .lp-nav .brand { margin: 0; padding: 0; min-height: 0; font-size: var(--text-xs); }
+.lp-nav .brand-name { color: var(--lp-fg, var(--fg)); } /* the look's own colours (Look.tsx previewInk) */
+.lp-nav .brand-name b { color: var(--lp-brand, var(--brand-accent)); }
 .lp-nav i { inline-size: 24px; block-size: 6px; border-radius: var(--r-full); background: var(--fg-3); }
 .lp.nav-side .lp-nav i { inline-size: 70%; }
 .lp-nav i.on { background: var(--lp-accent); }

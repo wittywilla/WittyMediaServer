@@ -20,6 +20,9 @@ design system, so a page can't quietly drift away from the rest:
   img-alt         an image with no alt (alt="" is right for decoration)
   click-div       a click handler on a div or span, which a remote can never reach
   native-dialog   confirm(), alert() or prompt(): use ask() from web/src/ui
+  focus-ring      a focus ring (outline or a box-shadow ring on :focus) drawn in --accent: it can fall under
+                  3:1 on panels (Witty, Midnight). Use var(--focus), which every theme keeps at 4.5:1 and
+                  TV mode turns into the ten-foot ring
 
 Existing code that hasn't been moved over yet is listed, file by file, in
 scripts/design-check-baseline.json. The count may go down, never up, and a file
@@ -58,6 +61,8 @@ ZINDEX = re.compile(r'z-index:\s*(\d+)')
 # 0, 1px, 2px and 3px (hairlines and optical nudges) are fine, and so is anything in a variable, calc() or clamp().
 SPACING = re.compile(r'(?<![\w-])(?:padding|margin|gap|row-gap|column-gap|inset)(?:-(?:top|right|bottom|left|block|inline)(?:-(?:start|end))?)?:\s*([^;}]+)')
 BAR_OFFSET = re.compile(r'(?<![\w-])(?:top|bottom|padding-top|padding-bottom|margin-top|scroll-margin-top|scroll-padding-top)\s*:\s*([^;}]*\b(?:5[2-9]|6[0-9]|7[0-9]|8[0-9]|9[0-6])px[^;}]*)')
+# A ring in the accent on a focused control: outline, outline-color, or a box-shadow ring (a length right before the colour).
+FOCUS_ACCENT = re.compile(r'(?:outline(?:-color)?\s*:[^;}]*|box-shadow\s*:[^;}]*\d+px\s+)var\(--accent(?:-2)?\)')
 TSX_STYLE_COLOUR = re.compile(r'style=\{\{[^}]*(?:#[0-9a-fA-F]{3,8}\b|rgba?\(\d)')
 BUTTON = re.compile(r'<button\b((?:\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}|[^<>{])*?)>\s*(<Icon\w+[^>]*/>)\s*</button>')
 INPUT = re.compile(r'<(input|select|textarea)\b((?:\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}|[^<>{])*?)/?>')
@@ -113,6 +118,8 @@ def css_problems(text):
         for m in BAR_OFFSET.finditer(body):
             if 'var(' not in m.group(1):
                 found.append((n, 'bar-offset', m.group(1).strip()))
+        if ':focus' in body and FOCUS_ACCENT.search(body):
+            found.append((n, 'focus-ring', 'var(--accent)'))
         if re.search(r'transition:\s*all\b', body):
             found.append((n, 'transition-all', 'transition: all'))
         if re.search(r'backdrop-filter:(?!\s*none)|[^-]filter:\s*blur', body):

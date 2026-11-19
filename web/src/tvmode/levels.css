@@ -49,7 +49,7 @@
 .tvl-banner .tvl-actions { margin: 0; flex: none; }
 
 .tvl-view { border: 0; margin: 0; padding: 0; min-width: 0; display: contents; }
-.tvl-view :is(section, .set-card):focus-visible { outline: 3px solid var(--accent); outline-offset: var(--sp-1); }
+.tvl-view :is(section, .set-card):focus-visible { outline: 3px solid var(--focus); outline-offset: var(--sp-1); }
 /* Controls that can't be used here look it, so nobody reaches for them. */
 .tvl-view :is(input, select, textarea, button):disabled,
 .tvl-view :is(label, [role=switch], [role=radiogroup], .ui-switch, .segmented):has(:disabled),

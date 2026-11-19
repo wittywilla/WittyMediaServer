@@ -33,9 +33,9 @@
   --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
   /* Status */
-  --danger: #ff99a2;
-  --ok: #3ad29f;
-  --warn: #e8ae3f;
+  --danger: #ffb5bc;
+  --ok: #7fe2c0;
+  --warn: #efc576;
 
   /* Shape and depth */
   --radius: 10px;

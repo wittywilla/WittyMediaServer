@@ -6,4 +6,4 @@
 .player.inline .popover { max-height: 70%; overflow-y: auto; }
 .player.inline .ctl .time { min-width: 0; }
 .player.inline.compact .kbd-help { display: none; }
-.player.inline:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.player.inline:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }

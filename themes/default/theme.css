@@ -28,7 +28,7 @@
   --accent: #6334ff;
   --accent-2: #6a4df0;      /* hovered or pressed accent */
   --accent-fg: #ffffff;     /* text on the accent */
-  --accent-text: #9271ff;   /* the accent as text: links, highlighted words */
+  --accent-text: #9a7bff;   /* the accent as text: links, highlighted words */
   --accent-rgb: 99 52 255;
   --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 

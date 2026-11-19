@@ -143,7 +143,7 @@ html[data-card-set="plate"] .card:is(:hover, :focus-visible) > .title { backgrou
 /* Big picture: huge type, huge tiles, the strongest focus. */
 html[data-experience="bigpicture"] { font-size: 125%; /* design-ok: the look's own type scale, the same as the ten-foot rule in styles.css */ --focus-width: 4px; --focus-offset: 4px; }
 html[data-experience="bigpicture"] :is(.btn, .nav-link, .topnav-link) { min-block-size: 3.25rem; font-size: var(--text-lg); font-weight: 700; }
-html[data-experience="bigpicture"] :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--accent); }
+html[data-experience="bigpicture"] :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline-color: var(--focus); }
 html[data-card-set="tile"] .card > .title { font-size: var(--role-title-size); font-weight: 700; }
 /* Classic Satellite: brushed-silver bevelled bars with dark words and an orange highlight. */
 .app[data-nav-style="bevelBar"] .topbar { background: linear-gradient(180deg, color-mix(in srgb, var(--on-image) 90%, var(--fg-3)), color-mix(in srgb, var(--on-image) 62%, var(--fg-3))); color: var(--picture-bg); border-block-end: 1px solid var(--border-strong); }

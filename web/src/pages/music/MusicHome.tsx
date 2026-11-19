@@ -59,10 +59,14 @@ export default function MusicHome({ lib }: { lib: Library }) {
     if (tracks.length) audio.play(tracks, 0, 'music')
   }
   const lately = recentAlbums(home.recent)
+  // An album played lately is often among the newest too: it gets one tile, not two.
+  const albumKey = (a: { artist: string; title: string }) => a.artist + '|' + a.title
+  const shown = new Set(lately.map(albumKey))
+  const filler = home.hero.filter((a) => !shown.has(albumKey(a)))
   // Quick tiles: Liked songs, then what was played lately, then the newest albums to fill six.
   const quick: { key: string; to: string; name: string; art: string; play: () => Promise<void>; liked?: boolean }[] = [
     { key: 'liked', to: musicTab(lib.id, 'songs', '&view=liked'), name: t('Liked songs'), art: '', play: () => playView('liked'), liked: true },
-    ...[...lately, ...home.hero].slice(0, 5).map((a) => ({ key: a.artist + '|' + a.title, to: albumLink(lib.id, a), name: a.title || t('Unknown album'), art: a.coverItem ? sized(coverUrl(a.coverItem), fitWidth(64)) : '', play: () => playAlbum(a) })),
+    ...[...lately, ...filler].slice(0, 5).map((a) => ({ key: albumKey(a), to: albumLink(lib.id, a), name: a.title || t('Unknown album'), art: a.coverItem ? sized(coverUrl(a.coverItem), fitWidth(64)) : '', play: () => playAlbum(a) })),
   ]
   return (
     <div className="mus-page mus-home">

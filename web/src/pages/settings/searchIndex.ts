@@ -68,6 +68,8 @@ export const ENTRIES: Entry[] = [
   { page: 'transcoding', title: tk('Allow direct play'), section: tk('Playback'), words: 'maximum resolution sound format' },
   { page: 'network', title: tk('Port'), section: tk('Port'), words: 'address listen 9797 port number url settings.ini change port in use' },
   { page: 'network', title: tk('What follows the port'), section: tk('What follows the port'), words: 'firewall apps find discovery bookmarks reverse proxy' },
+  { page: 'data-folder', title: tk('Where the data is now'), section: tk('Where it is now'), words: 'data folder appdata documents database wms.db settings location storage disk size old copy delete' },
+  { page: 'data-folder', title: tk('Move the data folder'), section: tk('Move it'), words: 'move data folder documents install folder portable custom drive onedrive icloud synced storage location' },
   { page: 'remote', title: tk('Limits for viewers away from home'), section: tk('Limits for viewers away from home'), words: 'bandwidth resolution data' },
   { page: 'remote', title: tk('Sign-in protection'), section: tk('Sign-in protection'), words: 'wrong passwords lockout' },
   { page: 'remote', title: tk('Peer-to-peer connections'), section: tk('Peer-to-peer connections'), words: 'p2p away from home no port forwarding router nat hole punching relay invite paired devices upnp cgnat libp2p direct connection' },

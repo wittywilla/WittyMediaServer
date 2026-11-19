@@ -64,6 +64,21 @@ Keep the password somewhere safe: [forgetting it is hard to undo](ACCOUNTS.md#if
 
 ## 3. Name and address
 
+### Where data is kept
+
+On a computer you use (the Windows tray app, the Mac app, a Linux desktop), the first page after the account asks **where WittyMediaServer should keep its settings and data**: its database, settings, artwork, modules and logs. Your media stays where it is.
+
+![Where data is kept: Documents chosen, the install folder beside it, and Somewhere else](images/setup-03-data-folder.webp)
+*Documents is chosen to begin with. The line under the choices says how much room there is.*
+
+- **Documents** is chosen to begin with: `Documents\WittyMediaServer`, or `~/Documents/WittyMediaServer`.
+- **The install folder** keeps everything beside the program, to copy or carry as one folder. It's offered only where the server can write; Program Files and a Mac app can't, and the page says why.
+- **Somewhere else** takes a folder you type, or find with **Browse folders**.
+
+The page checks the place as you choose: free space, whether the server can write there, and whether a sync program such as OneDrive or iCloud Drive keeps it in the cloud. A synced folder gets a warning and a **Use a local folder** button: a database that's open while it's synced can be damaged. **Keep it here** moves what the server has made so far, while it restarts, and setup carries on. A server, Docker or a service whose folder is already set doesn't ask. To move it later, use **Settings → Data folder**. See [The data folder](DATA-FOLDER.md).
+
+### Name your server
+
 The name appears in every app. The editor is the same one as **Settings → Appearance → Name and logo**, and the page's corner shows your name as you change it.
 
 - **Name:** type one, or leave it empty for “WittyMediaServer”.

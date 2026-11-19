@@ -31,6 +31,11 @@ func planHomeMac(e *Env, pl *Plan, h string) {
 		return
 	}
 	support := filepath.Join(h, "Library", "Application Support", "WittyMediaServer")
+	owner := ""
+	if other {
+		owner = h
+	}
+	planPointer(e, pl, filepath.Join(support, pointerName), owner, other)
 	planConfigFile(e, pl, filepath.Join(support, "wms.json"), other)
 	planDataFolder(e, pl, support, true, other)
 	for _, rel := range []string{

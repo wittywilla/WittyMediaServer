@@ -69,6 +69,8 @@ type launcher struct {
 	// listenGiven: -listen came with the app, so it's passed on. Otherwise the server finds
 	// its port itself, in settings.ini, and Settings → Network can change it.
 	listenGiven bool
+	// dataGiven: -data came with the app, so it's passed on. Otherwise the server finds its own.
+	dataGiven bool
 	// seen is where the server this app shows answered, when that isn't listen: a background
 	// service on another port, found with discovery.AskLocal.
 	seen    string
@@ -117,6 +119,11 @@ func main() {
 	cfg, err := config.Parse(args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		// Nobody reads this app's standard error: a data folder on a drive that isn't connected
+		// is said on the screen.
+		if !desktop.Headless() {
+			_, _ = desktop.Ask("WittyMediaServer can't start", err.Error(), []string{"OK"})
+		}
 		os.Exit(2)
 	}
 	cfg, code, ok := claim(cfg, args)
@@ -126,6 +133,9 @@ func main() {
 	// After claim, a second server on a folder and port of its own was given -listen: it keeps that.
 	l.dataDir, l.listen, l.configFile, l.args = cfg.DataDir, cfg.Listen, cfg.ConfigFile, args
 	l.listenGiven = cfg.ListenFrom == config.FromFlag
+	// The data folder is the server's to find, unless it came with this app: setup or Settings
+	// can move it, and the server then finds it through the pointer they write.
+	l.dataGiven = cfg.DataFrom == config.DataFromFlag
 	if abs, err := filepath.Abs(l.dataDir); err == nil {
 		l.dataDir = abs
 	}
@@ -334,8 +344,20 @@ func (l *launcher) start() {
 		return
 	}
 	// The port may have been changed in Settings → Network or settings.ini since the last start.
-	if cfg, err := config.ParseOnly(l.args); err == nil && !l.listenGiven {
-		l.listen = cfg.Listen
+	if cfg, err := config.ParseOnly(l.args); err == nil {
+		if !l.listenGiven {
+			l.listen = cfg.Listen
+		}
+		// The data folder may have been moved since the last start.
+		if !l.dataGiven {
+			if abs, err := filepath.Abs(cfg.DataDir); err == nil && abs != l.dataDir {
+				l.dataDir, l.logPath = abs, filepath.Join(cfg.LogDir, "console.log")
+				if l.mData != nil {
+					l.mData.SetTooltip(l.dataDir)
+					l.mLog.SetTooltip(l.logPath)
+				}
+			}
+		}
 	}
 	if seen, ok := answering(l.listen, l.seen); ok {
 		l.attached, l.seen = true, seen
@@ -348,7 +370,10 @@ func (l *launcher) start() {
 		l.lastErr = err.Error()
 		return
 	}
-	args := []string{"serve", "-watch-stdin", "-data", l.dataDir}
+	args := []string{"serve", "-watch-stdin"}
+	if l.dataGiven {
+		args = append(args, "-data", l.dataDir)
+	}
 	if l.listenGiven {
 		args = append(args, "-listen", l.listen)
 	}

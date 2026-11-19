@@ -824,6 +824,9 @@
           "available": {
             "type": "boolean"
           },
+          "canCut": {
+            "type": "boolean"
+          },
           "canGenerate": {
             "type": "boolean"
           },
@@ -841,6 +844,12 @@
           },
           "loop": {
             "type": "boolean"
+          },
+          "loopEndMs": {
+            "type": "integer"
+          },
+          "loopStartMs": {
+            "type": "integer"
           },
           "mime": {
             "type": "string"
@@ -863,6 +872,7 @@
         },
         "required": [
           "available",
+          "canCut",
           "canGenerate",
           "loop"
         ],
@@ -27403,6 +27413,164 @@
           }
         ],
         "summary": "Cut a short, silent, looping canvas from a video file, as a background task. It becomes the item's uploaded canvas, with source generated.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/media/{id}/canvas/loop": {
+      "delete": {
+        "operationId": "deleteMediaCanvasLoopById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Loop the whole canvas again.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putMediaCanvasLoopById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "endMs": {
+                    "type": "integer"
+                  },
+                  "startMs": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "startMs",
+                  "endMs"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The part of the canvas players loop: {startMs, endMs}. Lasts until the canvas changes.",
+        "tags": [
+          "Media extras"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/media/{id}/canvas/source": {
+      "put": {
+        "operationId": "putMediaCanvasSourceById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "video/mp4": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            },
+            "video/webm": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "description": "The video.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Done."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A clip from this device to cut the canvas from (MP4, MOV or WebM, up to 512 MB), with startSec, durationSec and crossfade in the query. 202 {task}; the clip is deleted afterwards.",
         "tags": [
           "Media extras"
         ],

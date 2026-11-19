@@ -61,7 +61,7 @@
   --scrim: rgb(0 0 0 / .68);                                /* the plate behind them */
   --tv-ring-color: var(--fg);                               /* the focus ring across the room */
   --tv-text: var(--fg);                                     /* body text across the room: themes set it a step stronger */
-  --hero-scrim: .72;                                        /* strength of the scrim behind hero text, 0 to 1 */
+  --hero-scrim: 0.8;                                        /* strength of the scrim behind hero text, 0 to 1 */
   --picture-bg: #000;                                       /* behind video and photos: never themed */
 
   /* ---- type: one scale; sizes in rem so they follow the reader's setting ---- */
@@ -322,6 +322,9 @@ input[type=range] { accent-color: var(--accent); }
    scroll-driven animations run, the animation below does this; without them (Firefox, older Safari)
    the edge was drawn over the backdrop from the start, as a dark band under the bar. */
 .app:has(.hero, .detail-hero) .topbar:not(.under)::after { opacity: 0; }
+/* Over a billboard or a title's header the bar's fade lets the picture through a little: its secondary words (links not
+   chosen) come most of the way to the main text colour, to stay at 4.5:1 over a black or white picture. */
+.app:has(.hero, .detail-hero) .topbar { --fg-2: color-mix(in srgb, var(--fg-2) 40%, var(--fg)); }
 .search { flex: 1; max-width: 520px; position: relative; }
 .search input {
   width: 100%; height: var(--control-h); background: var(--bg-3); border: 1px solid transparent; border-radius: var(--r-full); padding: 0 var(--sp-4) 0 var(--sp-10); outline: none; color: var(--fg); font-size: var(--text-md);
@@ -432,10 +435,21 @@ input[type=range] { accent-color: var(--accent); }
 .hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; transition: opacity var(--dur-4) var(--ease-standard); }
 /* The bottom fades into the page colour along an eased curve (no bend that reads as a line), the same across the whole width. */
 .hero .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(var(--bg-rgb) / .94) 0%, rgb(var(--bg-rgb) / .78) 40%, rgb(var(--bg-rgb) / 0) 82%), linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .9) 7%, rgb(var(--bg-rgb) / .68) 17%, rgb(var(--bg-rgb) / .42) 28%, rgb(var(--bg-rgb) / .2) 40%, rgb(var(--bg-rgb) / .06) 52%, rgb(var(--bg-rgb) / 0) 62%); }
-.hero .info { position: absolute; left: var(--gutter); bottom: var(--sp-10); width: min(620px, calc(100% - 2 * var(--gutter))); }
+.hero .info { position: absolute; left: var(--gutter); bottom: var(--sp-10); width: min(620px, calc(100% - 2 * var(--gutter))); isolation: isolate; }
+/* Words over a picture read over any picture: behind them, a scrim in the theme's own page colour, as solid as the
+   theme's --hero-scrim (scripts/theme-contrast.py checks its text reads over a white and a black picture under it).
+   A light theme gets a light scrim under dark words, a dark theme a dark one under light words. It belongs to the words,
+   not the picture, so a fade or mask on the picture and its shade (a scene's soft bottom edge) never thins it. Its own
+   edges fade out (gradients and a mask, painted once): no box, no blur. */
+.hero .info::before { content: ''; position: absolute; z-index: -1; inset: calc(-1 * var(--sp-16)) calc(-1 * var(--hero-scrim-fade)) calc(-1 * var(--sp-16)) calc(-1 * var(--gutter)); pointer-events: none;
+  background: linear-gradient(90deg, rgb(var(--bg-rgb) / var(--hero-scrim)) calc(100% - var(--hero-scrim-fade)), rgb(var(--bg-rgb) / 0));
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 var(--sp-12)); mask-image: linear-gradient(180deg, transparent, #000 var(--sp-12)); } /* design-ok: a mask takes only alpha; black is fully shown, not a colour */
+.hero { --hero-scrim-fade: clamp(96px, 14vw, 220px); }
+.hero.bare .info::before { content: none; }
 .hero h1 { font-size: var(--display); margin: 0 0 var(--sp-3); letter-spacing: var(--tracking-display); }
+.hero :is(h1, .meta, p) { text-shadow: 0 1px 2px rgb(var(--bg-rgb) / .5); }
 .hero .meta { margin-bottom: var(--sp-3); }
-.hero p { color: var(--fg); opacity: .86; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0 0 var(--sp-5); max-width: 58ch; }
+.hero p { color: var(--fg); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0 0 var(--sp-5); max-width: 58ch; }
 .hero .actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .hero .dots { position: absolute; right: var(--gutter); bottom: var(--sp-10); display: flex; align-items: center; gap: 2px; }
 /* The dots look small, but the button around each is a proper target (WCAG 2.5.8). */
@@ -590,12 +604,13 @@ textarea.input { padding: 10px var(--sp-3); line-height: var(--leading-body); re
 /* ---------------------------------------------------------------- detail */
 .detail-hero { position: relative; margin: calc(-1 * var(--page-top)) calc(-1 * var(--gutter)) 0; height: 50vh; min-height: 320px; max-height: 560px; overflow: hidden; }
 .detail-hero .bg { position: absolute; inset: 0; background-size: cover; background-position: center 25%; }
-.detail-hero .shade { position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .9) 24%, rgb(var(--bg-rgb) / .5) 62%, rgb(var(--bg-rgb) / .2) 100%); }
+/* The title's words overlap the bottom of the header: there the shade is at least the theme's --hero-scrim, so they read over any picture. */
+.detail-hero .shade { position: absolute; inset: 0; background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / max(.9, var(--hero-scrim))) 24%, rgb(var(--bg-rgb) / var(--hero-scrim)) 42%, rgb(var(--bg-rgb) / .5) 68%, rgb(var(--bg-rgb) / .2) 100%); }
 .detail { display: grid; grid-template-columns: clamp(170px, 17vw, 248px) minmax(0, 1fr); gap: clamp(var(--sp-5), 3vw, var(--sp-10)); margin-top: calc(-1 * clamp(120px, 16vh, 190px)); position: relative; z-index: 2; }
 .detail .poster { position: relative; width: 100%; aspect-ratio: 2/3; border-radius: var(--r-lg); overflow: hidden; background: var(--bg-3); box-shadow: var(--e-3); }
 .detail .poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .detail > :last-child { min-width: 0; }
-.detail h1 { font-size: clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem); margin: 0 0 var(--sp-2); letter-spacing: var(--tracking-display); overflow-wrap: anywhere; text-shadow: 0 2px 12px rgba(0,0,0,.45); }
+.detail h1 { font-size: clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem); margin: 0 0 var(--sp-2); letter-spacing: var(--tracking-display); overflow-wrap: anywhere; text-shadow: 0 1px 2px rgb(var(--bg-rgb) / .5); }
 .detail .tagline { color: var(--fg-2); font-style: italic; font-size: var(--text-lg); margin-bottom: var(--sp-2); }
 .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin-bottom: var(--sp-2); font-size: var(--text-sm); font-weight: 600; color: var(--fg-2); }
 .crumbs a { color: var(--fg-2); text-decoration: underline transparent; text-underline-offset: 3px; transition: color var(--dur-2), text-decoration-color var(--dur-2); }
@@ -637,7 +652,7 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
   .detail .admin-tools { flex: 1 1 100%; }
   /* The backdrop fades into the page: the picture itself goes, so there's no line where it ends. */
   .detail-hero .bg { -webkit-mask-image: linear-gradient(#000 40%, transparent); mask-image: linear-gradient(#000 40%, transparent); } /* design-ok: a mask only reads how solid it is */
-  .detail-hero .shade { background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / .7) 30%, rgb(var(--bg-rgb) / .35) 65%, rgb(var(--bg-rgb) / .15) 100%); }
+  .detail-hero .shade { background: linear-gradient(0deg, var(--bg) 0%, rgb(var(--bg-rgb) / var(--hero-scrim)) 30%, rgb(var(--bg-rgb) / .35) 65%, rgb(var(--bg-rgb) / .15) 100%); }
   /* One row: the main action, Save, and "⋯" for the rest. */
   .detail .item-actions { flex-wrap: nowrap; }
   .detail .item-actions.disc-actions { flex-wrap: wrap; }

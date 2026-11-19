@@ -3,7 +3,7 @@
   "name": "Aero Day",
   "description": "Sky blue glass: gloss, gradients and a leaf-green hill.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "4",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -20,7 +20,7 @@
         "stops": [
           {
             "at": 0,
-            "color": "#6fcfff"
+            "color": "#8dd9ff"
           },
           {
             "at": 48,
@@ -90,11 +90,11 @@
         "stops": [
           {
             "at": 0,
-            "color": "#8fdc7a"
+            "color": "#9be286"
           },
           {
             "at": 100,
-            "color": "#3aa84a"
+            "color": "#90e2a0"
           }
         ]
       }
@@ -121,13 +121,13 @@
     "bg3": "#e7f6ff",
     "bg4": "#d1e3ee",
     "fg": "#0b3a5a",
-    "fg2": "#2f6a8c",
-    "fg3": "#436e86",
+    "fg2": "#2a5e7d",
+    "fg3": "#395d72",
     "accent": "#166fa1",
     "accentHover": "#1a88c5",
     "accentFg": "#ffffff",
-    "accentText": "#0a6aa8",
-    "brandAccent": "#0a6aa8",
+    "accentText": "#095c92",
+    "brandAccent": "#095c92",
     "danger": "#b8222f",
     "ok": "#116b45",
     "warn": "#8a5300",
@@ -141,7 +141,7 @@
     "okSoft": "#116b4521",
     "warnSoft": "#8a530021",
     "dangerSoft": "#b8222f1c",
-    "focus": "#0a6aa8",
+    "focus": "#095c92",
     "onImage": "#ffffff",
     "scrim": "#000000ad",
     "overlay": "#14182073"
@@ -204,7 +204,7 @@
   },
   "tv": {
     "ringColor": "#0b3a5a",
-    "heroScrim": 0.78,
+    "heroScrim": 0.9,
     "tvText": "#0a3451"
   }
 }

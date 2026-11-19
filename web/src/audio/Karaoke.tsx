@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Segmented } from '../ui/Choice'
 import { HelpLink } from '../components/HelpLink'
 import { IconClose, IconFull, IconNext, IconPause, IconPlay, IconPrev } from '../icons'
+import { IconSliders } from './icons'
+import { useMedia } from '../shell/useNav'
+import { UseAComputer, advancedHere } from '../ui/advanced'
 import { lineAt, ownTiming, useLineIndex, wordTimes, type LyricLine, type useLyrics } from './lyrics'
 import { KaraokeStemsControl, useKaraokeStems } from './KaraokeStems'
 import { Pop } from './controls'
@@ -28,7 +31,7 @@ const NO_HIDE: string[] = []
 // cover: the album's cover, '' for none. coverBeside: the setting that shows it at the side of the words (beside them on
 // a wide screen and a TV, above them on a phone held upright), kept with the music player's other settings. hide: the parts of the bar (KAR_PARTS) the
 // person has hidden, kept there too.
-export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', coverBeside = false, onCoverBeside, hide = NO_HIDE, onHide }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode; cover?: string; coverBeside?: boolean; onCoverBeside?: (on: boolean) => void; hide?: string[]; onHide?: (hide: string[]) => void }) {
+export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', coverArt, coverBeside = false, onCoverBeside, hide = NO_HIDE, onHide }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; behind?: ReactNode; choice?: ReactNode; cover?: string; coverArt?: ReactNode; coverBeside?: boolean; onCoverBeside?: (on: boolean) => void; hide?: string[]; onHide?: (hide: string[]) => void }) {
   const { lyrics, loading, setOffset } = ly
   const lines = lyrics?.synced ? lyrics.lines : NO_LINES
   const offset = lyrics?.offsetMs || 0
@@ -89,6 +92,13 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
     else void root.current?.requestFullscreen?.({ navigationUI: 'hide' }).catch(() => {})
   }
 
+  // A phone: the words have the screen. The mix, key, timing and what's behind the words are in a sheet ("Mix and
+  // more"), opened at the thumb beside play, instead of a page that scrolls the words away to reach them.
+  const phone = useMedia('(max-width: 700px)')
+  const [sheet, setSheet] = useState(false)
+  const [walled, setWalled] = useState(false) // Voice settings asked for on a phone or TV (ui/advanced.tsx)
+  useEffect(() => { if (!phone) setSheet(false) }, [phone])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return
@@ -98,6 +108,7 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
       switch (e.key) {
         case 'Escape': case 'GoBack': case 'BrowserBack':
           consume()
+          if (sheet) { setSheet(false); root.current?.querySelector<HTMLElement>('.kar-sheet-btn')?.focus({ preventScroll: true }); return }
           if (fxOpen) { setFxOpen(false); root.current?.querySelector<HTMLElement>('.kar-fx-btn')?.focus({ preventScroll: true }); return }
           if (document.fullscreenElement === root.current) void document.exitFullscreen().catch(() => {})
           onClose()
@@ -126,25 +137,56 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
 
   const it = p.current!
   const firstAt = lines[0]?.t ?? 0
+  const wordsChoice = <Segmented label={t('Words')} value={lines.length ? mode : 'read'} onChange={setMode} options={[{ value: 'follow', label: t('Follow along'), disabled: !lines.length }, { value: 'read', label: t('Read') }]} />
+  const behindChoice = (choice || (cover && onCoverBeside)) ? (
+    <div className="kar-choice">
+      {choice && <><span className="kar-choice-l">{t('Behind the words')}</span>{choice}</>}
+      {cover && onCoverBeside && <button type="button" className={'kar-chip kar-cover-chip' + (coverBeside ? ' on' : '')} aria-pressed={coverBeside} onClick={() => onCoverBeside(!coverBeside)}>{t('Album art beside the words')}</button>}
+    </div>
+  ) : null
+  const tools = (
+    <>
+      <KaraokeStemsControl k={stems} hide={hide} />
+      {!hide.includes('key') && <div className="kar-stepper" role="group" aria-label={t('Musical key')}>
+        <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label={t('Lower key')}>−</button>
+        <span aria-live="polite">{t('Key {n}', { n: (p.sound.keyShift > 0 ? '+' : '') + p.sound.keyShift })}</span>
+        <button type="button" onClick={() => setKey(p.sound.keyShift + 1)} disabled={p.sound.keyShift >= 6} aria-label={t('Raise key')}>+</button>
+      </div>}
+      {!hide.includes('timing') && <div className="kar-stepper" role="group" aria-label={t('Timing of the words')}>
+        <button type="button" onClick={() => setOffset(offset - 100)} aria-label={t('Words sooner')}>−</button>
+        <span aria-live="polite">{offset === 0 ? t('Words on time') : t('Words {n} s', { n: (offset > 0 ? '+' : '') + num(offset / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' ' + t('(by listening)') : ''}</span>
+        <button type="button" onClick={() => setOffset(offset + 100)} aria-label={t('Words later')}>+</button>
+      </div>}
+      {!hide.includes('fx') && <button type="button" className={'kar-chip kar-fx-btn' + (fxOpen || !isOff(stems.fx) ? ' on' : '')} aria-expanded={fxOpen} onClick={() => { setSheet(false); if (advancedHere()) setFxOpen(!fxOpen); else setWalled(true) }} title={t('Echo, reverb, tone and more, for the voice and the music')}>{t('Voice settings')}</button>}
+      {onHide && (
+        <Pop up label={hide.length ? t('Controls shown: {shown} of {total}', { shown: KAR_PARTS.length - hide.length, total: KAR_PARTS.length }) : t('Choose the controls shown')} className={'np-chip-pop kar-show' + (hide.length ? ' on' : '')} icon={<span>{t('Controls')}</span>}>
+          {() => (
+            <div className="mp-menu" role="menu" aria-label={t('Controls shown')}>
+              <span className="mp-menu-note">{t('Show these controls')}</span>
+              {KAR_PARTS.map((c) => {
+                const shown = !hide.includes(c.id)
+                return <button type="button" key={c.id} role="menuitemcheckbox" aria-checked={shown} className={shown ? 'on' : ''} onClick={() => onHide(shown ? [...hide, c.id] : hide.filter((h) => h !== c.id))}>{tx(c.label)}</button>
+              })}
+            </div>
+          )}
+        </Pop>
+      )}
+    </>
+  )
   return (
     <div className="kar" ref={root} tabIndex={-1} role="dialog" aria-modal="true" aria-label={t('Karaoke: {title}', { title: it.title })} onClickCapture={(e) => { if (e.detail > 0) requestAnimationFrame(() => root.current?.focus({ preventScroll: true })) }}>
       <div className="kar-bg" aria-hidden="true" />
       {behind}
       <header className="kar-top">
         <div className="kar-song"><b>{it.title}</b><span>{it.artist || it.albumArtist}</span></div>
-        <Segmented label={t('Words')} value={lines.length ? mode : 'read'} onChange={setMode} options={[{ value: 'follow', label: t('Follow along'), disabled: !lines.length }, { value: 'read', label: t('Read') }]} />
-        <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label={t('Fill the screen (F)')} title={t('Fill the screen (F)')}><IconFull /></button>
+        {!phone && wordsChoice}
+        {!phone && <button type="button" className="mp-ibtn" onClick={fullscreen} aria-label={t('Fill the screen (F)')} title={t('Fill the screen (F)')}><IconFull /></button>}
         <button type="button" className="mp-ibtn" onClick={onClose} aria-label={t('Leave karaoke (Esc)')} title={t('Leave karaoke (Esc)')}><IconClose /></button>
       </header>
-      {(choice || (cover && onCoverBeside)) && (
-        <div className="kar-choice">
-          {choice && <><span className="kar-choice-l">{t('Behind the words')}</span>{choice}</>}
-          {cover && onCoverBeside && <button type="button" className={'kar-chip kar-cover-chip' + (coverBeside ? ' on' : '')} aria-pressed={coverBeside} onClick={() => onCoverBeside(!coverBeside)}>{t('Album art beside the words')}</button>}
-        </div>
-      )}
+      {!phone && behindChoice}
 
       <main className={'kar-stage' + (sideCover ? ' with-cover' : '')}>
-        {sideCover && <img className="kar-cover" src={sideCover} alt="" draggable={false} decoding="async" />}
+        {sideCover && (coverArt ? <div className="kar-cover kar-cover-art" aria-hidden="true">{coverArt}</div> : <img className="kar-cover" src={sideCover} alt="" draggable={false} decoding="async" />)}
         <div className="kar-lyrics">
         {mode === 'read' && readWords ? <pre className="kar-read" tabIndex={0}>{readWords}</pre>
           : !lyrics || loading ? <p className="kar-msg">{t('Looking for the words…')}</p>
@@ -174,33 +216,25 @@ export default function Karaoke({ p, ly, onClose, behind, choice, cover = '', co
         <button type="button" className="mp-ibtn" onClick={() => goLine(-1)} aria-label={t('Previous line')}><IconPrev /></button>
         <button type="button" className="kar-play" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause size={30} /> : <IconPlay size={30} />}</button>
         <button type="button" className="mp-ibtn" onClick={() => goLine(1)} aria-label={t('Next line')}><IconNext /></button>
-        <span className="kar-rule" aria-hidden="true" />
-        <KaraokeStemsControl k={stems} hide={hide} />
-        {!hide.includes('key') && <div className="kar-stepper" role="group" aria-label={t('Musical key')}>
-          <button type="button" onClick={() => setKey(p.sound.keyShift - 1)} disabled={p.sound.keyShift <= -6} aria-label={t('Lower key')}>−</button>
-          <span aria-live="polite">{t('Key {n}', { n: (p.sound.keyShift > 0 ? '+' : '') + p.sound.keyShift })}</span>
-          <button type="button" onClick={() => setKey(p.sound.keyShift + 1)} disabled={p.sound.keyShift >= 6} aria-label={t('Raise key')}>+</button>
-        </div>}
-        {!hide.includes('timing') && <div className="kar-stepper" role="group" aria-label={t('Timing of the words')}>
-          <button type="button" onClick={() => setOffset(offset - 100)} aria-label={t('Words sooner')}>−</button>
-          <span aria-live="polite">{offset === 0 ? t('Words on time') : t('Words {n} s', { n: (offset > 0 ? '+' : '') + num(offset / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ' ' + t('(by listening)') : ''}</span>
-          <button type="button" onClick={() => setOffset(offset + 100)} aria-label={t('Words later')}>+</button>
-        </div>}
-        {!hide.includes('fx') && <button type="button" className={'kar-chip kar-fx-btn' + (fxOpen || !isOff(stems.fx) ? ' on' : '')} aria-expanded={fxOpen} onClick={() => setFxOpen(!fxOpen)} title={t('Echo, reverb, tone and more, for the voice and the music')}>{t('Voice settings')}</button>}
-        {onHide && (
-          <Pop up label={hide.length ? t('Controls shown: {shown} of {total}', { shown: KAR_PARTS.length - hide.length, total: KAR_PARTS.length }) : t('Choose the controls shown')} className={'np-chip-pop kar-show' + (hide.length ? ' on' : '')} icon={<span>{t('Controls')}</span>}>
-            {() => (
-              <div className="mp-menu" role="menu" aria-label={t('Controls shown')}>
-                <span className="mp-menu-note">{t('Show these controls')}</span>
-                {KAR_PARTS.map((c) => {
-                  const shown = !hide.includes(c.id)
-                  return <button type="button" key={c.id} role="menuitemcheckbox" aria-checked={shown} className={shown ? 'on' : ''} onClick={() => onHide(shown ? [...hide, c.id] : hide.filter((h) => h !== c.id))}>{tx(c.label)}</button>
-                })}
-              </div>
-            )}
-          </Pop>
-        )}
+        {phone
+          ? <button type="button" className="kar-chip kar-sheet-btn" aria-haspopup="dialog" aria-expanded={sheet} onClick={() => setSheet(true)}><IconSliders size={20} /> {t('Mix and more')}</button>
+          : <><span className="kar-rule" aria-hidden="true" />{tools}</>}
       </footer>
+      {walled && <UseAComputer what="Voice settings" onClose={() => setWalled(false)} />}
+      {phone && sheet && (
+        <div className="kar-sheet-backdrop" onClick={() => setSheet(false)}>
+          <div className="kar-sheet" role="dialog" aria-modal="true" aria-label={t('Mix and more')} onClick={(e) => e.stopPropagation()}>
+            <div className="kar-sheet-head">
+              <h3>{t('Mix and more')}</h3>
+              <button type="button" className="mp-ibtn" onClick={() => setSheet(false)} aria-label={t('Close')}><IconClose /></button>
+            </div>
+            <div className="kar-sheet-tools">{tools}</div>
+            <div className="kar-sheet-row"><span className="kar-choice-l">{t('Words')}</span>{wordsChoice}</div>
+            {behindChoice}
+            <button type="button" className="kar-chip" onClick={() => { setSheet(false); fullscreen() }}><IconFull size={18} /> {t('Fill the screen')}</button>
+          </div>
+        </div>
+      )}
       {fxOpen && <VoiceFxPanel fx={stems.fx} onFx={stems.setFx} ready={stems.active} quick={stems.answer?.mix === 'blend'} onClose={() => { setFxOpen(false); root.current?.querySelector<HTMLElement>('.kar-fx-btn')?.focus({ preventScroll: true }) }} />}
       <p className="kar-note">
         {p.soundNote || (stems.waiting ? '' : stems.note) || (p.sound.keyShift !== 0 ? t('A changed key can warble a little on long notes.')

@@ -223,7 +223,7 @@ export default function SettingsPage() {
         )}
         {slug !== 'about' && <UpdateBanner />}
         {moduleTab?.launch ? <Navigate to={moduleTab.launch} replace /> : moduleTab ? <ModuleSettingsView tab={moduleTab} /> : <Routes>
-          {/* On a television the menu is the page: its first choice may be one a computer changes (docs/TV-MODE.md). */}
+          {/* On a television the menu is the page: its first choice may be one a computer changes (TV mode's guide). */}
           <Route index element={narrow || tvMode ? null : <Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
           <Route path="libraries" element={<Libraries />} />
           <Route path="pages/*" element={<Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><PagesSettings /></Suspense>} />

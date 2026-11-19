@@ -1163,5 +1163,15 @@
   "Up to 500.": "最大500。",
   "No series": "シリーズなし",
   "No author": "著者なし",
-  "Under a minute": "1分未満"
+  "Under a minute": "1分未満",
+  "Type the folder's full path, such as {example}.": "フォルダーのフルパスを入力してください（例：{example}）。",
+  "That folder can't be read: {reason}": "そのフォルダーを読み取れません：{reason}",
+  "The server can't write there: {reason}": "サーバーはそこに書き込めません：{reason}",
+  "The server can't write there: its account isn't allowed to.": "サーバーはそこに書き込めません：サーバーのアカウントに権限がありません。",
+  "The server can't write there: that drive or folder isn't there.": "サーバーはそこに書き込めません：そのドライブまたはフォルダーが存在しません。",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "そこには空き容量が足りません：データには約 {need} 必要ですが、空きは {free} です。",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "{folder} に空き容量が足りません：データには {need} 必要ですが、空きは {free} です",
+  "the copy didn't match, so nothing was changed: {reason}": "コピーが一致しなかったため、何も変更していません：{reason}",
+  "the choice couldn't be saved: {reason}": "選択を保存できませんでした：{reason}",
+  "the new place couldn't be saved in {file}: {reason}": "新しい場所を {file} に保存できませんでした：{reason}"
 }

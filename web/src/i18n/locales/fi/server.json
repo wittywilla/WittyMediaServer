@@ -1163,5 +1163,15 @@
   "Up to 500.": "Enintään 500.",
   "No series": "Ei sarjaa",
   "No author": "Ei kirjailijaa",
-  "Under a minute": "Alle minuutti"
+  "Under a minute": "Alle minuutti",
+  "Type the folder's full path, such as {example}.": "Kirjoita kansion koko polku, esimerkiksi {example}.",
+  "That folder can't be read: {reason}": "Kansiota ei voi lukea: {reason}",
+  "The server can't write there: {reason}": "Palvelin ei voi kirjoittaa sinne: {reason}",
+  "The server can't write there: its account isn't allowed to.": "Palvelin ei voi kirjoittaa sinne: sen tilillä ei ole lupaa.",
+  "The server can't write there: that drive or folder isn't there.": "Palvelin ei voi kirjoittaa sinne: asemaa tai kansiota ei ole.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Siellä ei ole tilaa: tietosi tarvitsevat noin {need}, ja vapaana on {free}.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "kohteessa {folder} ei ole tilaa: tiedot tarvitsevat {need}, ja vapaana on {free}",
+  "the copy didn't match, so nothing was changed: {reason}": "kopio ei vastannut alkuperäistä, joten mitään ei muutettu: {reason}",
+  "the choice couldn't be saved: {reason}": "valintaa ei voitu tallentaa: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "uutta sijaintia ei voitu tallentaa tiedostoon {file}: {reason}"
 }

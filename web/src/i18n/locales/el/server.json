@@ -1163,5 +1163,15 @@
   "Up to 500.": "Έως 500.",
   "No series": "Χωρίς σειρά",
   "No author": "Χωρίς συγγραφέα",
-  "Under a minute": "Λιγότερο από ένα λεπτό"
+  "Under a minute": "Λιγότερο από ένα λεπτό",
+  "Type the folder's full path, such as {example}.": "Πληκτρολογήστε την πλήρη διαδρομή του φακέλου, όπως {example}.",
+  "That folder can't be read: {reason}": "Αυτός ο φάκελος δεν μπορεί να διαβαστεί: {reason}",
+  "The server can't write there: {reason}": "Ο διακομιστής δεν μπορεί να γράψει εκεί: {reason}",
+  "The server can't write there: its account isn't allowed to.": "Ο διακομιστής δεν μπορεί να γράψει εκεί: ο λογαριασμός του δεν έχει άδεια.",
+  "The server can't write there: that drive or folder isn't there.": "Ο διακομιστής δεν μπορεί να γράψει εκεί: αυτός ο δίσκος ή φάκελος δεν υπάρχει.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Δεν υπάρχει χώρος εκεί: τα δεδομένα σας χρειάζονται περίπου {need} και είναι ελεύθερα {free}.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "δεν υπάρχει χώρος στο {folder}: τα δεδομένα χρειάζονται {need} και είναι ελεύθερα {free}",
+  "the copy didn't match, so nothing was changed: {reason}": "το αντίγραφο δεν ταίριαξε, οπότε δεν άλλαξε τίποτα: {reason}",
+  "the choice couldn't be saved: {reason}": "η επιλογή δεν αποθηκεύτηκε: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "η νέα θέση δεν αποθηκεύτηκε στο {file}: {reason}"
 }

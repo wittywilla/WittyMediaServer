@@ -1163,5 +1163,15 @@
   "Up to 500.": "最多 500。",
   "No series": "无系列",
   "No author": "无作者",
-  "Under a minute": "不到一分钟"
+  "Under a minute": "不到一分钟",
+  "Type the folder's full path, such as {example}.": "请输入文件夹的完整路径，例如 {example}。",
+  "That folder can't be read: {reason}": "无法读取该文件夹：{reason}",
+  "The server can't write there: {reason}": "服务器无法写入该位置：{reason}",
+  "The server can't write there: its account isn't allowed to.": "服务器无法写入该位置：它的账户没有权限。",
+  "The server can't write there: that drive or folder isn't there.": "服务器无法写入该位置：该驱动器或文件夹不存在。",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "该位置空间不足：你的数据大约需要 {need}，而可用空间为 {free}。",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "{folder} 中空间不足：数据需要 {need}，而可用空间为 {free}",
+  "the copy didn't match, so nothing was changed: {reason}": "副本不一致，因此没有做任何更改：{reason}",
+  "the choice couldn't be saved: {reason}": "无法保存所做的选择：{reason}",
+  "the new place couldn't be saved in {file}: {reason}": "无法将新位置保存到 {file} 中：{reason}"
 }

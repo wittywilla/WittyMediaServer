@@ -1163,5 +1163,15 @@
   "Up to 500.": "Até 500.",
   "No series": "Sem série",
   "No author": "Sem autor",
-  "Under a minute": "Menos de um minuto"
+  "Under a minute": "Menos de um minuto",
+  "Type the folder's full path, such as {example}.": "Digite o caminho completo da pasta, como {example}.",
+  "That folder can't be read: {reason}": "Não é possível ler essa pasta: {reason}",
+  "The server can't write there: {reason}": "O servidor não consegue gravar aí: {reason}",
+  "The server can't write there: its account isn't allowed to.": "O servidor não consegue gravar aí: a conta dele não tem permissão.",
+  "The server can't write there: that drive or folder isn't there.": "O servidor não consegue gravar aí: essa unidade ou pasta não existe.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Não há espaço aí: seus dados precisam de cerca de {need}, e há {free} livres.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "não há espaço em {folder}: os dados precisam de {need}, e há {free} livres",
+  "the copy didn't match, so nothing was changed: {reason}": "a cópia não confere, então nada foi alterado: {reason}",
+  "the choice couldn't be saved: {reason}": "não foi possível salvar a escolha: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "não foi possível salvar o novo local em {file}: {reason}"
 }

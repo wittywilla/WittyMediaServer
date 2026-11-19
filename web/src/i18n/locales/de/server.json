@@ -1163,5 +1163,15 @@
   "Up to 500.": "Bis zu 500.",
   "No series": "Keine Reihe",
   "No author": "Kein Autor",
-  "Under a minute": "Unter einer Minute"
+  "Under a minute": "Unter einer Minute",
+  "Type the folder's full path, such as {example}.": "Gib den vollständigen Pfad des Ordners ein, etwa {example}.",
+  "That folder can't be read: {reason}": "Dieser Ordner kann nicht gelesen werden: {reason}",
+  "The server can't write there: {reason}": "Der Server kann dort nicht schreiben: {reason}",
+  "The server can't write there: its account isn't allowed to.": "Der Server kann dort nicht schreiben: Sein Konto darf das nicht.",
+  "The server can't write there: that drive or folder isn't there.": "Der Server kann dort nicht schreiben: Dieses Laufwerk oder dieser Ordner existiert nicht.",
+  "There isn't room there: your data needs about {need}, and {free} is free.": "Dort ist nicht genug Platz: Deine Daten brauchen etwa {need}, und {free} sind frei.",
+  "there isn't room in {folder}: the data needs {need}, and {free} is free": "in {folder} ist nicht genug Platz: Die Daten brauchen {need}, und {free} sind frei",
+  "the copy didn't match, so nothing was changed: {reason}": "die Kopie stimmte nicht überein, daher wurde nichts geändert: {reason}",
+  "the choice couldn't be saved: {reason}": "die Wahl konnte nicht gespeichert werden: {reason}",
+  "the new place couldn't be saved in {file}: {reason}": "der neue Ort konnte nicht in {file} gespeichert werden: {reason}"
 }

@@ -19,11 +19,12 @@ const files = import.meta.glob([
   '!../../../docs/PUBLISHING.md',
   '!../../../docs/REPOSITORIES.md',
   '!../../../docs/ROADMAP.md',
+  '!../../../docs/SETUP-FLOW.md',
   '!../../../docs/WITTYRETROARCH.md',
 ], { query: '?raw', import: 'default' }) as Record<string, () => Promise<string>>
 
 // For the people working on the project, and no use to anyone running it.
-export const notInHelp = ['BRAND', 'FFMPEG-BENCHMARK', 'LEGAL-NOTICES-CHECKLIST', 'MACOS', 'PERFORMANCE', 'PUBLISHING', 'REPOSITORIES', 'ROADMAP', 'WITTYRETROARCH']
+export const notInHelp = ['BRAND', 'FFMPEG-BENCHMARK', 'LEGAL-NOTICES-CHECKLIST', 'MACOS', 'PERFORMANCE', 'PUBLISHING', 'REPOSITORIES', 'ROADMAP', 'SETUP-FLOW', 'WITTYRETROARCH']
 
 export type Guide = { file: string; title: string; about: string }
 // Titles and descriptions are marked with tk(): shown with tx(). The guides themselves are in English.

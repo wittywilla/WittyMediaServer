@@ -127,7 +127,23 @@ In the player, **Mark start** and **Mark end** set the picked part (or start a n
 
 On a show, **⋯ → Skip defaults for every episode** edits `show.wittyinfo`, or a season's file with **For**.
 
-**Saving** writes the `.wittyinfo` beside the video when **Settings → Metadata → Save information and artwork next to your media** and **Write scenes and skips next to your media** are both on. Otherwise the server keeps it, and **Export** downloads it to put there by hand; the server's copy wins over a file beside the video until you **Remove** it. A file made for another cut of the video (its length is off by more than a few seconds) isn't used: the editor says so and offers **Use it anyway**.
+**Saving** writes the `.wittyinfo` beside the video when **Settings → Metadata → Save information and artwork next to your media** and **Write .wittyinfo and .wittyaudio files next to your media** are both on. Otherwise the server keeps it, and **Export** downloads it to put there by hand; the server's copy wins over a file beside the video until you **Remove** it. A file made for another cut of the video (its length is off by more than a few seconds) isn't used: the editor says so and offers **Use it anyway**.
+
+**Languages** says which language the file is written in and adds translations: each part's and scene's name, the title, overview and the words of a song. Everyone sees the language closest to their own, and the file's own words where nothing is translated. Any language code works, such as `de-AT` or `yue`.
+
+Editing is for a desktop: the web app in a browser on a computer, or the desktop app. In TV mode and the TV apps the entries say **(desktop only)** and explain where to go, because a remote can't place a time to the frame. What you make on a computer plays the same on the TV.
+
+### Songs and albums
+
+A song's **⋯ → Lyrics and details** and an album's **⋯ → Album details and cover** edit its `.wittyaudio` ([the format](formats/wittyaudio.md)), for administrators:
+
+- **Lyrics**: the words line by line. Play the song at the top and press **Line starts now** as each line begins, or type the times; **Paste words to time them** fills the lines from plain text.
+- **Music**: artists, album, track and disc, composers, label, ISRC, tempo and key, moods, and loudness: a gain, where to start and stop playing, and a fade at the end.
+- **Pictures**, **Languages** and **File** work as they do for a film. An album's file holds what every song on it shares; a song's own file wins over it. The song files themselves are never changed.
+
+### Converting a whole library
+
+**Settings → Metadata → Convert a library** (and first-time setup's **Details and artwork** step) gathers the NFO files, posters, skip files, subtitles and `.lrc` lyrics already beside your media into `.wittyinfo` and `.wittyaudio` files, or writes every one back out as those usual files. With WittyPlay installed, game lists, box art and screenshots go into `.wittyplay` files the same way. Each kind has its own progress bar; it waits for any scan to finish first and carries on in **Tasks** if you leave. **Rename the old files with .bak on the end** keeps them out of the way without deleting anything.
 
 ## Bonus features, versions and moving
 

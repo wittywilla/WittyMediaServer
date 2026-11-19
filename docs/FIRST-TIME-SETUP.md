@@ -173,6 +173,10 @@ Names taken from your files and folders are sent to these services to look thing
 
 See [Where details come from](METADATA.md).
 
+### What your libraries already have
+
+Below those, setup looks at what is already beside your media: NFO files, posters and skip files for films and TV, `.lrc` lyrics, covers and `album.nfo` for music, and game lists and box art for games. WittyMediaServer keeps what people add by hand in a file of its own beside each title (`.wittyinfo` for films and TV, `.wittyaudio` for music, `.wittyplay` for games), and each kind can be gathered into those, written back out from them, or left as it is. Press **Convert now**: each kind shows its own progress bar, and **Continue** waits until it is done. Any of it can be turned back into the usual files later, in **Settings → Metadata → Convert a library**.
+
 ### Logos
 
 ![What logos are, where they come from and who owns them, with a button for yes and a button for no](images/setup-14-logos.webp)

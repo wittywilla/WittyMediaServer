@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../../api'
 import { t, tk } from '../../i18n'
 import { useModulePages } from '../../moduleBundles'
+import { useModuleWeb } from '../../moduleRegistry'
 import { toast } from '../../state'
 import { AUTO_THEME, currentThemeId, deviceTheme, loadThemeOverrides, type ThemeMeta } from '../../theme'
 import { normalizedColours, overlay, type Colours } from '../../themeColours'
@@ -71,18 +72,20 @@ async function loadEngine(): Promise<Engine> {
 export default function EngineColours() {
   const [engine, setEngine] = useState<Engine | null>(null)
   const [failed, setFailed] = useState('')
-  const [mod, setMod] = useState(KNOWN[0].id)
+  const [chosen, setMod] = useState('')
   const pages = useModulePages()
   const load = useCallback(async () => {
     try { setEngine(await loadEngine()); setFailed('') } catch (e) { setFailed((e as Error).message) }
   }, [])
   useEffect(() => { load() }, [load])
 
+  // WittyTV's colours belong to WittyTuner: offered once it is installed (or already set).
+  const tuner = useModuleWeb().some((m) => m.module === 'wittytuner')
   const mods = useMemo(() => {
-    const out = [...KNOWN]
+    const out = KNOWN.filter((m) => m.id !== 'wittytv' || tuner || !!engine?.modules.wittytv)
     for (const id of [...pages.map((p) => p.module), ...Object.keys(engine?.modules || {})]) if (!out.some((m) => m.id === id)) out.push({ id })
     return out
-  }, [pages, engine])
+  }, [pages, engine, tuner])
 
   // Saving answers with the server's words when it refuses; afterwards the page and the app
   // around it both take what the server now has.
@@ -91,6 +94,7 @@ export default function EngineColours() {
   const globalLooks: Look[] = useMemo(() => (engine?.looks || []).map((l) => ({ scheme: l.scheme, base: l.own, set: [] })), [engine])
   const moduleLooks: Look[] = useMemo(() => (engine?.looks || []).map((l) => ({ scheme: l.scheme, base: overlay(l.own, engine?.global), set: Object.keys(engine?.global || {}) })), [engine])
   const own = deviceTheme()
+  const mod = mods.some((m) => m.id === chosen) ? chosen : mods[0]?.id || ''
   const modSaved = engine?.modules[mod] || {}
   const waiting = failed
     ? <Notice tone="danger" action={<Button size="sm" onClick={load}>{t('Try again')}</Button>}>{failed}</Notice>

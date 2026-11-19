@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { applyPageTitle } from '../../theme'
 import { api } from '../../api'
 import { LANGUAGES, UI_LANGUAGES, browserLanguage, trackLanguage, uiLanguageFor } from '../../languages'
 import { language as appLanguage, languageNameHere, list, nativeName, setLanguage, t, tn } from '../../i18n'
@@ -55,6 +56,7 @@ export function LocaleFirst({ onDone }: { onDone: (c: LocaleChoice) => void }) {
   const [ownTracks, setOwnTracks] = useState(!!before && before.language !== trackLanguage(before.ui || ''))
   const [zone, setZone] = useState(before?.zone ?? '')
   const here = deviceZone()
+  useEffect(() => { applyPageTitle(t('Language and time zone')) }, [])
   // The pages switch as soon as a language is picked, and the choice is kept so the switch doesn't lose it.
   const pickUi = (code: string) => {
     setUi(code)
@@ -81,7 +83,7 @@ export function LocaleFirst({ onDone }: { onDone: (c: LocaleChoice) => void }) {
           <Select value={zone} onChange={(e) => setZone(e.target.value)} options={timeZoneChoices('', zone, undefined, { t, tn, list })} />
         </Field>
       </div>
-      <p className="su-later">{t('You can change these again on the Name and address step, and later in Settings.')}</p>
+      <p className="su-later">{t('You can change these later in {where}.', { where: t('Settings, Appearance, under Language and time zone') })}</p>
       <StepActions><Button variant="primary" size="big" onClick={go}>{t('Continue')}</Button></StepActions>
     </section>
   )

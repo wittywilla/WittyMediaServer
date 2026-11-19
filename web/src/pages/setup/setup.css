@@ -178,6 +178,8 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 /* The look being tried, drawn for each kind of device (Look.tsx). */
 .su-look { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--sp-5); align-items: start; }
 @media (max-width: 1100px) { .su-look { grid-template-columns: 1fr; } }
+/* On a narrow screen the preview comes first, so the page isn't a column of cards before anything is shown. */
+@media (max-width: 1100px) { .su-look-first-view .su-look-view { order: -1; position: static; } }
 .su-look-view { display: grid; gap: var(--sp-3); position: sticky; top: var(--sp-4); }
 .lp { display: grid; border-radius: var(--r-lg); overflow: hidden; background: var(--lp-bg); box-shadow: 0 0 0 1px var(--border-strong); aspect-ratio: 16 / 10; }
 .lp-phone { aspect-ratio: 9 / 16; max-block-size: 26rem; inline-size: 14rem; justify-self: center; }
@@ -280,3 +282,6 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .su-colours-big figcaption { color: var(--fg-2); font-size: var(--text-sm); }
 /* Welcome's foot: Back to the language and time zone screen, and what it chose. */
 .su-chosen-locale { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-5); font-size: var(--text-sm); }
+
+/* The Demucs row from Settings, on the Karaoke voices page. */
+.su-separator { padding: var(--sp-2) var(--sp-4); }

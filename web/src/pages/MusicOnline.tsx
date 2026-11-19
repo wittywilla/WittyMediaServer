@@ -232,3 +232,12 @@ export function MusicOnlineStep() {
     </div>
   )
 }
+
+// In first-time setup, Extras: the same one-press Demucs install as Settings, on a page of its own. It goes on in the
+// background, so the page doesn't hold anyone up, and a choice made here is saved as it's made.
+export function SeparatorStep() {
+  const [s, setS] = useState<Record<string, string>>({})
+  useEffect(() => { api.get<Record<string, string>>('/settings').then(setS).catch(() => {}) }, [])
+  const set = (k: string, v: string) => { setS((x) => ({ ...x, [k]: v })); api.put('/settings', { [k]: v }).catch((e: Error) => toast(e.message)) }
+  return <div className="set-card su-separator"><SeparatorInstall onChange={() => {}} s={s} set={set} /></div>
+}

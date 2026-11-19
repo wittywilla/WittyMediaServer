@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -15,14 +16,28 @@ import (
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
-// First run (docs/FIRST-TIME-SETUP.md): fourteen steps in a web browser. Until the last is
+// First run (docs/FIRST-TIME-SETUP.md, docs/SETUP-FLOW.md): twelve steps in a web browser. Until the last is
 // done the server answers every route an app uses with 503 and the code setup_required and
 // the address to finish at; only /setup, the status route, the setup routes and the web
 // app's own files answer, and the administrator's browser session for the setup's own
 // calls. The apps say "This server isn't set up yet" with that address and a QR code.
 
-// SetupSteps are the first run's steps, in order.
-var SetupSteps = []string{"welcome", "account", "name", "look", "theme", "modules", "libraries", "details", "livetv", "games", "discs", "people", "remote", "ready"}
+// SetupSteps are the first run's steps, in order (docs/SETUP-FLOW.md).
+var SetupSteps = []string{"language", "welcome", "account", "server", "modules", "libraries", "modulesetup", "looks", "people", "remote", "extras", "ready"}
+
+// oldSetupSteps are the names 0.8.0 kept, still accepted so a setup left half-way carries on.
+var oldSetupSteps = map[string]string{"name": "server", "look": "looks", "theme": "looks", "details": "extras", "livetv": "modulesetup", "games": "modulesetup", "discs": "modulesetup"}
+
+// setupStepName is a step's name now, the old ones mapped; "" if it isn't one.
+func setupStepName(id string) string {
+	if n, ok := oldSetupSteps[id]; ok {
+		return n
+	}
+	if slices.Contains(SetupSteps, id) {
+		return id
+	}
+	return ""
+}
 
 // The settings: setupDone is "0" while first run goes on and "1" once it is over (an older
 // server that never said has it over when it has an account); the step and the steps done
@@ -141,9 +156,12 @@ type SetupState struct {
 
 func (s *Server) setupState(r *http.Request) SetupState {
 	ctx := r.Context()
-	st := SetupState{Complete: s.setupComplete(ctx), Steps: SetupSteps, Step: s.DB.GetSetting(ctx, settingSetupStep, SetupSteps[0]), Done: []string{}, URL: setupAddress(r)}
+	st := SetupState{Complete: s.setupComplete(ctx), Steps: SetupSteps, Step: setupStepName(s.DB.GetSetting(ctx, settingSetupStep, SetupSteps[0])), Done: []string{}, URL: setupAddress(r)}
+	if st.Step == "" {
+		st.Step = SetupSteps[0]
+	}
 	for _, d := range strings.Split(s.DB.GetSetting(ctx, settingSetupSteps, ""), ",") {
-		if d != "" {
+		if d = setupStepName(d); d != "" && !slices.Contains(st.Done, d) {
 			st.Done = append(st.Done, d)
 		}
 	}
@@ -192,28 +210,24 @@ func (s *Server) handleSetupStatePut(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, `expected {"step": "<step>", "done": ["<step>", ...]}`)
 		return
 	}
-	valid := func(id string) bool {
-		for _, x := range SetupSteps {
-			if x == id {
-				return true
-			}
-		}
-		return false
-	}
-	if !valid(body.Step) {
+	step := setupStepName(body.Step)
+	if step == "" {
 		writeErr(w, 400, "step: one of "+strings.Join(SetupSteps, ", "))
 		return
 	}
 	var done []string
 	for _, d := range body.Done {
-		if !valid(d) {
+		n := setupStepName(d)
+		if n == "" {
 			writeErr(w, 400, "done: one of "+strings.Join(SetupSteps, ", "))
 			return
 		}
-		done = append(done, d)
+		if !slices.Contains(done, n) {
+			done = append(done, n)
+		}
 	}
 	s.markSetupStarted(ctx)
-	_ = s.DB.SetSetting(ctx, settingSetupStep, body.Step)
+	_ = s.DB.SetSetting(ctx, settingSetupStep, step)
 	_ = s.DB.SetSetting(ctx, settingSetupSteps, strings.Join(done, ","))
 	writeJSON(w, 200, s.setupState(r))
 }

@@ -61,8 +61,18 @@ func TestFirstRunGatesEveryAppRoute(t *testing.T) {
 	if w := ts.do(t, "GET", "/api/libraries", tok, nil, "Cookie", "wms_token=another-token"); w.Code != 503 {
 		t.Errorf("an app's token beside a cookie that isn't its own: %d", w.Code)
 	}
-	if w := ts.do(t, "PUT", "/api/setup/state", tok, map[string]any{"step": "look", "done": []string{"welcome", "account", "name"}}); w.Code != 200 {
+	if w := ts.do(t, "PUT", "/api/setup/state", tok, map[string]any{"step": "looks", "done": []string{"language", "welcome", "account", "server"}}); w.Code != 200 {
 		t.Fatalf("saving the step: %d %s", w.Code, w.Body)
+	}
+	// A step name from 0.8.0 is still taken, as the step it became.
+	if w := ts.do(t, "PUT", "/api/setup/state", tok, map[string]any{"step": "theme", "done": []string{"welcome", "account", "name", "look"}}); w.Code != 200 {
+		t.Fatalf("saving an old step name: %d %s", w.Code, w.Body)
+	} else {
+		var got SetupState
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got.Step != "looks" || strings.Join(got.Done, ",") != "welcome,account,server,looks" {
+			t.Errorf("old names mapped: step %q done %v", got.Step, got.Done)
+		}
 	}
 	if w := ts.do(t, "PUT", "/api/setup/state", tok, map[string]any{"step": "elsewhere"}); w.Code != 400 {
 		t.Errorf("a step that isn't one: %d", w.Code)

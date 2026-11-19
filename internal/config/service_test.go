@@ -66,6 +66,10 @@ func TestServicesKeepTheirFolder(t *testing.T) {
 					want = filepath.Join(home, filepath.FromSlash(args[1]))
 					args[1] = want
 				}
+				// On macOS the pointer sits in the folder the service uses, so writing it may have
+				// made that folder already: only reading the settings mustn't.
+				_, statErr := os.Stat(want)
+				existed := statErr == nil
 				c, err := ParseOnly(args)
 				if err != nil {
 					t.Fatalf("the service didn't start: %v", err)
@@ -77,7 +81,7 @@ func TestServicesKeepTheirFolder(t *testing.T) {
 				if c.DataFrom == DataFromDefault {
 					t.Fatal("a service would be asked where to keep its data")
 				}
-				if _, err := os.Stat(want); err == nil {
+				if _, err := os.Stat(want); err == nil && !existed {
 					t.Fatal("reading the settings made the service's folder")
 				}
 			})

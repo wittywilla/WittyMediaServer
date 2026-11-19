@@ -3,7 +3,7 @@
   "name": "Aero Sunset",
   "description": "Golden-hour glass, orange to pink to violet.",
   "author": "WittyMediaServer",
-  "version": "5",
+  "version": "6",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -24,11 +24,11 @@
           },
           {
             "at": 50,
-            "color": "#ffb488"
+            "color": "#ffc4a0"
           },
           {
             "at": 100,
-            "color": "#edb5dd"
+            "color": "#f0c3e4"
           }
         ]
       },
@@ -90,11 +90,11 @@
         "stops": [
           {
             "at": 0,
-            "color": "#edb4e0"
+            "color": "#f1c4e8"
           },
           {
             "at": 100,
-            "color": "#dab9ed"
+            "color": "#e1c7f1"
           }
         ]
       }

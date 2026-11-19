@@ -83,6 +83,7 @@ def move(color, against, need, lighter):
 
 # The soft fills of web/src/styles.css: --accent-soft is the accent at .14, --ok-soft and --warn-soft 13%, --danger-soft 11%.
 ACCENT_SOFT = .14
+HOVER = .07  # --hover: the text colour at 7% over a surface (a hovered or striped row)
 STATUS_SOFT = {'ok': .13, 'warn': .13, 'danger': .11}
 
 
@@ -322,7 +323,9 @@ for meta in sorted(pathlib.Path('themes').glob('*/theme.json')):
         out = [c]
         for col, a in sorted(lights, key=lambda x: -x[1])[:2]:
             out.append(mix(col, out[-1], a))
-        return out
+        # A row over the scene can be tinted by --hover (the text colour at 7%: a hovered row, a list's every other
+        # row), and its words sit on that: Aero Day's song list over the hill measured 3.8:1 where the hill alone was 4.55.
+        return out + [mix(texts['fg'], x, HOVER) for x in out]
     def short(c, keys=('fg', 'fg-2', 'fg-3', 'accent-text')):
         return [(k, min(ratio(texts[k], x) for x in lit(c))) for k in keys if k in texts and min(ratio(texts[k], x) for x in lit(c)) < 4.5]
     SKY = ('fg', 'fg-2')  # the sky moves for these; the fainter text colours move for the sky

@@ -3,7 +3,7 @@
   "name": "Aero Aurora",
   "description": "Night glass: deep blue to teal, with a cyan glow.",
   "author": "WittyMediaServer",
-  "version": "4",
+  "version": "5",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -24,11 +24,11 @@
           },
           {
             "at": 55,
-            "color": "#0d3b66"
+            "color": "#0d3458"
           },
           {
             "at": 100,
-            "color": "#0e4558"
+            "color": "#0e3548"
           }
         ]
       },
@@ -90,11 +90,11 @@
         "stops": [
           {
             "at": 0,
-            "color": "#114646"
+            "color": "#0d3636"
           },
           {
             "at": 100,
-            "color": "#0d4454"
+            "color": "#0d3646"
           }
         ]
       }

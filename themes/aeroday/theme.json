@@ -3,7 +3,7 @@
   "name": "Aero Day",
   "description": "Sky blue glass: gloss, gradients and a leaf-green hill.",
   "author": "WittyMediaServer",
-  "version": "5",
+  "version": "6",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -20,7 +20,7 @@
         "stops": [
           {
             "at": 0,
-            "color": "#8dd9ff"
+            "color": "#abe3ff"
           },
           {
             "at": 48,
@@ -90,11 +90,11 @@
         "stops": [
           {
             "at": 0,
-            "color": "#9be286"
+            "color": "#b9e9a4"
           },
           {
             "at": 100,
-            "color": "#90e2a0"
+            "color": "#a8eab8"
           }
         ]
       }

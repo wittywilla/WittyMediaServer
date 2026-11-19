@@ -400,12 +400,7 @@ export function fmtTime(sec: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`
 }
 
-export function fmtRuntime(sec: number): string {
-  if (!sec) return ''
-  if (sec < 60) return `${Math.max(1, Math.round(sec))} s`
-  const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60)
-  return h > 0 ? `${h} h ${m} min` : `${m} min`
-}
+export { fmtRuntime } from './runtime'
 
 // An audio CD image: it opens in the CD player rather than the video player.
 export const isCD = (it: Item) => it.kind === 'cd-image'

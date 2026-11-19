@@ -168,7 +168,7 @@ You can also copy the ZIP into the server's `themes` folder and reload the page.
 
 | Install | Themes folder |
 |---|---|
-| Windows | `%LOCALAPPDATA%\WittyMediaServer\themes` |
+| Windows | `themes` in the [data folder](DATA-FOLDER.md): `Documents\WittyMediaServer\themes` by default, `%LOCALAPPDATA%\WittyMediaServer\themes` before 0.8.1-alpha |
 | macOS | `~/Library/Application Support/WittyMediaServer/themes` |
 | Linux, your own account | `~/.local/share/wittymediaserver/themes` |
 | Linux package, as a service | `/var/lib/wittymediaserver/themes` |

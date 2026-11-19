@@ -27,6 +27,7 @@ import { Music } from './setup/Music'
 import { StepHead, type StepProps } from './setup/parts'
 import { ALL_DRAWN, canSkip, currentStep, drawnId, drawnNumber, neighbours, pathOf, planSteps, stepFromPath, type Facts, type StepId, type StepInfo } from './setup/plan'
 import { Name } from './setup/Name'
+import { Storage } from './setup/Storage'
 import { Welcome } from './setup/Welcome'
 import { doneBefore, SERVER_STEP } from './setup/serverSteps'
 import './setup/setup.css'
@@ -51,13 +52,14 @@ export default function SetupWizard() {
   // for again with it: the first ask, before there was an account, was refused, and the Modules step
   // adds some, so a module's own step (Live TV, Games) would otherwise have nothing to draw.
   const refresh = useCallback(async () => {
-    const [report, kinds, libs] = await Promise.all([
+    const [report, kinds, libs, , place] = await Promise.all([
       api.get<ModuleReport>('/modules').catch(() => null),
       api.get<{ libraries: LibraryKind[] }>('/modules/libraries').then((r) => r.libraries || []).catch(() => [] as LibraryKind[]),
       api.get<Library[]>('/libraries').catch(() => [] as Library[]),
       refreshModuleWeb(),
+      api.get<{ ask: boolean }>('/data-location').catch(() => null),
     ])
-    setFacts({ signedIn: true, store: !!report, modules: (report?.modules || []).filter((m) => m.installed).map((m) => m.id), kinds })
+    setFacts({ signedIn: true, store: !!report, modules: (report?.modules || []).filter((m) => m.installed).map((m) => m.id), kinds, askData: !!place?.ask })
     setAdded(libs)
   }, [])
   useEffect(() => { if (signedIn) void refresh() }, [signedIn, refresh])
@@ -146,8 +148,10 @@ export default function SetupWizard() {
                 // The language and time zone asked before Welcome are saved now there's an account, before the
                 // Name step reads them back.
                 void saveLocale().catch(() => toast(t('The language and time zone couldn’t be saved. Choose them again on this page.'), { tone: 'danger' }))
-                  .finally(() => navigate(pathOf('name'), { replace: true }))
+                  // The first step after the account: where data is kept, on a desktop that asks, else the name.
+                  .finally(() => navigate(pathOf('storage'), { replace: true }))
               }} />}
+              {step.id === 'storage' && <Storage {...props} />}
               {step.id === 'name' && <Name {...props} onTry={setTryName} />}
               {step.id === 'modules' && <Modules {...props} />}
               {step.id === 'media' && <Media {...props} added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} />}

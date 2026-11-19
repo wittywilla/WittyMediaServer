@@ -198,6 +198,7 @@ func planWindows(e *Env, pl *Plan) {
 	planDataFolder(e, pl, filepath.Join(localApp, winName), true, false)
 	planDataFolder(e, pl, programData, true, true)
 	if d := filepath.Join(roaming, winName); isDir(d) {
+		planPointer(e, pl, filepath.Join(d, pointerName), "", false)
 		planConfigFile(e, pl, filepath.Join(d, "wms.json"), false)
 		pl.add(emptyFolderItem(d, GroupData, false))
 	}
@@ -211,6 +212,7 @@ func planWindows(e *Env, pl *Plan) {
 					continue
 				}
 				planDataFolder(e, pl, filepath.Join(base, `AppData\Local`, winName), true, true)
+				planPointer(e, pl, filepath.Join(base, `AppData\Roaming`, winName, pointerName), base, true)
 				planConfigFile(e, pl, filepath.Join(base, `AppData\Roaming`, winName, "wms.json"), true)
 				for _, s := range []string{`AppData\Roaming\Microsoft\Windows\Start Menu\Programs\` + winName + ".lnk", `Desktop\` + winName + ".lnk"} {
 					if p := filepath.Join(base, s); exists(p) {

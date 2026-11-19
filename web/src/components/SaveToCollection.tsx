@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { t } from '../i18n'
 import { canPost, type Collection } from '../gallery'
 import { IconPlus } from '../icons'
 import { toast, useApp } from '../state'
@@ -11,13 +12,13 @@ import { handledIds, withIds } from '../spec/model'
 import { saveSpec } from '../spec/specs/collections'
 
 // SaveButton: Save, on a film, show or video's own page.
-export function SaveButton({ itemId, showId, label = 'Save' }: { itemId?: number; showId?: number; label?: string }) {
+export function SaveButton({ itemId, showId, label }: { itemId?: number; showId?: number; label?: string }) {
   const { user } = useApp()
   const [open, setOpen] = useState(false)
   if (!canPost(user) && user?.kind !== 'kids') return null
   return (
     <>
-      <button className="btn" onClick={() => setOpen(true)}><IconPlus /> {label}</button>
+      <button className="btn" onClick={() => setOpen(true)}><IconPlus /> {label ?? t('Save')}</button>
       {open && <SaveDialog itemId={itemId} showId={showId} onClose={() => setOpen(false)} />}
     </>
   )
@@ -44,10 +45,10 @@ function SaveDialog({ itemId, showId, onClose }: { itemId?: number; showId?: num
         await api.post(`/collections/${c.id}/items`, body)
         setHolding([...holding, c.id])
       }
-    } catch { toast("Couldn't save that") }
+    } catch { toast(t("Couldn't save that")) }
   }
   const later = async () => {
-    try { const r = await api.post<{ collectionId: number }>('/collections/watch-later/items', body); setHolding([...holding, r.collectionId]); load(); toast('Saved to Watch later') } catch (x: any) { toast(x.message) }
+    try { const r = await api.post<{ collectionId: number }>('/collections/watch-later/items', body); setHolding([...holding, r.collectionId]); load(); toast(t('Saved to Watch later')) } catch (x: any) { toast(x.message) }
   }
   const make = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,9 +67,9 @@ function SaveDialog({ itemId, showId, onClose }: { itemId?: number; showId?: num
     else { const c = list?.find((x) => 'list:' + x.id === id); if (c) toggle(c) }
   }
   return (
-    <Dialog title="Save to" onClose={onClose}>
+    <Dialog title={t('Save to')} onClose={onClose}>
       {list && <SpecPage page={page} embedded handled={handledIds(withIds(page))} onAction={press} />}
-      {canPost(user) && <form className="share-link" onSubmit={make}><input className="input" placeholder="New collection" aria-label="New collection's name" maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /><button className="btn">Add</button></form>}
+      {canPost(user) && <form className="share-link" onSubmit={make}><input className="input" placeholder={t('New collection')} aria-label={t("New collection's name")} maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /><button className="btn">{t('Add')}</button></form>}
     </Dialog>
   )
 }

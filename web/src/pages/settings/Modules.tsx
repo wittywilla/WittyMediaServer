@@ -27,51 +27,57 @@ import { needsOverrideOf, overrideLines, releaseStatus, statusWarns, type NeedsO
 import { InstallFromFile } from './store/InstallFromFile'
 import { ModuleAudit } from './store/ModuleAudit'
 import { useFeatures } from '../../sdui/useSdui'
+import { t, tn, tk, tx, date } from '../../i18n'
 
 // The module store: what this server can do, by what it is for, to add and take away,
 // with the versions, pins and forks of the ones that have releases of their own. Nothing
 // on this page goes online unless an admin presses Check now or turned the automatic
 // check on; a version list only reads what the last check found.
 
-const PHASE: Record<string, string> = { downloading: 'Downloading', verifying: 'Checking the signature', installing: 'Installing' }
+const PHASE: Record<string, string> = { downloading: tk('Downloading'), verifying: tk('Checking the signature'), installing: tk('Installing') }
 const busy = (m: ModuleStatus) => !!PHASE[m.phase]
 const mb = (n = 0) => (n / 1048576).toFixed(1)
 const when = (ms: number) => fmtDateTime(ms)
-const day = (ms: number) => new Date(ms).toLocaleDateString(undefined, { dateStyle: 'medium' })
-const kindName = (t: string) => LIB_TYPES.find((x) => x.type === t)?.name || t
+const day = (ms: number) => date(ms, { dateStyle: 'medium' })
+const kindName = (type: string) => tx(LIB_TYPES.find((x) => x.type === type)?.name || type)
 const needsLook = (m: ModuleStatus) => m.state === 'fallback' || m.phase === 'failed' || !!m.withdrawn || !!m.notice || (m.installed && !!m.olderServer)
-const severity = (s: string) => s === 'security' ? 'for security reasons' : 'because it was broken'
-const pinWords = (pin: string) => `version ${pin}`
 const moduleIcon = (m: ModuleStatus) => m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />
 // A release's address comes unsigned from GitHub, so only a plain link to GitHub is used.
 const safeUrl = (u?: string) => u && /^https:\/\/github\.com\//.test(u) ? u : ''
 
 type Filter = 'all' | 'installed' | 'absent' | 'updates'
 const FILTERS: { id: Filter; label: string; test: (m: ModuleStatus) => boolean }[] = [
-  { id: 'all', label: 'All', test: () => true },
-  { id: 'installed', label: 'Installed', test: (m) => m.installed },
-  { id: 'absent', label: 'Not installed', test: (m) => !m.installed },
-  { id: 'updates', label: 'Updates', test: (m) => m.installed && !!m.latest },
+  { id: 'all', label: tk('All'), test: () => true },
+  { id: 'installed', label: tk('Installed'), test: (m) => m.installed },
+  { id: 'absent', label: tk('Not installed'), test: (m) => !m.installed },
+  { id: 'updates', label: tk('Updates'), test: (m) => m.installed && !!m.latest },
 ]
 
 // What happened to a module, in words.
 function eventWords(e: ModuleEvent): string {
-  const v = e.version ? `version ${e.version}` : ''
+  const fill = { version: e.version, detail: e.detail }
+  // The English is marked with tk below; one of the four is shown, translated.
+  const four = (vd: string, v: string, d: string, none: string) => t(e.version ? (e.detail ? vd : v) : (e.detail ? d : none), fill)
   switch (e.kind) {
-    case 'added': return 'Added to this server'
-    case 'removed': return 'Removed from this server'
-    case 'failed': return `${v || 'A version'} failed${e.detail ? `: ${e.detail}` : ''}`
-    case 'taken-out-of-use': return `${v || 'A version'} was taken out of use${e.detail ? `: ${e.detail}` : ''}`
-    case 'put-back': return `${v || 'A version'} was put back in use${e.detail ? `: ${e.detail}` : ''}`
-    case 'rolled-back': return `Went back from ${v || 'a version'}`
-    case 'pinned': return `Kept on ${v || 'this version'}`
-    case 'unpinned': return 'Automatic updates can move it again'
-    case 'switched': return `Switched ${e.detail || `to ${v}`}`
-    case 'source-changed': return `Publisher changed: ${e.detail || ''}`
-    case 'withdrawn': return `${v || 'A version'} was withdrawn by its publisher${e.detail ? `: ${e.detail}` : ''}`
-    default: return [e.kind.replace(/-/g, ' '), v, e.detail].filter(Boolean).join(', ')
+    case 'added': return t('Added to this server')
+    case 'removed': return t('Removed from this server')
+    case 'failed': return four(tk('Version {version} failed: {detail}'), tk('Version {version} failed'), tk('A version failed: {detail}'), tk('A version failed'))
+    case 'taken-out-of-use': return four(tk('Version {version} was taken out of use: {detail}'), tk('Version {version} was taken out of use'), tk('A version was taken out of use: {detail}'), tk('A version was taken out of use'))
+    case 'put-back': return four(tk('Version {version} was put back in use: {detail}'), tk('Version {version} was put back in use'), tk('A version was put back in use: {detail}'), tk('A version was put back in use'))
+    case 'rolled-back': return e.version ? t('Went back from version {version}', fill) : t('Went back from a version')
+    case 'pinned': return e.version ? t('Kept on version {version}', fill) : t('Kept on this version')
+    case 'unpinned': return t('Automatic updates can move it again')
+    case 'switched': return e.detail ? t('Switched {detail}', fill) : t('Switched to version {version}', fill)
+    case 'source-changed': return t('Publisher changed: {detail}', { detail: e.detail || '' })
+    case 'withdrawn': return four(tk('Version {version} was withdrawn by its publisher: {detail}'), tk('Version {version} was withdrawn by its publisher'), tk('A version was withdrawn by its publisher: {detail}'), tk('A version was withdrawn by its publisher'))
+    default: return [e.kind.replace(/-/g, ' '), e.version ? `version ${e.version}` : '', e.detail].filter(Boolean).join(', ')
   }
 }
+
+// Why a version was withdrawn, in a whole sentence.
+const withdrawnWords = (w: { version?: string; severity: string; reason: string }, named: boolean) => named
+  ? (w.severity === 'security' ? t('Version {version} was withdrawn for security reasons: {reason}', { version: w.version, reason: w.reason }) : t('Version {version} was withdrawn because it was broken: {reason}', { version: w.version, reason: w.reason }))
+  : (w.severity === 'security' ? t('Withdrawn for security reasons: {reason}', { reason: w.reason }) : t('Withdrawn because it was broken: {reason}', { reason: w.reason }))
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -83,7 +89,7 @@ function Confirm({ ask, onClose }: { ask: Ask; onClose: () => void }) {
   const [working, setWorking] = useState(false)
   const yes = async () => { setWorking(true); try { await ask.run() } finally { setWorking(false); onClose() } }
   return (
-    <Dialog title={ask.title} onClose={onClose} className="set-modal" actions={<><button className="btn ghost" autoFocus onClick={onClose}>Cancel</button>
+    <Dialog title={ask.title} onClose={onClose} className="set-modal" actions={<><button className="btn ghost" autoFocus onClick={onClose}>{t('Cancel')}</button>
           <button className={'btn ' + (ask.danger ? 'danger' : 'primary')} disabled={working} onClick={yes}>{ask.action}</button></>}>
         <div className="ms-ask">{ask.body}</div>
     </Dialog>
@@ -156,8 +162,8 @@ export default function ModulesSettings() {
       store.setView(await checkAll())
       const n = await api.get<ModuleReport>('/modules')
       setR(n)
-      if (n.checkError) toast('The check didn’t work. What happened is on the page.')
-      else if (!n.modules.some((m) => m.latest)) toast('Every module is up to date')
+      if (n.checkError) toast(t('The check didn’t work. What happened is on the page.'))
+      else if (!n.modules.some((m) => m.latest)) toast(t('Every module is up to date'))
     } catch (e: any) { toast(e.message) } finally { setChecking(false) }
   }
   const save = async (k: string, v: boolean) => {
@@ -173,26 +179,26 @@ export default function ModulesSettings() {
   // Adding asks first when the only version was made for an older server: only Install anyway
   // sends confirmOlder.
   const add = async (m: ModuleStatus) => {
-    try { setR(await api.post<ModuleReport>(`/modules/${m.id}/add`)); toast(`${m.name} is being installed`); void store.reload() } catch (e: any) {
+    try { setR(await api.post<ModuleReport>(`/modules/${m.id}/add`)); toast(t('{name} is being installed', { name: m.name })); void store.reload() } catch (e: any) {
       const old = olderOf(e)
       if (!old) { toast(e.message); focusRow(m.id); return }
       const yes = await older.ask(old)
-      if (old.every((o) => yes.includes(o.module))) await act(() => api.post<ModuleReport>(`/modules/${m.id}/add`, { confirmOlder: true }), `${m.name} is being installed`)
-      else toast(`${m.name} wasn’t installed`)
+      if (old.every((o) => yes.includes(o.module))) await act(() => api.post<ModuleReport>(`/modules/${m.id}/add`, { confirmOlder: true }), t('{name} is being installed', { name: m.name }))
+      else toast(t('{name} wasn’t installed', { name: m.name }))
     }
     focusRow(m.id)
   }
   const remove = (m: ModuleStatus) => { const keep = keepDataChoice(m.name); setAsk({
-    title: `Remove ${m.name}?`, action: 'Remove', danger: true,
+    title: t('Remove {name}?', { name: m.name }), action: t('Remove'), danger: true,
     body: <>
-      <p>{m.name} stops showing in the app and stops checking for updates.{m.libraries?.length ? ` New libraries of these kinds can’t be made: ${m.libraries.map(kindName).join(', ')}.` : ''} Your files and watch history stay as they are.</p>
-      <p>Every version of it that was downloaded is deleted, which frees the disk space{m.source ? ', and the fork it comes from is forgotten' : ''}. You can install it again from the store at any time.</p>
-      {!!m.requiredBy?.length && <p>{m.requiredBy.join(', ')} {m.requiredBy.length === 1 ? 'is' : 'are'} built on it.</p>}
+      <p>{t('{name} stops showing in the app and stops checking for updates.', { name: m.name })}{m.libraries?.length ? ' ' + t('New libraries of these kinds can’t be made: {kinds}.', { kinds: m.libraries.map(kindName).join(', ') }) : ''} {t('Your files and watch history stay as they are.')}</p>
+      <p>{m.source ? t('Every version of it that was downloaded is deleted, which frees the disk space, and the fork it comes from is forgotten.') : t('Every version of it that was downloaded is deleted, which frees the disk space.')} {t('You can install it again from the store at any time.')}</p>
+      {!!m.requiredBy?.length && <p>{tn('{names} is built on it.', '{names} are built on it.', m.requiredBy.length, { names: m.requiredBy.join(', ') })}</p>}
       {keep.node}
     </>,
     run: async () => {
       setRefused(null)
-      try { setR(await api.post<ModuleReport>(`/modules/${m.id}/remove${keep.query()}`)); toast(`${m.name} removed`); focusRow(m.id) }
+      try { setR(await api.post<ModuleReport>(`/modules/${m.id}/remove${keep.query()}`)); toast(t('{name} removed', { name: m.name })); focusRow(m.id) }
       catch (e: any) { setRefused({ id: m.id, why: e.message }) }
     },
   }) }
@@ -206,7 +212,7 @@ export default function ModulesSettings() {
     try { setR(await install(false)); focusRow(m.id) } catch (e: any) {
       const need = needsOverrideOf(e)
       if (need) overrideInstall(m, version, need)
-      else if (e instanceof ApiError && e.data?.code === 'confirm') setAsk({ title: `Update ${m.name} to ${version}?`, body: <p>{e.data.warning}</p>, action: 'Update anyway', run: async () => {
+      else if (e instanceof ApiError && e.data?.code === 'confirm') setAsk({ title: t('Update {name} to {version}?', { name: m.name, version }), body: <p>{tx(e.data.warning)}</p>, action: t('Update anyway'), run: async () => {
         try { setR(await install(true)); focusRow(m.id) } catch (x) { const n = needsOverrideOf(x); if (n) overrideInstall(m, version, n); else toast(x instanceof Error ? x.message : String(x)) }
       } })
       else toast(e.message)
@@ -215,26 +221,26 @@ export default function ModulesSettings() {
   // A release held after its download, waiting for the go-ahead.
   const goAhead = (m: ModuleStatus) => { if (m.pending) overrideInstall(m, m.pending.version, { ...m.pending.needsOverride, version: m.pending.version, pending: true }) }
   const rollback = (m: ModuleStatus) => setOwnerAsk({
-    title: m.previous ? `Go back to version ${m.previous}?` : `Stop using ${m.name} ${m.version}?`, action: m.previous ? 'Go back' : 'Stop using it',
-    body: <p>{m.name} stops using version {m.version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself.{m.previous ? ' An older version may lack security fixes, so this asks for your password.' : ' There’s no earlier version here, so it won’t be working until you install another. This asks for your password.'}</p>,
-    run: async (password, code) => { setR(await api.post<ModuleReport>(`/modules/${m.id}/rollback`, { password, code })); toast(m.previous ? `${m.name} went back to version ${m.previous}` : `${m.name} is no longer in use`); focusRow(m.id) },
+    title: m.previous ? t('Go back to version {version}?', { version: m.previous }) : t('Stop using {name} {version}?', { name: m.name, version: m.version }), action: m.previous ? t('Go back') : t('Stop using it'),
+    body: <p>{t('{name} stops using version {version}, and that version is marked as taken out of use, so automatic updates won’t bring it back. You can still choose it yourself.', { name: m.name, version: m.version })} {m.previous ? t('An older version may lack security fixes, so this asks for your password.') : t('There’s no earlier version here, so it won’t be working until you install another. This asks for your password.')}</p>,
+    run: async (password, code) => { setR(await api.post<ModuleReport>(`/modules/${m.id}/rollback`, { password, code })); toast(m.previous ? t('{name} went back to version {version}', { name: m.name, version: m.previous }) : t('{name} is no longer in use', { name: m.name })); focusRow(m.id) },
   })
-  const pin = (m: ModuleStatus) => act(() => m.pin ? api.del<ModuleReport>(`/modules/${m.id}/pin`) : api.post<ModuleReport>(`/modules/${m.id}/pin`), m.pin ? `${m.name} can update again` : `${m.name} stays on this version`)
-  const setAuto = (m: ModuleStatus, on: boolean) => act(() => api.put<ModuleReport>(`/modules/${m.id}/autoupdate`, { on }), on ? `${m.name} can update by itself` : `${m.name} will wait for you to update it`)
-  const toLatest = (m: ModuleStatus) => act(() => api.post<ModuleReport>(`/modules/${m.id}/latest`), `${m.name} is going back to the latest`)
+  const pin = (m: ModuleStatus) => act(() => m.pin ? api.del<ModuleReport>(`/modules/${m.id}/pin`) : api.post<ModuleReport>(`/modules/${m.id}/pin`), m.pin ? t('{name} can update again', { name: m.name }) : t('{name} stays on this version', { name: m.name }))
+  const setAuto = (m: ModuleStatus, on: boolean) => act(() => api.put<ModuleReport>(`/modules/${m.id}/autoupdate`, { on }), on ? t('{name} can update by itself', { name: m.name }) : t('{name} will wait for you to update it', { name: m.name }))
+  const toLatest = (m: ModuleStatus) => act(() => api.post<ModuleReport>(`/modules/${m.id}/latest`), t('{name} is going back to the latest', { name: m.name }))
   const official = (m: ModuleStatus) => setAsk({
-    title: 'Go back to the official version?', action: 'Go back',
-    body: <p>{m.name} goes back to the releases of <b>{m.stockRepo}</b>. Versions downloaded from {m.source?.repo} are deleted, and it isn’t on this server until you install the official one.</p>,
-    run: async () => { await act(() => api.del<ModuleReport>(`/modules/${m.id}/source`), `${m.name} is back to the official version`); focusRow(m.id) },
+    title: t('Go back to the official version?'), action: t('Go back'),
+    body: <p>{t('{name} goes back to the releases of {repo}. Versions downloaded from {fork} are deleted, and it isn’t on this server until you install the official one.', { name: m.name, repo: m.stockRepo, fork: m.source?.repo })}</p>,
+    run: async () => { await act(() => api.del<ModuleReport>(`/modules/${m.id}/source`), t('{name} is back to the official version', { name: m.name })); focusRow(m.id) },
   })
 
   if (failed) return (
     <div>
-      <PageHead title="Modules" />
-      <div className="set-card set-empty big"><IconPlug size={34} /><b>Modules aren’t available</b><p>{failed}</p></div>
+      <PageHead title={tk('Modules')} />
+      <div className="set-card set-empty big"><IconPlug size={34} /><b>{t('Modules aren’t available')}</b><p>{failed}</p></div>
     </div>
   )
-  if (!r) return <div><PageHead title="Modules" /><Spinner /></div>
+  if (!r) return <div><PageHead title={tk('Modules')} /><Spinner /></div>
   const canUpload = !!features?.has('module-upload')
   const canAudit = !!features?.has('module-audit') && !!user?.isAdmin
 
@@ -255,15 +261,15 @@ export default function ModulesSettings() {
 
   return (
     <div className="ms-page">
-      <PageHead title="Modules" desc="What this server can do, one piece at a time. Add what you want and remove what you don’t."
-        actions={<LinkButton variant="primary" to="/settings/modules/store" icon={<IconPlug />}>Browse the store</LinkButton>} />
+      <PageHead title={tk('Modules')} desc={t('What this server can do, one piece at a time. Add what you want and remove what you don’t.')}
+        actions={<LinkButton variant="primary" to="/settings/modules/store" icon={<IconPlug />}>{t('Browse the store')}</LinkButton>} />
 
       {store.view && <WhatsNew view={store.view} />}
 
       <SpecPage embedded page={modulesTopSpec({
         autoCheck, autoInstall: settings?.moduleAutoInstall === '1', loaded: !!settings, checkedAt: r.checkedAt ? when(r.checkedAt) : '', held: held ? when(held) : '', checkError: r.checkError || '', checking,
-        server: r.server, api: String(r.minApi === r.api ? r.api : `${r.minApi} to ${r.api}`),
-        filters: FILTERS.map((f) => ({ id: f.id, label: f.label, count: r.modules.filter(f.test).length })), filter,
+        server: r.server, api: String(r.minApi === r.api ? r.api : t('{from} to {to}', { from: r.minApi, to: r.api })),
+        filters: FILTERS.map((f) => ({ id: f.id, label: tx(f.label), count: r.modules.filter(f.test).length })), filter,
       })} handled={new Set(['check', ...FILTERS.map((f) => 'filter:' + f.id)])}
         onAction={(id) => { if (id === 'check') void check(); else if (id.startsWith('filter:')) setFilter(id.slice(7) as Filter) }}
         onField={(id, v) => { if (id === 'autoCheck') save('moduleUpdateCheck', !!v); else if (id === 'autoInstall') save('moduleAutoInstall', !!v) }}
@@ -277,10 +283,10 @@ export default function ModulesSettings() {
 
       {shown.length === 0 && (
         <div className="set-card set-empty">
-          <b>{filter === 'updates' ? 'No updates known' : filter === 'absent' ? 'Every module is on this server' : filter === 'installed' ? 'No modules yet' : 'Nothing here'}</b>
-          {filter === 'updates' && <p>{r.checkedAt ? `Nothing newer was found when the server last looked, ${when(r.checkedAt)}.` : 'The server hasn’t looked yet.'}</p>}
-          {filter === 'installed' && <p>The server works without any. <Link to="/settings/modules/store">Browse the store</Link> to add what you want.</p>}
-          {filter === 'updates' && <button className="btn sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>}
+          <b>{filter === 'updates' ? t('No updates known') : filter === 'absent' ? t('Every module is on this server') : filter === 'installed' ? t('No modules yet') : t('Nothing here')}</b>
+          {filter === 'updates' && <p>{r.checkedAt ? t('Nothing newer was found when the server last looked, {when}.', { when: when(r.checkedAt) }) : t('The server hasn’t looked yet.')}</p>}
+          {filter === 'installed' && <p>{t('The server works without any.')} <Link to="/settings/modules/store">{t('Browse the store')}</Link> {t('to add what you want.')}</p>}
+          {filter === 'updates' && <button className="btn sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? t('Checking…') : t('Check now')}</button>}
         </div>
       )}
 
@@ -288,20 +294,20 @@ export default function ModulesSettings() {
 
       {core.length > 0 && (
         <div className="ms-quiet">
-          <Section title="What other modules are built on" desc="These stay for as long as something uses them, and can’t be removed on their own.">{core.map(row)}</Section>
+          <Section title={tk('What other modules are built on')} desc={t('These stay for as long as something uses them, and can’t be removed on their own.')}>{core.map(row)}</Section>
         </div>
       )}
 
       {canUpload ? (
-        <Section id="custom-modules" title="Custom modules" actions={<InstallFromFile onInstalled={() => { api.get<ModuleReport>('/modules').then(setR).catch(() => {}); void store.reload() }} />}
-          desc="Install a module from its release archive: one you built, or one someone gave you. The server checks the file and says what it found before anything is installed. Replacing an existing module with someone’s fork is done from that module above, under Advanced.">
-          <p className="ms-note">A module is someone’s code running on your server, so only install one from a publisher you trust. Anything unsigned, signed by a key this server doesn’t trust, or new to this server needs an override, gets no permissions you don’t tick, and never updates by itself. <HelpLink to="module-store#installing-from-a-file">Installing from a file</HelpLink></p>
+        <Section id="custom-modules" title={tk('Custom modules')} actions={<InstallFromFile onInstalled={() => { api.get<ModuleReport>('/modules').then(setR).catch(() => {}); void store.reload() }} />}
+          desc={t('Install a module from its release archive: one you built, or one someone gave you. The server checks the file and says what it found before anything is installed. Replacing an existing module with someone’s fork is done from that module above, under Advanced.')}>
+          <p className="ms-note">{t('A module is someone’s code running on your server, so only install one from a publisher you trust. Anything unsigned, signed by a key this server doesn’t trust, or new to this server needs an override, gets no permissions you don’t tick, and never updates by itself.')} <HelpLink to="module-store#installing-from-a-file">{t('Installing from a file')}</HelpLink></p>
         </Section>
       ) : filter === 'all' && (
         <div className="ms-quiet">
-          <Section title="Custom modules" actions={<span className="set-pill">In development</span>}
-            desc="Adding a wholly new kind of module isn’t available yet. Replacing an existing module with someone’s fork is: open that module above, then Advanced.">
-            <p className="ms-note">When it comes, the same rule will apply: a module is someone’s code running on your server, so only take one from a publisher you trust.</p>
+          <Section title={tk('Custom modules')} actions={<span className="set-pill">{t('In development')}</span>}
+            desc={t('Adding a wholly new kind of module isn’t available yet. Replacing an existing module with someone’s fork is: open that module above, then Advanced.')}>
+            <p className="ms-note">{t('When it comes, the same rule will apply: a module is someone’s code running on your server, so only take one from a publisher you trust.')}</p>
           </Section>
         </div>
       )}
@@ -327,16 +333,16 @@ function Tag({ tone, icon, children }: { tone?: 'ok' | 'warn' | 'bad' | 'new' | 
 function Tags({ m }: { m: ModuleStatus }) {
   return (
     <span className="ms-tags">
-      {!m.installed ? <Tag tone="off">{m.comesInside ? 'Comes with other modules' : m.unavailable ? 'No build here' : 'Not installed'}</Tag>
-        : busy(m) ? <Tag tone="new">{PHASE[m.phase]}</Tag>
-        : needsLook(m) ? <Tag tone="bad" icon={<IconInfo size={12} />}>Needs a look</Tag>
-        : m.latest ? <Tag tone="new">Update available</Tag>
-        : <Tag tone="ok" icon={<IconCheck size={12} />}>Installed</Tag>}
-      {m.pending && <Tag tone="warn">Needs your go-ahead</Tag>}
-      {m.installed && m.olderServer && <Tag tone="warn" icon={<IconInfo size={12} />}>Made for an older server</Tag>}
-      {!m.installed && !m.latest && m.olderOffer && <Tag tone="warn">Only for an older server</Tag>}
-      {m.installed && m.pin && <Tag>Pinned</Tag>}
-      {m.source && <Tag tone="warn" icon={<IconShield size={12} />}>Other publisher</Tag>}
+      {!m.installed ? <Tag tone="off">{m.comesInside ? t('Comes with other modules') : m.unavailable ? t('No build here') : t('Not installed')}</Tag>
+        : busy(m) ? <Tag tone="new">{tx(PHASE[m.phase])}</Tag>
+        : needsLook(m) ? <Tag tone="bad" icon={<IconInfo size={12} />}>{t('Needs a look')}</Tag>
+        : m.latest ? <Tag tone="new">{t('Update available')}</Tag>
+        : <Tag tone="ok" icon={<IconCheck size={12} />}>{t('Installed')}</Tag>}
+      {m.pending && <Tag tone="warn">{t('Needs your go-ahead')}</Tag>}
+      {m.installed && m.olderServer && <Tag tone="warn" icon={<IconInfo size={12} />}>{t('Made for an older server')}</Tag>}
+      {!m.installed && !m.latest && m.olderOffer && <Tag tone="warn">{t('Only for an older server')}</Tag>}
+      {m.installed && m.pin && <Tag>{t('Pinned')}</Tag>}
+      {m.source && <Tag tone="warn" icon={<IconShield size={12} />}>{t('Other publisher')}</Tag>}
       <OverrideTags override={m.override} status={m.releaseStatus} />
     </span>
   )
@@ -365,13 +371,13 @@ function ModuleRow(p: RowProps) {
           </span>
           <span className="ms-chev"><IconDown size={20} /></span>
         </button>
-        {!m.installed && !m.unavailable && !m.comesInside && <button type="button" className={'btn sm' + (marked ? ' primary' : '')} onClick={p.onAdd} aria-label={`Install ${m.name}`}><IconPlus /> <span className="ms-add-word">Install</span></button>}
-        {m.installed && m.latest && !m.pin && !busy(m) && !isOpen && <button type="button" className="btn sm" onClick={p.onUpdate} aria-label={`Update ${m.name} to ${m.latest.version}`}>Update</button>}
+        {!m.installed && !m.unavailable && !m.comesInside && <button type="button" className={'btn sm' + (marked ? ' primary' : '')} onClick={p.onAdd} aria-label={t('Install {name}', { name: m.name })}><IconPlus /> <span className="ms-add-word">{t('Install')}</span></button>}
+        {m.installed && m.latest && !m.pin && !busy(m) && !isOpen && <button type="button" className="btn sm" onClick={p.onUpdate} aria-label={t('Update {name} to {version}', { name: m.name, version: m.latest.version })}>{t('Update')}</button>}
       </div>
       {busy(m) && (
         <div className="upd-progress ms-progress" role="status">
-          <span>{PHASE[m.phase]}{m.phase === 'downloading' && m.total ? ` · ${mb(m.done)} of ${mb(m.total)} MB` : ''}…</span>
-          <progress value={m.phase === 'downloading' && m.total ? m.done : undefined} max={m.total || undefined} aria-label={`${m.name}: ${PHASE[m.phase]}`} />
+          <span>{tx(PHASE[m.phase])}{m.phase === 'downloading' && m.total ? ' · ' + t('{done} of {total} MB', { done: mb(m.done), total: mb(m.total) }) : ''}…</span>
+          <progress value={m.phase === 'downloading' && m.total ? m.done : undefined} max={m.total || undefined} aria-label={`${m.name}: ${tx(PHASE[m.phase])}`} />
         </div>
       )}
       {isOpen && <ModuleDetail {...p} id={detail} />}
@@ -398,23 +404,23 @@ function BroughtKind({ type, m, kinds, onReport }: { type: string; m: ModuleStat
   }
   return (
     <div className="ms-kind">
-      <b>{kind?.label || usual}</b>{kind?.label && <span className="muted"> (usually {usual})</span>}
+      <b>{kind?.label || usual}</b>{kind?.label && <span className="muted"> {t('(usually {name})', { name: usual })}</span>}
       {others.length > 0 && (
-        <p className="ms-note">Also brought by {others.join(', ')}. They share this kind of library, so any one of them is enough to make one, and each plays what it knows.{' '}
-          {!editing && <button type="button" className="btn sm ghost" onClick={() => setEditing(true)} aria-label={`Rename the kind ${kind?.label || usual}`}>Rename</button>}
+        <p className="ms-note">{t('Also brought by {names}. They share this kind of library, so any one of them is enough to make one, and each plays what it knows.', { names: others.join(', ') })}{' '}
+          {!editing && <button type="button" className="btn sm ghost" onClick={() => setEditing(true)} aria-label={t('Rename the kind {name}', { name: kind?.label || usual })}>{t('Rename')}</button>}
         </p>
       )}
       {editing && (
         <form className="ms-kind-form" onSubmit={(e) => { e.preventDefault(); save(text) }}>
-          <label>Call it, on this server
+          <label>{t('Call it, on this server')}
             <input className="input" autoFocus maxLength={40} value={text} placeholder={usual} onChange={(e) => setText(e.target.value)} />
           </label>
           <div className="ms-actions">
-            <button type="submit" className="btn sm" disabled={busyNaming}>Save</button>
-            {kind?.label && <button type="button" className="btn sm ghost" disabled={busyNaming} onClick={() => save('')}>Use the usual name</button>}
-            <button type="button" className="btn sm ghost" onClick={() => { setEditing(false); setErr(''); setText(kind?.label || '') }}>Cancel</button>
+            <button type="submit" className="btn sm" disabled={busyNaming}>{t('Save')}</button>
+            {kind?.label && <button type="button" className="btn sm ghost" disabled={busyNaming} onClick={() => save('')}>{t('Use the usual name')}</button>}
+            <button type="button" className="btn sm ghost" onClick={() => { setEditing(false); setErr(''); setText(kind?.label || '') }}>{t('Cancel')}</button>
           </div>
-          <p className="muted">This only changes what the kind is called when you add a library. Libraries keep their own names.</p>
+          <p className="muted">{t('This only changes what the kind is called when you add a library. Libraries keep their own names.')}</p>
           {err && <p className="error" role="alert">{err}</p>}
         </form>
       )}
@@ -426,91 +432,91 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRe
   const working = busy(m)
   const failure = serverFailure || failureForStatus(m)
   const events = [...(m.events || [])].reverse().slice(0, 8)
-  const latest = m.latest ? m.latest.version : checkedAt ? 'This is the newest known' : 'Not checked yet'
+  const latest = m.latest ? m.latest.version : checkedAt ? t('This is the newest known') : t('Not checked yet')
   return (
     <div className="ms-detail" id={id}>
       <PendingNotice m={m} onGo={onGoAhead} onDropped={onOverride} />
       {m.override && <OverrideRecordBox id={m.id} name={m.name} record={m.override} disabled={working} onRemoved={onOverride} />}
       {statusWarns(releaseStatus(m.releaseStatus)) && <StatusNotice status={m.releaseStatus} note={m.statusNote} name={m.name} installed={m.installed} />}
       {m.source && <PublisherNote m={m} onOfficial={onOfficial} disabled={working} />}
-      {refused && <p className="error" role="alert">{refused} <Link to="/settings/libraries">Go to Libraries</Link></p>}
+      {refused && <p className="error" role="alert">{tx(refused)} <Link to="/settings/libraries">{t('Go to Libraries')}</Link></p>}
       {failure && <FailureNotice failure={failure} name={m.name} moduleId={m.id} repairRoute={repairRoute} onRetry={m.latest ? onUpdate : undefined} />}
-      {m.withdrawn && <p className="error">Version {m.withdrawn.version} was withdrawn {severity(m.withdrawn.severity)}: {m.withdrawn.reason}</p>}
+      {m.withdrawn && <p className="error">{withdrawnWords(m.withdrawn, true)}</p>}
       {m.installed && m.olderServer && m.olderWarning && (
         <div className="warn-box ms-older" role="note">
-          <b>Made for an older server</b>
-          <p>{m.olderWarning}</p>
+          <b>{t('Made for an older server')}</b>
+          <p>{tx(m.olderWarning)}</p>
           <div className="ms-actions">
-            {m.latest && !working && <button type="button" className="btn sm primary" onClick={onUpdate}>Update to {m.latest.version}</button>}
-            {!working && <button type="button" className={'btn sm' + (m.latest ? ' ghost' : '')} onClick={onRemove}>Remove {m.name}</button>}
+            {m.latest && !working && <button type="button" className="btn sm primary" onClick={onUpdate}>{t('Update to {version}', { version: m.latest.version })}</button>}
+            {!working && <button type="button" className={'btn sm' + (m.latest ? ' ghost' : '')} onClick={onRemove}>{t('Remove {name}', { name: m.name })}</button>}
           </div>
         </div>
       )}
-      {!m.installed && !m.latest && m.olderOffer && <p className="warn-box">No version of {m.name} for this server is published yet. {m.olderOffer.reason} Installing it asks you first.</p>}
-      {m.lastFailure && !failure && <p className="warn-box">The last problem it had: {m.lastFailure}</p>}
+      {!m.installed && !m.latest && m.olderOffer && <p className="warn-box">{t('No version of {name} for this server is published yet.', { name: m.name })} {tx(m.olderOffer.reason)} {t('Installing it asks you first.')}</p>}
+      {m.lastFailure && !failure && <p className="warn-box">{t('The last problem it had: {problem}', { problem: m.lastFailure })}</p>}
 
       <dl className="ms-facts">
-        {m.installed && <div><dt>In use</dt><dd>{m.version}</dd></div>}
-        {m.installed && m.updatable && <div><dt>Latest</dt><dd>{latest}</dd></div>}
-        {!m.installed && <div><dt>Version</dt><dd>{m.latest?.version || 'None available yet'}</dd></div>}
-        <div><dt>Works with</dt><dd>Servers {m.minServer} to {m.maxServer}</dd></div>
+        {m.installed && <div><dt>{t('In use')}</dt><dd>{m.version}</dd></div>}
+        {m.installed && m.updatable && <div><dt>{t('Latest')}</dt><dd>{latest}</dd></div>}
+        {!m.installed && <div><dt>{t('Version')}</dt><dd>{m.latest?.version || t('None available yet')}</dd></div>}
+        <div><dt>{t('Works with')}</dt><dd>{t('Servers {min} to {max}', { min: m.minServer, max: m.maxServer })}</dd></div>
         {/* For a module nothing here checked (unsigned, an untrusted key, one this server doesn't know), the repository is only what its own file claims. */}
-        <div className="wide"><dt>{m.source ? 'Official repository' : unvouched(m) ? 'Says it comes from' : 'Repository'}</dt><dd><a href={`https://github.com/${m.stockRepo || m.repo}`} target="_blank" rel="noreferrer">{m.stockRepo || m.repo}</a>{unvouched(m) && <span className="ms-note"> Nothing checked this: it’s what the module’s own file says.</span>}</dd></div>
-        {!!m.libraries?.length && <div className="wide"><dt>Brings these libraries</dt><dd>{m.libraries.map((t) => <BroughtKind key={t} type={t} m={m} kinds={kinds} onReport={onReport} />)}</dd></div>}
-        {!!m.needs?.length && <div className="wide"><dt>What it needs</dt><dd>{m.needs.join(', ')}</dd></div>}
-        {!!m.requires?.length && <div className="wide"><dt>Built on</dt><dd>{m.requires.map(nameOf).join(', ')}</dd></div>}
-        {!!m.requiredBy?.length && <div className="wide"><dt>What’s built on it</dt><dd>{m.requiredBy.join(', ')}</dd></div>}
+        <div className="wide"><dt>{m.source ? t('Official repository') : unvouched(m) ? t('Says it comes from') : t('Repository')}</dt><dd><a href={`https://github.com/${m.stockRepo || m.repo}`} target="_blank" rel="noreferrer">{m.stockRepo || m.repo}</a>{unvouched(m) && <span className="ms-note"> {t('Nothing checked this: it’s what the module’s own file says.')}</span>}</dd></div>
+        {!!m.libraries?.length && <div className="wide"><dt>{t('Brings these libraries')}</dt><dd>{m.libraries.map((t) => <BroughtKind key={t} type={t} m={m} kinds={kinds} onReport={onReport} />)}</dd></div>}
+        {!!m.needs?.length && <div className="wide"><dt>{t('What it needs')}</dt><dd>{m.needs.join(', ')}</dd></div>}
+        {!!m.requires?.length && <div className="wide"><dt>{t('Built on')}</dt><dd>{m.requires.map(nameOf).join(', ')}</dd></div>}
+        {!!m.requiredBy?.length && <div className="wide"><dt>{t('What’s built on it')}</dt><dd>{m.requiredBy.join(', ')}</dd></div>}
       </dl>
 
       <div className="ms-how">
-        <b>{m.updatable ? 'Updates on its own' : 'Updates with the server'}</b>
+        <b>{m.updatable ? t('Updates on its own') : t('Updates with the server')}</b>
         {m.updatable
           ? <>
-              {m.updates && <p>{m.updates}</p>}
-              {m.stays && <p><span className="ms-how-sub">Only a new server changes:</span> {m.stays}</p>}
+              {m.updates && <p>{tx(m.updates)}</p>}
+              {m.stays && <p><span className="ms-how-sub">{t('Only a new server changes:')}</span> {tx(m.stays)}</p>}
             </>
-          : <p>{m.stays || 'This is part of the server, so a new server brings its new versions.'}</p>}
+          : <p>{m.stays ? tx(m.stays) : t('This is part of the server, so a new server brings its new versions.')}</p>}
       </div>
 
-      {m.unavailable && <p className="ms-note">{m.unavailable}</p>}
+      {m.unavailable && <p className="ms-note">{tx(m.unavailable)}</p>}
       {m.latest && !working && m.installed && (
         <div className="ms-latest">
-          <b>Version {m.latest.version} is available</b>
-          <span className="muted">Works with servers {m.latest.minServer} to {m.latest.maxServer}{m.latest.prerelease ? ' · pre-release' : ''}{m.latest.size ? ` · ${mb(m.latest.size)} MB` : ''}</span>
-          {m.latest.blocked && <span className="ms-bad">This version was taken out of use before: {m.latest.blocked}</span>}
+          <b>{t('Version {version} is available', { version: m.latest.version })}</b>
+          <span className="muted">{t('Works with servers {min} to {max}', { min: m.latest.minServer, max: m.latest.maxServer })}{m.latest.prerelease ? ' · ' + t('pre-release') : ''}{m.latest.size ? ' · ' + t('{size} MB', { size: mb(m.latest.size) }) : ''}</span>
+          {m.latest.blocked && <span className="ms-bad">{t('This version was taken out of use before: {reason}', { reason: m.latest.blocked })}</span>}
           <ChangeNotes text={m.latest.notes} />
         </div>
       )}
-      {m.tooNew && <p className="ms-note">Version {m.tooNew.version} exists but doesn’t fit this server. {m.tooNew.reason}</p>}
-      {m.installed && m.pin && <p className="ms-note">Kept on {pinWords(m.pin)} on purpose. Automatic updates leave it alone, though a version withdrawn for security reasons still goes out of use.</p>}
+      {m.tooNew && <p className="ms-note">{t('Version {version} exists but doesn’t fit this server.', { version: m.tooNew.version })} {tx(m.tooNew.reason)}</p>}
+      {m.installed && m.pin && <p className="ms-note">{t('Kept on version {version} on purpose. Automatic updates leave it alone, though a version withdrawn for security reasons still goes out of use.', { version: m.pin })}</p>}
 
       {m.installed && m.updatable && (
-        <Row label="Update this module by itself" dim={!!m.source || !!m.pin || !!m.override || !serverAuto}
-          desc={m.override ? 'It was installed with an override, so it never updates by itself. Remove the override, or choose a version that needs none, to let it update again.'
-            : m.source ? 'A module from another publisher never updates by itself: you choose each version.'
-            : m.pin ? 'It is pinned, so automatic updates leave it alone whatever this says.'
-            : !serverAuto ? 'Automatic updates are off for the whole server, above, so this changes nothing until they are on.'
-            : m.autoUpdate ? 'Installs new versions when they appear, if they work with this server.'
-            : 'It still looks for new versions and shows them here, and waits for you to install them.'}>
-          <Switch label={`Update ${m.name} by itself`} checked={m.autoUpdate && !m.override} disabled={working || !!m.source || !!m.override} onChange={onAuto} />
+        <Row label={t('Update this module by itself')} dim={!!m.source || !!m.pin || !!m.override || !serverAuto}
+          desc={m.override ? t('It was installed with an override, so it never updates by itself. Remove the override, or choose a version that needs none, to let it update again.')
+            : m.source ? t('A module from another publisher never updates by itself: you choose each version.')
+            : m.pin ? t('It is pinned, so automatic updates leave it alone whatever this says.')
+            : !serverAuto ? t('Automatic updates are off for the whole server, above, so this changes nothing until they are on.')
+            : m.autoUpdate ? t('Installs new versions when they appear, if they work with this server.')
+            : t('It still looks for new versions and shows them here, and waits for you to install them.')}>
+          <Switch label={t('Update {name} by itself', { name: m.name })} checked={m.autoUpdate && !m.override} disabled={working || !!m.source || !!m.override} onChange={onAuto} />
         </Row>
       )}
 
       <div className="ms-actions">
-        {m.installed && m.pin && m.pin !== m.latest?.version && m.latest && <button type="button" className="btn sm" disabled={working} onClick={onLatest}>Go back to the latest</button>}
-        {m.installed && m.latest && !m.pin && <button type="button" className="btn sm" disabled={working} onClick={onUpdate}>Update to {m.latest.version}</button>}
-        {m.installed && m.updatable && <button type="button" className="btn sm" disabled={working} onClick={onVersions}>Versions</button>}
-        {m.installed && m.updatable && !m.override && <button type="button" className="btn sm ghost" disabled={working} onClick={onPin}>{m.pin ? 'Unpin' : 'Pin this version'}</button>}
-        {m.installed && m.canRollback && <button type="button" className="btn sm ghost" disabled={working} onClick={onRollback}>{m.previous ? `Go back to version ${m.previous}` : 'Stop using this version'}</button>}
-        {m.installed && !m.core && <button type="button" className="btn sm ghost danger-hover" disabled={working} onClick={onRemove}>Remove</button>}
-        <Link className="btn sm ghost" to={`/settings/modules/store/${m.id}`} aria-label={`The store's page for ${m.name}`}>Store page</Link>
-        <button type="button" className="btn sm ghost" onClick={onLog} aria-label={`Show the log for ${m.name}`}>Show log</button>
-        <Link className="btn sm ghost" to={`/settings/logs?module=${m.id}`} aria-label={`Logging for ${m.name}`}>Logging</Link>
+        {m.installed && m.pin && m.pin !== m.latest?.version && m.latest && <button type="button" className="btn sm" disabled={working} onClick={onLatest}>{t('Go back to the latest')}</button>}
+        {m.installed && m.latest && !m.pin && <button type="button" className="btn sm" disabled={working} onClick={onUpdate}>{t('Update to {version}', { version: m.latest.version })}</button>}
+        {m.installed && m.updatable && <button type="button" className="btn sm" disabled={working} onClick={onVersions}>{t('Versions')}</button>}
+        {m.installed && m.updatable && !m.override && <button type="button" className="btn sm ghost" disabled={working} onClick={onPin}>{m.pin ? t('Unpin') : t('Pin this version')}</button>}
+        {m.installed && m.canRollback && <button type="button" className="btn sm ghost" disabled={working} onClick={onRollback}>{m.previous ? t('Go back to version {version}', { version: m.previous }) : t('Stop using this version')}</button>}
+        {m.installed && !m.core && <button type="button" className="btn sm ghost danger-hover" disabled={working} onClick={onRemove}>{t('Remove')}</button>}
+        <Link className="btn sm ghost" to={`/settings/modules/store/${m.id}`} aria-label={t('The store’s page for {name}', { name: m.name })}>{t('Store page')}</Link>
+        <button type="button" className="btn sm ghost" onClick={onLog} aria-label={t('Show the log for {name}', { name: m.name })}>{t('Show log')}</button>
+        <Link className="btn sm ghost" to={`/settings/logs?module=${m.id}`} aria-label={t('Logging for {name}', { name: m.name })}>{t('Logging')}</Link>
       </div>
 
       {events.length > 0 && (
         <details className="ms-more">
-          <summary>Recent activity</summary>
+          <summary>{t('Recent activity')}</summary>
           <ul className="ms-events">
             {events.map((e, i) => <li key={i}><time dateTime={new Date(e.at).toISOString()}>{when(e.at)}</time><span>{cap(eventWords(e))}</span></li>)}
           </ul>
@@ -519,11 +525,11 @@ function ModuleDetail({ id, m, checkedAt, nameOf, refused, onReport, kinds, onRe
 
       {m.installed && !m.source && (m.noFork || m.updatable) && (
         <details className="ms-more">
-          <summary>Advanced</summary>
-          <p className="muted"><HelpLink to="module-store#using-someones-fork">What using a fork means</HelpLink></p>
+          <summary>{t('Advanced')}</summary>
+          <p className="muted"><HelpLink to="module-store#using-someones-fork">{t('What using a fork means')}</HelpLink></p>
           <div className="ms-fork">
-            <b>Use someone’s fork of this module</b>
-            {m.noFork ? <p className="ms-note">{m.noFork}</p> : <ForkForm m={m} onReport={onReport} />}
+            <b>{t('Use someone’s fork of this module')}</b>
+            {m.noFork ? <p className="ms-note">{tx(m.noFork)}</p> : <ForkForm m={m} onReport={onReport} />}
           </div>
         </details>
       )}
@@ -536,13 +542,13 @@ function PublisherNote({ m, onOfficial, disabled }: { m: ModuleStatus; onOfficia
   const s = m.source!
   return (
     <div className="warn-box ms-publisher">
-      <strong>From another publisher: <a href={`https://github.com/${s.repo}`} target="_blank" rel="noreferrer">{s.repo}</a></strong>
-      <span>This isn’t the official {m.name}, and nobody here has reviewed it. Keep it only if you trust whoever publishes it. Everything else works as for the official one, and this server won’t install its updates by itself.</span>
+      <strong>{t('From another publisher:')} <a href={`https://github.com/${s.repo}`} target="_blank" rel="noreferrer">{s.repo}</a></strong>
+      <span>{t('This isn’t the official {name}, and nobody here has reviewed it. Keep it only if you trust whoever publishes it. Everything else works as for the official one, and this server won’t install its updates by itself.', { name: m.name })}</span>
       <dl className="ms-facts">
-        <div className="wide"><dt>Key fingerprint</dt><dd className="mono">{s.fingerprint || 'Unreadable'}</dd></div>
-        <div className="wide"><dt>Added</dt><dd>{s.addedBy ? `by ${s.addedBy}, ` : ''}{when(s.addedAt)}</dd></div>
+        <div className="wide"><dt>{t('Key fingerprint')}</dt><dd className="mono">{s.fingerprint || t('Unreadable')}</dd></div>
+        <div className="wide"><dt>{t('Added')}</dt><dd>{s.addedBy ? t('by {name}, {when}', { name: s.addedBy, when: when(s.addedAt) }) : when(s.addedAt)}</dd></div>
       </dl>
-      <div><button type="button" className="btn sm" disabled={disabled} onClick={onOfficial}>Go back to the official version</button></div>
+      <div><button type="button" className="btn sm" disabled={disabled} onClick={onOfficial}>{t('Go back to the official version')}</button></div>
     </div>
   )
 }
@@ -578,7 +584,7 @@ function ForkForm({ m, onReport }: { m: ModuleStatus; onReport: (r: ModuleReport
   const over = useOverrideDialog()
   const saved = (r: ModuleReport) => {
     onReport(r)
-    toast(`${m.name} now comes from ${repo.trim()}`)
+    toast(t('{name} now comes from {repo}', { name: m.name, repo: repo.trim() }))
     setTimeout(() => document.getElementById('mod-' + m.id)?.querySelector<HTMLElement>('.ms-head')?.focus(), 50)
   }
   const confirm = async () => {
@@ -596,24 +602,24 @@ function ForkForm({ m, onReport }: { m: ModuleStatus; onReport: (r: ModuleReport
   const fingerprint = /fingerprint is ([0-9a-f ]+)\./.exec(warning)?.[1]
   return (
     <form className="ms-fork-form" onSubmit={check}>
-      <p className="ms-note">The module is then treated the same as the official one, but its releases come from that repository and must be signed with that key. Only take a fork from someone you trust.</p>
-      <label className="set-field">Repository
+      <p className="ms-note">{t('The module is then treated the same as the official one, but its releases come from that repository and must be signed with that key. Only take a fork from someone you trust.')}</p>
+      <label className="set-field">{t('Repository')}
         <input className="input" value={repo} onChange={edit(setRepo)} placeholder="someone/WittyDVD" spellCheck={false} autoComplete="off" autoCapitalize="off" />
       </label>
-      <label className="set-field">The publisher’s public key
-        <input className="input mono" value={key} onChange={edit(setKey)} placeholder="44 characters, from wittymodule keygen" spellCheck={false} autoComplete="off" autoCapitalize="off" />
+      <label className="set-field">{t('The publisher’s public key')}
+        <input className="input mono" value={key} onChange={edit(setKey)} placeholder={t('44 characters, from wittymodule keygen')} spellCheck={false} autoComplete="off" autoCapitalize="off" />
       </label>
       {err && <p className="error" role="alert">{err}</p>}
-      {!warning && <div><button type="submit" ref={checkBtn} className="btn sm" disabled={!repo.trim() || !key.trim()} aria-busy={working}>{working ? 'Checking…' : 'Check'}</button></div>}
+      {!warning && <div><button type="submit" ref={checkBtn} className="btn sm" disabled={!repo.trim() || !key.trim()} aria-busy={working}>{working ? t('Checking…') : t('Check')}</button></div>}
       {warning && (
         <div className="warn-box ms-fork-warn" role="alert" tabIndex={-1} ref={warned}>
-          <span>{warning}</span>
-          {fingerprint && <span className="ms-print"><span className="muted">Key fingerprint</span><code>{fingerprint}</code></span>}
-          <label className="ms-trust"><input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> I trust this publisher</label>
+          <span>{tx(warning)}</span>
+          {fingerprint && <span className="ms-print"><span className="muted">{t('Key fingerprint')}</span><code>{fingerprint}</code></span>}
+          <label className="ms-trust"><input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> {t('I trust this publisher')}</label>
           <OwnerFields password={password} code={code} setPassword={setPassword} setCode={setCode} />
           <div className="ms-actions">
-            <button type="button" className="btn sm danger" disabled={!trust || working || !password || (!!user?.twoFactor && !code)} onClick={confirm}>{working ? 'Saving…' : 'Confirm'}</button>
-            <button type="button" className="btn sm ghost" disabled={working} onClick={() => { setWarning(''); setTrust(false); setTimeout(() => checkBtn.current?.focus(), 0) }}>Cancel</button>
+            <button type="button" className="btn sm danger" disabled={!trust || working || !password || (!!user?.twoFactor && !code)} onClick={confirm}>{working ? t('Saving…') : t('Confirm')}</button>
+            <button type="button" className="btn sm ghost" disabled={working} onClick={() => { setWarning(''); setTrust(false); setTimeout(() => checkBtn.current?.focus(), 0) }}>{t('Cancel')}</button>
           </div>
         </div>
       )}
@@ -686,24 +692,24 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
   const none = !!list && list.versions.length === 0
   return (
     <>
-      <Dialog title={`${m.name} versions`} size="wide" className="set-modal ms-versions" onClose={onClose}>
+      <Dialog title={t('{name} versions', { name: m.name })} size="wide" className="set-modal ms-versions" onClose={onClose}>
 
           <div className="ms-vers-top">
             <span>{pin
-              ? <><b>Pinned</b> to {pinWords(pin)}. Automatic updates leave it alone.</>
-              : 'Not pinned, so automatic updates can move it if you turned them on.'}
-              {list?.checkedAt ? ` Last looked ${when(list.checkedAt)}.` : ' The server hasn’t looked yet.'}
+              ? t('Pinned to version {version}. Automatic updates leave it alone.', { version: pin })
+              : t('Not pinned, so automatic updates can move it if you turned them on.')}
+              {' '}{list?.checkedAt ? t('Last looked {when}.', { when: when(list.checkedAt) }) : t('The server hasn’t looked yet.')}
             </span>
             <span className="ms-actions">
-              {pin && <button type="button" className="btn sm" onClick={() => pinAct(() => api.post<ModuleReport>(`/modules/${m.id}/latest`))}>Return to latest</button>}
-              <button type="button" className="btn sm ghost" aria-busy={checking} onClick={check}><IconRefresh /> {checking ? 'Checking…' : 'Check now'}</button>
+              {pin && <button type="button" className="btn sm" onClick={() => pinAct(() => api.post<ModuleReport>(`/modules/${m.id}/latest`))}>{t('Return to latest')}</button>}
+              <button type="button" className="btn sm ghost" aria-busy={checking} onClick={check}><IconRefresh /> {checking ? t('Checking…') : t('Check now')}</button>
             </span>
           </div>
-          {busy(m) && <p className="ms-note" role="status">{PHASE[m.phase]}…</p>}
-          {m.source && <p className="warn-box">These releases come from another publisher: {m.source.repo}.</p>}
+          {busy(m) && <p className="ms-note" role="status">{tx(PHASE[m.phase])}…</p>}
+          {m.source && <p className="warn-box">{t('These releases come from another publisher: {repo}.', { repo: m.source.repo })}</p>}
           {err && <p className="error" role="alert">{err}</p>}
-          {!list && !err && <div role="status" className="muted">Reading the list…</div>}
-          {none && <p className="ms-note">No versions are known so far. {list?.checkedAt ? 'There were none when the server last looked.' : 'Press Check now to look.'}</p>}
+          {!list && !err && <div role="status" className="muted">{t('Reading the list…')}</div>}
+          {none && <p className="ms-note">{t('No versions are known so far.')} {list?.checkedAt ? t('There were none when the server last looked.') : t('Press Check now to look.')}</p>}
 
           {list && (
             <ul className="ms-vers">
@@ -711,15 +717,23 @@ function VersionsDialog({ m, onClose, onReport }: { m: ModuleStatus; onClose: ()
             </ul>
           )}
       </Dialog>
-      {pending && <Confirm ask={{ title: `Use ${m.name} ${pending.v.version}?`, body: <p>{pending.warning}</p>, action: 'Install anyway', run: () => run(pending.v, true) }}
+      {pending && <Confirm ask={{ title: t('Use {name} {version}?', { name: m.name, version: pending.v.version }), body: <p>{tx(pending.warning)}</p>, action: t('Install anyway'), run: () => run(pending.v, true) }}
         onClose={() => { setPending(null); backToButton(pending.v.version) }} />}
-      {needPassword && <ConfirmOwner ask={{ title: `Go back to ${m.name} ${needPassword.version}?`, body: <p>An older version may lack security fixes, so this asks for your password.</p>, action: 'Go back',
+      {needPassword && <ConfirmOwner ask={{ title: t('Go back to {name} {version}?', { name: m.name, version: needPassword.version }), body: <p>{t('An older version may lack security fixes, so this asks for your password.')}</p>, action: t('Go back'),
         run: async (password, code) => { onReport(await post(needPassword, true, { password, code })); onClose() } }}
         onClose={() => { setNeedPassword(null); backToButton(needPassword.version) }} />}
       {over.dialog}
       {older.dialog}
     </>
   )
+}
+
+// What a version's button says to a screen reader.
+function versionLabel(v: VersionInfo): string {
+  const version = v.version
+  if (!v.allowed && v.override) return v.installed ? t('Switch to version {version}, with an override', { version }) : t('Install version {version}, with an override', { version })
+  if (v.olderServer) return v.installed ? t('Switch to version {version}, made for an older server: asks first', { version }) : t('Install version {version}, made for an older server: asks first', { version })
+  return v.installed ? t('Switch to version {version}', { version }) : t('Install version {version}', { version })
 }
 
 function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean; onChoose: () => void }) {
@@ -732,23 +746,23 @@ function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean
           <b>{v.version}</b>
           {v.published ? <span className="muted">{day(v.published)}</span> : null}
           <span className="ms-tags">
-            {v.inUse && <Tag tone="ok" icon={<IconCheck size={12} />}>In use</Tag>}
-            {v.installed && !v.inUse && <Tag>Installed</Tag>}
-            {v.prerelease && <Tag>Pre-release</Tag>}
-            {v.older && <Tag>Older</Tag>}
-            {v.olderServer && <Tag tone="warn" icon={<IconInfo size={12} />}>Made for an older server</Tag>}
-            {v.withdrawn && <Tag tone="bad" icon={<IconInfo size={12} />}>Withdrawn</Tag>}
+            {v.inUse && <Tag tone="ok" icon={<IconCheck size={12} />}>{t('In use')}</Tag>}
+            {v.installed && !v.inUse && <Tag>{t('Installed')}</Tag>}
+            {v.prerelease && <Tag>{t('Pre-release')}</Tag>}
+            {v.older && <Tag>{t('Older')}</Tag>}
+            {v.olderServer && <Tag tone="warn" icon={<IconInfo size={12} />}>{t('Made for an older server')}</Tag>}
+            {v.withdrawn && <Tag tone="bad" icon={<IconInfo size={12} />}>{t('Withdrawn')}</Tag>}
           </span>
         </div>
-        {!v.inUse && <button type="button" id={'ver-' + v.version} className="btn sm" disabled={!can || working} onClick={onChoose} aria-label={`${v.installed ? 'Switch to' : 'Install'} version ${v.version}${!v.allowed && v.override ? ', with an override' : v.olderServer ? ', made for an older server: asks first' : ''}`}>{!v.allowed && v.override ? 'Install anyway…' : v.installed ? 'Switch to this' : v.olderServer ? 'Install…' : 'Install'}</button>}
+        {!v.inUse && <button type="button" id={'ver-' + v.version} className="btn sm" disabled={!can || working} onClick={onChoose} aria-label={versionLabel(v)}>{!v.allowed && v.override ? t('Install anyway…') : v.installed ? t('Switch to this') : v.olderServer ? t('Install…') : t('Install')}</button>}
       </div>
-      <div className="muted ms-ver-fit">Works with servers {v.minServer} to {v.maxServer}{v.size ? ` · ${mb(v.size)} MB` : ''}{link && <> · <a href={link} target="_blank" rel="noreferrer">On GitHub</a></>}</div>
-      {v.withdrawn && <p className="ms-bad">Withdrawn {severity(v.withdrawn.severity)}: {v.withdrawn.reason}</p>}
-      {v.override && !v.allowed && <p className="ms-why">Needs an override: {overrideLines(v.override).map((l) => l.reason || l.title).join(' ')}</p>}
-      {v.refused && !v.override && !/withdrawn/i.test(v.refused) && <p className="ms-why">Can’t be chosen: {v.refused}</p>}
-      {v.blocked && !v.withdrawn && <p className="ms-why">Taken out of use before: {v.blocked}</p>}
+      <div className="muted ms-ver-fit">{t('Works with servers {min} to {max}', { min: v.minServer, max: v.maxServer })}{v.size ? ' · ' + t('{size} MB', { size: mb(v.size) }) : ''}{link && <> · <a href={link} target="_blank" rel="noreferrer">{t('On GitHub')}</a></>}</div>
+      {v.withdrawn && <p className="ms-bad">{withdrawnWords(v.withdrawn, false)}</p>}
+      {v.override && !v.allowed && <p className="ms-why">{t('Needs an override: {reasons}', { reasons: overrideLines(v.override).map((l) => l.reason || l.title).join(' ') })}</p>}
+      {v.refused && !v.override && !/withdrawn/i.test(v.refused) && <p className="ms-why">{t('Can’t be chosen: {reason}', { reason: v.refused })}</p>}
+      {v.blocked && !v.withdrawn && <p className="ms-why">{t('Taken out of use before: {reason}', { reason: v.blocked })}</p>}
       <details className="ms-more">
-        <summary>Release notes</summary>
+        <summary>{t('Release notes')}</summary>
         <ChangeNotes text={v.notes} />
       </details>
     </li>
@@ -762,7 +776,7 @@ function overrideAskFor(m: ModuleStatus, version: string, need: NeedsOverride, d
     id: m.id, name: `${m.name} ${version}`, need: { ...need, version: need.version || version },
     send: async (body) => {
       const r = await api.post<ModuleReport>(`/modules/${m.id}/install`, { version, confirm: true, ...body })
-      toast(`${m.name} ${version} is being installed`)
+      toast(t('{name} {version} is being installed', { name: m.name, version }))
       done(r)
     },
   }

@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react'
 import { announce } from './a11y'
 import { ApiError, api, getToken, serverBase } from './api'
+import { date, num, t, tk, tx } from './i18n'
 
 // What the server is doing in the background, kept up to date by one stream. The stream
 // is open only while a tab is showing: a browser allows few connections per server, and
@@ -53,19 +54,20 @@ export function markProblemsSeen() {
 // is too, by quarters and no more than twice a minute. Nothing else is, however fast it moves.
 function speak(before: Task[], changed: Task[]) {
   const had = new Set(before.map((t) => t.id))
-  for (const t of changed) {
-    if (t.state === 'failed') announce(`${t.title} failed. ${t.error || ''}`)
-    else if (t.state === 'done') announce(`${t.title} finished.`)
-    else if (t.state === 'cancelled') announce(`${t.title} cancelled.`)
-    else if (!had.has(t.id)) { announce(`${t.title} started.`); spoken.set(t.id, { at: Date.now(), pct: 0 }) }
-    else if (panelOpen && t.percent >= 0) {
-      const was = spoken.get(t.id) ?? { at: 0, pct: 0 }
-      if (t.percent - was.pct >= 25 && Date.now() - was.at >= 30000) {
-        announce(`${t.title}, ${Math.round(t.percent)} percent.`)
-        spoken.set(t.id, { at: Date.now(), pct: t.percent })
+  for (const task of changed) {
+    const title = task.title
+    if (task.state === 'failed') announce(t('{title} failed. {error}', { title, error: task.error || '' }))
+    else if (task.state === 'done') announce(t('{title} finished.', { title }))
+    else if (task.state === 'cancelled') announce(t('{title} cancelled.', { title }))
+    else if (!had.has(task.id)) { announce(t('{title} started.', { title })); spoken.set(task.id, { at: Date.now(), pct: 0 }) }
+    else if (panelOpen && task.percent >= 0) {
+      const was = spoken.get(task.id) ?? { at: 0, pct: 0 }
+      if (task.percent - was.pct >= 25 && Date.now() - was.at >= 30000) {
+        announce(t('{title}, {percent} percent.', { title, percent: Math.round(task.percent) }))
+        spoken.set(task.id, { at: Date.now(), pct: task.percent })
       }
     }
-    if (t.state === 'failed' || t.state === 'done' || t.state === 'cancelled') spoken.delete(t.id)
+    if (task.state === 'failed' || task.state === 'done' || task.state === 'cancelled') spoken.delete(task.id)
   }
 }
 
@@ -211,57 +213,60 @@ export async function clearTaskHistory(id?: string) {
 // ---------------------------------------------------------------- saying it in words
 
 const TYPE_NAMES: Record<string, string> = {
-  scan: 'Library scan', analysis: 'File analysis', metadata: 'Metadata', thumbnails: 'Thumbnails', intros: 'Intro detection', games: 'Game details',
-  module: 'Module', backup: 'Backup', transcode: 'Transcode', convert: 'Library transcoding', tdarr: 'Tdarr', update: 'Server update', guide: 'TV guide', recording: 'Recording', diagnose: 'WittyDiagnoser', other: 'Background work',
+  scan: tk('Library scan'), analysis: tk('File analysis'), metadata: tk('Metadata'), thumbnails: tk('Thumbnails'), intros: tk('Intro detection'), games: tk('Game details'),
+  module: tk('Module'), backup: tk('Backup'), transcode: tk('Transcode'), convert: tk('Library transcoding'), tdarr: 'Tdarr', update: tk('Server update'), guide: tk('TV guide'), recording: tk('Recording'), diagnose: 'WittyDiagnoser', other: tk('Background work'),
 }
-export const typeName = (t: string) => TYPE_NAMES[t] ?? 'Background work'
+export const typeName = (type: string) => tx(TYPE_NAMES[type] ?? 'Background work')
 
-export const STATE_NAMES: Record<TaskState, string> = { queued: 'Waiting', running: 'Running', paused: 'Paused', failed: 'Failed', done: 'Finished', cancelled: 'Cancelled' }
+// Marked here and translated where shown: tx(STATE_NAMES[state]).
+export const STATE_NAMES: Record<TaskState, string> = { queued: tk('Waiting'), running: tk('Running'), paused: tk('Paused'), failed: tk('Failed'), done: tk('Finished'), cancelled: tk('Cancelled') }
 
 export function fmtBytes(n: number) {
-  if (n < 1024) return `${Math.round(n)} B`
+  if (n < 1024) return `${num(Math.round(n))} B`
   const units = ['KB', 'MB', 'GB', 'TB', 'PB']
   let v = n / 1024, i = 0
   while (v >= 1024 && i < units.length - 1) { v /= 1024; i++ }
-  return `${v >= 100 ? Math.round(v) : v.toFixed(1)} ${units[i]}`
+  return `${v >= 100 ? num(Math.round(v)) : num(v, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${units[i]}`
 }
 
 export function fmtDuration(sec: number) {
-  if (sec < 60) return `${Math.max(1, Math.round(sec))} sec`
-  if (sec < 3600) return `${Math.round(sec / 60)} min`
+  if (sec < 60) return t('{n} sec', { n: Math.max(1, Math.round(sec)) })
+  if (sec < 3600) return t('{n} min', { n: Math.round(sec / 60) })
   const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60)
-  return m ? `${h} hr ${m} min` : `${h} hr`
+  return m ? t('{h} hr {m} min', { h, m }) : t('{h} hr', { h })
 }
 
 export function fmtAgo(unix: number) {
   const s = Date.now() / 1000 - unix
-  if (s < 45) return 'just now'
-  if (s < 86400) return `${fmtDuration(s)} ago`
-  return new Date(unix * 1000).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  if (s < 45) return t('just now')
+  if (s < 86400) return t('{time} ago', { time: fmtDuration(s) })
+  return date(unix * 1000, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
-export function fmtCount(t: Task) {
-  if (t.unit === 'bytes') return t.total > 0 ? `${fmtBytes(t.done)} of ${fmtBytes(t.total)}` : fmtBytes(t.done)
-  const unit = t.unit ? ' ' + t.unit : ''
-  if (t.total > 0) return `${t.done.toLocaleString()} of ${t.total.toLocaleString()}${unit}`
-  return t.done > 0 ? `${t.done.toLocaleString()}${unit}` : ''
+export function fmtCount(task: Task) {
+  if (task.unit === 'bytes') return task.total > 0 ? t('{done} of {total}', { done: fmtBytes(task.done), total: fmtBytes(task.total) }) : fmtBytes(task.done)
+  const unit = tx(task.unit)
+  if (task.total > 0) return unit ? t('{done} of {total} {unit}', { done: num(task.done), total: num(task.total), unit }) : t('{done} of {total}', { done: num(task.done), total: num(task.total) })
+  return task.done > 0 ? (unit ? `${num(task.done)} ${unit}` : num(task.done)) : ''
 }
 
-export function fmtRate(t: Task) {
-  if (!t.rate || t.rate <= 0) return ''
-  if (t.unit === 'bytes') return `${fmtBytes(t.rate)}/s`
-  const unit = t.unit || 'items'
-  return t.rate >= 10 ? `${Math.round(t.rate)} ${unit}/s` : t.rate >= 0.1 ? `${t.rate.toFixed(1)} ${unit}/s` : `${Math.round(t.rate * 60)} ${unit}/min`
+export function fmtRate(task: Task) {
+  if (!task.rate || task.rate <= 0) return ''
+  if (task.unit === 'bytes') return t('{rate}/s', { rate: fmtBytes(task.rate) })
+  const unit = task.unit ? tx(task.unit) : t('items')
+  return task.rate >= 10 ? t('{rate} {unit}/s', { rate: num(Math.round(task.rate)), unit })
+    : task.rate >= 0.1 ? t('{rate} {unit}/s', { rate: num(task.rate, { minimumFractionDigits: 1, maximumFractionDigits: 1 }), unit })
+    : t('{rate} {unit}/min', { rate: num(Math.round(task.rate * 60)), unit })
 }
 
 export function buttonLabel(a: ActivityView) {
   const { active, queued, paused, percent } = a.summary
   const going = active - paused
   const parts: string[] = []
-  if (going > 0) parts.push(`${going} running`)
-  if (paused > 0) parts.push(`${paused} paused`)
-  if (queued > 0) parts.push(`${queued} waiting`)
-  if (percent >= 0 && going > 0) parts.push(`${Math.round(percent)}% done`)
-  if (a.unseenProblems > 0) parts.push(`${a.unseenProblems} failed`)
-  return parts.length ? `Activity: ${parts.join(', ')}` : 'Activity: nothing going on'
+  if (going > 0) parts.push(t('{count} running', { count: going }))
+  if (paused > 0) parts.push(t('{count} paused', { count: paused }))
+  if (queued > 0) parts.push(t('{count} waiting', { count: queued }))
+  if (percent >= 0 && going > 0) parts.push(t('{percent}% done', { percent: Math.round(percent) }))
+  if (a.unseenProblems > 0) parts.push(t('{count} failed', { count: a.unseenProblems }))
+  return parts.length ? t('Activity: {parts}', { parts: parts.join(', ') }) : t('Activity: nothing going on')
 }

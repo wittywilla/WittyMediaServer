@@ -8,6 +8,7 @@ import { IconRefresh } from '../icons'
 import SpecPage from '../spec/SpecPage'
 import { logsSpec } from '../spec/specs/logs'
 import { toast } from '../state'
+import { date, num, t, tk, tx } from '../i18n'
 import Bundle from './settings/logs/Bundle'
 import Crashes, { CrashBanner } from './settings/logs/Crashes'
 import Files from './settings/logs/Files'
@@ -23,21 +24,21 @@ import './settings/logs/logs.css'
 // straight to one: /settings/logs?session=abc, /settings/logs?module=wittydvd.
 
 const TABS = [
-  { id: 'viewer', label: 'Viewer' },
-  { id: 'levels', label: 'What to log' },
-  { id: 'modules', label: 'Modules' },
-  { id: 'files', label: 'Files' },
-  { id: 'crashes', label: 'Crash reports' },
-  { id: 'bundle', label: 'Download logs' },
+  { id: 'viewer', label: tk('Viewer') },
+  { id: 'levels', label: tk('What to log') },
+  { id: 'modules', label: tk('Modules') },
+  { id: 'files', label: tk('Files') },
+  { id: 'crashes', label: tk('Crash reports') },
+  { id: 'bundle', label: tk('Download logs') },
 ]
 
 // Logging itself in trouble, in plain words.
 function healthProblems(h: Health): string[] {
   const out: string[] = []
-  if (h.error) out.push(`The log can't be written to its folder: ${h.error}. Until that's fixed, lines are kept only in memory and on the console, and the server tries again every 30 seconds. Check the folder under Files.`)
-  if (h.lowDisk) out.push('The disk holding the logs is nearly full. To save room only warnings and errors are being written, and old logs are being removed.')
-  if (h.lost) out.push(`${h.lost.toLocaleString()} lines could not be written to the log.`)
-  if (h.dropped) out.push(`${h.dropped.toLocaleString()} lines were left out because the disk could not keep up.`)
+  if (h.error) out.push(t("The log can't be written to its folder: {error}. Until that's fixed, lines are kept only in memory and on the console, and the server tries again every 30 seconds. Check the folder under Files.", { error: h.error }))
+  if (h.lowDisk) out.push(t('The disk holding the logs is nearly full. To save room only warnings and errors are being written, and old logs are being removed.'))
+  if (h.lost) out.push(t('{count} lines could not be written to the log.', { count: num(h.lost) }))
+  if (h.dropped) out.push(t('{count} lines were left out because the disk could not keep up.', { count: num(h.dropped) }))
   return out
 }
 
@@ -49,7 +50,7 @@ export default function LogSettings() {
   const [saving, setSaving] = useState(false)
   const navigate = useNavigate()
   const asked = params.get('tab') || ''
-  const tab = params.get('session') || params.get('module') ? 'viewer' : TABS.some((t) => t.id === asked) ? asked : 'viewer'
+  const tab = params.get('session') || params.get('module') ? 'viewer' : TABS.some((x) => x.id === asked) ? asked : 'viewer'
 
   const load = useCallback(() => {
     setErr('')
@@ -77,7 +78,7 @@ export default function LogSettings() {
     if (a?.parentElement) a.parentElement.scrollLeft = a.offsetLeft - a.parentElement.offsetLeft - 16
   }, [tab, !view])
 
-  if (err && !view) return <div className="error" role="alert">{err}<div className="lg-note-actions"><button type="button" className="btn sm" onClick={() => void load()}><IconRefresh /> Try again</button></div></div>
+  if (err && !view) return <div className="error" role="alert">{err}<div className="lg-note-actions"><button type="button" className="btn sm" onClick={() => void load()}><IconRefresh /> {t('Try again')}</button></div></div>
   if (!view) return <Spinner />
   const problems = health ? healthProblems(health) : []
   const stopRecording = () => { api.put<LogsView>('/logs', { recordMinutes: 0 }).then(onView).catch((e) => toast(e.message)) }
@@ -87,18 +88,18 @@ export default function LogSettings() {
     try {
       const c = await api.post<Crash>('/logs/save')
       await load()
-      toast('Saved. It’s under Crash reports, and in the logs you download.')
+      toast(t('Saved. It’s under Crash reports, and in the logs you download.'))
       navigate(`?tab=crashes&crash=${encodeURIComponent(c.id)}`)
     } catch (e: any) { toast(e.message) } finally { setSaving(false) }
   }
   return (
     <>
       <CrashBanner crashes={view.crashes} onSeen={markSeen} />
-      <SpecPage embedded page={logsSpec({ recordingUntil: view.recordingUntil ? new Date(view.recordingUntil).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '', problems, flight: !!view.flight, showDownload: tab !== 'bundle', saving })}
+      <SpecPage embedded page={logsSpec({ recordingUntil: view.recordingUntil ? date(view.recordingUntil, { hour: 'numeric', minute: '2-digit' }) : '', problems, flight: !!view.flight, showDownload: tab !== 'bundle', saving })}
         handled={new Set(['stop', 'save'])} onAction={(id) => { if (id === 'stop') stopRecording(); else void saveNow() }} />
       <nav className="tabs lg-tabs" aria-label="WittyLog">
-        {TABS.map((t) => (
-          <Link key={t.id} to={t.id === 'viewer' ? '?' : `?tab=${t.id}`} className={tab === t.id ? 'active' : ''} aria-current={tab === t.id ? 'page' : undefined}>{t.label}</Link>
+        {TABS.map((x) => (
+          <Link key={x.id} to={x.id === 'viewer' ? '?' : `?tab=${x.id}`} className={tab === x.id ? 'active' : ''} aria-current={tab === x.id ? 'page' : undefined}>{tx(x.label)}</Link>
         ))}
       </nav>
       {tab === 'viewer' && <Viewer categories={view.categories} modules={view.modules} kinds={view.kinds || []} onHealth={onHealth} />}

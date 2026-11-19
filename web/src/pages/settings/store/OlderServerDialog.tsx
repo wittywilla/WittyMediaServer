@@ -2,6 +2,8 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useId, useRef, useState } from 'react'
 import { Button, Dialog } from '../../../ui'
+import { t, tn } from '../../../i18n'
+import { plugAppWords } from './words'
 import { confirmedIds, olderTitle, olderWords, startChoices, type OlderChoices, type OlderVersion } from './olderServer'
 import './olderServer.css'
 
@@ -11,6 +13,9 @@ import './olderServer.css'
 // first, focused, and what Escape means; only "Install anyway" sends confirmOlder. Several at once
 // (setup installs a set) are one pop-up, with a choice for each. The dialog keeps the focus inside
 // it and gives it back when it closes (a11y.tsx).
+
+// olderServer.ts is tested on its own and speaks through words.ts: give it the app's language.
+plugAppWords(t, tn)
 
 export function OlderServerDialog({ list, onDone }: { list: OlderVersion[]; onDone: (installAnyway: string[]) => void }) {
   const [choices, setChoices] = useState<OlderChoices>(() => startChoices(list))
@@ -22,8 +27,8 @@ export function OlderServerDialog({ list, onDone }: { list: OlderVersion[]; onDo
     return (
       <Dialog alert size="sm" title={olderTitle(list)} onClose={none} description={first}
         actions={<>
-          <Button autoFocus onClick={none}>Don’t install</Button>
-          <Button variant="danger" onClick={() => onDone([o.module])}>Install anyway</Button>
+          <Button autoFocus onClick={none}>{t('Don’t install')}</Button>
+          <Button variant="danger" onClick={() => onDone([o.module])}>{t('Install anyway')}</Button>
         </>}>
         {rest.map((p) => <p key={p} className="muted">{p}</p>)}
       </Dialog>
@@ -31,10 +36,10 @@ export function OlderServerDialog({ list, onDone }: { list: OlderVersion[]; onDo
   }
   return (
     <Dialog alert size="md" title={olderTitle(list)} onClose={none}
-      description="No version made for this server is published yet for these. Each one may start, but its pages, settings and features from this server may be missing. Choose for each one; Don’t install is the safe choice."
+      description={t('No version made for this server is published yet for these. Each one may start, but its pages, settings and features from this server may be missing. Choose for each one; Don’t install is the safe choice.')}
       actions={<>
-        <Button autoFocus onClick={none}>Don’t install any</Button>
-        <Button variant="danger" onClick={() => onDone(confirmedIds(choices))}>Continue</Button>
+        <Button autoFocus onClick={none}>{t('Don’t install any')}</Button>
+        <Button variant="danger" onClick={() => onDone(confirmedIds(choices))}>{t('Continue')}</Button>
       </>}>
       <ul className="st-older-list">
         {list.map((o) => {
@@ -46,8 +51,8 @@ export function OlderServerDialog({ list, onDone }: { list: OlderVersion[]; onDo
                 <legend><b>{o.name} {o.version}</b></legend>
                 <p id={name + '-why'} className="muted">{first}</p>
                 <div role="radiogroup" aria-label={`${o.name} ${o.version}`} aria-describedby={name + '-why'}>
-                  <label><input type="radio" name={name} checked={!choices[o.module]} onChange={() => setChoices((c) => ({ ...c, [o.module]: false }))} /> Don’t install</label>
-                  <label><input type="radio" name={name} checked={!!choices[o.module]} onChange={() => setChoices((c) => ({ ...c, [o.module]: true }))} /> Install anyway</label>
+                  <label><input type="radio" name={name} checked={!choices[o.module]} onChange={() => setChoices((c) => ({ ...c, [o.module]: false }))} /> {t('Don’t install')}</label>
+                  <label><input type="radio" name={name} checked={!!choices[o.module]} onChange={() => setChoices((c) => ({ ...c, [o.module]: true }))} /> {t('Install anyway')}</label>
                 </div>
               </fieldset>
             </li>

@@ -8,6 +8,7 @@ import SpecPage from '../spec/SpecPage'
 import { handledIds } from '../spec/model'
 import { connectSpec } from '../spec/specs/connect'
 import { isSubmitKey } from '../spec/specs/submit'
+import { t } from '../i18n'
 
 // The apps' choice of server: the web pages come with the app, so it has to
 // be told where the server is, at home or outside. In a browser this is never
@@ -30,7 +31,7 @@ export default function ConnectServer({ onCancel }: { onCancel?: () => void }) {
     setServerBase(url)
     try {
       const st = await api.get<{ name?: string }>('/status')
-      if (st.name !== 'WittyMediaServer') throw new Error('Something answers at that address, but it isn’t a WittyMediaServer.')
+      if (st.name !== 'WittyMediaServer') throw new Error(t('Something answers at that address, but it isn’t a WittyMediaServer.'))
       window.location.reload()
     } catch (e: any) {
       setServerBase(before)

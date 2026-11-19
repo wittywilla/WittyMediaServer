@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, mediaUrlQ, type Item } from '../../api'
+import { date, t, tx } from '../../i18n'
 import type { Target } from '../../metadata'
 import BrandLogo from '../BrandLogo'
 import { CardRow, ItemCard } from '../common'
@@ -44,7 +45,8 @@ export function TitleLogo({ target, id, name, version }: { target: Target; id: n
   )
 }
 
-const extraName = (t?: string) => (t || 'extra').replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase())
+// A bonus feature's kind from the server (behind-the-scenes) as words, translated when the catalogue knows them.
+const extraName = (kind?: string) => tx((kind || 'extra').replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()))
 
 export default function TitleExtras({ target, id, libraryId }: { target: Target; id: number; libraryId: number }) {
   const [a, setA] = useState<Attached | null>(null)
@@ -61,21 +63,21 @@ export default function TitleExtras({ target, id, libraryId }: { target: Target;
     <div className="title-extras">
       {(a.director || a.edition.length > 0 || a.tags.length > 0) && (
         <div className="title-facts">
-          {a.director && <span><span className="muted">{target === 'show' ? 'Created by' : 'Directed by'}</span> {a.director}</span>}
+          {a.director && <span><span className="muted">{target === 'show' ? t('Created by') : t('Directed by')}</span> {a.director}</span>}
           {a.edition.map((e) => <span key={e} className="pill">{e}</span>)}
-          {a.tags.map((t) => <Link key={t} className="chip" to={`/library/${libraryId}?tag=${encodeURIComponent(t)}`}>{t}</Link>)}
+          {a.tags.map((tag) => <Link key={tag} className="chip" to={`/library/${libraryId}?tag=${encodeURIComponent(tag)}`}>{tag}</Link>)}
         </div>
       )}
       {hasBrands && (
-        <div className="title-brands" aria-label="Studios">
+        <div className="title-brands" aria-label={t('Studios')}>
           {a.studios.map((s) => (
             <Link key={s} to={`/brand/studio/${encodeURIComponent(s)}?library=${libraryId}`} className="title-brand" title={s} aria-label={s}><BrandLogo kind="studio" name={s} label={false} /></Link>
           ))}
         </div>
       )}
       {a.versions.length > 0 && (
-        <section aria-label="Other versions" className="title-versions">
-          <h2>Other versions</h2>
+        <section aria-label={t('Other versions')} className="title-versions">
+          <h2>{t('Other versions')}</h2>
           <div className="title-version-list">
             {a.versions.map((v) => (
               <Link key={v.item.id} className="btn" to={`/item/${v.item.id}`}>{v.link.label || v.item.title}{v.item.height ? ` · ${v.item.height}p` : ''}</Link>
@@ -84,8 +86,8 @@ export default function TitleExtras({ target, id, libraryId }: { target: Target;
         </section>
       )}
       {a.extras.length > 0 && (
-        <section aria-label="Bonus features" className="title-bonus">
-          <h2>Bonus features</h2>
+        <section aria-label={t('Bonus features')} className="title-bonus">
+          <h2>{t('Bonus features')}</h2>
           <CardRow>
             {a.extras.map((x) => (
               <div key={x.item.id} className="title-bonus-card">
@@ -97,12 +99,12 @@ export default function TitleExtras({ target, id, libraryId }: { target: Target;
         </section>
       )}
       {l && l.platforms.length > 0 && (
-        <section aria-label="Also listed on" className="title-listed">
-          <h2>Also listed on</h2>
+        <section aria-label={t('Also listed on')} className="title-listed">
+          <h2>{t('Also listed on')}</h2>
           <div className="title-brands">
             {l.platforms.map((p) => <Link key={p.key} className="title-brand" to={`/library/${libraryId}?platform=${encodeURIComponent(p.key)}`} title={p.name} aria-label={p.name}><BrandLogo kind="platform" name={p.name} label={false} /></Link>)}
           </div>
-          <p className="muted title-listed-note"><b>Nothing plays from these services.</b> You're looking at your own copy, on your own server. Listed for {l.region}{l.asOf ? `, as of ${new Date(l.asOf * 1000).toLocaleDateString()}` : ''}. {l.attribution}</p>
+          <p className="muted title-listed-note"><b>{t('Nothing plays from these services.')}</b> {t("You're looking at your own copy, on your own server.")} {l.asOf ? t('Listed for {region}, as of {date}.', { region: l.region, date: date(l.asOf * 1000) }) : t('Listed for {region}.', { region: l.region })} {l.attribution}</p>
           <LegalNote kind="listings" />
         </section>
       )}

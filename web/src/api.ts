@@ -3,6 +3,7 @@
 // Thin API client. The server sets an HttpOnly cookie on login; we also keep
 // the token in localStorage for native wrappers / cross-origin use.
 import { reportRequestFailure } from './errorReport'
+import { date, language, t, tk, tx } from './i18n'
 
 export type User = { id: number; name: string; displayName?: string; showUsername?: boolean; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean; avatar?: string }
 // `name` is the username: unique, and what signing in uses. A profile name is what
@@ -177,15 +178,23 @@ export function normalizeServer(input: string): string {
   return (/^[\d.]+(:\d+)?$|^\[|^localhost\b|:\d+$/i.test(v) ? 'http://' : 'https://') + v
 }
 
-// A date and time for people, the same everywhere: Oct 31, 2026, 8:00 PM.
-export const fmtDateTime = (t: number | string | Date) => new Date(t).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+// A date and time for people, in the app's language: Oct 31, 2026, 8:00 PM.
+export const fmtDateTime = (when: number | string | Date) => date(when, { dateStyle: 'medium', timeStyle: 'short' })
 
 // Servers say things in lower case without a full stop, which is fine for a log. On a page it's a sentence.
-const sentence = (s: string) => { const t = s.trim(); return !t ? t : t[0].toUpperCase() + t.slice(1) + (/[\w)”']$/.test(t) ? '.' : '') }
+const sentence = (s: string) => { const w = s.trim(); return !w ? w : w[0].toUpperCase() + w.slice(1) + (/[\w)”']$/.test(w) ? '.' : '') }
+// The server's words in the app's language when the catalogue knows them (as the server wrote them, or as a sentence),
+// else as a sentence in English.
+const inLanguage = (s: string) => { const w = s.trim(), here = tx(w); return here !== w ? here : tx(sentence(w)) }
 
+// message is what people read, in the app's language; english is the same words as they came, for error reports,
+// logs and code that looks for particular words.
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public data?: any) { super(sentence(message)) }
+  readonly english: string
+  constructor(public status: number, message: string, public data?: any) { super(inLanguage(message)); this.english = sentence(message) }
 }
+
+const NO_SERVER = tk("Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
 
 // The module a request has just found missing. A page that then can't load says that, rather than
 // that something went wrong.
@@ -214,7 +223,7 @@ async function send(method: string, path: string, body?: unknown, signal?: Abort
     if (signal?.aborted) throw e // given up on here, on purpose: nothing went wrong
     reportRequestFailure(method, path, 0, '')
     // The browser's own wording ("Failed to fetch") means nothing to people.
-    throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
+    throw new ApiError(0, NO_SERVER)
   }
   const text = await res.text()
   const data = parse(text)
@@ -245,7 +254,7 @@ export async function uploadFile<T>(path: string, body: Blob, method = 'POST'): 
   try {
     res = await fetch(serverBase() + '/api' + path, { method, headers, body, credentials: 'same-origin' })
   } catch {
-    throw new ApiError(0, "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
+    throw new ApiError(0, NO_SERVER)
   }
   const text = await res.text()
   let data: any = null
@@ -299,7 +308,7 @@ export async function downloadFile(path: string, name: string) {
   try {
     res = await fetch(serverBase() + '/api' + path, { headers, credentials: 'same-origin' })
   } catch {
-    throw new ApiError(0, "Can't reach your server.")
+    throw new ApiError(0, tk("Can't reach your server."))
   }
   if (!res.ok) {
     const text = await res.text()
@@ -394,25 +403,22 @@ export const discName = (it: Item) => (isCD(it) ? 'CD' : isBluray(it) ? 'Blu-ray
 const CODECS: Record<string, string> = { h264: 'H.264', hevc: 'HEVC', h265: 'HEVC', mpeg2video: 'MPEG-2', mpeg1video: 'MPEG-1', mpeg4: 'MPEG-4', vc1: 'VC-1', av1: 'AV1', vp9: 'VP9', vp8: 'VP8', prores: 'ProRes' }
 export const codecName = (c?: string) => (c ? CODECS[c.toLowerCase()] || c.toUpperCase() : '')
 
-const LANGS: Record<string, string> = {
-  en: 'English', nl: 'Dutch', fr: 'French', de: 'German', es: 'Spanish', it: 'Italian', pt: 'Portuguese', ja: 'Japanese',
-  zh: 'Chinese', ko: 'Korean', ru: 'Russian', sv: 'Swedish', da: 'Danish', no: 'Norwegian', fi: 'Finnish', pl: 'Polish',
-  cs: 'Czech', hu: 'Hungarian', el: 'Greek', tr: 'Turkish', he: 'Hebrew', ar: 'Arabic', hi: 'Hindi', th: 'Thai',
-  eng: 'English', dut: 'Dutch', nld: 'Dutch', fre: 'French', fra: 'French', ger: 'German', deu: 'German', spa: 'Spanish',
-  ita: 'Italian', por: 'Portuguese', jpn: 'Japanese', chi: 'Chinese', zho: 'Chinese', kor: 'Korean', rus: 'Russian', und: 'Unknown',
-  // The older bibliographic codes discs use, which the browser's names don't know.
-  gre: 'Greek', rum: 'Romanian', cze: 'Czech', ice: 'Icelandic', per: 'Persian', baq: 'Basque', slo: 'Slovak', mac: 'Macedonian',
-  alb: 'Albanian', arm: 'Armenian', geo: 'Georgian', bur: 'Burmese', may: 'Malay', wel: 'Welsh', tib: 'Tibetan', mul: 'Several languages', zxx: 'None',
+// The older bibliographic codes discs use, which the browser's names don't know, as the codes it does.
+const BIB: Record<string, string> = {
+  dut: 'nl', fre: 'fr', ger: 'de', chi: 'zh', gre: 'el', rum: 'ro', cze: 'cs', ice: 'is', per: 'fa', baq: 'eu', slo: 'sk',
+  mac: 'mk', alb: 'sq', arm: 'hy', geo: 'ka', bur: 'my', may: 'ms', wel: 'cy', tib: 'bo',
 }
-let names: Intl.DisplayNames | null | undefined
-// Any other code is named by the browser ("cat" is Catalan), or shown as is.
+let names: { here: string; of: Intl.DisplayNames | null } | undefined
+// A language's name in the app's language ("German", "Allemand"), named by the browser, or the code as is.
 export const langName = (code?: string) => {
-  if (!code) return 'Unknown'
-  const c = code.toLowerCase()
-  if (LANGS[c]) return LANGS[c]
-  if (names === undefined) try { names = new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' }) } catch { names = null }
-  try { const n = names?.of(c); if (n) return n } catch { /* not a language code */ }
-  return code.toUpperCase()
+  const c = code?.toLowerCase()
+  if (!c || c === 'und') return t('Unknown')
+  if (c === 'mul') return t('Several languages')
+  if (c === 'zxx') return t('No language')
+  const here = language()
+  if (names?.here !== here) try { names = { here, of: new Intl.DisplayNames([here, 'en'], { type: 'language', fallback: 'none' }) } } catch { names = { here, of: null } }
+  try { const n = names.of?.of(BIB[c] || c); if (n) return n[0].toLocaleUpperCase(here) + n.slice(1) } catch { /* not a language code */ }
+  return code!.toUpperCase()
 }
 
 // albumsOnce: the home page's rows list recently added songs one by one; a row

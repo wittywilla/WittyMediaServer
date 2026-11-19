@@ -12,6 +12,7 @@ import { toast } from '../state'
 import { joinParty } from './party'
 import { declineInvite, refreshInvites, useInvites } from './invites'
 import './party.css'
+import { t, tn } from '../i18n'
 
 export default function PartyInvites() {
   const invites = useInvites()
@@ -34,12 +35,12 @@ export default function PartyInvites() {
   const card = (
     <div className="party-invite" role="alert" onClick={stop} onDoubleClick={stop}>
       <div>
-        <b>{inv.hostName || 'Someone'}</b> invited you to a watch party
-        <small>{inv.name}{invites.length > 1 ? ` · and ${invites.length - 1} more ${invites.length === 2 ? 'invitation' : 'invitations'}` : ''}</small>
+        {t('{name} invited you to a watch party', { name: inv.hostName || t('Someone') })}
+        <small>{inv.name}{invites.length > 1 ? ' · ' + tn('and {count} more invitation', 'and {count} more invitations', invites.length - 1) : ''}</small>
       </div>
       <div className="party-invite-actions">
-        <button type="button" className="btn sm primary" disabled={busy} onClick={accept}>Accept</button>
-        <button type="button" className="btn sm ghost" disabled={busy} onClick={() => declineInvite(inv.id)}>Decline</button>
+        <button type="button" className="btn sm primary" disabled={busy} onClick={accept}>{t('Accept')}</button>
+        <button type="button" className="btn sm ghost" disabled={busy} onClick={() => declineInvite(inv.id)}>{t('Decline')}</button>
       </div>
     </div>
   )

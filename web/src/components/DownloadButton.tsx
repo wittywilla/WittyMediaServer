@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { downloadFile } from '../api'
 import { IconDownload } from '../icons'
 import { toast } from '../state'
+import { t } from '../i18n'
 
 // A download that signs in the way the app's other requests do, with no token in
 // the address, for what an admin takes away: logs, crash reports, diagnoser reports.
@@ -13,5 +14,5 @@ export default function DownloadButton({ path, name, className = 'btn sm', label
     setBusy(true)
     try { await downloadFile(path, name) } catch (e: any) { toast(e.message) } finally { setBusy(false) }
   }
-  return <button type="button" className={className} disabled={busy} aria-label={label} onClick={start}><IconDownload /> {busy ? 'Preparing…' : children}</button>
+  return <button type="button" className={className} disabled={busy} aria-label={label} onClick={start}><IconDownload /> {busy ? t('Preparing…') : children}</button>
 }

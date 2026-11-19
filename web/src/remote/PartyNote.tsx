@@ -11,6 +11,7 @@ import { useParty } from './party'
 import { partyKind } from './partyLogic'
 import './remote.css'
 import './party.css'
+import { list, t } from '../i18n'
 
 // quiet: do the pausing and closing, but say nothing (the mini player has no room for it).
 export default function PartyNote({ itemId, video, close, quiet }: { itemId: number; video: React.RefObject<HTMLVideoElement | null>; close: () => void; quiet?: boolean }) {
@@ -31,12 +32,12 @@ export default function PartyNote({ itemId, video, close, quiet }: { itemId: num
   if (stuck) {
     return (
       <div className="wp-note wp-note-big" role="status" aria-live="polite">
-        <strong>{room.blocked ? 'Can’t watch this one' : 'This one isn’t kept in step here'}</strong>
-        <span>{room.blocked ? 'The party has moved on to something this account can’t watch.' : 'The party has moved on to something this app can’t keep in step.'} You keep your place, and join in again when it moves on.</span>
+        <strong>{room.blocked ? t('Can’t watch this one') : t('This one isn’t kept in step here')}</strong>
+        <span>{room.blocked ? t('The party has moved on to something this account can’t watch.') : t('The party has moved on to something this app can’t keep in step.')} {t('You keep your place, and join in again when it moves on.')}</span>
       </div>
     )
   }
   if (!here || !room.state.waiting) return null
   const names = room.members.filter((m) => !m.you && (m.state === 'loading' || m.state === 'buffering')).map((m) => m.name)
-  return <div className="wp-note" role="status" aria-live="polite">{names.length ? `Waiting for ${names.join(', ')}` : 'Waiting for everyone to be ready'}</div>
+  return <div className="wp-note" role="status" aria-live="polite">{names.length ? t('Waiting for {names}', { names: list(names) }) : t('Waiting for everyone to be ready')}</div>
 }

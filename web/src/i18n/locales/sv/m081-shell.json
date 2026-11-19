@@ -1,0 +1,17 @@
+{
+  "Episode number": "Avsnittsnummer",
+  "Episode {episode}": "Avsnitt {episode}",
+  "Episodes {episodes}": "Avsnitt {episodes}",
+  "Last episode": "Sista avsnittet",
+  "Season number": "Säsongsnummer",
+  "Show episodes as": "Visa avsnitt som",
+  "Special {episode}": "Specialavsnitt {episode}",
+  "Specials {episodes}": "Specialavsnitt {episodes}",
+  "S{season} · E{episode}": "S{season} · A{episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "Ditt grafikchip kan konvertera video för en bråkdel av processorarbetet. Var och en testas när servern startar, de som din dator saknar är nedtonade, och alla som fungerar är ikryssade tills du väljer: den första ikryssade som fungerar används, och bilden stannar på chipet från avkodning till kodning där det går. Utan någon ikryssad sker allt i mjukvara, vilket ger bäst kvalitet för storleken och använder mest processor.",
+  "{left} of {count} left": {
+    "one": "{left} av {count} kvar",
+    "other": "{left} av {count} kvar"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

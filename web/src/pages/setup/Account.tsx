@@ -6,6 +6,7 @@ import { legalAckText, useLegalPath } from '../../components/LegalNote'
 import { Button, Field, Input } from '../../ui'
 import { TwoStep } from './TwoStep'
 import { StepActions, StepHead, TickRow, WhereIsTheCode } from './parts'
+import { t } from '../../i18n'
 
 // Everything is checked when Create account is pressed, with the reason beside the field, rather
 // than by a greyed-out button: a remote can't land on a button that's off, and it says nothing about why.
@@ -13,11 +14,11 @@ type Problems = { name?: string; pw?: string; pw2?: string; code?: string; ack?:
 
 function problemsWith(name: string, pw: string, pw2: string, needCode: boolean, code: string, ack: boolean): Problems {
   const p: Problems = {}
-  if (!name.trim()) p.name = 'Type a name to sign in with.'
-  if (pw.length < 8) p.pw = 'Your password needs at least 8 characters.'
-  else if (pw !== pw2) p.pw2 = 'The two passwords are different. Type it again.'
-  if (needCode && !code.trim()) p.code = 'Type the setup code. Where to find it is just below.'
-  if (!ack) p.ack = 'Tick this to carry on.'
+  if (!name.trim()) p.name = t('Type a name to sign in with.')
+  if (pw.length < 8) p.pw = t('Your password needs at least 8 characters.')
+  else if (pw !== pw2) p.pw2 = t('The two passwords are different. Type it again.')
+  if (needCode && !code.trim()) p.code = t('Type the setup code. Where to find it is just below.')
+  if (!ack) p.ack = t('Tick this to carry on.')
   return p
 }
 
@@ -61,31 +62,31 @@ export function Account({ back, onDone }: { back: () => void; onDone: (u: User, 
   if (made) return <TwoStep password={pw} onDone={() => onDone(made.user, made.token)} />
   return (
     <form ref={form} onSubmit={submit} noValidate>
-      <StepHead title="Create your account" lead="This account looks after the server: its libraries, people and settings. You can add a profile for everyone else later." />
+      <StepHead title={t('Create your account')} lead={t('This account looks after the server: its libraries, people and settings. You can add a profile for everyone else later.')} />
       <div className="oobe-form su-form">
-        <Field label="Name to sign in with" error={problems.name}><Input autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" autoCapitalize="off" spellCheck={false} /></Field>
-        <Field label="Name people see" hint="Optional. What this profile is called around the app; the name above is only for signing in."><Input value={shown} onChange={(e) => setShown(e.target.value)} maxLength={40} autoComplete="nickname" /></Field>
-        <Field label="Password" hint={<span className={'oobe-strength l' + level}><i /><i /><i /><span>{['At least 8 characters', '', 'Good', 'Strong'][level]}</span></span>} error={problems.pw}>
+        <Field label={t('Name to sign in with')} error={problems.name}><Input autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" autoCapitalize="off" spellCheck={false} /></Field>
+        <Field label={t('Name people see')} hint={t('Optional. What this profile is called around the app; the name above is only for signing in.')}><Input value={shown} onChange={(e) => setShown(e.target.value)} maxLength={40} autoComplete="nickname" /></Field>
+        <Field label={t('Password')} hint={<span className={'oobe-strength l' + level}><i /><i /><i /><span>{[t('At least 8 characters'), '', t('Good'), t('Strong')][level]}</span></span>} error={problems.pw}>
           <Input type={show ? 'text' : 'password'} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" />
         </Field>
-        <Field label="Type it again" error={problems.pw2}><Input type={show ? 'text' : 'password'} value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></Field>
-        <TickRow checked={show} onChange={setShow} title="Show what I’m typing" />
-        <TickRow checked={two} onChange={setTwo} title="Two-step sign-in (recommended)" text="Ask for a code from an authenticator app when signing in. You set it up on the next page, right after the account is made, and can skip it there." />
+        <Field label={t('Type it again')} error={problems.pw2}><Input type={show ? 'text' : 'password'} value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></Field>
+        <TickRow checked={show} onChange={setShow} title={t('Show what I’m typing')} />
+        <TickRow checked={two} onChange={setTwo} title={t('Two-step sign-in (recommended)')} text={t('Ask for a code from an authenticator app when signing in. You set it up on the next page, right after the account is made, and can skip it there.')} />
         {needCode && (
           <>
-            <Field label="Setup code" error={problems.code}><Input className="mono" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} /></Field>
+            <Field label={t('Setup code')} error={problems.code}><Input className="mono" value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} /></Field>
             <WhereIsTheCode />
           </>
         )}
         <div className={'su-ack' + (problems.ack ? ' wrong' : '')}>
           <TickRow checked={ack} onChange={setAck} title={legalAckText()} />
           {problems.ack && <div className="ui-field-error" role="alert">{problems.ack}</div>}
-          <a href={legal} target="_blank" rel="noreferrer">Read the legal notes (opens in a new tab)</a>
+          <a href={legal} target="_blank" rel="noreferrer">{t('Read the legal notes (opens in a new tab)')}</a>
         </div>
       </div>
       {err && <div className="error su-gap" role="alert">{err}</div>}
       <StepActions back={back}>
-        <Button type="submit" variant="primary" size="big" busy={busy}>{busy ? 'Creating…' : 'Create account'}</Button>
+        <Button type="submit" variant="primary" size="big" busy={busy}>{busy ? t('Creating…') : t('Create account')}</Button>
       </StepActions>
     </form>
   )

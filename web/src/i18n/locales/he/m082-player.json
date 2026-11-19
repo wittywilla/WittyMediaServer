@@ -1,0 +1,14 @@
+{
+  "Control bar": "סרגל הפקדים",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "מפורט מציב כל כפתור על הסרגל. פשוט משאיר את התמונה פנויה: הפעלה והדילוגים באמצע, וכל השאר (צליל, כתוביות, איכות, מהירות, סצנות) בתפריט אפשרויות אחד. אוטומטי הוא פשוט בטלפון או בטאבלט ומפורט במסך רחב יותר.",
+  "Detailed": "מפורט",
+  "Back to options": "חזרה לאפשרויות",
+  "Mono": "מונו",
+  "Styled text": "טקסט מעוצב",
+  "Keep playing in a corner": "להמשיך לנגן בפינה",
+  "{count} watching": {
+    "one": "צופה אחד",
+    "two": "שני צופים",
+    "other": "{count} צופים"
+  }
+}

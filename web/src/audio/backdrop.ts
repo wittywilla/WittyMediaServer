@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { SoundListener } from './sound'
+import { tk } from '../i18n'
 
 // The player's own moving pictures, drawn behind the artwork: Bars, Waves and Drift. They
 // are the ones that can be on by default, because of what they aren't: no flashes, nothing
@@ -8,7 +9,7 @@ import { SoundListener } from './sound'
 // One canvas at low resolution, at most 30 frames a second, and it stops when hidden.
 
 export type NativeStyle = 'bars' | 'waves' | 'drift'
-export const NATIVE_STYLES: { id: NativeStyle; name: string }[] = [{ id: 'bars', name: 'Bars' }, { id: 'waves', name: 'Waves' }, { id: 'drift', name: 'Drift' }]
+export const NATIVE_STYLES: { id: NativeStyle; name: string }[] = [{ id: 'bars', name: tk('Bars') }, { id: 'waves', name: tk('Waves') }, { id: 'drift', name: tk('Drift') }]
 
 const BARS = 46 // on each side of the centre together
 const MOTES = 14

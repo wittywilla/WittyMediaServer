@@ -1,0 +1,12 @@
+{
+  "Control bar": "コントロールバー",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "「詳細」はすべてのボタンをバーに並べます。「シンプル」は映像を見やすく保ちます。再生とスキップを中央に置き、それ以外（音声、字幕、画質、速度、シーン）は 1 つのオプションメニューにまとめます。「自動」はスマートフォンやタブレットではシンプル、広い画面では詳細になります。",
+  "Detailed": "詳細",
+  "Back to options": "オプションに戻る",
+  "Mono": "モノラル",
+  "Styled text": "スタイル付きテキスト",
+  "Keep playing in a corner": "隅で再生を続ける",
+  "{count} watching": {
+    "other": "{count} 人が視聴中"
+  }
+}

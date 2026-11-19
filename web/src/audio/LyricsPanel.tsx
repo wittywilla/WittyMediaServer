@@ -8,6 +8,7 @@ import { ownTiming, useLineIndex, type LyricLine, type useLyrics } from './lyric
 import type { PlayerView } from './types'
 import { WebLink } from '../components/WebLink'
 import { Segmented } from '../ui/Choice'
+import { num, t } from '../i18n'
 
 // Lyrics that follow the music: the line being sung stays in the middle, and pressing any
 // line goes to it. Scrolling by hand holds the view still for a few seconds. Words without
@@ -43,25 +44,25 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
   return (
     <div className="np-side np-lyrics">
       <div className="np-side-head">
-        <h3>Lyrics</h3>
+        <h3>{t('Lyrics')}</h3>
         {lyrics?.sourceName && <span className="np-side-meta">{lyrics.creditUrl ? <WebLink href={lyrics.creditUrl}>{lyrics.sourceName}</WebLink> : lyrics.sourceName}</span>}
-        <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Close the lyrics"><IconClose /></button>
+        <button type="button" className="mp-ibtn" onClick={onClose} aria-label={t('Close the lyrics')}><IconClose /></button>
       </div>
       {lyrics && !loading && !lyrics.instrumental && (lyrics.plain || timed) && (
         <div className="np-modes">
-          <Segmented label="Lyrics mode" value={reading ? 'read' : 'follow'} onChange={setMode} options={[{ value: 'follow', label: 'Follow along', disabled: !timed }, { value: 'read', label: 'Read' }]} />
-          {!timed && <span className="np-hint">These words have no times, so they read as text.</span>}
+          <Segmented label={t('Lyrics mode')} value={reading ? 'read' : 'follow'} onChange={setMode} options={[{ value: 'follow', label: t('Follow along'), disabled: !timed }, { value: 'read', label: t('Read') }]} />
+          {!timed && <span className="np-hint">{t('These words have no times, so they read as text.')}</span>}
         </div>
       )}
-      {loading && <p className="np-hint">Looking for the words…</p>}
+      {loading && <p className="np-hint">{t('Looking for the words…')}</p>}
       {failed && <p className="np-note" role="alert">{failed}</p>}
-      {lyrics?.instrumental && <p className="np-empty">This one has no words.</p>}
+      {lyrics?.instrumental && <p className="np-empty">{t('This one has no words.')}</p>}
       {lyrics && !loading && !lyrics.instrumental && !lyrics.plain && <NoLyrics p={p} online={lyrics.online} canEdit={lyrics.canEdit} tried={lyrics.tried} failed={lyrics.failed} />}
       {timed && !reading ? (
         <ol className="np-lines" ref={box} onWheel={hold} onTouchMove={hold}>
           {lines.map((l, i) => (
             <li key={i} className={i === index ? 'now' : i < index ? 'past' : ''}>
-              <button type="button" aria-current={i === index ? 'true' : undefined} aria-label={`${fmtTime(l.t / 1000)}: ${l.text || 'a break'}`}
+              <button type="button" aria-current={i === index ? 'true' : undefined} aria-label={`${fmtTime(l.t / 1000)}: ${l.text || t('a break')}`}
                 onClick={() => { heldUntil.current = 0; p.seek(Math.max(0, (l.t + offset) / 1000)) }}>
                 {l.text || <span aria-hidden="true">♪</span>}
               </button>
@@ -72,14 +73,14 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
       {lyrics && (lyrics.plain || lyrics.canEdit) && (
         <div className="np-lyric-tools">
           {timed && !reading && (
-            <span className="np-nudge" role="group" aria-label="Timing">
-              <button type="button" className="np-chip small" onClick={() => nudge(-250)} title="The words come sooner">Sooner</button>
-              <span aria-live="polite" className="np-nudge-v">{offset === 0 ? 'On time' : `${offset > 0 ? '+' : ''}${(offset / 1000).toFixed(2)} s`}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? ', set by listening' : ''}</span>
-              <button type="button" className="np-chip small" onClick={() => nudge(250)} title="The words come later">Later</button>
-              {offset !== ownTiming(lyrics) && <button type="button" className="np-chip small" onClick={() => setOffset(ownTiming(lyrics))}>Reset</button>}
+            <span className="np-nudge" role="group" aria-label={t('Timing')}>
+              <button type="button" className="np-chip small" onClick={() => nudge(-250)} title={t('The words come sooner')}>{t('Sooner')}</button>
+              <span aria-live="polite" className="np-nudge-v">{offset === 0 ? t('On time') : t('{n} s', { n: (offset > 0 ? '+' : '') + num(offset / 1000, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}{lyrics?.autoSync === 'set' && offset === ownTiming(lyrics) ? t(', set by listening') : ''}</span>
+              <button type="button" className="np-chip small" onClick={() => nudge(250)} title={t('The words come later')}>{t('Later')}</button>
+              {offset !== ownTiming(lyrics) && <button type="button" className="np-chip small" onClick={() => setOffset(ownTiming(lyrics))}>{t('Reset')}</button>}
             </span>
           )}
-          {lyrics.canEdit && <button type="button" className="np-chip small" onClick={() => setFixing(true)}><IconEdit size={16} /> Fix</button>}
+          {lyrics.canEdit && <button type="button" className="np-chip small" onClick={() => setFixing(true)}><IconEdit size={16} /> {t('Fix')}</button>}
         </div>
       )}
       {fixing && lyrics && <FixLyrics p={p} text={lyrics.plain} lines={lines} source={lyrics.source} online={lyrics.online} onClose={() => setFixing(false)} onSaved={() => { setFixing(false); reload() }} />}
@@ -88,16 +89,16 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
 }
 
 function NoLyrics({ p, online, canEdit, tried, failed }: { p: PlayerView; online: boolean; canEdit: boolean; tried: boolean; failed?: string }) {
-  if (failed) return <p className="np-empty">The lyrics source couldn't be reached just now. It'll be tried again next time this song is opened.</p>
-  if (tried) return <p className="np-empty">No words found for this song online. {canEdit ? 'Fix lets you search under another name, or add them yourself.' : ''}</p>
-  if (online) return <p className="np-empty">No words found for this song.</p>
+  if (failed) return <p className="np-empty">{t('The lyrics source couldn’t be reached just now. It’ll be tried again next time this song is opened.')}</p>
+  if (tried) return <p className="np-empty">{t('No words found for this song online.')} {canEdit ? t('Fix lets you search under another name, or add them yourself.') : ''}</p>
+  if (online) return <p className="np-empty">{t('No words found for this song.')}</p>
   return (
     <div className="np-empty">
-      <p>No words here. A <code>.lrc</code> file with the same name as the song, beside it, is used first.</p>
+      <p>{t('No words here. A .lrc file with the same name as the song, beside it, is used first.')}</p>
       {canEdit
-        ? <p>Or find them online for free, if you agree: <button type="button" className="np-link" onClick={() => p.goTowards('/settings/metadata#lyrics')}>turn on online lyrics</button> in Settings. Your server sends only the artist, title, album and length.</p>
-        : <p>Whoever runs this server can also turn on finding them online.</p>}
-      <p><button type="button" className="np-link" onClick={() => p.goTowards('/help/lyrics-karaoke#if-lyrics-are-missing-or-wrong')}>How lyrics work</button></p>
+        ? <p>{t('Or find them online for free, if you agree:')} <button type="button" className="np-link" onClick={() => p.goTowards('/settings/metadata#lyrics')}>{t('turn on online lyrics')}</button> {t('in Settings. Your server sends only the artist, title, album and length.')}</p>
+        : <p>{t('Whoever runs this server can also turn on finding them online.')}</p>}
+      <p><button type="button" className="np-link" onClick={() => p.goTowards('/help/lyrics-karaoke#if-lyrics-are-missing-or-wrong')}>{t('How lyrics work')}</button></p>
     </div>
   )
 }
@@ -127,32 +128,32 @@ function FixLyrics({ p, text, lines, source, online, onClose, onSaved }: { p: Pl
     setBusy(false)
   }
   return (
-    <div className="np-fix" role="dialog" aria-modal="true" aria-label={`Fix the lyrics of ${it.title}`} ref={ref}>
+    <div className="np-fix" role="dialog" aria-modal="true" aria-label={t('Fix the lyrics of {title}', { title: it.title })} ref={ref}>
       <div className="np-side-head">
-        <h3>Fix the lyrics</h3>
-        <button type="button" className="mp-ibtn" onClick={onClose} aria-label="Close"><IconClose /></button>
+        <h3>{t('Fix the lyrics')}</h3>
+        <button type="button" className="mp-ibtn" onClick={onClose} aria-label={t('Close')}><IconClose /></button>
       </div>
       <div className="np-tabs" role="tablist">
-        {online && <button type="button" role="tab" className={'np-tab' + (tab === 'search' ? ' on' : '')} aria-selected={tab === 'search'} onClick={() => setTab('search')}>Other versions</button>}
-        <button type="button" role="tab" className={'np-tab' + (tab === 'edit' ? ' on' : '')} aria-selected={tab === 'edit'} onClick={() => setTab('edit')}>Edit</button>
-        <button type="button" role="tab" className={'np-tab' + (tab === 'tap' ? ' on' : '')} aria-selected={tab === 'tap'} onClick={() => setTab('tap')}>Tap along</button>
+        {online && <button type="button" role="tab" className={'np-tab' + (tab === 'search' ? ' on' : '')} aria-selected={tab === 'search'} onClick={() => setTab('search')}>{t('Other versions')}</button>}
+        <button type="button" role="tab" className={'np-tab' + (tab === 'edit' ? ' on' : '')} aria-selected={tab === 'edit'} onClick={() => setTab('edit')}>{t('Edit')}</button>
+        <button type="button" role="tab" className={'np-tab' + (tab === 'tap' ? ' on' : '')} aria-selected={tab === 'tap'} onClick={() => setTab('tap')}>{t('Tap along')}</button>
       </div>
       {error && <p className="np-note" role="alert">{error}</p>}
       {tab === 'search' && (
         <div className="np-fix-body">
           <form className="np-fix-search" onSubmit={(e) => { e.preventDefault(); void run(async () => setFound(await api.post<Found[]>(`${url}/search`, { q }))) }}>
-            <input className="input" aria-label="Search for lyrics" value={q} maxLength={300} onChange={(e) => setQ(e.target.value)} />
-            <button className="btn sm primary" disabled={busy || !q.trim()}>Search</button>
+            <input className="input" aria-label={t('Search for lyrics')} value={q} maxLength={300} onChange={(e) => setQ(e.target.value)} />
+            <button className="btn sm primary" disabled={busy || !q.trim()}>{t('Search')}</button>
           </form>
-          {found?.length === 0 && <p className="np-hint">Nothing found. Try fewer words.</p>}
+          {found?.length === 0 && <p className="np-hint">{t('Nothing found. Try fewer words.')}</p>}
           <ul className="np-found">
             {found?.map((f) => {
               const off = f.durationSec && it.runtimeSec ? Math.abs(f.durationSec - it.runtimeSec) : null
               return (
                 <li key={f.provider + f.id}>
-                  <button type="button" disabled={busy} onClick={() => void run(async () => { await api.put(url, { provider: f.provider, id: f.id }); toast('Lyrics changed'); onSaved() })}>
+                  <button type="button" disabled={busy} onClick={() => void run(async () => { await api.put(url, { provider: f.provider, id: f.id }); toast(t('Lyrics changed')); onSaved() })}>
                     <b>{f.title}</b><small>{[f.artist, f.album].filter(Boolean).join(' · ')}</small>
-                    <small>{f.instrumental ? 'No words' : f.hasSynced ? 'Timed' : 'Words only'}{off !== null ? ` · ${off < 3 ? 'same length' : `${Math.round(off)} s different`}` : ''}</small>
+                    <small>{f.instrumental ? t('No words') : f.hasSynced ? t('Timed') : t('Words only')}{off !== null ? ` · ${off < 3 ? t('same length') : t('{n} s different', { n: Math.round(off) })}` : ''}</small>
                   </button>
                 </li>
               )
@@ -162,17 +163,17 @@ function FixLyrics({ p, text, lines, source, online, onClose, onSaved }: { p: Pl
       )}
       {tab === 'edit' && (
         <div className="np-fix-body">
-          <textarea className="input np-fix-text" aria-label="The lyrics" value={draft} spellCheck={false} onChange={(e) => setDraft(e.target.value)} placeholder={'[00:12.50]A line, with the time it starts\nor plain words with no times'} />
-          <p className="np-hint">Kept on this server and used in place of everything else. Nothing is written beside your music.</p>
+          <textarea className="input np-fix-text" aria-label={t('The lyrics')} value={draft} spellCheck={false} onChange={(e) => setDraft(e.target.value)} placeholder={t('[00:12.50]A line, with the time it starts\nor plain words with no times')} />
+          <p className="np-hint">{t('Kept on this server and used in place of everything else. Nothing is written beside your music.')}</p>
           <div className="np-fix-row">
-            <button type="button" className="btn sm primary" disabled={busy || !draft.trim()} onClick={() => void run(async () => { await api.put(url, { text: draft }); toast('Lyrics saved'); onSaved() })}>Save</button>
-            <button type="button" className="btn sm" disabled={busy} onClick={() => void run(async () => { await api.put(url, { instrumental: true }); toast('Marked as having no words'); onSaved() })}>This song has no words</button>
-            {(source === 'override' || source === 'lrclib' || source === 'mirror' || source === 'musixmatch') && <button type="button" className="btn sm ghost" disabled={busy} onClick={() => void run(async () => { await api.del(url); toast('Back to what was found'); onSaved() })}><IconRefresh size={16} /> Start over</button>}
+            <button type="button" className="btn sm primary" disabled={busy || !draft.trim()} onClick={() => void run(async () => { await api.put(url, { text: draft }); toast(t('Lyrics saved')); onSaved() })}>{t('Save')}</button>
+            <button type="button" className="btn sm" disabled={busy} onClick={() => void run(async () => { await api.put(url, { instrumental: true }); toast(t('Marked as having no words')); onSaved() })}>{t('This song has no words')}</button>
+            {(source === 'override' || source === 'lrclib' || source === 'mirror' || source === 'musixmatch') && <button type="button" className="btn sm ghost" disabled={busy} onClick={() => void run(async () => { await api.del(url); toast(t('Back to what was found')); onSaved() })}><IconRefresh size={16} /> {t('Start over')}</button>}
           </div>
         </div>
       )}
       {tab === 'tap' && <TapAlong p={p} text={lines.length ? lines.map((l) => l.text).join('\n') : text} busy={busy}
-        onSave={(lrc) => void run(async () => { await api.put(url, { text: lrc }); toast('Timing saved'); onSaved() })} />}
+        onSave={(lrc) => void run(async () => { await api.put(url, { text: lrc }); toast(t('Timing saved')); onSaved() })} />}
     </div>
   )
 }
@@ -198,24 +199,24 @@ function TapAlong({ p, text, busy, onSave }: { p: PlayerView; text: string; busy
     if (!p.playing) p.toggle()
     requestAnimationFrame(() => button.current?.focus())
   }
-  if (!lines.length) return <div className="np-fix-body"><p className="np-hint">Add the words under Edit first, then come back to time them.</p></div>
+  if (!lines.length) return <div className="np-fix-body"><p className="np-hint">{t('Add the words under Edit first, then come back to time them.')}</p></div>
   return (
     <div className="np-fix-body np-tap">
       {!started ? (
         <>
-          <p>The song starts from the beginning. Press the big button, or Space, as each line starts.</p>
-          <button type="button" className="btn primary" onClick={start}>Start</button>
+          <p>{t('The song starts from the beginning. Press the big button, or Space, as each line starts.')}</p>
+          <button type="button" className="btn primary" onClick={start}>{t('Start')}</button>
         </>
       ) : (
         <>
           <p className="np-tap-prev">{lines[at - 1] || ' '}</p>
-          <p className="np-tap-now">{done ? 'That\'s all of them.' : lines[at]}</p>
+          <p className="np-tap-now">{done ? t('That’s all of them.') : lines[at]}</p>
           <p className="np-tap-next">{lines[at + 1] || ' '}</p>
-          <button type="button" ref={button} className="btn primary np-tap-btn" disabled={done} onClick={tap}>This line starts now ({at + 1} of {lines.length})</button>
+          <button type="button" ref={button} className="btn primary np-tap-btn" disabled={done} onClick={tap}>{t('This line starts now ({n} of {total})', { n: at + 1, total: lines.length })}</button>
           <div className="np-fix-row">
-            <button type="button" className="btn sm" disabled={!at} onClick={() => { const t = times[at - 2] ?? 0; setTimes(times.slice(0, -1)); p.seek(Math.max(0, t / 1000)); button.current?.focus() }}>Undo the last one</button>
-            <button type="button" className="btn sm ghost" onClick={start}>Start again</button>
-            <button type="button" className="btn sm primary" disabled={!done || busy} onClick={() => onSave(times.map((t, i) => `[${stamp(t)}]${lines[i]}`).join('\n') + '\n')}>Save</button>
+            <button type="button" className="btn sm" disabled={!at} onClick={() => { const t = times[at - 2] ?? 0; setTimes(times.slice(0, -1)); p.seek(Math.max(0, t / 1000)); button.current?.focus() }}>{t('Undo the last one')}</button>
+            <button type="button" className="btn sm ghost" onClick={start}>{t('Start again')}</button>
+            <button type="button" className="btn sm primary" disabled={!done || busy} onClick={() => onSave(times.map((t, i) => `[${stamp(t)}]${lines[i]}`).join('\n') + '\n')}>{t('Save')}</button>
           </div>
         </>
       )}

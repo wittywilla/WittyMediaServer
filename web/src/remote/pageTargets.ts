@@ -13,6 +13,7 @@ import { useRef } from 'react'
 import { reportSoon, type RemoteCommand } from './device'
 import { bookState, gameState, photoState } from './playerStates'
 import { useRemoteTarget } from './target'
+import { t } from '../i18n'
 
 // A page turn, as every reader takes it whichever way its book reads: Page Down and Page Up.
 const turn = (dir: 1 | -1) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: dir > 0 ? 'PageDown' : 'PageUp', bubbles: true, cancelable: true }))
@@ -27,7 +28,7 @@ export function useBookRemote(itemId: number, start: number, close: () => void) 
       if (c.type === 'next') turn(1)
       else if (c.type === 'previous') turn(-1)
       else if (c.type === 'stop') close()
-      else throw new Error('This device can’t do that.')
+      else throw new Error(t('This device can’t do that.'))
     },
   }, [itemId])
   return (position: number, total: number) => { place.current = { position, total }; reportSoon() }
@@ -39,12 +40,12 @@ export function usePhotoRemote(p: { id: number; slideshow: boolean; next: (() =>
     state: () => photoState(p.id, p.slideshow),
     command: (c: RemoteCommand) => {
       switch (c.type) {
-        case 'next': if (!p.next) throw new Error('That is the last picture.'); p.next(); break
-        case 'previous': if (!p.previous) throw new Error('That is the first picture.'); p.previous(); break
+        case 'next': if (!p.next) throw new Error(t('That is the last picture.')); p.next(); break
+        case 'previous': if (!p.previous) throw new Error(t('That is the first picture.')); p.previous(); break
         case 'pause': p.setSlideshow(false); break
         case 'resume': p.setSlideshow(true); break
         case 'stop': p.close(); break
-        default: throw new Error('This device can’t do that.')
+        default: throw new Error(t('This device can’t do that.'))
       }
     },
   }, [p.id, p.slideshow])
@@ -54,6 +55,6 @@ export function useGameRemote(itemId: number, close: () => void) {
   useRemoteTarget({
     kind: 'game', itemId, on: itemId > 0,
     state: () => gameState(itemId),
-    command: (c: RemoteCommand) => { if (c.type === 'stop') close(); else throw new Error('This device can’t do that.') },
+    command: (c: RemoteCommand) => { if (c.type === 'stop') close(); else throw new Error(t('This device can’t do that.')) },
   }, [itemId])
 }

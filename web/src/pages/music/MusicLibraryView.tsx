@@ -11,6 +11,7 @@ import { shuffledCopy } from './parts'
 import { useMusic } from './store'
 import { AlbumCard, ArtistCard, ListCard, PageShape } from './ui'
 import { VirtualRows } from './Virtual'
+import { num, t, tk, tn, tx } from '../../i18n'
 
 // Your library: playlists, artists or albums as a grid, picked with chips and sorted. The
 // grid only draws the rows near the screen, so a library of thousands scrolls as lightly as
@@ -20,9 +21,9 @@ type Kind = 'playlists' | 'artists' | 'albums'
 type Collection = { id: number; name: string; kind: string; count: number; coverId: number; system?: string }
 
 const SORTS: Record<Kind, [string, string][]> = {
-  albums: [['title', 'Title'], ['artist', 'Artist'], ['year', 'Newest'], ['added', 'Recently added'], ['played', 'Most played']],
-  artists: [['name', 'Name'], ['albums', 'Most albums']],
-  playlists: [['name', 'Name']],
+  albums: [['title', tk('Title')], ['artist', tk('Artist')], ['year', tk('Newest')], ['added', tk('Recently added')], ['played', tk('Most played')]],
+  artists: [['name', tk('Name')], ['albums', tk('Most albums')]],
+  playlists: [['name', tk('Name')]],
 }
 
 export default function MusicLibraryView({ lib }: { lib: Library }) {
@@ -51,47 +52,47 @@ export default function MusicLibraryView({ lib }: { lib: Library }) {
     if (!lists) return null
     const playView = async (view: string) => {
       const items = await api.get<Item[]>(`/music/songs?library=${lib.id}&view=${view}&limit=500`)
-      if (!items.length) { toast('Nothing there yet'); return }
+      if (!items.length) { toast(t('Nothing there yet')); return }
       audio.play(items, 0, 'music')
     }
     const playList = async (id: number) => {
       const c = await api.get<{ items: Item[] }>(`/collections/${id}?limit=500`)
       const songs = c.items.filter((i) => i.kind === 'audio')
-      if (!songs.length) { toast('No songs in that one'); return }
+      if (!songs.length) { toast(t('No songs in that one')); return }
       audio.play(songs, 0, 'music')
     }
     return [
-      <ListCard key="liked" to={musicTab(lib.id, 'songs', '&view=liked')} name="Liked songs" sub="Playlist" hue={255} onPlay={() => playView('liked').catch((e) => toast(e.message))} />,
-      <ListCard key="all" to={musicTab(lib.id, 'songs')} name="All songs" sub="Every song here" hue={200} onPlay={async () => { const s = await api.get<Item[]>(`/music/songs?library=${lib.id}&sort=random&limit=500`); if (s.length) audio.play(shuffledCopy(s), 0, 'music') }} />,
+      <ListCard key="liked" to={musicTab(lib.id, 'songs', '&view=liked')} name={t('Liked songs')} sub={t('Playlist')} hue={255} onPlay={() => playView('liked').catch((e) => toast(e.message))} />,
+      <ListCard key="all" to={musicTab(lib.id, 'songs')} name={t('All songs')} sub={t('Every song here')} hue={200} onPlay={async () => { const s = await api.get<Item[]>(`/music/songs?library=${lib.id}&sort=random&limit=500`); if (s.length) audio.play(shuffledCopy(s), 0, 'music') }} />,
       ...lists.filter((c) => !c.system).sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
-        <ListCard key={c.id} to={musicTab(lib.id, 'playlist', '&id=' + c.id)} name={c.name} sub={c.kind === 'smart' ? 'Smart playlist' : `${c.count} ${c.count === 1 ? 'item' : 'items'}`} coverId={c.coverId} hue={(c.id * 67) % 360} onPlay={() => playList(c.id).catch((e) => toast(e.message))} />
+        <ListCard key={c.id} to={musicTab(lib.id, 'playlist', '&id=' + c.id)} name={c.name} sub={c.kind === 'smart' ? t('Smart playlist') : tn('{count} item', '{count} items', c.count)} coverId={c.coverId} hue={(c.id * 67) % 360} onPlay={() => playList(c.id).catch((e) => toast(e.message))} />
       )),
     ]
   }, [kind, sort, albums, artists, lists, lib.id, audio])
-  const chips: [Kind, string][] = [['playlists', 'Playlists'], ['artists', 'Artists'], ['albums', 'Albums']]
+  const chips: [Kind, string][] = [['playlists', t('Playlists')], ['artists', t('Artists')], ['albums', t('Albums')]]
   const count = kind === 'albums' ? albums?.length : kind === 'artists' ? artists?.length : undefined
   return (
     <div className="mus-page">
       <div className="mus-lib-head">
-        <h1 className="mus-h1">Your library</h1>
+        <h1 className="mus-h1">{t('Your library')}</h1>
         <span className="mus-grow" />
         <ScanButton lib={lib} />
       </div>
       <div className="mus-lib-bar">
-        <div className="mus-chips" role="group" aria-label="Show">
+        <div className="mus-chips" role="group" aria-label={t('Show')}>
           {chips.map(([k, l], i) => <button key={k} type="button" data-tv-first={i === 0 || undefined} className={'mus-chip' + (kind === k ? ' on' : '')} aria-pressed={kind === k} onClick={() => choose('show', k)}>{l}</button>)}
         </div>
-        {count !== undefined && <span className="mus-muted">{count.toLocaleString()} {kind}</span>}
+        {count !== undefined && <span className="mus-muted">{kind === 'albums' ? tn('{count} album', '{count} albums', count, { count: num(count) }) : tn('{count} artist', '{count} artists', count, { count: num(count) })}</span>}
         <span className="mus-grow" />
         {SORTS[kind].length > 1 && (
-          <label className="mus-sort">Sort by
+          <label className="mus-sort">{t('Sort by')}
             <select className="select sm" value={sort} onChange={(e) => choose('sort', e.target.value)}>
-              {SORTS[kind].map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              {SORTS[kind].map(([k, l]) => <option key={k} value={k}>{tx(l)}</option>)}
             </select>
           </label>
         )}
       </div>
-      {!cards ? <PageShape kind="grid" /> : <CardGrid cards={cards} round={kind === 'artists'} label={`Your ${kind}`} />}
+      {!cards ? <PageShape kind="grid" /> : <CardGrid cards={cards} round={kind === 'artists'} label={kind === 'albums' ? t('Your albums') : kind === 'artists' ? t('Your artists') : t('Your playlists')} />}
     </div>
   )
 }

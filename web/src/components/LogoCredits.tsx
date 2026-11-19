@@ -6,6 +6,7 @@ import { api } from '../api'
 import { LOGO_KIND_NAMES } from './edit/LogoChooser'
 import type { LogoInfo } from './BrandLogo'
 import { WebLink } from './WebLink'
+import { t, tx } from '../i18n'
 
 // Where every logo on this server came from, as the licences of those files ask: its source,
 // licence and author. Channels with a picture from elsewhere are listed too, so nothing on the
@@ -20,19 +21,19 @@ export default function LogoCredits() {
   if (err) return <p className="muted">{err}</p>
   if (!c) return null
   const others = c.channels || []
-  if (c.logos.length === 0 && others.length === 0) return <p className="muted">None yet.</p>
+  if (c.logos.length === 0 && others.length === 0) return <p className="muted">{t('None yet.')}</p>
   return (
     <ul className="set-credits">
       {c.logos.map((l) => (
         <li key={l.id}>
-          <b>{l.name}</b> <span className="muted">({LOGO_KIND_NAMES[l.kind]})</span>:{' '}
-          {l.source === 'you' ? 'uploaded by this server\'s owner.' : <>
-            <WebLink href={l.sourceUrl}>Wikimedia Commons</WebLink>, {l.licenseUrl ? <WebLink href={l.licenseUrl}>{l.license}</WebLink> : l.license}{l.credit ? `, by ${l.credit}` : ''}. Recoloured here to white and to dark.
+          <b>{l.name}</b> <span className="muted">({tx(LOGO_KIND_NAMES[l.kind])})</span>:{' '}
+          {l.source === 'you' ? t("uploaded by this server's owner.") : <>
+            <WebLink href={l.sourceUrl}>Wikimedia Commons</WebLink>, {l.licenseUrl ? <WebLink href={l.licenseUrl}>{l.license}</WebLink> : l.license}{l.credit ? t(', by {author}', { author: l.credit }) : ''}. {t('Recoloured here to white and to dark.')}
           </>}
         </li>
       ))}
       {others.map((o) => (
-        <li key={o.name + o.source}><b>{o.name}</b> <span className="muted">(Channel)</span>: {o.source === 'owner' ? 'uploaded by this server\'s owner.' : 'named by the channel list this server\'s owner added. It states no licence.'}</li>
+        <li key={o.name + o.source}><b>{o.name}</b> <span className="muted">({t('Channel')})</span>: {o.source === 'owner' ? t("uploaded by this server's owner.") : t("named by the channel list this server's owner added. It states no licence.")}</li>
       ))}
     </ul>
   )

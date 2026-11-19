@@ -1,0 +1,18 @@
+{
+  "Episode number": "Numero episodio",
+  "Episode {episode}": "Episodio {episode}",
+  "Episodes {episodes}": "Episodi {episodes}",
+  "Last episode": "Ultimo episodio",
+  "Season number": "Numero stagione",
+  "Show episodes as": "Mostra gli episodi come",
+  "Special {episode}": "Speciale {episode}",
+  "Specials {episodes}": "Speciali {episodes}",
+  "S{season} · E{episode}": "S{season} · E{episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "Il tuo chip grafico può convertire video con una frazione del lavoro del processore. Ognuno viene provato all’avvio del server, quelli che il tuo computer non ha appaiono in grigio, e tutti quelli che funzionano sono selezionati finché non scegli tu: viene usato il primo selezionato che funziona, e l’immagine resta sul chip dalla decodifica alla codifica quando possibile. Se non ne selezioni nessuno è tutto software, che dà la migliore qualità per dimensione e usa più processore.",
+  "{left} of {count} left": {
+    "one": "{left} di {count} rimasti",
+    "many": "{left} di {count} rimasti",
+    "other": "{left} di {count} rimasti"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

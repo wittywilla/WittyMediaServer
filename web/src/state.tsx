@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { setLanguage } from './i18n'
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { api, isNativeShell, serverBase, setToken, type Library, type User } from './api'
 import { setLogVersion } from './errorReport'
@@ -7,7 +8,7 @@ import type { StyledPart } from './brandStyle.ts'
 import { loadCatalogue } from './sdui/catalogue'
 import { applyBrand, applyTheme, setStatusBrandParts, clearThemeOverrides, deviceTheme, loadThemeOverrides } from './theme'
 
-type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandColouring?: string; brandParts?: StyledPart[]; brandLogo?: string; theme?: string; update?: string; legalAck?: boolean; plainConnection?: boolean }
+type Status = { name: string; version: string; setupRequired: boolean; onboarding: boolean; pickerLocal: boolean; user: User | null; brandName?: string; brandColouring?: string; brandParts?: StyledPart[]; brandLogo?: string; theme?: string; update?: string; legalAck?: boolean; plainConnection?: boolean; uiLanguage?: string }
 
 type AppState = {
   user: User | null
@@ -85,6 +86,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const loadStatus = useCallback(() => {
     api.get<Status>('/status').then(async (s) => {
       setUnreachable(false)
+      // The server's language for these pages; until one is chosen, this browser's own.
+      if (s.uiLanguage) await setLanguage(s.uiLanguage)
       setSetup(s.setupRequired)
       setOnboarding(!!s.onboarding)
       setPickerLocal(!!s.pickerLocal)

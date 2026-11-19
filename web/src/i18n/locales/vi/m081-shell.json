@@ -1,0 +1,16 @@
+{
+  "Episode number": "Số tập",
+  "Episode {episode}": "Tập {episode}",
+  "Episodes {episodes}": "Tập {episodes}",
+  "Last episode": "Tập cuối",
+  "Season number": "Số mùa",
+  "Show episodes as": "Hiển thị các tập dạng",
+  "Special {episode}": "Tập đặc biệt {episode}",
+  "Specials {episodes}": "Tập đặc biệt {episodes}",
+  "S{season} · E{episode}": "Mùa {season} · Tập {episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "Chip đồ họa có thể chuyển đổi video chỉ với một phần nhỏ công sức của bộ xử lý. Mỗi bộ được thử khi máy chủ khởi động, những bộ máy bạn không có sẽ bị làm mờ, và mọi bộ hoạt động đều được đánh dấu cho đến khi bạn tự chọn: bộ đầu tiên được đánh dấu và hoạt động sẽ được dùng, và hình ảnh ở lại trên chip từ giải mã đến mã hóa khi có thể. Nếu không đánh dấu bộ nào thì dùng hoàn toàn phần mềm, cho chất lượng tốt nhất so với dung lượng nhưng tốn bộ xử lý nhất.",
+  "{left} of {count} left": {
+    "other": "còn {left} trên {count}"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

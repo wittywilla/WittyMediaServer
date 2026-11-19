@@ -1,0 +1,13 @@
+{
+  "Control bar": "Bedieningsbalk",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Uitgebreid zet elke knop op de balk. Eenvoudig houdt het beeld vrij: afspelen en de sprongen in het midden, en de rest (geluid, ondertitels, kwaliteit, snelheid, scènes) in één Opties-menu. Automatisch is eenvoudig op een telefoon of tablet en uitgebreid op een breder scherm.",
+  "Detailed": "Uitgebreid",
+  "Back to options": "Terug naar opties",
+  "Mono": "Mono",
+  "Styled text": "Tekst met opmaak",
+  "Keep playing in a corner": "In een hoek verder afspelen",
+  "{count} watching": {
+    "one": "{count} kijkt mee",
+    "other": "{count} kijken mee"
+  }
+}

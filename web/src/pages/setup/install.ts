@@ -3,6 +3,7 @@
 import { ApiError } from '../../api'
 import { currentRun, failureOf, installModule, type Failure, type Run } from '../settings/store/storeApi'
 import { notInstalledWords, olderOf, type OlderVersion } from '../settings/store/olderServer'
+import { t } from '../../i18n'
 
 // Installing a module the way the store does, from anywhere that isn't the store: the same request,
 // the same signature checks, the same run to follow. A run is one module and whatever it's built
@@ -28,7 +29,7 @@ async function followRun(onProgress?: (r: Run) => void): Promise<Run | undefined
 
 const declined = (list: OlderVersion[]): InstallResult => ({
   ok: false, declined: true,
-  failure: { kind: 'older-server', title: 'Not installed',message: list.map(notInstalledWords).join(' '), try: ['Install it later from the module store, once a version made for this server is published.'] },
+  failure: { kind: 'older-server', title: t('Not installed'), message: list.map(notInstalledWords).join(' '), try: [t('Install it later from the module store, once a version made for this server is published.')] },
 })
 
 // installAndWait installs one module and what it's built on. A list that has already said what's

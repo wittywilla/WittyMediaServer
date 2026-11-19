@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { toast, useApp } from '../state'
 import { Notice, setUserPref, useUserPref } from '../ui'
+import { t, tn } from '../i18n'
 
 // The update notice for admins at the top of Home and Settings, and what it and Settings, About
 // know about a newer version. Kept small, as Home loads it: the notes are drawn in Settings.
@@ -65,14 +66,14 @@ export function UpdateBanner() {
   const go = (start: boolean) => nav('/settings/about#updates', { state: start ? { startUpdate: true } : undefined })
   return (
     <div className="upd-banner">
-      <Notice tone="info" title={`WittyMediaServer ${update} is available`} action={
+      <Notice tone="info" title={t('WittyMediaServer {version} is available', { version: update })} action={
         <div className="upd-banner-actions">
-          <button type="button" className="btn primary sm" onClick={() => go(true)}>{st?.method === 'docker' ? 'How to update' : 'Update'}</button>
-          <button type="button" className="btn sm" onClick={() => go(false)}>What’s new</button>
-          <button type="button" className="btn ghost sm" onClick={() => setUserPref('updateLater', update).catch(() => toast('Could not save that'))}>Later</button>
+          <button type="button" className="btn primary sm" onClick={() => go(true)}>{st?.method === 'docker' ? t('How to update') : t('Update')}</button>
+          <button type="button" className="btn sm" onClick={() => go(false)}>{t('What’s new')}</button>
+          <button type="button" className="btn ghost sm" onClick={() => setUserPref('updateLater', update).catch(() => toast(t('Could not save that')))}>{t('Later')}</button>
         </div>
       }>
-        {st && <span>{h.first ? `${h.first}${h.more ? `, and ${h.more} more ${h.more === 1 ? 'change' : 'changes'}` : ''}.` : 'A newer version of the server is ready to install.'}</span>}
+        {st && <span>{h.first ? (h.more ? tn('{first}, and {count} more change.', '{first}, and {count} more changes.', h.more, { first: h.first }) : `${h.first}.`) : t('A newer version of the server is ready to install.')}</span>}
       </Notice>
     </div>
   )

@@ -26,12 +26,13 @@ import { Dock, type DockAction } from '../../ui/Dock'
 import type { MenuEntry } from '../../ui/Menu'
 import { liveNow, noteBackgroundDefault } from './live'
 import { useGuidePrefs } from './guidePrefs'
-import { ALL_SET, catchupKey, channelOf, chooseSet, dialOutcome, edgeLanding, pageLabel, pageStartOf, PAGE_SIZES, rowsOnPage, stepPage, stepSet, widerLookup, windowStepSlots, type PageSize } from './guideLogic'
+import { ALL_SET, catchupKey, channelOf, chooseSet, dialOutcome, edgeLanding, pageStartOf, PAGE_SIZES, rowsOnPage, stepPage, stepSet, widerLookup, windowStepSlots, type PageSize } from './guideLogic'
 import { canOfferRecord, dayWord, fmtClock, fmtDay, fmtSpan, getLineup, getSets, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme, type SetList } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
 import './tvsets.css'
 import LegalNote from '../../components/LegalNote'
+import { date, t, tn, tx } from '../../i18n'
 
 // The programme guide. A real ARIA grid under any of WittyTV's themes (tvThemes.ts). At the
 // top, the highlighted channel: its programme, what's next, what can be done with it and a
@@ -61,15 +62,15 @@ type Focus = { row: number; at: number }
 function cellsFor(ch: GuideChannel | undefined, from: number, to: number, pxPerSec: number): Programme[] {
   if (!ch) return []
   const out: Programme[] = []
-  let t = from
-  const none = (start: number, end: number): Programme => ({ start, end, kind: 'none', title: ch.kind === 'library' ? 'Off air' : 'No guide data' })
+  let at = from
+  const none = (start: number, end: number): Programme => ({ start, end, kind: 'none', title: ch.kind === 'library' ? t('Off air') : t('No guide data') })
   for (const p of ch.programmes || []) {
     if (p.end <= from || p.start >= to) continue
-    if (p.start > t) out.push(none(t, p.start))
+    if (p.start > at) out.push(none(at, p.start))
     out.push(p)
-    t = Math.max(t, p.end)
+    at = Math.max(at, p.end)
   }
-  if (t < to) out.push(none(t, to))
+  if (at < to) out.push(none(at, to))
   return groupTiny(out, pxPerSec, from, to)
 }
 
@@ -82,7 +83,7 @@ function groupTiny(cells: Programme[], pxPerSec: number, from: number, to: numbe
     while (j + 1 < cells.length && width(cells[j]) < TINY_PX && width(cells[j + 1]) < TINY_PX) j++
     if (j > i) {
       const group = cells.slice(i, j + 1)
-      out.push({ start: group[0].start, end: group[group.length - 1].end, kind: 'group', title: `${group.length} short programmes`, group })
+      out.push({ start: group[0].start, end: group[group.length - 1].end, kind: 'group', title: tn('{count} short programme', '{count} short programmes', group.length), group })
       i = j
     } else out.push(cells[i])
   }
@@ -102,7 +103,15 @@ function slotsForWidth(w: number) { return w < 560 ? 3 : w < 1000 ? 4 : w < 1500
 function jumps(now: number): { label: string; at: number }[] {
   const at = (days: number, hour: number) => { const d = new Date(now * 1000); d.setDate(d.getDate() + days); d.setHours(hour, 0, 0, 0); return d.getTime() / 1000 }
   const tonight = at(0, 20)
-  return [tonight > now + 1800 ? { label: 'Tonight 8 PM', at: tonight } : { label: 'Tomorrow 8 PM', at: at(1, 20) }, { label: 'Tomorrow morning', at: at(1, 8) }]
+  const hour = (u: number) => date(u * 1000, { hour: 'numeric' })
+  return [tonight > now + 1800 ? { label: t('Tonight {time}', { time: hour(tonight) }), at: tonight } : { label: t('Tomorrow {time}', { time: hour(at(1, 20)) }), at: at(1, 20) }, { label: t('Tomorrow morning'), at: at(1, 8) }]
+}
+
+// "Channels 51–100 of 10,423", in the app's language (pageLabel in guideLogic.ts is the same in English).
+function pageWords(start: number, size: PageSize, total: number): string {
+  if (total <= 0) return t('No channels')
+  if (!size) return tn('{count} channel', '{count} channels', total)
+  return t('Channels {first}–{last} of {total}', { first: start + 1, last: start + rowsOnPage(start, size, total), total })
 }
 
 
@@ -192,7 +201,7 @@ export default function GuidePage() {
   const pickSet = (id: string) => {
     setPrefs({ set: id })
     const s = sets?.sets.find((x) => x.id === id)
-    if (s) announce(`${s.name}, ${s.count} ${s.count === 1 ? 'channel' : 'channels'}`)
+    if (s) announce(tn('{name}, {count} channel', '{name}, {count} channels', s.count, { name: s.name }))
   }
 
   // What's typed in Find a channel is asked for once the typing stops.
@@ -400,12 +409,12 @@ export default function GuidePage() {
       const wider = widerLookup(setId, q, here)
       const all = wider ? await locate(n, true) : null
       const out = dialOutcome(here, all)
-      if (out.kind === 'here') { moveRow(out.row); announce(`Channel ${n}`) }
+      if (out.kind === 'here') { moveRow(out.row); announce(t('Channel {number}', { number: n })) }
       else if (out.kind === 'elsewhere') {
-        const where = curSet?.name || 'this set'
-        announce(`Channel ${n} isn't in ${where}`)
-        toast(`Channel ${n} isn't in ${where}.`, { action: { label: 'Show all channels', run: () => showAllAt(out.row) } })
-      } else { announce(`No channel ${n}`); toast(`No channel ${n}`) }
+        const words = curSet?.name ? t("Channel {number} isn't in {set}.", { number: n, set: curSet.name }) : t("Channel {number} isn't in this set.", { number: n })
+        announce(words)
+        toast(words, { action: { label: t('Show all channels'), run: () => showAllAt(out.row) } })
+      } else { announce(t('No channel {number}', { number: n })); toast(t('No channel {number}', { number: n })) }
     } catch (e) { toast((e as Error).message) }
   }
   const dialTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -421,8 +430,8 @@ export default function GuidePage() {
     if (!canOfferRecord(ch, p, now)) return
     try {
       await api.post('/recordings', { channel: ch.key, title: p.title, sub: p.sub, start: p.start, stop: p.end })
-      toast(`Recording ${p.title}`)
-      announce(`Recording ${p.title}`)
+      toast(t('Recording {title}', { title: p.title }))
+      announce(t('Recording {title}', { title: p.title }))
     } catch (e) { toast((e as Error).message) }
   }
   const toggleFav = async (ch: GuideChannel) => {
@@ -430,7 +439,7 @@ export default function GuidePage() {
     const m = rowsRef.current
     for (const [i, c] of m) if (c.key === ch.key) m.set(i, { ...c, favourite: on })
     bumpRows()
-    announce(on ? `${ch.name} added to favourites` : `${ch.name} removed from favourites`)
+    announce(on ? t('{name} added to favourites', { name: ch.name }) : t('{name} removed from favourites', { name: ch.name }))
     try {
       await setFavourite(ch.key, on)
       forgetLineup(); void refreshLineup()
@@ -440,9 +449,9 @@ export default function GuidePage() {
   const jumpToLast = async () => {
     const key = cur && lastChannel() === cur.key ? previousChannel() : lastChannel()
     const c = lineup.find((x) => x.key === key)
-    if (!c) { toast('No other channel watched yet'); return }
+    if (!c) { toast(t('No other channel watched yet')); return }
     const i = await locate(key).catch(() => -1)
-    if (i >= 0) { moveRow(i); announce(`Channel ${c.number}, ${c.name}`) } else watch(key)
+    if (i >= 0) { moveRow(i); announce(t('Channel {number}, {name}', { number: c.number, name: c.name })) } else watch(key)
   }
   const nextSet = (dir: 1 | -1) => { if (sets) pickSet(stepSet(sets.sets, setId, dir)) }
   const cycle = () => nextSet(1)
@@ -578,10 +587,10 @@ export default function GuidePage() {
     // Nothing to show yet, so the guide's own colours have nothing to dress up.
     return (
       <>
-        <h1 className="sr-only">TV guide</h1>
-        <EmptyState icon={<IconTv />} title={tvOff ? 'Live TV is off for this profile' : 'No channels yet'}
-          text={user?.isAdmin ? 'Make channels out of your library in one click, or add a tuner or an IPTV playlist.' : tvOff ? 'Whoever looks after this profile can turn it on.' : 'Ask whoever runs this server to set some up.'}
-          action={user?.isAdmin ? <Link className="btn primary" to="/tv/channels">Set up channels</Link> : undefined} />
+        <h1 className="sr-only">{t('TV guide')}</h1>
+        <EmptyState icon={<IconTv />} title={tvOff ? t('Live TV is off for this profile') : t('No channels yet')}
+          text={user?.isAdmin ? t('Make channels out of your library in one click, or add a tuner or an IPTV playlist.') : tvOff ? t('Whoever looks after this profile can turn it on.') : t('Ask whoever runs this server to set some up.')}
+          action={user?.isAdmin ? <Link className="btn primary" to="/tv/channels">{t('Set up channels')}</Link> : undefined} />
       </>
     )
   }
@@ -590,54 +599,54 @@ export default function GuidePage() {
   const today = dayStart(now)
   const dayOffset = Math.round((dayStart(from) - today) / 86400)
   const goDay = (n: number) => shiftTime(n === 0 ? floorSlot(now) - from : (n - dayOffset) * 86400)
-  const emptyWords = q ? 'No channel has that number or name here.'
-    : setId === 'fav' ? 'No favourites yet: press the star on a channel.' : 'There are no channels in this set that you can watch.'
+  const emptyWords = q ? t('No channel has that number or name here.')
+    : setId === 'fav' ? t('No favourites yet: press the star on a channel.') : t('There are no channels in this set that you can watch.')
   const lastPage = total != null && pageSize ? pageStart + pageSize >= total : true
   // The Dock under the grid: six buttons that never move, whatever the look (docs/plans/DESIGN-2.md section 4).
   const hasFav = !!sets?.sets.some((x) => x.id === 'fav')
   const filterItems: MenuEntry[] = [
-    { key: 'find', label: 'Find a channel', onSelect: () => document.querySelector<HTMLInputElement>('.ctv-find input')?.focus() },
-    { key: 'all', label: 'All channels', current: setId === ALL_SET, onSelect: () => pickSet(ALL_SET) },
-    ...(hasFav ? [{ key: 'fav', label: 'Favourites', current: setId === 'fav', onSelect: () => pickSet('fav') }] : []),
+    { key: 'find', label: t('Find a channel'), onSelect: () => document.querySelector<HTMLInputElement>('.ctv-find input')?.focus() },
+    { key: 'all', label: t('All channels'), current: setId === ALL_SET, onSelect: () => pickSet(ALL_SET) },
+    ...(hasFav ? [{ key: 'fav', label: t('Favourites'), current: setId === 'fav', onSelect: () => pickSet('fav') }] : []),
     { kind: 'separator', key: 'sep' },
-    { key: 'togglefav', label: cur?.favourite ? 'Remove this channel from favourites' : 'Add this channel to favourites', disabled: !cur, onSelect: () => { if (cur) void toggleFav(cur) } },
-    { key: 'addset', label: 'Add this channel to a set…', disabled: !cur, onSelect: () => { if (cur) setAddTo(cur) } },
+    { key: 'togglefav', label: cur?.favourite ? t('Remove this channel from favourites') : t('Add this channel to favourites'), disabled: !cur, onSelect: () => { if (cur) void toggleFav(cur) } },
+    { key: 'addset', label: t('Add this channel to a set…'), disabled: !cur, onSelect: () => { if (cur) setAddTo(cur) } },
   ]
   const channelItems: MenuEntry[] = [
-    { key: 'sets', label: 'Choose channels…', hint: 'C', onSelect: openPicker },
+    { key: 'sets', label: t('Choose channels…'), hint: 'C', onSelect: openPicker },
     { kind: 'separator', key: 'sep' },
-    { kind: 'heading', key: 'head', label: 'Channels per page' },
-    ...PAGE_SIZES.map((n) => ({ key: 'n' + n, label: n ? `${n} per page` : 'All, scrolling', checked: pageSize === n, onSelect: () => setPrefs({ pageSize: n }) })),
+    { kind: 'heading', key: 'head', label: t('Channels per page') },
+    ...PAGE_SIZES.map((n) => ({ key: 'n' + n, label: n ? t('{count} per page', { count: n }) : t('All, scrolling'), checked: pageSize === n, onSelect: () => setPrefs({ pageSize: n }) })),
     ...(pageSize ? [
       { kind: 'separator', key: 'sep2' } as MenuEntry,
-      { key: 'prev', label: 'Previous page', hint: 'Page Up', disabled: pageStart === 0, onSelect: () => goPage(-1) },
-      { key: 'next', label: 'Next page', hint: 'Page Down', disabled: lastPage, onSelect: () => goPage(1) },
+      { key: 'prev', label: t('Previous page'), hint: t('Page Up'), disabled: pageStart === 0, onSelect: () => goPage(-1) },
+      { key: 'next', label: t('Next page'), hint: t('Page Down'), disabled: lastPage, onSelect: () => goPage(1) },
     ] : []),
   ]
   const dayItems: MenuEntry[] = [
-    { key: 'now', label: 'Now', hint: 'N', current: floorSlot(now) === from, onSelect: goNow },
+    { key: 'now', label: t('Now'), hint: 'N', current: floorSlot(now) === from, onSelect: goNow },
     ...jumps(now).map((j) => ({ key: j.label, label: j.label, onSelect: () => goAt(j.at) })),
     { kind: 'separator', key: 'sep' },
-    ...Array.from({ length: DAY_NAMES }, (_, i) => ({ key: 'd' + i, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : fmtDay(today + i * 86400 + 3600), current: dayOffset === i, onSelect: () => goDay(i) })),
+    ...Array.from({ length: DAY_NAMES }, (_, i) => ({ key: 'd' + i, label: i === 0 ? t('Today') : i === 1 ? t('Tomorrow') : fmtDay(today + i * 86400 + 3600), current: dayOffset === i, onSelect: () => goDay(i) })),
   ]
   const canRecord = !!cur && !!panel && canOfferRecord(cur, panel, now)
   const dockActions: DockAction[] = [
-    { id: 'look', label: 'Look', hint: 'V', onClick: () => setLookOpen(true) },
-    { id: 'day', label: 'Day', hint: 'A B', items: dayItems },
-    { id: 'channels', label: 'Channels', hint: 'C', items: channelItems, detail: curSet?.name },
-    { id: 'filter', label: 'Filter', items: filterItems },
-    { id: 'info', label: 'More info', hint: 'I', disabled: !cur || !curCell, onClick: () => { if (cur && curCell) setMoreInfo({ key: cur.key, at: curCell.start }) } },
-    { id: 'recordings', label: 'Recordings', to: '/tv/recordings' },
+    { id: 'look', label: t('Look'), hint: 'V', onClick: () => setLookOpen(true) },
+    { id: 'day', label: t('Day'), hint: 'A B', items: dayItems },
+    { id: 'channels', label: t('Channels'), hint: 'C', items: channelItems, detail: curSet?.name },
+    { id: 'filter', label: t('Filter'), items: filterItems },
+    { id: 'info', label: t('More info'), hint: 'I', disabled: !cur || !curCell, onClick: () => { if (cur && curCell) setMoreInfo({ key: cur.key, at: curCell.start }) } },
+    { id: 'recordings', label: t('Recordings'), to: '/tv/recordings' },
     hasRules2
-      ? { id: 'record', label: 'Record', hint: 'R', disabled: !canRecord, items: [
-        { key: 'one', label: 'Record this programme', onSelect: () => { if (cur && panel) offerRecord(cur, panel, false) } },
-        { key: 'series', label: 'Record the series', onSelect: () => { if (cur && panel) offerRecord(cur, panel, true) } },
+      ? { id: 'record', label: t('Record'), hint: 'R', disabled: !canRecord, items: [
+        { key: 'one', label: t('Record this programme'), onSelect: () => { if (cur && panel) offerRecord(cur, panel, false) } },
+        { key: 'series', label: t('Record the series'), onSelect: () => { if (cur && panel) offerRecord(cur, panel, true) } },
       ] }
-      : { id: 'record', label: 'Record', hint: 'R', disabled: !canRecord, onClick: () => { if (cur && panel) void record(cur, panel) } },
+      : { id: 'record', label: t('Record'), hint: 'R', disabled: !canRecord, onClick: () => { if (cur && panel) void record(cur, panel) } },
   ]
   return shell(
     <>
-      <h1 className="sr-only">TV guide</h1>
+      <h1 className="sr-only">{t('TV guide')}</h1>
       <Hero ch={cur} p={panel} next={nextShow} look={look} now={now} previewKey={previewKey} previewName={previewName} previewMax={previewMax} previewStart={previewStart}
         onWatch={watch} onDetails={() => { if (cur && curCell) setDetails({ ch: cur, p: curCell }) }} onDay={() => { if (cur && curCell) setDetails({ ch: cur, p: curCell, day: true }) }}
         onFav={() => { if (cur) void toggleFav(cur) }} onUp={() => moveRow(focus.row + 1)} onDown={() => moveRow(focus.row - 1)} onRecord={() => { if (cur && panel) void record(cur, panel) }}
@@ -645,29 +654,29 @@ export default function GuidePage() {
 
       <div className="ctv-bar">
         <div className="ctv-bar-group">
-          <h2 className="ctv-bar-title">Guide</h2>
+          <h2 className="ctv-bar-title">{t('Guide')}</h2>
           {sets && <SetButton set={curSet} onOpen={openPicker} />}
-          <label className="ctv-field ctv-find"><span className="sr-only">Find a channel</span>
-              <input type="search" value={find} placeholder="Find a channel" aria-label="Find a channel, by number or name" onChange={(e) => setFind(e.target.value)}
+          <label className="ctv-field ctv-find"><span className="sr-only">{t('Find a channel')}</span>
+              <input type="search" value={find} placeholder={t('Find a channel')} aria-label={t('Find a channel, by number or name')} onChange={(e) => setFind(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') { e.preventDefault(); setQuery(find); wantFocus.current = true; setFocus((f) => ({ ...f, row: 0 })) }
                   if (e.key === 'Escape' && find) { e.preventDefault(); e.stopPropagation(); setFind(''); setQuery('') }
                 }} />
           </label>
         </div>
-        <div className="ctv-bar-group ctv-bar-time" role="group" aria-label="Time" data-nav-group>
-          <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label="Half an hour earlier"><IconLeft size={16} /></button>
-          <button className={'ctv-btn sm' + (floorSlot(now) === from ? ' on' : '')} onClick={goNow}>Now</button>
-          <button className="ctv-btn sm icon" onClick={() => shiftTime(SLOT)} aria-label="Half an hour later"><IconRight size={16} /></button>
-          <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label="Search the schedule" title="Search the schedule (S)"><IconSearch size={16} /></button>
-          {user?.isAdmin && <Link className="ctv-btn sm" to="/tv/channels" aria-label="Edit channels"><IconSettings size={16} /> <span className="hide-narrow">Edit channels</span></Link>}
+        <div className="ctv-bar-group ctv-bar-time" role="group" aria-label={t('Time')} data-nav-group>
+          <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label={t('Half an hour earlier')}><IconLeft size={16} /></button>
+          <button className={'ctv-btn sm' + (floorSlot(now) === from ? ' on' : '')} onClick={goNow}>{t('Now')}</button>
+          <button className="ctv-btn sm icon" onClick={() => shiftTime(SLOT)} aria-label={t('Half an hour later')}><IconRight size={16} /></button>
+          <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label={t('Search the schedule')} title={t('Search the schedule (S)')}><IconSearch size={16} /></button>
+          {user?.isAdmin && <Link className="ctv-btn sm" to="/tv/channels" aria-label={t('Edit channels')}><IconSettings size={16} /> <span className="hide-narrow">{t('Edit channels')}</span></Link>}
         </div>
       </div>
 
       {err && <div className="ctv-err" role="alert">{err}</div>}
-      {dial && <div className="ctv-dial" role="status">CH {dial}<span className="ctv-blink">_</span></div>}
+      {dial && <div className="ctv-dial" role="status">{t('CH {number}', { number: dial })}<span className="ctv-blink">_</span></div>}
 
-      <div className="ctv-grid" ref={grid} role="grid" aria-label={`TV guide, ${fmtDay(from)}${curSet ? `, ${curSet.name}` : ''}`} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
+      <div className="ctv-grid" ref={grid} role="grid" aria-label={curSet ? t('TV guide, {day}, {set}', { day: fmtDay(from), set: curSet.name }) : t('TV guide, {day}', { day: fmtDay(from) })} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
         onFocus={() => { gridHadFocus.current = true }} onBlur={(e) => { if (e.relatedTarget) gridHadFocus.current = false }}
         style={{ '--ctv-row': rowH + 'px', '--ctv-gutter': gutter + 'px' } as React.CSSProperties}>
         <div className="ctv-times" role="row" aria-rowindex={1}>
@@ -688,14 +697,14 @@ export default function GuidePage() {
       </div>
       {total === 0 && <div className="ctv-err">{emptyWords}</div>}
       {pageSize > 0 && total != null && total > 0 && (
-        <div className="ctv-pager" role="group" aria-label="Pages of channels" data-nav-group>
-          <button className="ctv-btn sm" data-nav-skip disabled={pageStart === 0} onClick={() => goPage(-1, true)} title="Previous page (Page Up)"><IconLeft size={16} /> Previous</button>
-          <span className="ctv-pager-at" role="status">{pageLabel(pageStart, pageSize, total)}</span>
-          <button className="ctv-btn sm" data-nav-skip disabled={lastPage} onClick={() => goPage(1, true)} title="Next page (Page Down)">Next <IconRight size={16} /></button>
+        <div className="ctv-pager" role="group" aria-label={t('Pages of channels')} data-nav-group>
+          <button className="ctv-btn sm" data-nav-skip disabled={pageStart === 0} onClick={() => goPage(-1, true)} title={t('Previous page (Page Up)')}><IconLeft size={16} /> {t('Previous')}</button>
+          <span className="ctv-pager-at" role="status">{pageWords(pageStart, pageSize, total)}</span>
+          <button className="ctv-btn sm" data-nav-skip disabled={lastPage} onClick={() => goPage(1, true)} title={t('Next page (Page Down)')}>{t('Next')} <IconRight size={16} /></button>
         </div>
       )}
 
-      <Dock label="Guide controls" className="ctv-dock" btn="ctv-btn sm" scope="list" actions={dockActions} />
+      <Dock label={t('Guide controls')} className="ctv-dock" btn="ctv-btn sm" scope="list" actions={dockActions} />
       <div className="ctv-legals">
         <LegalNote kind="tv" className="ctv-legal" />
         {logosShown && <LegalNote kind="logos" className="ctv-legal" />}
@@ -740,9 +749,9 @@ function NowLine({ from, to }: { from: number; to: number }) {
 
 const programmeLabel = (ch: GuideChannel, p: Programme, now: number) => {
   const when = p.kind === 'none' ? '' : fmtSpan(p)
-  const on = p.start <= now && p.end > now ? ', on now' : ''
-  const lock = ch.security?.state === 'encrypted' ? `, ${ch.security.label}` : ''
-  return `Channel ${ch.number}, ${ch.name}: ${[p.title, p.sub, when].filter(Boolean).join(', ')}${on}${lock}`
+  const on = p.start <= now && p.end > now ? t('on now') : ''
+  const lock = ch.security?.state === 'encrypted' ? tx(ch.security.label) : ''
+  return t('Channel {number}, {name}: {programme}', { number: ch.number, name: ch.name, programme: [p.title, p.sub, when, on, lock].filter(Boolean).join(', ') })
 }
 
 type RowProps = {
@@ -766,10 +775,10 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
     <div className={'ctv-row' + (focusAt != null ? ' current' : '')} role="row" aria-rowindex={r + 2} style={{ top, height: rowH, ...accent }}>
       {ch ? (
         // Named in words: the number and the logo or name beside it would run together as "101MOVIE CHANNEL".
-        <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name} aria-label={[`${ch.number} ${ch.name}`, ch.favourite && 'favourite', ch.encrypted && 'encrypted'].filter(Boolean).join(', ')}>
+        <div className="ctv-ch" role="rowheader" aria-colindex={1} title={ch.name} aria-label={[`${ch.number} ${ch.name}`, ch.favourite && t('favourite'), ch.encrypted && t('encrypted')].filter(Boolean).join(', ')}>
           <span className="ctv-num">{ch.number}</span>
           <ChannelMark ch={ch} look={look} on={on} />
-          {ch.favourite && <span className="ctv-fav" role="img" aria-label="Favourite"><IconStar size={13} /></span>}
+          {ch.favourite && <span className="ctv-fav" role="img" aria-label={t('Favourite')}><IconStar size={13} /></span>}
           {ch.encrypted && <span className="ctv-lock" aria-hidden="true">🔒</span>}
         </div>
       ) : <div className="ctv-ch" role="rowheader" aria-colindex={1}><span className="ctv-name">…</span></div>}

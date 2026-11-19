@@ -4,6 +4,13 @@
 // plain rules with nothing from the page so they can be tested (capabilities.test.mjs).
 // docs/REMOTE-PROTOCOL.md is the contract; docs/PLAYING.md says what each player answers to.
 
+// The words: constants are marked with tk() and translated where they're shown, with tx(); sentences with something
+// filled in go through say(), English here so the tests need nothing else, and t() from the app's translation layer
+// when the app passes it. (Local, so this file loads without the app around it.)
+const tk = <S extends string>(english: S): S => english
+type Say = (english: string, vars?: Record<string, string | number | null | undefined>) => string
+const english: Say = (s, v) => s.replace(/\{(\w+)\}/g, (m, k: string) => (v && v[k] != null ? String(v[k]) : m))
+
 export type Feature = 'seek' | 'volume' | 'queue' | 'audio' | 'subtitles' | 'navigate' | 'rate'
 export type CommandType = 'play' | 'pause' | 'resume' | 'stop' | 'seek' | 'next' | 'previous' | 'volume' | 'mute' | 'audio' | 'subtitle' | 'rate' | 'navigate'
 export type NavKey = 'up' | 'down' | 'left' | 'right' | 'select' | 'back' | 'home' | 'menu' | 'playpause'
@@ -58,18 +65,18 @@ export function featuresOf(player: PlayerKind): Feature[] {
 }
 
 const PLAYER_WORDS: Record<PlayerKind, string> = {
-  video: 'A video', disc: 'A disc', cd: 'A CD', audio: 'Music', radio: 'A radio station', tv: 'Live TV', book: 'A book', photo: 'A picture', game: 'A game',
+  video: tk('A video'), disc: tk('A disc'), cd: tk('A CD'), audio: tk('Music'), radio: tk('A radio station'), tv: tk('Live TV'), book: tk('A book'), photo: tk('A picture'), game: tk('A game'),
 }
 const COMMAND_WORDS: Partial<Record<CommandType, string>> = {
-  pause: 'be paused', resume: 'be paused', seek: 'be moved through', rate: 'change speed', audio: 'change its sound track', subtitle: 'show subtitles',
-  volume: 'have its volume set from here', mute: 'have its volume set from here', next: 'step on', previous: 'step back', navigate: 'take those keys',
+  pause: tk('be paused'), resume: tk('be paused'), seek: tk('be moved through'), rate: tk('change speed'), audio: tk('change its sound track'), subtitle: tk('show subtitles'),
+  volume: tk('have its volume set from here'), mute: tk('have its volume set from here'), next: tk('step on'), previous: tk('step back'), navigate: tk('take those keys'),
 }
 
 // refusal: the words the person holding the remote is shown when a player can't do something.
-export function refusal(player: PlayerKind, type: string): string {
-  if (player === 'game' && type === 'navigate') return 'A game is being played there: its own controller steers it.'
+export function refusal(player: PlayerKind, type: string, t: Say = english): string {
+  if (player === 'game' && type === 'navigate') return t('A game is being played there: its own controller steers it.')
   const what = COMMAND_WORDS[type as CommandType]
-  return what ? `${PLAYER_WORDS[player]} can’t ${what}.` : 'This device can’t do that.'
+  return what ? t('{thing} can’t {action}.', { thing: t(PLAYER_WORDS[player]), action: t(what) }) : t('This device can’t do that.')
 }
 
 // A kind of library, as GET /modules/libraries lists it: whether this server has it, and the
@@ -119,13 +126,13 @@ export const queueFamily = (player: PlayerKind): QueueFamily =>
   player === 'video' || player === 'disc' ? 'video' : player === 'audio' ? 'audio' : player === 'radio' ? 'radio' : 'single'
 
 // checkQueue says why these kinds can't be played as one queue here, or '' when they can.
-export function checkQueue(kinds: string[]): string {
+export function checkQueue(kinds: string[], t: Say = english): string {
   const players = kinds.map(playerFor)
-  if (players.some((p) => !p)) return 'This device can’t play that kind of thing.'
+  if (players.some((p) => !p)) return t('This device can’t play that kind of thing.')
   if (players.length < 2) return ''
   const fam = queueFamily(players[0]!)
-  if (fam === 'single') return `${PLAYER_WORDS[players[0]!]} opens by itself here, not in a queue.`
-  if (players.some((p) => queueFamily(p!) !== fam)) return 'A queue has to be all videos or all music on this device.'
+  if (fam === 'single') return t('{thing} opens by itself here, not in a queue.', { thing: t(PLAYER_WORDS[players[0]!]) })
+  if (players.some((p) => queueFamily(p!) !== fam)) return t('A queue has to be all videos or all music on this device.')
   return ''
 }
 
@@ -221,44 +228,44 @@ export function remoteControls(d: DeviceLike): RemoteControls {
 // What next and previous are called on a remote, for what the device is playing: a disc
 // steps through chapters, a book through pages, live TV through channels.
 export function stepWords(d: DeviceLike): { next: string; previous: string } {
-  if (watchingTv(d)) return { next: 'Channel up', previous: 'Channel down' }
+  if (watchingTv(d)) return { next: tk('Channel up'), previous: tk('Channel down') }
   switch (d.hidden ? null : playerFor(d.itemKind || '')) {
-    case 'disc': return { next: 'Next chapter', previous: 'Previous chapter' }
-    case 'cd': return { next: 'Next track', previous: 'Previous track' }
-    case 'book': return { next: 'Next page', previous: 'Previous page' }
-    case 'photo': return { next: 'Next picture', previous: 'Previous picture' }
-    case 'radio': return { next: 'Next station', previous: 'Previous station' }
+    case 'disc': return { next: tk('Next chapter'), previous: tk('Previous chapter') }
+    case 'cd': return { next: tk('Next track'), previous: tk('Previous track') }
+    case 'book': return { next: tk('Next page'), previous: tk('Previous page') }
+    case 'photo': return { next: tk('Next picture'), previous: tk('Previous picture') }
+    case 'radio': return { next: tk('Next station'), previous: tk('Previous station') }
   }
-  return { next: 'Next', previous: 'Previous' }
+  return { next: tk('Next'), previous: tk('Previous') }
 }
 
 // What a device is doing, in a few words, for a list of devices. The title and the time are
 // added by whoever shows it; a device playing something this account may not see says only that.
 export function statusWords(d: DeviceLike): string {
-  if (!d.online) return 'Not connected'
-  if (watchingTv(d)) return 'Live TV'
-  if (d.state.status === 'idle') return 'Nothing playing'
-  if (d.hidden) return d.state.status === 'paused' ? 'Paused' : 'Playing something'
-  return d.state.status === 'paused' ? 'Paused' : d.state.status === 'buffering' ? 'Loading' : 'Playing'
+  if (!d.online) return tk('Not connected')
+  if (watchingTv(d)) return tk('Live TV')
+  if (d.state.status === 'idle') return tk('Nothing playing')
+  if (d.hidden) return d.state.status === 'paused' ? tk('Paused') : tk('Playing something')
+  return d.state.status === 'paused' ? tk('Paused') : d.state.status === 'buffering' ? tk('Loading') : tk('Playing')
 }
 
 // Why a command didn't happen, in words for the person holding the remote. The server's own
 // sentence is used where it says more than the code does (a device's reason for refusing, a
 // limit); otherwise each code has its own, naming the device.
-export function errorText(code: string | undefined, serverText: string, deviceName: string): string {
-  const name = deviceName || 'That device'
+export function errorText(code: string | undefined, serverText: string, deviceName: string, t: Say = english): string {
+  const name = deviceName || t('That device')
   switch (code) {
-    case 'offline': return `${name} isn’t connected right now.`
-    case 'unsupported': return serverText || `${name} can’t do that.`
-    case 'refused': return serverText || `${name} wouldn’t do that.`
-    case 'timeout': return `${name} didn’t answer. It may still be doing it.`
-    case 'busy': return `${name} has too much to do right now. Try again in a moment.`
-    case 'rate': return 'That was too fast. Try again in a moment.'
-    case 'no-device': return `${name} is no longer there.`
-    case 'no-item': return 'That can’t be found, or isn’t yours to play.'
-    case 'not-allowed-there': return serverText || `The account ${name} is signed in as isn’t allowed to play that.`
-    case 'nothing-playing': return serverText || 'Nothing is playing there to hand over.'
-    case 'disabled': return serverText || 'Playing on other devices is turned off on this server.'
+    case 'offline': return t('{name} isn’t connected right now.', { name })
+    case 'unsupported': return serverText || t('{name} can’t do that.', { name })
+    case 'refused': return serverText || t('{name} wouldn’t do that.', { name })
+    case 'timeout': return t('{name} didn’t answer. It may still be doing it.', { name })
+    case 'busy': return t('{name} has too much to do right now. Try again in a moment.', { name })
+    case 'rate': return t('That was too fast. Try again in a moment.')
+    case 'no-device': return t('{name} is no longer there.', { name })
+    case 'no-item': return t('That can’t be found, or isn’t yours to play.')
+    case 'not-allowed-there': return serverText || t('The account {name} is signed in as isn’t allowed to play that.', { name })
+    case 'nothing-playing': return serverText || t('Nothing is playing there to hand over.')
+    case 'disabled': return serverText || t('Playing on other devices is turned off on this server.')
   }
-  return serverText || 'That didn’t work.'
+  return serverText || t('That didn’t work.')
 }

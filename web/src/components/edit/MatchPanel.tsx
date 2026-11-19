@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import { api, artPreviewUrl } from '../../api'
+import { t, tc, tn, tx } from '../../i18n'
 import { IconStar } from '../../icons'
 import type { FieldChange, MatchCandidate, MatchPreview, SearchResult, Target, TitleEditor } from '../../metadata'
 import { ask, Button, Notice, Progress } from '../../ui'
@@ -11,10 +12,10 @@ import { WebLink } from '../WebLink'
 // Search and match: pick the right title. Choosing a result shows what would change
 // first, field by field, before anything does.
 
-export const confidenceWord = (n: number) => (n >= 90 ? 'Very likely' : n >= 70 ? 'Likely' : n >= 40 ? 'Not sure' : 'Unlikely')
+export const confidenceWord = (n: number) => (n >= 90 ? t('Very likely') : n >= 70 ? t('Likely') : n >= 40 ? t('Not sure') : t('Unlikely'))
 
 export function ConfidenceMeter({ value, label }: { value: number; label?: string }) {
-  return <span className="ed-conf"><Progress value={value} showValue tone={value >= 70 ? 'ok' : value >= 40 ? 'warn' : 'danger'} label={`${label || confidenceWord(value)}: ${value} out of 100`} /></span>
+  return <span className="ed-conf"><Progress value={value} showValue tone={value >= 70 ? 'ok' : value >= 40 ? 'warn' : 'danger'} label={t('{label}: {value} out of 100', { label: label || confidenceWord(value), value })} /></span>
 }
 
 // Shared with the fix-matches page.
@@ -29,7 +30,7 @@ export function ResultRow({ c, onChoose, chosen }: { c: MatchCandidate; onChoose
           <span className="meta">
             {c.year && <span>{c.year}</span>}
             {c.rating ? <span className="star"><IconStar size={14} /> {c.rating.toFixed(1)}</span> : null}
-            <span>{c.kind === 'show' ? 'Show' : 'Film'}</span>
+            <span>{c.kind === 'show' ? tc('kind of title', 'Show') : t('Film')}</span>
             <span>{sourceName(c.source)}</span>
           </span>
           {c.overview && <span className="ed-result-over">{c.overview}</span>}
@@ -37,14 +38,14 @@ export function ResultRow({ c, onChoose, chosen }: { c: MatchCandidate; onChoose
       </button>
       <div className="ed-result-side" id={`why-${c.source}-${c.id}`}>
         <ConfidenceMeter value={c.score} />
-        {c.reasons?.length ? <button type="button" className="ed-why" aria-expanded={showWhy} onClick={() => setShowWhy(!showWhy)}>Why?</button> : null}
+        {c.reasons?.length ? <button type="button" className="ed-why" aria-expanded={showWhy} onClick={() => setShowWhy(!showWhy)}>{t('Why?')}</button> : null}
       </div>
-      {showWhy && <ul className="ed-why-list">{c.reasons?.map((r) => <li key={r}>{r}</li>)}</ul>}
+      {showWhy && <ul className="ed-why-list">{c.reasons?.map((r) => <li key={r}>{tx(r)}</li>)}</ul>}
     </div>
   )
 }
 
-export const sourceName = (s: string) => ({ tmdb: 'TMDB', 'tmdb-tv': 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', anilist: 'AniList', wikidata: 'Wikidata' } as Record<string, string>)[s] || (s.startsWith('agent:') ? 'Your agent' : s)
+export const sourceName = (s: string) => ({ tmdb: 'TMDB', 'tmdb-tv': 'TMDB', tvdb: 'TheTVDB', tvmaze: 'TVmaze', anilist: 'AniList', wikidata: 'Wikidata' } as Record<string, string>)[s] || (s.startsWith('agent:') ? t('Your agent') : s)
 
 export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed: TitleEditor; target: Target; id: number; onApplied: (e: TitleEditor, batch?: string, what?: string) => void; onError: (s: string) => void }) {
   const [query, setQuery] = useState('')
@@ -80,15 +81,15 @@ export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed:
     try {
       const r = await api.post<{ editor: TitleEditor; batch: string }>(`/meta/${target}/${id}/match`, { source: preview.source, id: preview.id, fields: [...picked] })
       setPreview(null); setRes(null)
-      onApplied(r.editor, r.batch, `Matched with ${preview.title}.`)
+      onApplied(r.editor, r.batch, t('Matched with {title}.', { title: preview.title }))
     } catch (e: any) { onError(e.message) }
   }
   const removeMatch = async () => {
     onError('')
-    if (!await ask({ title: 'Remove this match?', body: `Everything ${ed.match.sourceLabel} gave goes, and it's named after its file again. What you typed and what's beside the file stays. Nothing is looked up for it until you choose a match.`, confirm: 'Remove the match', cancel: 'Keep it', danger: true })) return
+    if (!await ask({ title: t('Remove this match?'), body: t("Everything {source} gave goes, and it's named after its file again. What you typed and what's beside the file stays. Nothing is looked up for it until you choose a match.", { source: ed.match.sourceLabel }), confirm: t('Remove the match'), cancel: t('Keep it'), danger: true })) return
     try {
       const r = await api.del<{ editor: TitleEditor; batch: string }>(`/meta/${target}/${id}/match`)
-      onApplied(r.editor, r.batch, 'Match removed.')
+      onApplied(r.editor, r.batch, t('Match removed.'))
     } catch (e: any) { onError(e.message) }
   }
   // Up and down along the results, as well as Tab.
@@ -100,35 +101,37 @@ export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed:
     if (next) { e.preventDefault(); e.stopPropagation(); next.focus() }
   }
   const m = ed.match
+  const [matchedBefore, matchedAfter] = (m.state === 'manual' ? t('Matched with {source}, chosen by you.') : t('Matched with {source}.')).split('{source}')
+  const [wrongBefore, wrongAfter] = t('Wrong film or show? {remove} and keep only what you typed.').split('{remove}')
   return (
     <section id="ed-match" className="ed-section" aria-labelledby="ed-match-h">
-      <h3 id="ed-match-h" className="sr-only">Match</h3>
+      <h3 id="ed-match-h" className="sr-only">{t('Match')}</h3>
       {m.source ? (
         <div className="ed-matched">
-          <p>Matched with {m.url ? <WebLink href={m.url}>{m.sourceLabel}</WebLink> : m.sourceLabel}{m.state === 'manual' ? ', chosen by you' : ''}.</p>
+          <p>{matchedBefore}{m.url ? <WebLink href={m.url}>{m.sourceLabel}</WebLink> : m.sourceLabel}{matchedAfter}</p>
           {m.state !== 'manual' && <ConfidenceMeter value={m.confidence} />}
         </div>
       ) : m.state === 'none' ? (
-        <p className="muted">You said this has no match, so nothing is looked up for it. Choosing one below changes that.</p>
+        <p className="muted">{t('You said this has no match, so nothing is looked up for it. Choosing one below changes that.')}</p>
       ) : (
-        <p className="muted">Nothing is matched yet. Search below and pick the right title.</p>
+        <p className="muted">{t('Nothing is matched yet. Search below and pick the right title.')}</p>
       )}
-      {m.reasons.length > 0 && m.state === '' && m.source !== '' && <ul className="ed-why-list">{m.reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
-      {m.source && <p>Wrong film or show? <button type="button" className="ed-link" onClick={removeMatch}>Remove this match</button> and keep only what you typed.</p>}
+      {m.reasons.length > 0 && m.state === '' && m.source !== '' && <ul className="ed-why-list">{m.reasons.map((r) => <li key={r}>{tx(r)}</li>)}</ul>}
+      {m.source && <p>{wrongBefore}<button type="button" className="ed-link" onClick={removeMatch}>{t('Remove this match')}</button>{wrongAfter}</p>}
       <div className="ed-panel">
-        <h4>Search and match: pick the right title</h4>
+        <h4>{t('Search and match: pick the right title')}</h4>
         <form className="field-row" onSubmit={(e) => { e.preventDefault(); search() }}>
-          <input className="input" aria-label="Search for the right title, or paste an id or address" autoFocus value={query} placeholder={ed.name} onChange={(e) => setQuery(e.target.value)} />
-          <Button type="submit" busy={searching}>Search</Button>
-          {m.source && m.state !== 'none' && <Button variant="ghost" onClick={refresh} disabled={previewing}>Check for changes</Button>}
+          <input className="input" aria-label={t('Search for the right title, or paste an id or address')} autoFocus value={query} placeholder={ed.name} onChange={(e) => setQuery(e.target.value)} />
+          <Button type="submit" busy={searching}>{t('Search')}</Button>
+          {m.source && m.state !== 'none' && <Button variant="ghost" onClick={refresh} disabled={previewing}>{t('Check for changes')}</Button>}
         </form>
-        <p className="muted ed-help">A name, or an id or address from TMDB, IMDb, TheTVDB, TVmaze or Wikidata, such as tt0000123 or tmdb:12.</p>
+        <p className="muted ed-help">{t('A name, or an id or address from TMDB, IMDb, TheTVDB, TVmaze or Wikidata, such as tt0000123 or tmdb:12.')}</p>
         {previewing && <div className="loading-box"><div className="spinner" /></div>}
         {preview ? <PreviewTable p={preview} picked={picked} setPicked={setPicked} onApply={apply} onBack={() => setPreview(null)} /> : res && (
           <>
-            <h5 ref={results} tabIndex={-1} className="ed-results-h">{res.results.length ? `${res.results.length} ${res.results.length === 1 ? 'result' : 'results'}, most likely first` : 'Nothing found'}</h5>
-            {res.warnings.map((w) => <Notice key={w} tone="warn">{w}</Notice>)}
-            {res.results.length === 0 && !res.warnings.length && <p className="muted">Try fewer words, the original title, or an id. Asked: {res.sources.join(', ') || 'no sources are turned on'}.</p>}
+            <h5 ref={results} tabIndex={-1} className="ed-results-h">{res.results.length ? tn('{count} result, most likely first', '{count} results, most likely first', res.results.length) : t('Nothing found')}</h5>
+            {res.warnings.map((w) => <Notice key={w} tone="warn">{tx(w)}</Notice>)}
+            {res.results.length === 0 && !res.warnings.length && <p className="muted">{t('Try fewer words, the original title, or an id. Asked: {sources}.', { sources: res.sources.join(', ') || t('no sources are turned on') })}</p>}
             <div className="ed-results" ref={list} onKeyDown={arrows} data-nav-group>
               {res.results.map((c) => <ResultRow key={c.source + c.id} c={c} onChoose={() => choose(c)} />)}
             </div>
@@ -143,40 +146,41 @@ export default function MatchPanel({ ed, target, id, onApplied, onError }: { ed:
 const isArt = (f: string) => f === 'poster' || f === 'backdrop' || f === 'banner' || f === 'logo'
 const showValue = (c: FieldChange, v: string) => (isArt(c.field) ? v : v.replace(/\|/g, ', '))
 
-export function PreviewTable({ p, picked, setPicked, onApply, onBack, applyLabel = 'Use this match' }: { p: MatchPreview; picked: Set<string>; setPicked: (s: Set<string>) => void; onApply: () => void; onBack: () => void; applyLabel?: string }) {
+export function PreviewTable({ p, picked, setPicked, onApply, onBack, applyLabel }: { p: MatchPreview; picked: Set<string>; setPicked: (s: Set<string>) => void; onApply: () => void; onBack: () => void; applyLabel?: string }) {
   const toggle = (f: string, on: boolean) => { const n = new Set(picked); if (on) n.add(f); else n.delete(f); setPicked(n) }
   const head = useRef<HTMLHeadingElement | null>(null)
   useEffect(() => { head.current?.focus({ preventScroll: true }) }, [p])
+  const [fromBefore, fromAfter] = t('from {source}').split('{source}')
   return (
     <div className="ed-preview">
       <h5 ref={head} tabIndex={-1}>
-        {p.title} <span className="muted">from {p.url ? <WebLink href={p.url}>{p.sourceLabel}</WebLink> : p.sourceLabel}</span>
+        {p.title} <span className="muted">{fromBefore}{p.url ? <WebLink href={p.url}>{p.sourceLabel}</WebLink> : p.sourceLabel}{fromAfter}</span>
       </h5>
-      {p.changes.length === 0 ? <p className="muted">Nothing would change: everything already says what this says.</p> : (
+      {p.changes.length === 0 ? <p className="muted">{t('Nothing would change: everything already says what this says.')}</p> : (
         <>
-          <p className="muted ed-help">Here's what would change. Untick anything to keep what's there now.</p>
+          <p className="muted ed-help">{t("Here's what would change. Untick anything to keep what's there now.")}</p>
           <ul className="ed-changes">
             {p.changes.map((c) => (
               <li key={c.field} className={c.locked ? 'locked' : ''}>
                 <label className="ed-change-pick">
                   <input type="checkbox" disabled={c.locked} checked={picked.has(c.field)} onChange={(e) => toggle(c.field, e.target.checked)} />
-                  <b>{c.label}</b>
+                  <b>{tx(c.label)}</b>
                 </label>
                 <div className="ed-change-vals">
                   {isArt(c.field) ? (
                     <>
-                      <span className="ed-change-art">{c.current ? <img src={artPreviewUrl(c.current)} alt="Now" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : <span className="muted">None</span>}</span>
+                      <span className="ed-change-art">{c.current ? <img src={artPreviewUrl(c.current)} alt={t('Now')} loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : <span className="muted">{t('None')}</span>}</span>
                       <span aria-hidden="true">→</span>
-                      <span className="ed-change-art">{c.incoming ? <img src={artPreviewUrl(c.incoming)} alt="New" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : <span className="muted">None</span>}</span>
+                      <span className="ed-change-art">{c.incoming ? <img src={artPreviewUrl(c.incoming)} alt={t('New')} loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} /> : <span className="muted">{t('None')}</span>}</span>
                     </>
                   ) : (
                     <>
-                      <span className="ed-old"><span className="sr-only">Now: </span>{showValue(c, c.current) || <span className="muted">Empty</span>}</span>
-                      <span className="ed-new"><span className="sr-only">New: </span>{showValue(c, c.incoming) || <span className="muted">Empty</span>}</span>
+                      <span className="ed-old"><span className="sr-only">{t('Now:')} </span>{showValue(c, c.current) || <span className="muted">{t('Empty')}</span>}</span>
+                      <span className="ed-new"><span className="sr-only">{t('New:')} </span>{showValue(c, c.incoming) || <span className="muted">{t('Empty')}</span>}</span>
                     </>
                   )}
                 </div>
-                {c.note && <div className="ed-hint">{c.note}</div>}
+                {c.note && <div className="ed-hint">{tx(c.note)}</div>}
               </li>
             ))}
           </ul>
@@ -184,13 +188,15 @@ export function PreviewTable({ p, picked, setPicked, onApply, onBack, applyLabel
       )}
       {p.episodes && (
         <p className="ed-help">
-          {p.source && <>It knows {p.episodes.known} of the {p.episodes.total} numbered episodes here{p.episodes.known < p.episodes.total ? ', so check the numbering under Fix matches' : ''}.</>}
-          {p.episodes.unknown.length > 0 && <span className="muted"> Not known: {p.episodes.unknown.slice(0, 12).join(', ')}{p.episodes.unknown.length > 12 ? '…' : ''}.</span>}
+          {p.source && (p.episodes.known < p.episodes.total
+            ? t('It knows {known} of the {total} numbered episodes here, so check the numbering under Fix matches.', { known: p.episodes.known, total: p.episodes.total })
+            : t('It knows {known} of the {total} numbered episodes here.', { known: p.episodes.known, total: p.episodes.total }))}
+          {p.episodes.unknown.length > 0 && <span className="muted"> {t('Not known: {episodes}.', { episodes: p.episodes.unknown.slice(0, 12).join(', ') + (p.episodes.unknown.length > 12 ? '…' : '') })}</span>}
         </p>
       )}
       <div className="ed-art-btns">
-        <Button variant="primary" onClick={onApply}>{applyLabel}</Button>
-        <Button variant="ghost" onClick={onBack}>Back</Button>
+        <Button variant="primary" onClick={onApply}>{applyLabel ?? t('Use this match')}</Button>
+        <Button variant="ghost" onClick={onBack}>{t('Back')}</Button>
       </div>
     </div>
   )

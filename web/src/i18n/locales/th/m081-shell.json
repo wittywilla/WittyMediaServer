@@ -1,0 +1,16 @@
+{
+  "Episode number": "หมายเลขตอน",
+  "Episode {episode}": "ตอนที่ {episode}",
+  "Episodes {episodes}": "ตอนที่ {episodes}",
+  "Last episode": "ตอนสุดท้าย",
+  "Season number": "หมายเลขซีซัน",
+  "Show episodes as": "แสดงตอนแบบ",
+  "Special {episode}": "ตอนพิเศษ {episode}",
+  "Specials {episodes}": "ตอนพิเศษ {episodes}",
+  "S{season} · E{episode}": "ซีซัน {season} · ตอนที่ {episode}",
+  "Your graphics chip can convert video for a fraction of the processor work. Each is tested when the server starts, those your machine doesn’t have are greyed out, and every one that works is ticked until you choose: the first ticked one that works is used, and the picture stays on the chip from decoding to encoding where it can. With none ticked it’s all software, which gives the best quality for the size and uses the most processor.": "ชิปกราฟิกของคุณแปลงวิดีโอได้โดยใช้งานโปรเซสเซอร์เพียงเล็กน้อย แต่ละตัวจะถูกทดสอบเมื่อเซิร์ฟเวอร์เริ่ม ตัวที่เครื่องของคุณไม่มีจะเป็นสีเทา และตัวที่ใช้งานได้ทุกตัวจะถูกเลือกไว้จนกว่าคุณจะเลือกเอง ตัวแรกที่ถูกเลือกและใช้งานได้จะถูกใช้ และภาพจะอยู่บนชิปตั้งแต่ถอดรหัสจนถึงเข้ารหัสเมื่อทำได้ หากไม่เลือกเลยจะใช้ซอฟต์แวร์ทั้งหมด ซึ่งให้คุณภาพดีที่สุดเมื่อเทียบกับขนาดและใช้โปรเซสเซอร์มากที่สุด",
+  "{left} of {count} left": {
+    "other": "เหลือ {left} จาก {count}"
+  },
+  "{season}, {count}": "{season}, {count}"
+}

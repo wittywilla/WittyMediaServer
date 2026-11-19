@@ -18,6 +18,7 @@ import { useTvMode } from './tvmode/mode'
 import { focusFirst } from './tv'
 import { rememberHost } from './moduleRegistry'
 import { appModules } from './moduleApp'
+import { date, isRtl, language, list, num, onLanguage, relative, useLanguage } from './i18n'
 
 // What a module's web bundle shares with the app, and reads from one global because an
 // inline import map would need the page's security policy loosened. A bundle has to use
@@ -61,7 +62,7 @@ const http = {
 }
 
 /** Host features this app offers, and their versions. */
-const offers: Record<string, number> = { web: 5, frames: 1, cards: 1, settings: 1, routes: 1 }
+const offers: Record<string, number> = { web: 5, frames: 1, cards: 1, settings: 1, routes: 1, i18n: 1 }
 
 /** The host a module's register(host) and its components are given (web host API 5). */
 export function hostFor(module: string) {
@@ -89,6 +90,10 @@ export function hostFor(module: string) {
     LegalNote,
     sdui: { CardRouteContext, GameArtContext, GlyphContext, RowLayoutContext, TabsContext, setPageRegions, usePageRegions },
     input: { focusFirst },
+    /** The language the app's pages are in (the server's uiLanguage, a BCP 47 tag: 'de', or 'pt-BR' / 'pt-PT'), for a
+     *  module to show its own words in.
+     *  Offered as has('i18n'). The whole app, modules included, is drawn again when it changes. */
+    i18n: { language, useLanguage, onLanguage, rtl: () => isRtl(language()), number: num, date, relative, list },
   }
   rememberHost(module, host)
   return host

@@ -890,11 +890,13 @@ func checkSheets(t *testing.T, ts *testServer, tok string, st *sampleTools, root
 			t.Fatal(err)
 		}
 	}
+	// Each names a song in sub/: a list of only the songs beside it is an album's own
+	// track list, which isn't imported (#490).
 	lists := map[string]string{
 		"list m3u.m3u":   "#EXTM3U\n#EXTINF:1,One\nOne.mp3\nsub/Two.flac\nhttp://evil.test/x.mp3\n../../../etc/passwd\nThree.ogg\n",
-		"list m3u8.m3u8": "#EXTM3U\nThree.ogg\nOne.mp3\n",
+		"list m3u8.m3u8": "#EXTM3U\nThree.ogg\nsub/Two.flac\n",
 		"list pls.pls":   "[playlist]\nNumberOfEntries=2\nFile2=sub/Two.flac\nFile1=One.mp3\n",
-		"list xspf.xspf": `<?xml version="1.0"?><playlist xmlns="http://xspf.org/ns/0/"><trackList><track><location>One.mp3</location></track><track><location>Three.ogg</location></track></trackList></playlist>`,
+		"list xspf.xspf": `<?xml version="1.0"?><playlist xmlns="http://xspf.org/ns/0/"><trackList><track><location>sub/Two.flac</location></track><track><location>Three.ogg</location></track></trackList></playlist>`,
 		"list asx.asx":   `<asx version="3.0"><entry><ref href="sub/Two.flac"/></entry><entry><ref href="One.mp3"/></entry></asx>`,
 		"none.m3u":       "http://evil.test/only.mp3\n",
 	}

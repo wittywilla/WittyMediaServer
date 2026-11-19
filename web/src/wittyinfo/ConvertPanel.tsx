@@ -50,17 +50,17 @@ export default function ConvertPanel({ onBusy, compact, beforeStart }: { onBusy?
   const rows: Row[] = []
   if (counts && (counts.titles || counts.shows)) rows.push({
     key: 'wittyinfo', ext: '.wittyinfo', what: t('Films and TV'), standard: t('NFO files, posters and skip files'),
-    found: t('{titles} films and episodes, {nfo} with NFO files and {art} with pictures; {shows} shows', { titles: counts.titles, nfo: counts.withNfo, art: counts.withArt, shows: counts.shows }),
+    found: t('Films and episodes: {titles} · with NFO files: {nfo} · with pictures: {art} · shows: {shows}', { titles: counts.titles, nfo: counts.withNfo, art: counts.withArt, shows: counts.shows }),
     has: counts.withNfo + counts.withArt + counts.withSkips + counts.showsWithNfo, hasOwn: counts.withInfo + counts.showsWithInfo,
   })
   if (counts && counts.songs) rows.push({
     key: 'wittyaudio', ext: '.wittyaudio', what: t('Music'), standard: t('.lrc lyrics, album covers and album.nfo files'),
-    found: t('{songs} songs, {lyrics} with lyrics files; {albums} albums, {art} with a cover or album.nfo', { songs: counts.songs, lyrics: counts.songsWithLyrics, albums: counts.albums, art: counts.albumsWithArt }),
+    found: t('Songs: {songs} · with lyrics files: {lyrics} · albums: {albums} · with a cover or album.nfo: {art}', { songs: counts.songs, lyrics: counts.songsWithLyrics, albums: counts.albums, art: counts.albumsWithArt }),
     has: counts.songsWithLyrics + counts.albumsWithArt, hasOwn: counts.songsWithInfo + counts.albumsWithInfo,
   })
   if (games && games.games) rows.push({
     key: 'wittyplay', ext: '.wittyplay', what: t('Games'), standard: t('game lists, NFO files, box art and screenshots'),
-    found: t('{games} games, {meta} with details beside them', { games: games.games, meta: games.withMetadata }),
+    found: t('Games: {games} · with details beside them: {meta}', { games: games.games, meta: games.withMetadata }),
     has: games.withMetadata, hasOwn: games.withInfo,
   })
 

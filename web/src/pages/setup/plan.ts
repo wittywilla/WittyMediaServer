@@ -5,7 +5,7 @@
 // adding a step means adding one line here and one file beside this one. Nothing here touches the
 // page or the network, so it can be tested on its own (plan.test.mjs).
 
-export type StepId = 'welcome' | 'account' | 'name' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'theme' | 'people' | 'remote' | 'done'
+export type StepId = 'welcome' | 'account' | 'storage' | 'name' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'theme' | 'people' | 'remote' | 'done'
 
 // What the steps depend on. kinds is null until it's known, which it can't be before there's an
 // account to ask with. A kind that isn't listed needs no module, as the server has the last word.
@@ -14,6 +14,8 @@ export type Facts = {
   store: boolean
   modules: string[]
   kinds: { type: string; available: boolean }[] | null
+  // A desktop install that hasn't been told where to keep its data (GET /api/data-location, ask).
+  askData?: boolean
 }
 
 export type StepInfo = {
@@ -25,6 +27,8 @@ export type StepInfo = {
   later?: { where: string; to: string }
   // Asked only if this is true, on top of the modules it needs.
   when?: (f: Facts) => boolean
+  // Can't be passed by, although it says where to change it later: its answer is needed now.
+  noSkip?: boolean
 }
 
 export const canMake = (f: Facts, kind: string) => !f.kinds?.some((k) => k.type === kind && !k.available)
@@ -35,6 +39,7 @@ export const canMake = (f: Facts, kind: string) => !f.kinds?.some((k) => k.type 
 export const STEPS: StepInfo[] = [
   { id: 'welcome', label: 'Welcome', needs: 'server', when: (f) => !f.signedIn },
   { id: 'account', label: 'Account', needs: 'server', when: (f) => !f.signedIn },
+  { id: 'storage', label: 'Where data is kept', needs: 'server', when: (f) => !!f.askData, noSkip: true, later: { where: 'Settings, Data folder', to: '/settings/data-folder' } },
   { id: 'name', label: 'Name and address', needs: 'server', later: { where: 'Settings, Appearance, under Name and logo', to: '/settings/appearance#name' } },
   { id: 'look', label: 'Look', needs: 'server', later: { where: 'Settings, Appearance', to: '/settings/appearance' } },
   { id: 'theme', label: 'Theme', needs: 'server', later: { where: 'Settings, Appearance', to: '/settings/appearance#theme' } },
@@ -53,7 +58,8 @@ export const STEPS: StepInfo[] = [
 ]
 
 // A page that belongs to another step's number: Details and artwork has four.
-const PAGE_OF: Partial<Record<StepId, StepId>> = { logos: 'details', music: 'details', listings: 'details' }
+// Where data is kept is the first page of Name and address: both are about this server itself.
+const PAGE_OF: Partial<Record<StepId, StepId>> = { storage: 'name', logos: 'details', music: 'details', listings: 'details' }
 export const drawnId = (id: StepId): StepId => PAGE_OF[id] || id
 export const drawnSteps = (steps: StepInfo[]) => steps.filter((s) => !PAGE_OF[s.id])
 // The fourteen drawn steps, always, so the total never changes under someone: a step whose module isn't on this server is
@@ -66,7 +72,7 @@ export function drawnNumber(steps: StepInfo[], id: StepId): { at: number; of: nu
   return pages.length > 1 ? { ...n, page: { at: pages.findIndex((s) => s.id === id) + 1, of: pages.length } } : n
 }
 // Steps with nothing to lose by passing: a step that says where to change it later.
-export const canSkip = (s: StepInfo) => !!s.later
+export const canSkip = (s: StepInfo) => !!s.later && !s.noSkip
 
 const belongs = (s: StepInfo, f: Facts) => s.needs === 'server' || s.needs.some((id) => f.modules.includes(id))
 

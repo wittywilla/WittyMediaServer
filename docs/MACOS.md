@@ -215,11 +215,12 @@ Signing and notarising need **the Apple Developer Program, US$99 a year**, which
 | The apps | `/Applications/WittyMediaServer.app`, `/Applications/Uninstall WittyMediaServer.app` |
 | The server, FFmpeg and the other programs | `/Applications/WittyMediaServer.app/Contents/Helpers` |
 | The command | `/usr/local/bin/wittymediaserver`, a link to the one in `Helpers` |
-| Library, accounts and settings | `~/Library/Application Support/WittyMediaServer` |
+| Library, accounts and settings | Where setup asks: `~/Documents/WittyMediaServer` by default; `~/Library/Application Support/WittyMediaServer` before 0.8.1-alpha and for the background service ([The data folder](DATA-FOLDER.md)) |
 | Settings file | `~/Library/Application Support/WittyMediaServer/wms.json` |
-| Logs | `~/Library/Application Support/WittyMediaServer/logs` |
-| Themes you add | `~/Library/Application Support/WittyMediaServer/themes` |
-| Modules | `~/Library/Application Support/WittyMediaServer/modules`; a starter set in `WittyMediaServer.app/Contents/Resources/modules` |
+| Where the data folder is | `~/Library/Application Support/WittyMediaServer/data-location.json` |
+| Logs | `logs` in the data folder |
+| Themes you add | `themes` in the data folder |
+| Modules | `modules` in the data folder; a starter set in `WittyMediaServer.app/Contents/Resources/modules` |
 | The background service | `/Library/LaunchDaemons/com.wittywilla.wittymediaserver.plist` |
 | Starting the menu-bar app at sign-in | `~/Library/LaunchAgents/com.wittywilla.wittymediaserver.tray.plist` |
 | The installer's record | `pkgutil --pkgs | grep wittywilla` |

@@ -81,7 +81,9 @@ html.tv-mode body { background: var(--bg); }
 .tvm-pill { display: inline-flex; align-items: center; gap: calc(var(--tvu) * 12); height: var(--tvm-bar-pill); padding: 0 calc(var(--tvu) * 24); border-radius: var(--r-full); color: var(--fg-2); font-size: var(--tvm-body); font-weight: 500; white-space: nowrap; }
 .tvm-pill svg { width: calc(var(--tvu) * 30); height: calc(var(--tvu) * 30); }
 .tvm-pill:hover { color: var(--fg); background: var(--hover); }
-.tvm-pill[aria-current="page"] { background: var(--accent-soft); color: var(--accent-text); }
+/* The tab in use: the accent's tint behind it takes a little from the accent as text, so the word comes a third of the
+   way to the main text colour to stay at 4.5:1 on the tint (web/scripts/test-contrast.mjs). */
+.tvm-pill[aria-current="page"] { background: var(--accent-soft); color: color-mix(in srgb, var(--accent-text) 65%, var(--fg)); }
 .tvm-you { margin-left: auto; }
 /* The initial sits in the middle of its circle: its own line height and a size that fits, not the pill's. */
 .tvm-you .avatar-tile { display: grid; place-items: center; flex: none; overflow: hidden; width: calc(var(--tvu) * 28); height: calc(var(--tvu) * 28); border-radius: 50%; font-size: calc(var(--tvu) * 15); font-weight: 700; line-height: 1; color: #fff; } /* design-ok: white on the person's own colour, as every avatar tile */

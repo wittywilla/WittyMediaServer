@@ -3,7 +3,7 @@
   "name": "Aero Meadow",
   "description": "Spring green glass over a bright meadow.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "4",
   "scheme": "light",
   "builtin": true,
   "preview": {
@@ -28,7 +28,7 @@
           },
           {
             "at": 100,
-            "color": "#8fe0a0"
+            "color": "#97e4a8"
           }
         ]
       },
@@ -90,11 +90,11 @@
         "stops": [
           {
             "at": 0,
-            "color": "#5fcf6a"
+            "color": "#93e59e"
           },
           {
             "at": 100,
-            "color": "#2a8a3e"
+            "color": "#95e5a9"
           }
         ]
       }
@@ -121,13 +121,13 @@
     "bg3": "#ecfae4",
     "bg4": "#d6e7d1",
     "fg": "#0d3a22",
-    "fg2": "#2f6b47",
-    "fg3": "#477455",
+    "fg2": "#2d6643",
+    "fg3": "#3c6348",
     "accent": "#217a36",
     "accentHover": "#299944",
     "accentFg": "#ffffff",
-    "accentText": "#146b2e",
-    "brandAccent": "#146b2e",
+    "accentText": "#14692d",
+    "brandAccent": "#14692d",
     "danger": "#b8222f",
     "ok": "#116b45",
     "warn": "#8a5300",
@@ -141,7 +141,7 @@
     "okSoft": "#116b4521",
     "warnSoft": "#8a530021",
     "dangerSoft": "#b8222f1c",
-    "focus": "#146b2e",
+    "focus": "#14692d",
     "onImage": "#ffffff",
     "scrim": "#000000ad",
     "overlay": "#14182073"
@@ -204,7 +204,7 @@
   },
   "tv": {
     "ringColor": "#0d3a22",
-    "heroScrim": 0.78,
+    "heroScrim": 0.9,
     "tvText": "#0c341f"
   }
 }

@@ -17,8 +17,10 @@ const listServer = (path: string, hidden: boolean) => api.get<Listing>(`/fs${pat
 // (Explorer, Finder, the desktop's dialog). "Browse folders" opens the
 // built-in browser, which lists the server's drives and folders in the page
 // and so works from any device: a phone, a TV, another computer.
-export function ChooseFolderButton({ onPick, label = 'Choose folder…', className = 'btn' }: { onPick: (path: string) => void; label?: string; className?: string }) {
-  const { pickerLocal } = useApp()
+// browseOnly leaves out the system's own folder window: only the browser in the page is offered.
+export function ChooseFolderButton({ onPick, label = 'Choose folder…', className = 'btn', browseOnly }: { onPick: (path: string) => void; label?: string; className?: string; browseOnly?: boolean }) {
+  const app = useApp()
+  const pickerLocal = app.pickerLocal && !browseOnly
   const [browse, setBrowse] = useState(false)
   const [busy, setBusy] = useState(false)
   const choose = async () => {

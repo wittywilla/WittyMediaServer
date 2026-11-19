@@ -186,6 +186,9 @@ func TestRecordingRestrictionsAreHonoured(t *testing.T) {
 	m, f := testManager(t)
 	srv := iptvServer(t)
 	_, ch := addIPTV(t, f, srv)
+	// Set before anything is scheduled: Schedule wakes the scheduler, which reads Folder.
+	folder := t.TempDir()
+	m.Folder = func() string { return folder }
 	ctx := context.Background()
 	noRecord := func(why string) { f.change(m, ch[0].ID, func(c *Channel) { c.NoRecord = why }) }
 	noRecord("you marked it as not to be recorded")
@@ -196,15 +199,14 @@ func TestRecordingRestrictionsAreHonoured(t *testing.T) {
 	if _, err := m.AddRule(ctx, ch[0].ID, 1, "x"); err == nil {
 		t.Fatal("nor as a series")
 	}
-	// Scheduled first, restricted after: it must not start.
+	// Scheduled first, restricted after: it must not start. An hour away, so the scheduler
+	// (which Schedule wakes) leaves it alone while the test calls record itself.
 	noRecord("")
-	r, err := m.Schedule(ctx, ch[0].ID, 1, "x", "", now, now+60)
+	r, err := m.Schedule(ctx, ch[0].ID, 1, "x", "", now+3600, now+3660)
 	if err != nil {
 		t.Fatal(err)
 	}
 	noRecord("you marked it as not to be recorded")
-	folder := t.TempDir()
-	m.Folder = func() string { return folder }
 	full, _ := m.recording(ctx, r.ID)
 	m.record(full)
 	got, _ := m.recording(ctx, r.ID)

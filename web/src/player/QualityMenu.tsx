@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useId, useRef, useState } from 'react'
+import { UseAComputer, advancedHere } from '../ui/advanced'
 import type { QualityPreset, QualityView } from '../api'
 import './quality.css'
 import { EMPTY, HEIGHTS, MAX_MBPS, MIN_MBPS, capOf, entryOf, formatChoice, parseChoice, perHour, presetChoice, rate, sizeName, type Choice } from './quality'
@@ -31,6 +32,7 @@ export type QualityMenuProps = {
 
 export default function QualityMenu({ view, decision, presets: given, showInfo, onShowInfo, onChoose, onClose, where, live }: QualityMenuProps) {
   const [page, setPage] = useState<'easy' | 'advanced'>('easy')
+  const [walled, setWalled] = useState(false) // Advanced asked for on a phone or TV (ui/advanced.tsx)
   const root = useRef<HTMLDivElement | null>(null)
   const presets = given || view.presets
   const asked = view.asked
@@ -93,7 +95,8 @@ export default function QualityMenu({ view, decision, presets: given, showInfo, 
             {current === 'custom' && entry('custom', 'Custom', customNote(asked), asked)}
           </div>
           {limited && <p className="qm-small">Up to {[cap.height ? sizeName(cap.height) : '', cap.kbps ? rate(cap.kbps) : ''].filter(Boolean).join(' and ')} {view.away ? 'away from home' : 'on this profile'}, as the server allows.</p>}
-          <button type="button" className="qm-more" onClick={() => setPage('advanced')}>Advanced…</button>
+          <button type="button" className="qm-more" onClick={() => (advancedHere() ? setPage('advanced') : setWalled(true))}>Advanced…</button>
+          {walled && <UseAComputer what="Advanced quality settings" onClose={() => setWalled(false)} />}
           <p className="qm-small">Remembered on this device {where === 'away' ? 'away from home' : 'at home'}.</p>
         </>
       ) : (

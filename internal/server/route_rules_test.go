@@ -125,6 +125,7 @@ var routeRules = map[string]string{
 	"GET /api/items/{id}/book":                            "Signed-in: limits. Book, plain file inside a library",
 	"GET /api/items/{id}/comments":                        "Signed-in: limits",
 	"GET /api/items/{id}/disc/thumb/{ttn}/{n}":            "Signed-in; ticket; address token: limits. Item is a disc and not scrambled. Title and chapter exist",
+	"GET /api/items/{id}/scene/{sec}":                     "Signed-in; ticket; address token: limits. Video file. Time within its length",
 	"GET /api/items/{id}/epub/{file...}":                  "Signed-in; address token: limits. EPUB inside a library. Name cleaned and looked up in the archive. Restrictive content policy",
 	"GET /api/items/{id}/file":                            "Signed-in; ticket; address token: limits. Video or book. Plain file inside a library once links are followed. Type from a fixed list. Limit for viewers away from home",
 	"GET /api/items/{id}/image":                           "Signed-in: limits. Photo or video. Type from a fixed list",

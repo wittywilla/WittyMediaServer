@@ -4,6 +4,7 @@
 package uninstall
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -29,6 +30,7 @@ var DataEntries = map[string]string{
 	"branding":              "your server's logo",
 	"channel-logos":         "TV channel logos",
 	"bumpers":               "TV bumpers",
+	"separator":             "the karaoke voice separator (Demucs) and its Python",
 	"lyrics-corrections":    "lyrics you corrected",
 	"modules":               "downloaded modules",
 	"themes":                "themes",
@@ -45,6 +47,16 @@ var DataEntries = map[string]string{
 	"repair-result.json":    "the last repair's result",
 	"instance.lock":         "what keeps a second server off this folder",
 	"instance.json":         "where the running server is",
+	"ui_config.json":        "the layout of pages and menus",
+	"ui_config.draft.json":  "a layout being edited",
+	"ui_config.json.bad":    "a layout that didn't load",
+	"ui_config.history":     "earlier layouts",
+	"README.txt":            "what each folder is for",
+	"move-request.json":     "a waiting move to another folder",
+	"move-result.json":      "the last move's result",
+	"moved-from.json":       "where the data was moved from",
+	"MOVED.txt":             "a note saying where the data went",
+	".wms-moving":           "a move that didn't finish",
 }
 
 // These have a question each. Recorded TV is media, and backups are the copy someone keeps
@@ -177,3 +189,31 @@ func dataDirFromCommand(s string) string {
 	}
 	return strings.Trim(m[2], `"'`)
 }
+
+// planPointer adds the file that says where the data folder is, which setup or Settings wrote, and
+// follows it to that folder. home is set for another account's pointer: its folder is followed
+// only while it stays in that account's own folder, as anything else of theirs is.
+func planPointer(e *Env, pl *Plan, file, home string, admin bool) {
+	if !exists(file) || !pl.first(file) {
+		return
+	}
+	pl.add(fileItem("where the data folder is", file, GroupData, admin))
+	b, err := os.ReadFile(file)
+	if err != nil || len(b) > 64<<10 {
+		return
+	}
+	var p struct {
+		DataDir string `json:"dataDir"`
+	}
+	if json.Unmarshal(b, &p) != nil || !filepath.IsAbs(p.DataDir) {
+		return
+	}
+	if home != "" && !staysInHome(home, p.DataDir) {
+		pl.keep(p.DataDir, "another account chose it as its data folder, outside its own folder: delete it yourself if no one needs it")
+		return
+	}
+	planDataFolder(e, pl, p.DataDir, false, admin)
+}
+
+// pointerName is the file setup writes beside the config file, saying where the data folder is.
+const pointerName = config.PointerName

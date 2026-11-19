@@ -21,7 +21,7 @@ export const sectionId = (title: string) => title.toLowerCase().replace(/[’'"]
 export const ENTRIES: Entry[] = [
   // My game settings
   // Appearance
-  { page: 'appearance', title: tk('Language'), section: tk('Language'), words: 'language of the app pages words translate translation locale', admin: true },
+  { page: 'appearance', title: tk('Language and time zone'), section: tk('Language and time zone'), words: 'language of the app pages words translate translation locale time zone timezone clock disc menus sound tracks audio', admin: true },
   { page: 'appearance', title: tk('Theme'), section: tk('Theme'), words: 'themes look skin style dark mode light mode night automatic witty cinema evergreen high contrast light midnight paper true black oled' },
   { page: 'appearance', title: tk('Light or dark, as this device is set'), section: tk('Theme'), words: 'automatic dark mode light mode night follow system' },
   { page: 'appearance', title: tk('The theme everyone starts with'), section: tk('Theme'), words: 'make default server theme for everyone', admin: true },

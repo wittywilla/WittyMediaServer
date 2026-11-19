@@ -12,7 +12,7 @@ import { ThemePicture } from '../tv/LookPanel'
 import { appColours } from '../tv/look'
 import { Brand } from '../../components/common'
 import { Button, Segmented } from '../../ui'
-import { setTvMode, useTvMode } from '../../tvmode/mode'
+import { TvPart } from '../../tvmode/OnAComputer'
 import { LayoutThumb } from '../../ui/LayoutThumb'
 import { useDevice } from '../../sdui/useSdui'
 import { specFor, type Cards, type Home, type WireMap } from '../../ui/layoutSpecs'
@@ -70,15 +70,14 @@ function LookPreview({ card, device }: { card: Card; device: Device }) {
 
 // WittyTV's look, chosen on its own: each look brings one (Lumen brings Modern), and picking another here overrides it
 // for everyone who hasn't chosen their own in the guide. The large picture is the guide as it will look.
-function TvLookChoice({ suggested, lookName, value, onChange }: { suggested?: string; lookName: string; value: string; onChange: (v: string) => void }) {
+export function TvLookChoice({ suggested, lookName, value, onChange }: { suggested?: string; lookName: string; value: string; onChange: (v: string) => void }) {
   const app = appColours()
   const follow = (themeById(suggested)?.id || 'modern') as ThemeId
   const shown = (value ? value : follow) as ThemeId
   const th = themeById(shown)!
   return (
     <>
-      <h2 className="oobe-sub">{t('WittyTV look')}</h2>
-      <p className="su-tv-lead"><Fill text={t('The live TV guide has a look of its own. The look you chose above sets it: {look} brings {theme}. Pick another to override it for everyone. People can still choose their own in the guide.')} parts={{ look: lookName, theme: <b>{tx(themeById(follow)?.name)}</b> }} /></p>
+      <p className="su-tv-lead"><Fill text={t('The server’s look sets it to begin with: {look} brings {theme}. Pick another to use it for everyone instead. People can still choose their own in the guide.')} parts={{ look: lookName, theme: <b>{tx(themeById(follow)?.name)}</b> }} /></p>
       <div className="su-look su-tv">
         <ChoiceCards label={t('WittyTV look')} value={value || 'follow'} onChange={(v) => onChange(v === 'follow' ? '' : v)} small cards={[
           { value: 'follow', title: t('Follow the look'), text: t('{theme}, from {look}', { theme: tx(themeById(follow)?.name), look: lookName }), pic: <ThemePicture shape={themeById(follow)!.shape} tokens={themeTokens(follow, undefined, app)} /> },
@@ -101,12 +100,9 @@ export function Look({ info, next, back }: StepProps) {
   const { serverTheme } = useApp()
   const [cards, setCards] = useState<Card[]>([])
   const [pick, setPick] = useState(chosenLayout || 'lumen')
-  const tv = useTvMode()
-  const [device, setDevice] = useState<Device>('desktop')
-  // WittyTV's own look: '' follows what the chosen look suggests; anything else overrides it for everyone.
-  const [tvLook, setTvLook] = useState('')
+  // The preview starts as this device: a phone shows the phone, a TV the TV.
+  const [device, setDevice] = useState<Device>(here === 'phone' ? 'phone' : here === 'tv' ? 'tv' : here === 'headset' ? 'headset' : 'desktop')
   useEffect(() => { api.get<{ experiences: Card[]; default: string }>('/sdui/experiences').then((r) => { setCards(r.experiences); setPick(chosenLayout || r.default) }).catch(() => {}) }, [])
-  useEffect(() => { api.get<Record<string, string>>('/tv/settings').then((v) => setTvLook(v.tvTheme || '')).catch(() => {}) }, [])
   const choose = (id: string) => {
     setPick(id)
     const c = cards.find((x) => x.id === id)
@@ -123,15 +119,14 @@ export function Look({ info, next, back }: StepProps) {
       await sduiAsk('PUT', `${SDUI_BASE}/config/experience`, { body: policy, headers: { 'If-Match': got.etag } })
       // The theme is not written here: the server follows the look's own theme until someone chooses another (Theme step).
     } catch { toast(t('The look couldn’t be saved. You can choose it later in Settings, Appearance.'), { tone: 'danger' }) }
-    try { await api.put('/tv/settings', { tvTheme: tvLook }) } catch { /* can be changed later, in WittyTV's Look */ }
     bump(); void loadThemeOverrides()
     next()
   }
   return (
     <section>
-      <StepHead title={t('Choose a layout')} lead={t('Each look is a layout, finish and type of its own, drawn here as a phone shows it. Pick one for everyone: it is tried here as you choose. Colours are the next page, and people can pick their own later.')} />
+      <StepHead title={t('How should it be laid out?')} lead={t('Each look is a layout, finish and type of its own: where the menu sits and how Home is arranged. Pick one for everyone; this page tries it as you choose. Colours are the next page, and people can pick their own later.')} />
       {cards.length > 0 && (
-        <div className="su-look">
+        <div className="su-look su-look-first-view">
           <ChoiceCards label={t('Layout')} value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline ? tx(c.tagline) : undefined, pic: <LayoutThumb wire={c.wire} formFactor={here} colours={c.preview} /> }))} />
           <div className="su-look-view">
             <Segmented<Device> label={t('Preview on')} value={device} onChange={setDevice} options={[{ value: 'tv', label: t('TV') }, { value: 'desktop', label: t('Desktop') }, { value: 'phone', label: t('Phone') }, { value: 'headset', label: t('VR') }]} />
@@ -140,10 +135,6 @@ export function Look({ info, next, back }: StepProps) {
           </div>
         </div>
       )}
-      {cards.length > 0 && <TvLookChoice suggested={cards.find((c) => c.id === pick)?.tvTheme} lookName={cards.find((c) => c.id === pick)?.name || ''} value={tvLook} onChange={setTvLook} />}
-      <div className="su-gap">
-        <TickRow kind="switch" checked={tv} onChange={setTvMode} title={t('TV mode')} text={t('Laid out and driven like the Apple TV and Android TV apps, with a remote or a controller, for a screen across the room. Only on this device.')} />
-      </div>
       <LaterNote info={info} />
       <StepActions back={back}><Button variant="primary" size="big" onClick={() => void save()}>{t('Next')}</Button></StepActions>
     </section>
@@ -161,8 +152,6 @@ export function Theme({ info, next, back }: StepProps) {
   const chosenNow = useRef(false)
   // Until someone chooses, the theme ticked is the one the look on the page before wears.
   const [pick, setPick] = useState(currentLook()?.theme || serverTheme)
-  const [own, setOwn] = useState(false)
-  useEffect(() => { getLooks(false).then((l) => setOwn(!!l.experiences?.profileThemes)).catch(() => {}) }, [])
   const file = useRef<HTMLInputElement | null>(null)
   // The layout chosen on the page before, drawn in each theme's colours.
   const [layout, setLayout] = useState<Card | null>(null)
@@ -194,16 +183,12 @@ export function Theme({ info, next, back }: StepProps) {
   const save = async () => {
     // Only an explicit choice pins a theme; carrying on with what the look wears stores nothing.
     try { if (chosen) { await api.put('/settings', { theme: pick }); setServerTheme(pick) } } catch { /* can be changed later */ }
-    try {
-      const got = await getLooks(false)
-      if (!!got.experiences?.profileThemes !== own) await sduiAsk('PUT', `${SDUI_BASE}/config/experience`, { body: { ...(got.experiences || {}), profileThemes: own || undefined }, headers: { 'If-Match': got.etag } })
-    } catch { /* can be changed later */ }
     bump(); void loadThemeOverrides()
     next()
   }
   return (
     <section>
-      <StepHead title={t('Choose colours')} lead={layout ? t('The colours for {look}. Any theme goes with any layout, and it changes right away. You can import one, or make your own later in Settings, Appearance.', { look: layout.name }) : t('The colours for the layout you chose. Any theme goes with any layout, and it changes right away. You can import one, or make your own later in Settings, Appearance.')} />
+      <StepHead title={t('Choose colours')} lead={layout ? t('The colours for {look}. Any theme goes with any layout, and this page changes as you choose. You can import one, or make your own later in Settings, Appearance.', { look: layout.name }) : t('The colours for the layout you chose. Any theme goes with any layout, and this page changes as you choose. You can import one, or make your own later in Settings, Appearance.')} />
       {themes.length > 0 && (
         <div className="su-colours">
           <figure className="su-colours-big">
@@ -216,17 +201,46 @@ export function Theme({ info, next, back }: StepProps) {
           }))} />
         </div>
       )}
-      <h2 className="oobe-sub">{t('How people use it')}</h2>
       <div className="su-gap su-how">
         <TickRow kind="switch" checked={!chosen} onChange={(v) => { if (v) follow(); else mark(true) }} title={t('Start with the look’s own theme')} text={t('Each look brings the theme it was made for. Choosing a theme above keeps that one for everyone, whichever look they use.')} />
-        <TickRow kind="switch" checked={own} onChange={setOwn} title={t('Let people import their own themes')} text={t('Anyone can add a theme of their own from a ZIP. Requiring a look or a theme of someone is on the People step.')} />
       </div>
-      <div className="su-gap">
-        <input ref={file} type="file" accept=".zip,application/zip" hidden aria-label={t('Theme ZIP')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void importZip(f); e.target.value = '' }} />
-        <Button variant="ghost" onClick={() => file.current?.click()}>{t('Import a theme…')}</Button>
-      </div>
+      <TvPart id="appearance.import">
+        <div className="su-gap">
+          <input ref={file} type="file" accept=".zip,application/zip" hidden aria-label={t('Theme ZIP')} onChange={(e) => { const f = e.target.files?.[0]; if (f) void importZip(f); e.target.value = '' }} />
+          <Button variant="ghost" onClick={() => file.current?.click()}>{t('Import a theme…')}</Button>
+        </div>
+      </TvPart>
       <LaterNote info={info} />
       <StepActions back={back}><Button variant="primary" size="big" onClick={() => void save()}>{t('Use this')}</Button></StepActions>
+    </section>
+  )
+}
+
+// Step: Looks, WittyTV. Only where WittyTuner is: the live TV guide's own look, starting from what the server's look brings.
+// The server asks this again whenever WittyTuner is freshly installed (Settings, Appearance, under WittyTV, and a notice on
+// Home), so it is the same picker there.
+export function WittyTvLook({ info, next, back }: StepProps) {
+  const [cards, setCards] = useState<Card[]>([])
+  const [layout, setLayout] = useState('')
+  const [tvLook, setTvLook] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    api.get<{ experiences: Card[]; default: string }>('/sdui/experiences').then((r) => { setCards(r.experiences); setLayout(chosenLayout || currentLook()?.experience || r.default) }).catch(() => {})
+    api.get<Record<string, string>>('/tv/settings').then((v) => setTvLook(v.tvTheme || '')).catch(() => {})
+  }, [])
+  const card = cards.find((c) => c.id === layout) || cards[0]
+  const save = async () => {
+    setBusy(true)
+    try { await api.put('/tv/settings', { tvTheme: tvLook }) } catch { toast(t('The TV guide’s look couldn’t be saved. You can choose it later in Settings, Appearance, under WittyTV.'), { tone: 'danger' }) }
+    setBusy(false)
+    next()
+  }
+  return (
+    <section>
+      <StepHead title={t('How should the TV guide look?')} lead={t('WittyTuner brings live TV, and its guide, WittyTV, has a look of its own: how the channels and programmes are laid out, and their colours.')} />
+      {card && <TvLookChoice suggested={card.tvTheme} lookName={card.name} value={tvLook} onChange={setTvLook} />}
+      <LaterNote info={info} />
+      <StepActions back={back}><Button variant="primary" size="big" busy={busy} onClick={() => void save()}>{t('Use this')}</Button></StepActions>
     </section>
   )
 }

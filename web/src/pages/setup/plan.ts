@@ -7,7 +7,25 @@
 // they're shown; describeOutcome is given the app's own words by the page.
 import { ENGLISH, tk, type Words } from './words.ts'
 
-export type StepId = 'welcome' | 'account' | 'storage' | 'name' | 'modules' | 'media' | 'games' | 'discs' | 'details' | 'logos' | 'music' | 'listings' | 'tv' | 'look' | 'theme' | 'people' | 'remote' | 'done'
+export type StepId = 'language' | 'welcome' | 'account' | 'storage' | 'name' | 'network' | 'modules' | 'media' | 'tv' | 'games' | 'discs'
+  | 'look' | 'theme' | 'wittytv' | 'people' | 'remote' | 'details' | 'logos' | 'music' | 'karaoke' | 'listings' | 'done'
+
+// The twelve numbered steps (docs/SETUP-FLOW.md). Their ids are the server's names for them (GET /api/setup/state).
+export type DrawnId = 'language' | 'welcome' | 'account' | 'server' | 'modules' | 'libraries' | 'modulesetup' | 'looks' | 'people' | 'remote' | 'extras' | 'ready'
+export const DRAWN: { id: DrawnId; label: string }[] = [
+  { id: 'language', label: tk('Language') },
+  { id: 'welcome', label: tk('Welcome') },
+  { id: 'account', label: tk('Your account') },
+  { id: 'server', label: tk('This server') },
+  { id: 'modules', label: tk('Modules') },
+  { id: 'libraries', label: tk('Libraries') },
+  { id: 'modulesetup', label: tk('Set up your modules') },
+  { id: 'looks', label: tk('Looks') },
+  { id: 'people', label: tk('People') },
+  { id: 'remote', label: tk('Away from home') },
+  { id: 'extras', label: tk('Extras') },
+  { id: 'ready', label: tk('Ready') },
+]
 
 // What the steps depend on. kinds is null until it's known, which it can't be before there's an
 // account to ask with. A kind that isn't listed needs no module, as the server has the last word.
@@ -22,6 +40,8 @@ export type Facts = {
 
 export type StepInfo = {
   id: StepId
+  // The numbered step this page is part of.
+  drawn: DrawnId
   label: string
   // Who the step belongs to: 'server', or the modules it needs, any one of which is enough.
   needs: 'server' | string[]
@@ -35,44 +55,60 @@ export type StepInfo = {
 
 export const canMake = (f: Facts, kind: string) => !f.kinds?.some((k) => k.type === kind && !k.available)
 
-// Design 2 draws fourteen steps (docs/design-2, the canvas's setupData): Welcome, Account, Name and address, Look, Theme,
-// Modules, Libraries, Details and artwork, Live TV, Games, Discs, People and rules, Remote access and apps, Ready. The last
-// three of "Details and artwork" (logos, lyrics, streaming lists) are its pages, each with a question of its own to answer.
+// Every page, in order, each with the numbered step it belongs to (docs/SETUP-FLOW.md). The language and time zone come
+// first and are asked once; modules are chosen and set up before the looks, so the looks are about what's here; WittyTV's
+// look is asked only where WittyTuner is; what nobody needs to start watching comes last, as extras.
 export const STEPS: StepInfo[] = [
-  { id: 'welcome', label: tk('Welcome'), needs: 'server', when: (f) => !f.signedIn },
-  { id: 'account', label: tk('Account'), needs: 'server', when: (f) => !f.signedIn },
-  { id: 'storage', label: tk('Where data is kept'), needs: 'server', when: (f) => !!f.askData, noSkip: true, later: { where: tk('Settings, Data folder'), to: '/settings/data-folder' } },
-  { id: 'name', label: tk('Name and address'), needs: 'server', later: { where: tk('Settings, Appearance, under Name and logo'), to: '/settings/appearance#name' } },
-  { id: 'look', label: tk('Look'), needs: 'server', later: { where: tk('Settings, Appearance'), to: '/settings/appearance' } },
-  { id: 'theme', label: tk('Theme'), needs: 'server', later: { where: tk('Settings, Appearance'), to: '/settings/appearance#theme' } },
-  { id: 'modules', label: tk('Modules'), needs: 'server', when: (f) => f.store, later: { where: tk('Settings, Modules'), to: '/settings/modules' } },
-  { id: 'media', label: tk('Libraries'), needs: 'server', later: { where: tk('Settings, Libraries'), to: '/settings/libraries' } },
-  { id: 'details', label: tk('Details and artwork'), needs: 'server', later: { where: tk('Settings, Metadata agents'), to: '/settings/metadata' } },
-  { id: 'logos', label: tk('Logos'), needs: 'server', later: { where: tk('Settings, Metadata agents, under Logos'), to: '/settings/metadata#logos' } },
-  { id: 'music', label: tk('Lyrics'), needs: 'server', when: (f) => canMake(f, 'music'), later: { where: tk('Settings, Metadata agents, under Lyrics'), to: '/settings/metadata#lyrics' } },
-  { id: 'listings', label: tk('Streaming lists'), needs: 'server', when: (f) => canMake(f, 'movies') || canMake(f, 'shows'), later: { where: tk('Settings, Metadata agents, under Streaming listings'), to: '/settings/metadata#listings' } },
-  { id: 'tv', label: tk('Live TV'), needs: ['wittytuner'], later: { where: tk('Settings, Channels & tuners'), to: '/settings/channels' } },
-  { id: 'games', label: tk('Games'), needs: ['wittyplay'], later: { where: tk('Settings, Game metadata'), to: '/settings/game-metadata' } },
-  { id: 'discs', label: tk('Discs'), needs: ['wittydvd', 'wittybluray'], later: { where: tk('Settings, DVDs and Blu-rays'), to: '/settings/discs' } },
-  { id: 'people', label: tk('People and rules'), needs: 'server', later: { where: tk('Settings, Profiles'), to: '/settings/users' } },
-  { id: 'remote', label: tk('Remote access and apps'), needs: 'server', later: { where: tk('Settings, Remote Access'), to: '/settings/remote' } },
-  { id: 'done', label: tk('Ready'), needs: 'server' },
+  { id: 'language', drawn: 'language', label: tk('Language and time zone'), needs: 'server', when: (f) => !f.signedIn },
+  { id: 'welcome', drawn: 'welcome', label: tk('Welcome'), needs: 'server', when: (f) => !f.signedIn },
+  { id: 'account', drawn: 'account', label: tk('Your account'), needs: 'server', when: (f) => !f.signedIn },
+  { id: 'storage', drawn: 'server', label: tk('Where data is kept'), needs: 'server', when: (f) => !!f.askData, noSkip: true, later: { where: tk('Settings, Data folder'), to: '/settings/data-folder' } },
+  { id: 'name', drawn: 'server', label: tk('Name'), needs: 'server', later: { where: tk('Settings, Appearance, under Name and logo'), to: '/settings/appearance#name' } },
+  { id: 'network', drawn: 'server', label: tk('Home network'), needs: 'server', later: { where: tk('Settings, Network'), to: '/settings/network' } },
+  { id: 'modules', drawn: 'modules', label: tk('Modules'), needs: 'server', when: (f) => f.store, later: { where: tk('Settings, Modules'), to: '/settings/modules' } },
+  { id: 'media', drawn: 'libraries', label: tk('Libraries'), needs: 'server', later: { where: tk('Settings, Libraries'), to: '/settings/libraries' } },
+  { id: 'tv', drawn: 'modulesetup', label: tk('Live TV'), needs: ['wittytuner'], later: { where: tk('Settings, Live TV & tuners'), to: '/settings/tuners' } },
+  { id: 'games', drawn: 'modulesetup', label: tk('Games'), needs: ['wittyplay'], later: { where: tk('Settings, Game metadata'), to: '/settings/game-metadata' } },
+  { id: 'discs', drawn: 'modulesetup', label: tk('Discs'), needs: ['wittydvd', 'wittybluray'], later: { where: tk('Settings, DVDs and Blu-rays'), to: '/settings/discs' } },
+  { id: 'look', drawn: 'looks', label: tk('Layout'), needs: 'server', later: { where: tk('Settings, Appearance'), to: '/settings/appearance' } },
+  { id: 'theme', drawn: 'looks', label: tk('Colours'), needs: 'server', later: { where: tk('Settings, Appearance'), to: '/settings/appearance#theme' } },
+  { id: 'wittytv', drawn: 'looks', label: tk('WittyTV'), needs: ['wittytuner'], later: { where: tk('Settings, Appearance, under WittyTV'), to: '/settings/appearance#wittytv' } },
+  { id: 'people', drawn: 'people', label: tk('People'), needs: 'server', later: { where: tk('Settings, Profiles'), to: '/settings/users' } },
+  { id: 'remote', drawn: 'remote', label: tk('Away from home'), needs: 'server', later: { where: tk('Settings, Remote Access'), to: '/settings/remote' } },
+  { id: 'details', drawn: 'extras', label: tk('Posters and details'), needs: 'server', later: { where: tk('Settings, Metadata agents'), to: '/settings/metadata' } },
+  { id: 'logos', drawn: 'extras', label: tk('Logos'), needs: 'server', later: { where: tk('Settings, Metadata agents, under Logos'), to: '/settings/metadata#logos' } },
+  { id: 'music', drawn: 'extras', label: tk('Lyrics and artists'), needs: 'server', when: (f) => canMake(f, 'music'), later: { where: tk('Settings, Metadata agents, under Lyrics'), to: '/settings/metadata#lyrics' } },
+  { id: 'karaoke', drawn: 'extras', label: tk('Karaoke voices'), needs: 'server', when: (f) => canMake(f, 'music'), later: { where: tk('Settings, Metadata agents, under Lyrics'), to: '/settings/metadata#lyrics' } },
+  { id: 'listings', drawn: 'extras', label: tk('Streaming lists'), needs: 'server', when: (f) => canMake(f, 'movies') || canMake(f, 'shows'), later: { where: tk('Settings, Metadata agents, under Streaming listings'), to: '/settings/metadata#listings' } },
+  { id: 'done', drawn: 'ready', label: tk('Ready'), needs: 'server' },
 ]
 
-// A page that belongs to another step's number: Details and artwork has four.
-// Where data is kept is the first page of Name and address: both are about this server itself.
-const PAGE_OF: Partial<Record<StepId, StepId>> = { storage: 'name', logos: 'details', music: 'details', listings: 'details' }
-export const drawnId = (id: StepId): StepId => PAGE_OF[id] || id
-export const drawnSteps = (steps: StepInfo[]) => steps.filter((s) => !PAGE_OF[s.id])
-// The fourteen drawn steps, always, so the total never changes under someone: a step whose module isn't on this server is
-// still counted (and shown dimmed in the list, saying so), and passed over.
-export const ALL_DRAWN = STEPS.filter((s) => !PAGE_OF[s.id])
-// The drawn step a page is on, as "Step 8 of 14", and which page of its step it is.
+// Before an account there is nothing past it to show.
+const BEFORE_ACCOUNT: StepId[] = ['language', 'welcome', 'account']
+
+export const drawnId = (id: StepId): DrawnId => STEPS.find((s) => s.id === id)?.drawn || 'ready'
+// The twelve numbered steps, always, so the total never changes under someone: a step with nothing to do on this server
+// is still counted (and shown dimmed in the list, saying why), and passed over.
+export const ALL_DRAWN = DRAWN
+// The numbered step a page is on, as "Step 8 of 12", and which page of its step it is.
 export function drawnNumber(steps: StepInfo[], id: StepId): { at: number; of: number; page?: { at: number; of: number } } {
-  const n = { at: Math.max(0, ALL_DRAWN.findIndex((s) => s.id === drawnId(id))) + 1, of: ALL_DRAWN.length }
-  const pages = steps.filter((s) => drawnId(s.id) === drawnId(id))
+  const d = drawnId(id)
+  const n = { at: Math.max(0, DRAWN.findIndex((x) => x.id === d)) + 1, of: DRAWN.length }
+  const pages = steps.filter((s) => s.drawn === d)
   return pages.length > 1 ? { ...n, page: { at: pages.findIndex((s) => s.id === id) + 1, of: pages.length } } : n
 }
+// Why a numbered step is passed over, for the list of steps. Until modules are chosen, whether there's anything to set up
+// for them can't be known, so it doesn't say there isn't.
+export function missingWhy(d: DrawnId, steps: StepInfo[], at: StepId, { t }: Pick<Words, 't'> = ENGLISH): string {
+  if (BEFORE_ACCOUNT.includes(d as StepId) || steps.some((s) => s.drawn === d)) return ''
+  if (d === 'modulesetup') {
+    const chose = steps.findIndex((s) => s.id === 'modules')
+    return chose >= 0 && steps.findIndex((s) => s.id === at) <= chose ? t('After you choose modules') : t('Nothing to set up')
+  }
+  return t('Nothing to set up')
+}
+// The page after Extras, for "Skip the extras".
+export const afterExtras = (steps: StepInfo[]): StepInfo | undefined => steps.find((s) => s.id === 'done')
 // Steps with nothing to lose by passing: a step that says where to change it later.
 export const canSkip = (s: StepInfo) => !!s.later && !s.noSkip
 
@@ -94,7 +130,7 @@ export function stepFromPath(path: string): string {
 // and afterwards those two are gone, so an old address or the Back key can't reach them.
 export function currentStep(steps: StepInfo[], wanted: string, signedIn: boolean): StepInfo {
   const found = steps.find((s) => s.id === wanted)
-  if (found && (signedIn || found.id === 'welcome' || found.id === 'account')) return found
+  if (found && (signedIn || BEFORE_ACCOUNT.includes(found.id))) return found
   return steps[0]
 }
 
@@ -150,12 +186,6 @@ export const PLAIN_WORDS: Record<string, string> = {
   wittyphotos: tk('A timeline and albums of your photos, including the RAW files some cameras make.'),
   wittyvisualizer: tk('Light shows that follow your music, full screen.'),
   wittystats: tk('A page of charts about your server: what’s playing, your libraries and your history.'),
-}
-
-// Step numbers count the two pages before there was an account, so they don't go back to 1 after it.
-export function stepNumber(index: number, total: number, signedIn: boolean): { at: number; of: number } {
-  const before = signedIn ? 2 : 0
-  return { at: index + 1 + before, of: total + before }
 }
 
 // A share on another machine, as someone might type it: \\nas\media or //nas/media.

@@ -5,21 +5,42 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { ALL_DRAWN, canMake, canSkip, currentStep, drawnNumber, describeOutcome, GAMES_LINE, neighbours, offerable, onAnotherMachine, pathOf, planSteps, RECOMMENDED, STEPS, stepFromPath, stepNumber, updateChoiceFrom, updateSettings } from './plan.ts'
+import { ALL_DRAWN, canMake, canSkip, currentStep, drawnNumber, describeOutcome, GAMES_LINE, missingWhy, neighbours, offerable, onAnotherMachine, pathOf, planSteps, RECOMMENDED, STEPS, stepFromPath, updateChoiceFrom, updateSettings } from './plan.ts'
 
 const facts = (over = {}) => ({ signedIn: true, store: true, modules: [], kinds: [], ...over })
 const ids = (f) => planSteps(f).map((s) => s.id)
 
-test('someone with no account starts at the welcome page, then makes one', () => {
+test('someone with no account chooses a language first, then the welcome page, then makes an account', () => {
   const steps = planSteps(facts({ signedIn: false, kinds: null }))
-  assert.deepEqual(steps.slice(0, 2).map((s) => s.id), ['welcome', 'account'])
+  assert.deepEqual(steps.slice(0, 3).map((s) => s.id), ['language', 'welcome', 'account'])
   assert.equal(steps.at(-1).id, 'done')
 })
 
-test('once there is an account, the first two steps are gone', () => {
+test('once there is an account, the first three steps are gone', () => {
   const list = ids(facts())
-  assert.ok(!list.includes('welcome') && !list.includes('account'))
+  assert.ok(!list.includes('language') && !list.includes('welcome') && !list.includes('account'))
   assert.equal(list[0], 'name')
+  assert.equal(ids(facts({ askData: true }))[0], 'storage', 'where data is kept comes first, on a desktop that asks')
+})
+
+test('modules are chosen and set up before the looks, and the extras come last (docs/SETUP-FLOW.md)', () => {
+  const list = ids(facts({ modules: ['wittytuner', 'wittyplay', 'wittydvd'] }))
+  const at = (id) => list.indexOf(id)
+  assert.ok(at('modules') < at('media') && at('media') < at('tv'))
+  for (const m of ['tv', 'games', 'discs']) assert.ok(at(m) < at('look'), `${m} before the looks`)
+  assert.ok(at('look') < at('theme') && at('theme') < at('wittytv') && at('wittytv') < at('people'))
+  assert.ok(at('people') < at('remote') && at('remote') < at('details'))
+  for (const x of ['details', 'logos', 'music', 'karaoke', 'listings']) assert.ok(at(x) > at('remote') && at(x) < at('done'), `${x} is an extra`)
+})
+
+test('WittyTV\'s look is asked only where WittyTuner is', () => {
+  assert.ok(!ids(facts()).includes('wittytv'))
+  assert.ok(ids(facts({ modules: ['wittytuner'] })).includes('wittytv'))
+})
+
+test('the karaoke voices page is offered where music can be played', () => {
+  assert.ok(ids(facts()).includes('karaoke'))
+  assert.ok(!ids(facts({ kinds: [{ type: 'music', available: false }] })).includes('karaoke'))
 })
 
 test('a module\'s step only appears when the module is on this server', () => {
@@ -64,6 +85,7 @@ test('streaming lists are asked only where movies or shows can be made', () => {
 // WittyBluray bring.
 const MODULE_PAGES = {
   'game-metadata': { module: 'wittyplay', label: 'Game metadata' },
+  tuners: { module: 'wittytuner', label: 'Live TV & tuners' },
   discs: { module: 'wittydvd', label: 'DVDs and Blu-rays' },
 }
 
@@ -71,7 +93,7 @@ test('every step that asks something says where to change it later, and that pag
   const routes = readFileSync(new URL('../SettingsPage.tsx', import.meta.url), 'utf8')
   const labels = [...routes.matchAll(/to: '([a-z-]+)', label: (?:tk\()?'([^']+)'/g)].map((m) => [m[1], m[2]])
   for (const s of STEPS) {
-    if (s.id === 'welcome' || s.id === 'account' || s.id === 'done') continue
+    if (s.id === 'language' || s.id === 'welcome' || s.id === 'account' || s.id === 'done') continue
     assert.ok(s.later, `${s.id} has nowhere to change it later`)
     const page = s.later.to.replace('/settings/', '').split('#')[0]
     const own = MODULE_PAGES[page]
@@ -99,7 +121,8 @@ test('an address picks its step, and one that can\'t be shown goes to the first'
   assert.equal(stepFromPath('/'), '')
   assert.equal(stepFromPath('/setup/look/extra'), '')
   assert.equal(currentStep(out, 'account', false).id, 'account')
-  assert.equal(currentStep(out, 'look', false).id, 'welcome', 'nothing past the account without one')
+  assert.equal(currentStep(out, 'look', false).id, 'language', 'nothing past the account without one')
+  assert.equal(currentStep(out, 'welcome', false).id, 'welcome')
   const inn = planSteps(facts())
   assert.equal(currentStep(inn, 'look', true).id, 'look')
   assert.equal(currentStep(inn, 'account', true).id, 'name', 'an account is only made once')
@@ -110,10 +133,11 @@ test('Back goes to the step before, but never back to making an account', () => 
   const inn = planSteps(facts())
   assert.equal(neighbours(inn, 'name').back, undefined)
   assert.equal(neighbours(inn, 'media').back.id, 'modules')
-  assert.deepEqual(ids(facts()).slice(0, 4), ['name', 'look', 'theme', 'modules'])
+  assert.deepEqual(ids(facts()).slice(0, 4), ['name', 'network', 'modules', 'media'])
   assert.equal(neighbours(inn, 'media').next.id, inn[inn.findIndex((s) => s.id === 'media') + 1].id)
   const out = planSteps(facts({ signedIn: false, kinds: null }))
   assert.equal(neighbours(out, 'account').back.id, 'welcome')
+  assert.equal(neighbours(out, 'welcome').back.id, 'language')
 })
 
 test('the three update answers are the two settings, there and back', () => {
@@ -163,22 +187,37 @@ test('the last page says what\'s so, and leaves out what this server never asked
 test('the step number doesn\'t go back to 1 after making an account', () => {
   const out = planSteps(facts({ signedIn: false, kinds: null }))
   const inn = planSteps(facts())
-  assert.deepEqual(stepNumber(1, out.length, false), { at: 2, of: out.length })
-  assert.deepEqual(stepNumber(0, inn.length, true), { at: 3, of: out.length })
+  assert.deepEqual(drawnNumber(out, 'language'), { at: 1, of: 12 })
+  assert.deepEqual(drawnNumber(out, 'welcome'), { at: 2, of: 12 })
+  assert.deepEqual(drawnNumber(inn, 'name'), { at: 4, of: 12, page: { at: 1, of: 2 } })
 })
 
 test('the games line is word for word what was asked for', () => {
   assert.equal(GAMES_LINE.replace(/’/g, "'"), "Point it at your games folder and leave it. Anything it can't prove is listed for you to look at.")
 })
 
-test('there are always fourteen drawn steps, and the pages of Details and artwork share one number', () => {
+test('there are always twelve numbered steps, and the pages of one step share its number', () => {
   const steps = planSteps(facts({ modules: ['wittyplay', 'wittydvd', 'wittytuner'] }))
-  assert.equal(ALL_DRAWN.length, 14)
-  assert.deepEqual(drawnNumber(steps, 'details'), { at: 8, of: 14, page: { at: 1, of: 4 } })
-  assert.deepEqual(drawnNumber(steps, 'listings'), { at: 8, of: 14, page: { at: 4, of: 4 } })
-  assert.deepEqual(drawnNumber(steps, 'tv'), { at: 9, of: 14 })
-  assert.deepEqual(drawnNumber(steps, 'done'), { at: 14, of: 14 })
-  assert.deepEqual(drawnNumber(planSteps(facts()), 'done'), { at: 14, of: 14 }, 'the total doesn\'t change with the modules')
+  assert.equal(ALL_DRAWN.length, 12)
+  assert.deepEqual(drawnNumber(steps, 'tv'), { at: 7, of: 12, page: { at: 1, of: 3 } })
+  assert.deepEqual(drawnNumber(steps, 'discs'), { at: 7, of: 12, page: { at: 3, of: 3 } })
+  assert.deepEqual(drawnNumber(steps, 'wittytv'), { at: 8, of: 12, page: { at: 3, of: 3 } })
+  assert.deepEqual(drawnNumber(planSteps(facts()), 'theme'), { at: 8, of: 12, page: { at: 2, of: 2 } }, 'no WittyTV page without WittyTuner')
+  assert.deepEqual(drawnNumber(steps, 'details'), { at: 11, of: 12, page: { at: 1, of: 5 } })
+  assert.deepEqual(drawnNumber(steps, 'listings'), { at: 11, of: 12, page: { at: 5, of: 5 } })
+  assert.deepEqual(drawnNumber(steps, 'done'), { at: 12, of: 12 })
+  assert.deepEqual(drawnNumber(planSteps(facts()), 'done'), { at: 12, of: 12 }, 'the total doesn\'t change with the modules')
+})
+
+test('a step passed over says why, and never that a module is missing before modules were offered', () => {
+  const none = planSteps(facts())
+  assert.equal(missingWhy('modulesetup', none, 'name'), 'After you choose modules')
+  assert.equal(missingWhy('modulesetup', none, 'modules'), 'After you choose modules')
+  assert.equal(missingWhy('modulesetup', none, 'media'), 'Nothing to set up')
+  assert.equal(missingWhy('modulesetup', planSteps(facts({ modules: ['wittyplay'] })), 'name'), '')
+  assert.equal(missingWhy('server', none, 'name'), '')
+  const out = planSteps(facts({ signedIn: false, kinds: null }))
+  assert.equal(missingWhy('modulesetup', out, 'language'), 'After you choose modules')
 })
 
 test('every step that says where to change it later can be passed, the last cannot', () => {

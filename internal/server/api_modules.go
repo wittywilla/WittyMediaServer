@@ -93,6 +93,7 @@ func (s *Server) handleModuleInstall(w http.ResponseWriter, r *http.Request) {
 		}
 		s.auditModule(r, "module-older", id, "to version "+b.Version)
 	}
+	s.noteModulesInstalling(r.Context(), []string{id})
 	olderOne := b.ConfirmOlder && s.Modules.MadeForOlder(id, b.Version)
 	var err error
 	switch {
@@ -308,7 +309,13 @@ func (s *Server) handleModuleRemove(w http.ResponseWriter, r *http.Request) {
 		if err := s.Modules.Uninstall(id, r.URL.Query().Get("keepData") != "0"); err != nil {
 			s.Log.WarnContext(r.Context(), "a module couldn't be told it is being taken off", "cat", "modules", "module", id, "err", err)
 		}
-		return s.Modules.RemoveModule(id, libs)
+		if err := s.Modules.RemoveModule(id, libs); err != nil {
+			return err
+		}
+		if id == tunerModule {
+			s.forgetWittyTVLook(r.Context())
+		}
+		return nil
 	})
 }
 
@@ -333,9 +340,14 @@ func (s *Server) handleModulesInstalled(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 500, err.Error())
 		return
 	}
+	s.noteModulesInstalling(r.Context(), b.Installed)
+	hadTuner := s.Modules.Installed(tunerModule)
 	if err := s.Modules.SetInstalledOlder(b.Installed, libs, b.ConfirmOlder); err != nil {
 		writeModuleErr(w, err)
 		return
+	}
+	if hadTuner && !slices.Contains(b.Installed, tunerModule) {
+		s.forgetWittyTVLook(r.Context())
 	}
 	s.Log.InfoContext(r.Context(), "modules chosen", "cat", "modules-store", "installed", b.Installed, "by", userFrom(r).Name)
 	writeJSON(w, 200, s.Modules.Report())

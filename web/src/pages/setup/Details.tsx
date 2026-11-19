@@ -6,7 +6,9 @@ import { api } from '../../api'
 import LegalNote from '../../components/LegalNote'
 import { IconCheck } from '../../icons'
 import { Button } from '../../ui'
-import { Fill, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
+import { PartNote } from '../../tvmode/OnAComputer'
+import { useTvMode } from '../../tvmode/mode'
+import { Fill, LaterNote, StepActions, StepHead, type StepProps } from './parts'
 import { t, tk } from '../../i18n'
 
 // Where posters, plots and ratings come from. These all work with nothing to set up.
@@ -44,8 +46,10 @@ export function Details({ info, facts, next, back }: StepProps) {
   const [state, setState] = useState<Record<string, { ok?: boolean; msg?: string; busy?: boolean }>>({})
   const [open, setOpen] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  // Whether anything is written into someone's media folders is worth asking, not assuming.
+  // Asked on the Libraries step, before the first scan: whether details go beside the media files.
   const [beside, setBeside] = useState(true)
+  // Pasting a key with a remote is no way to spend an evening: on a TV it's for a computer.
+  const tv = useTvMode()
   // A conversion chosen and not finished holds Continue (ConvertPanel).
   const [converting, setConverting] = useState(false)
   useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => setBeside(s.saveMetadata !== '0')).catch(() => {}) }, [])
@@ -58,9 +62,9 @@ export function Details({ info, facts, next, back }: StepProps) {
   }
   const save = async () => {
     setSaving(true)
-    const body: Record<string, string> = { saveMetadata: beside ? '1' : '0' }
+    const body: Record<string, string> = {}
     for (const [k, v] of Object.entries(keys)) if (v.trim()) body[k] = v.trim()
-    try { await api.put('/settings', body) } catch { /* all of this can be changed later */ }
+    try { if (Object.keys(body).length) await api.put('/settings', body) } catch { /* all of this can be changed later */ }
     setSaving(false)
     next()
   }
@@ -68,17 +72,13 @@ export function Details({ info, facts, next, back }: StepProps) {
   const sources = facts.modules.includes('wittyplay') ? [...FREE, ...FREE_GAMES] : FREE
   return (
     <section>
-      <StepHead title={t('Posters and details')} lead={t('Your server looks up posters, plots and ratings for what you own. These sources work already, for free, with nothing to set up. Names taken from your files and folders are sent to them to look things up. Your files stay on this computer.')} />
+      <StepHead title={t('A few extras, all optional')} lead={t('Your server looks up posters, plots and ratings for what you own. These sources work already, for free, with nothing to set up. Names taken from your files and folders are sent to them to look things up. Your files stay on this computer.')} />
       <ul className="oobe-agents su-plain" aria-label={t('Sources that work already')}>
         {sources.map((a) => <li key={a.name + a.what} className="oobe-agent"><IconCheck size={16} /><b>{a.name}</b><span>{t(a.what)}</span><em>{t('Nothing to set up')}</em></li>)}
       </ul>
-      <div className="su-gap">
-        <TickRow checked={beside} onChange={setBeside} title={t('Save posters and details beside your files')}
-          text={t('They stay with your media if you ever move it. Your videos and music aren’t changed. Untick this to leave your media folders exactly as they are, and keep it all on this server instead.')} />
-      </div>
       <h2 className="oobe-sub">{t('Optional: more posters and better matches')}</h2>
       <p className="muted oobe-hint">{t('These two give you a free key: a code that lets your server ask them for things. Each takes about two minutes. It’s fine to skip this, and to do it another day.')}</p>
-      <div className="oobe-providers">
+      {tv ? <PartNote title={t('Adding keys')} path="/settings/metadata" /> : <div className="oobe-providers">
         {PROVIDERS.map((p) => {
           const st = state[p.id] || {}
           const shown = open === p.id || !!keys[p.key]
@@ -105,7 +105,7 @@ export function Details({ info, facts, next, back }: StepProps) {
             </div>
           )
         })}
-      </div>
+      </div>}
       <h2 className="oobe-sub">{t('What your libraries already have')}</h2>
       <p className="muted oobe-hint">{t('NFO files, posters, lyrics and game details already beside your media can be gathered into WittyMediaServer’s own files, or the other way round. Choose for each kind and press Convert now: Continue waits until it is done.')}</p>
       <ConvertPanel onBusy={setConverting} beforeStart={() => api.put('/settings', { saveMetadata: beside ? '1' : '0' })} />

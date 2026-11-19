@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { useModuleWeb } from '../moduleRegistry'
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { IconDownload, IconLock, IconPlus } from '../icons'
@@ -35,6 +36,7 @@ import AutoSkipSection from './settings/AutoSkip'
 import { TvPart } from '../tvmode/OnAComputer'
 
 const TvLookSettings = lazy(() => import('./tv/TvLookSettings'))
+const WittyTvLookSection = lazy(() => import('./tv/WittyTvLookPrompt').then((m) => ({ default: m.WittyTvLookSection })))
 const EngineColours = lazy(() => import('./settings/EngineColours'))
 const PersonalColours = lazy(() => import('./settings/EngineColours').then((m) => ({ default: m.PersonalColours })))
 
@@ -116,6 +118,7 @@ export default function AppearanceSettings() {
   useEffect(() => { load() }, [])
 
   const admin = !!user?.isAdmin
+  const tuner = useModuleWeb().some((m) => m.module === 'wittytuner')
   // A profile's own colours, where the server keeps them (feature theme-personal).
   const personalColours = !!useFeatures()?.has('theme-personal')
   const fallback = currentThemeId(serverTheme)
@@ -225,14 +228,15 @@ export default function AppearanceSettings() {
           <Link className="small-note" to="/help/themes">{t('How themes work')}</Link>
         </div>
       </Section>
-      <Section title={tk('Colours')} desc={t('Make a theme of your own from a few colours, and see it as you go. Every colour is checked as it’s made, so text stays easy to read. WittyTV has colours of its own, further down.')}>
+      <Section title={tk('Colours')} desc={t('Make a theme of your own from a few colours, and see it as you go. Every colour is checked as it’s made, so text stays easy to read. WittyTV, with live TV, has colours of its own, further down.')}>
         <TvPart id="appearance.colours">
           <ColourMaker key={custom ? 'mine' : 'fresh'} start={custom || { ...FRESH_MAKER, name: t('My theme') }} admin={admin} inUse={mine === CUSTOM_THEME} onDevice={madeForDevice} onServer={madeForServer} />
         </TvPart>
       </Section>
       <LayoutSection />
       <MotionSection />
-      <Suspense fallback={null}><TvLookSettings /></Suspense>
+      {/* WittyTV's look belongs to WittyTuner: hidden until it is installed, and asked for once after a fresh install. */}
+      {tuner && <Suspense fallback={null}><WittyTvLookSection /><TvLookSettings /></Suspense>}
       {admin && <TvPart id="appearance.engine-colours"><Suspense fallback={null}><EngineColours /></Suspense></TvPart>}
       {personalColours && <TvPart id="appearance.personal-colours"><Suspense fallback={null}><PersonalColours /></Suspense></TvPart>}
       <PlayerSection />

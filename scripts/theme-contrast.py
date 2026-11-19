@@ -4,7 +4,8 @@
 """Checks, and with --fix adjusts, the built-in themes' text colours so they
 meet WCAG 2.2 AA contrast (4.5:1 for normal text):
 
-  --fg, --fg-2, --fg-3 on --bg, --bg-2 and --bg-3 (text sits on all three)
+  --fg, --fg-2, --fg-3 on --bg, --bg-2 and --bg-3 (text sits on all three), and --fg, --fg-2 on --bg-4 (a chosen
+  card, a pressed button; --fg-3 hints are kept off it)
   --accent-fg on --accent (button labels)
   --accent-text, the accent as text (links, highlighted words), on all three
 
@@ -118,10 +119,12 @@ for f in FILES:
     new = dict(v)
     notes = []
     for k in ('fg', 'fg-2', 'fg-3'):
-        worst = min(ratio(v[k], s) for s in surfaces)
+        # --fg and --fg-2 also sit on the raised fill, --bg-4 (a chosen card, a pressed button); hints in --fg-3 don't.
+        on = surfaces + ([v['bg-4']] if k != 'fg-3' and 'bg-4' in v else [])
+        worst = min(ratio(v[k], s) for s in on)
         if worst < 4.5:
-            new[k] = move(v[k], surfaces, 4.5, lighter=dark)
-            notes.append(f'--{k} {v[k]} ({worst:.2f}) -> {new[k]} ({min(ratio(new[k], s) for s in surfaces):.2f})')
+            new[k] = move(v[k], on, 4.5, lighter=dark)
+            notes.append(f'--{k} {v[k]} ({worst:.2f}) -> {new[k]} ({min(ratio(new[k], s) for s in on):.2f})')
     r = ratio(v['accent-fg'], v['accent'])
     if r < 4.5:
         hue = colorsys.rgb_to_hls(*rgb(v['accent']))[0] * 360

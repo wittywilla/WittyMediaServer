@@ -203,7 +203,8 @@ html[data-app] { --overlay-foot: var(--tabbar-space); }
 /* ---------------------------------------------------------------- choosing a theme */
 .theme-card { cursor: default; }
 .theme-pick { display: grid; gap: var(--sp-1); width: 100%; padding: 0 0 var(--sp-2); border: 0; background: none; color: var(--fg); text-align: start; cursor: pointer; }
-.theme-pick .muted { padding-inline: var(--sp-3); font-size: var(--text-xs); line-height: var(--leading-snug); }
+/* The description sits on the chosen card's raised fill (--bg-4), where --fg-3 falls short (3.8-4.3): --fg-2 reads on it. */
+.theme-pick .muted { color: var(--fg-2); padding-inline: var(--sp-3); font-size: var(--text-xs); line-height: var(--leading-snug); }
 .theme-pick:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: calc(-1 * var(--focus-width)); }
 .theme-name { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; padding: var(--sp-2) var(--sp-3) 0; font-weight: 600; font-size: var(--text-md); }
 .theme-card .theme-actions { padding: 0 var(--sp-3) var(--sp-3); margin-top: auto; min-height: calc(var(--control-h-sm) + var(--sp-3)); }

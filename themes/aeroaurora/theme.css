@@ -21,7 +21,7 @@
 
   /* Text */
   --fg: #eaf6ff;          /* main text */
-  --fg-2: #a8cfe6;        /* secondary text */
+  --fg-2: #b0d3e8;        /* secondary text */
   --fg-3: #b7cddc;        /* hints, captions */
 
   /* Accent: buttons, highlights, progress bars, selected items */
@@ -33,9 +33,9 @@
   --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
   /* Status */
-  --danger: #ff99a2;
-  --ok: #3ad29f;
-  --warn: #e8ae3f;
+  --danger: #ffb5bc;
+  --ok: #7fe2c0;
+  --warn: #efc576;
 
   /* Shape and depth */
   --radius: 10px;

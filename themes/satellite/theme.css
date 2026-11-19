@@ -22,7 +22,7 @@
   /* Text */
   --fg: #eef3f6;          /* main text */
   --fg-2: #aebdc6;        /* secondary text */
-  --fg-3: #8e9ca3;        /* hints, captions */
+  --fg-3: #98a5ab;        /* hints, captions */
 
   /* Accent: buttons, highlights, progress bars, selected items */
   --accent: #ff8a1f;
@@ -33,7 +33,7 @@
   --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
   /* Status */
-  --danger: #ff6b78;
+  --danger: #ff828d;
   --ok: #3ad29f;
   --warn: #e8ae3f;
 

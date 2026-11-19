@@ -91,7 +91,13 @@ func Derive(base, over map[string]string) map[string]string {
 		accent := pal["accent"]
 		set("accentHover", mixRGB(accent, "#000000", 0.12))
 		set("accentFg", labelOn(accent))
-		set("accentText", readableOn(accent, surfaces(pal), ContrastAA, isDark(pal["bg"])))
+		// The accent as text also sits on the accent's own soft fill (a selected row, the chosen page in a menu):
+		// --accent-soft is the accent at 14% over a surface (web/src/styles.css), as theme-contrast.py checks it.
+		on := surfaces(pal)
+		for _, s := range surfaces(pal) {
+			on = append(on, mixRGB(s, accent, accentSoftShare))
+		}
+		set("accentText", readableOn(accent, on, ContrastAA, isDark(pal["bg"])))
 	}
 	if changed("accentText") {
 		set("focus", pal["accentText"])
@@ -122,6 +128,9 @@ func alphaOf(base map[string]string, name string, t tint) int {
 	}
 	return t.alpha
 }
+
+// accentSoftShare is how much of the accent --accent-soft lays over a surface (web/src/styles.css: .14).
+const accentSoftShare = 0.14
 
 func surfaces(pal map[string]string) []string {
 	var out []string

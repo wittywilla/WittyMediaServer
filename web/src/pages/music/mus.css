@@ -161,9 +161,11 @@ a.mus-by:hover { text-decoration: underline; }
   .mus-title.long { font-size: var(--text-xl); }
 }
 /* The colour runs on below the header, fading into the page behind the list. */
-.mus-head + .mus-actions, .mus-hero + .mus-actions { background: linear-gradient(180deg, rgb(var(--art) / .18), transparent 120px); }
+.mus-head + .mus-actions, .mus-hero + .mus-actions { background: linear-gradient(180deg, rgb(var(--art, var(--bg-rgb)) / .18), transparent 120px); }
 .mus-actions { position: sticky; top: var(--topbar-h); z-index: 3; display: flex; align-items: center; gap: var(--sp-3); margin: 0 calc(-1 * var(--sp-2)); padding: var(--sp-4) var(--sp-4); min-height: 88px; }
-.mus-actions.stuck { background: color-mix(in srgb, rgb(var(--art)) 30%, var(--bg-2)); box-shadow: var(--e-2); min-height: 64px; padding-block: var(--sp-2); }
+/* --art is set on the header, not on this bar beside it: without the fallback the colour was invalid and the stuck bar
+   painted nothing, so the songs scrolling under it showed through its buttons. */
+.mus-actions.stuck { background: color-mix(in srgb, rgb(var(--art, var(--bg-rgb))) 30%, var(--bg-2)); box-shadow: var(--e-2); min-height: 64px; padding-block: var(--sp-2); }
 .mus-actions.stuck .mus-play.big { width: 44px; height: 44px; }
 .mus-actions-title { order: 0; font-size: var(--text-lg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; opacity: 0; transition: opacity var(--dur-2); pointer-events: none; }
 .mus-actions .mus-play { order: -1; }

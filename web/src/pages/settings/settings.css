@@ -20,6 +20,10 @@
 /* Section cards. The older pages' panels look the same. */
 .set-card, .set-main .panel { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); margin: 0 0 var(--sp-5); max-width: none; padding: 0; }
 .set-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-5) var(--sp-6) var(--sp-1); }
+/* The words keep a readable column: when the card's buttons would squeeze them (three on Live TV & tuners), the
+   buttons go under the words instead. */
+.set-card-head { flex-wrap: wrap; }
+.set-card-head > :first-child { flex: 1 1 24rem; min-inline-size: 0; }
 .set-card-head h2, .set-main .panel > h2 { margin: 0; font-size: var(--text-lg); font-weight: var(--weight-heading); }
 .set-card-head p { margin: var(--sp-1) 0 0; color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; max-width: 62ch; }
 .set-card-actions { flex: none; }
@@ -38,7 +42,9 @@
 .set-row-ctl .select { min-width: 220px; }
 .set-row.stack { flex-direction: column; align-items: stretch; gap: 12px; }
 .set-row.stack .set-row-ctl { display: block; }
-.set-row.dim .set-row-text { opacity: .5; }
+/* A row that waits on another switch looks quieter, in --fg-3 (still 4.5:1 in every theme), not faded to half: its
+   words, and the links in them, still have to be read. */
+.set-row.dim .set-row-text, .set-row.dim .set-row-text :is(.set-row-title, .set-row-desc, b, strong, label) { color: var(--fg-3); }
 .set-badge { padding: 1px var(--sp-2); border-radius: var(--r-full); font-size: var(--text-2xs); font-weight: 700; color: color-mix(in srgb, var(--ok) 70%, var(--fg)); background: var(--ok-soft); }
 .set-pill { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: var(--r-full); font-size: var(--text-xs); font-weight: 600; color: var(--fg-2); background: var(--bg-3); white-space: nowrap; }
 .set-pill.live { color: var(--fg); background: var(--accent-soft); }

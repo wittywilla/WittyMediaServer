@@ -57,7 +57,7 @@ func HousePalette() Palette {
 		Slate:      themeColour("default", "bg3"),
 		Raised:     themeColour("default", "bg4"),
 		Accent:     accent,
-		AccentLite: themeColour("default", "accentText"),
+		AccentLite: themeColour("default", "brandAccent"), // the name's own violet, which stays put when the accent as text moves
 		AccentDeep: Mix(themeColour("default", "accentHover"), themeColour("default", "bg"), 0.28),
 		Mint:       themeColour("default", "ok"),
 		Amber:      themeColour("default", "warn"),

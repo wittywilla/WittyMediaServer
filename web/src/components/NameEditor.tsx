@@ -204,7 +204,7 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError, onCheck }: {
 
       </div>
 
-      <div className="ne-preview" ref={frame} aria-label={t('Preview')}>
+      <div className="ne-preview" ref={frame} aria-label={t('Preview')} style={fitVars(parts)}>
         <div className="ne-lab">{t('Live preview, everywhere the name appears')}</div>
         <Place label={t('Side menu')} cls="side"><Brand name={shown} parts={parts} /></Place>
         <Place label={t('Top bar and TV bar')} cls="bar"><Brand name={shown} parts={parts} /><span className="ne-pill on">{t('Home')}</span><span className="ne-pill">{t('Libraries')}</span><span className="ne-pill">{t('Live TV')}</span></Place>
@@ -217,6 +217,14 @@ export function NameEditor({ draft, onChange, logoUrl, onLogoError, onCheck }: {
       </div>
     </div>
   )
+}
+
+// The longest piece of the name that can't break across lines, for nameEditor.css to size each preview's name to its
+// card: the name wraps at its spaces and between its coloured parts (where Brand puts a <wbr>), so every letter of a
+// name of any length (up to its 40) stays in view at the biggest size that fits.
+function fitVars(parts: { text: string }[]): CSSProperties {
+  const pieces = parts.map((p) => p.text).join(' ').split(/\s+/u)
+  return { '--word': Math.max(6, ...pieces.map((w) => [...w].length)) } as CSSProperties
 }
 
 function Place({ label, cls, children }: { label: string; cls: string; children: React.ReactNode }) {

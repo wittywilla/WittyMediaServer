@@ -21,13 +21,13 @@
 .ltc-card-head input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); }
 .ltc-card-head b { display: block; font-size: var(--text-md); }
 .ltc-card-text { display: block; margin-top: var(--sp-1); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
-.ltc-card-head:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+.ltc-card-head:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--r-sm); }
 .ltc-more .ltc-list { font-size: var(--text-sm); }
 .ltc-cost { color: var(--fg-2); font-size: var(--text-sm); margin: var(--sp-2) 0 0; }
 
 /* Things to open. <details> gives every device a way in, keyboard and remote included. */
 .ltc-more > summary { cursor: pointer; display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); min-height: 44px; font-size: var(--text-sm); font-weight: 600; color: var(--fg); border-radius: var(--r-sm); }
-.ltc-more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ltc-more > summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .ltc-more > summary::before { content: '+'; display: inline-block; width: 1em; flex: none; text-align: center; color: var(--fg-2); }
 .ltc-more[open] > summary::before { content: '\2212'; }
 .ltc-more > summary::-webkit-details-marker { display: none; }

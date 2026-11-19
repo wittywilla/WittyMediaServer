@@ -11,6 +11,9 @@ import { usePlayerChrome } from './chrome'
 import PickIntroBar from './PickIntroBar'
 import { skipAt, type Markers } from './markers'
 import AutoSkip from './AutoSkip'
+import ContentFilters from './ContentFilters'
+import { editorAllowed } from '../wittyinfo/desktopOnly'
+import { useApp } from '../state'
 import { Controls, useVideoState } from './Controls'
 import { haveHls, toggleFullscreen, useIdle, useSource, type NetNote } from './hooks'
 import { deviceStreaming, mayBeRobust, measureSpeed, rememberSpeed, setDeviceStreaming, type DeviceStreaming } from './streaming'
@@ -36,6 +39,7 @@ import { useMedia } from '../shell/useNav'
 
 // Opened from the player's top bar, and not before.
 const PlayOn = lazy(() => import('../remote/PlayOn'))
+const InfoPanel = lazy(() => import('../wittyinfo/PlayerPanel'))
 // The watch party's panel is part of the player, so that it shows in full screen too.
 const PartyPanel = lazy(() => import('../remote/PartyPanel'))
 
@@ -69,6 +73,11 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const listId = search.get('collection')
   // Choosing where the intro ends, from the edit dialog.
   const pickIntro = search.get('pickIntro')
+  // Scenes and skips (a .wittyinfo), edited beside the picture: from the player's menu, or
+  // from the editor's Preview (?wittyinfo=1). Administrators only, as the editor is.
+  const { user } = useApp()
+  // Not in TV mode: editing is on desktop only (wittyinfo/desktopOnly.ts).
+  const [editInfo, setEditInfo] = useState(search.get('wittyinfo') === '1' && editorAllowed())
   const nextHref = `/play/${item.nextId}${listId ? `?collection=${encodeURIComponent(listId)}` : ''}`
   const mini = chrome.mini
   const view = useViewPrefs(item.id, legacyRemote())
@@ -163,14 +172,19 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   // video, chapter names, found by comparing episodes, the show's own intro). Until that
   // answers, and if it doesn't, the item's own intro.
   const [markers, setMarkers] = useState<Markers | null>(null)
+  // markersAgain: asked again after the editor saved. draftMarkers: the editor's parts as they
+  // are now, saved or not, tried in their place while it is open.
+  const [markersAgain, setMarkersAgain] = useState(0)
+  const [draftMarkers, setDraftMarkers] = useState<Markers | null>(null)
   useEffect(() => {
-    setMarkers(null)
+    if (!markersAgain) setMarkers(null)
     const stop = new AbortController()
     api.get<Markers>(`/media/${item.id}/markers`, stop.signal).then(setMarkers).catch(() => {})
     return () => stop.abort()
-  }, [item.id])
+  }, [item.id, markersAgain])
   const ownIntro: Markers | null = item.introEnd != null ? { intro: { startSec: item.introStart || 0, endSec: item.introEnd } } : null
-  const skip = skipAt(markers || ownIntro, now, item.runtimeSec || 0)
+  const inForce = (editInfo && draftMarkers) || markers || ownIntro
+  const skip = skipAt(inForce, now, item.runtimeSec || 0)
 
   useEffect(() => {
     setInfo(null)
@@ -366,7 +380,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     const onKey = (e: KeyboardEvent) => {
       const v = video.current
       if (!v || picker || settingsOpen || infoOpen || qualityOpen) return
-      if (document.querySelector('.modal-backdrop, .scene-panel, .party-panel, .player .popover, .psheet-backdrop')) return // a window over the player has the keys
+      if (document.querySelector('.modal-backdrop, .scene-panel, .party-panel, .player .popover, .psheet-backdrop, .wi-player-panel')) return // a window over the player has the keys
       const tag = (e.target as HTMLElement)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       // Space and Enter on a focused button press that button (Subtitles, Next…), as anywhere else; on the picture they play or pause.
@@ -592,7 +606,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           </div>
         )
       })()}
-      <AutoSkip itemId={item.id} video={video} markers={markers || ownIntro} now={now} duration={item.runtimeSec || 0} live={!!info && st.playing && !st.waiting && !pickIntro} mini={mini}
+      <ContentFilters video={video} filters={info?.info?.filters} now={now} live={!!info && st.playing && !st.waiting && !editInfo} seek={seek} />
+      <AutoSkip itemId={item.id} video={video} markers={inForce} now={now} duration={item.runtimeSec || 0} live={!!info && st.playing && !st.waiting && !pickIntro && !editInfo} mini={mini}
         party={party.active ? (party.room?.canControl ? 'control' : 'follow') : 'none'} seek={seek} nextHref={item.nextId ? nextHref : null} />
       {mini ? (
         <div className="mini-bar" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
@@ -626,8 +641,15 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             : barAllowed() && (prefs.remoteStyle === 'bar' || prefs.remoteStyle === 'barBelow')
               ? <RemoteBar below={prefs.remoteStyle === 'barBelow'} onKey={onRemote} enabled={remoteEnabled} disc={copy} note={keysNote} form={form} />
               : <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label={label} note={keysNote} />)}
-          {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{tx(skip.label)} ›</button>}
+          {skip && <button className="btn skip-intro" onClick={(e) => { e.stopPropagation(); seek(skip.to) }}>{skip.name ? t('Skip {name}', { name: skip.name }) : tx(skip.label)} ›</button>}
           {pickIntro && <PickIntroBar item={item} time={now} mode={pickIntro} />}
+          {editInfo && user?.isAdmin && (
+            <Suspense fallback={null}>
+              <InfoPanel itemId={item.id} title={item.showTitle ? `${item.showTitle} · ${item.title}` : item.title} now={now}
+                player={{ now: () => (video.current ? video.current.currentTime + offset : 0), seek, playing: () => !!video.current && !video.current.paused, play: () => { void video.current?.play().catch(() => {}) }, pause: () => video.current?.pause() }}
+                onDraft={setDraftMarkers} onSaved={() => setMarkersAgain((n) => n + 1)} onClose={() => { setEditInfo(false); setDraftMarkers(null) }} />
+            </Suspense>
+          )}
           {next && (nearEnd || ended) && !nextDismissed && !party.active && (
             <div className="watch-next" role="region" aria-label={upNext != null ? t('Up next') : t('Watch next')} onClick={(e) => e.stopPropagation()}>
               <div className="wn-head">{next.recommended
@@ -659,7 +681,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
               ...((may.party || party.room) ? [{ key: 'party', icon: <IconUsers />, label: t('Watch party'), value: party.room ? tn('{count} watching', '{count} watching', party.room.members.length) : undefined, on: party.active, onClick: () => setPartyOpen(true) }] : []),
               { key: 'mini', icon: <IconMini />, label: t('Keep playing in a corner'), onClick: chrome.minimize },
             ]}
-            showSeek={prefs.seekBar} remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} onSettings={() => setSettingsOpen((o) => !o)} />
+            showSeek={prefs.seekBar} remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} onSettings={() => setSettingsOpen((o) => !o)}
+            onEditInfo={user?.isAdmin && !copy && editorAllowed() ? () => setEditInfo((o) => !o) : undefined} />
           {settingsOpen && <ViewSettings prefs={prefs} scope={view.scope} isDisc={false} onClose={() => setSettingsOpen(false)} onChange={(p) => view.update(p, view.scope)} onScope={view.setScope}
             streaming={streamPref} onStreaming={(v) => { setDeviceStreaming(v); setStreamPref(v); ask({ reopen: (want.reopen || 0) + 1 }) }} />}
           {picker && info && (

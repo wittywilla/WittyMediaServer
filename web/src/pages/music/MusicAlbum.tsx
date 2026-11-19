@@ -17,6 +17,7 @@ import { useMusic } from './store'
 import { AlbumCard, PageShape, PlayButton, Shelf, tracksUrl } from './ui'
 import { TrackTable } from './ui'
 import { t, tn } from '../../i18n'
+import { MusicInfoDialog, MusicInfoItem } from '../../wittyinfo/MusicInfo'
 
 // One album: the cover and its colour at the top, the big play button, and the songs in
 // a dense list. Then other versions of it, and more by the same artist.
@@ -35,6 +36,7 @@ export default function MusicAlbum({ lib }: { lib: Library }) {
   const audio = useAudio()
   const nav = useNavigate()
   const [canvasOpen, setCanvasOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
   const { data: tracks, failed } = useMusic<Item[]>(tracksUrl(lib.id, { artist, title: album }))
   const others = useMusic<Album[]>(artist ? `/music/albums?library=${lib.id}&artist=${encodeURIComponent(artist)}&sort=year` : null).data
   // A disc whose image has gone isn't offered as one to insert.
@@ -88,6 +90,7 @@ export default function MusicAlbum({ lib }: { lib: Library }) {
               <button type="button" role="menuitem" onClick={() => { audio.startRadio(tracks[0]); close() }}><IconStation size={18} /> {t('Start a station from this')}</button>
               <PlayOnMenuItem source={{ kind: 'item', itemId: tracks[0].id, itemKind: 'audio', title, ...queueOf(tracks.map((t) => t.id), 0) }} onChosen={close} />
               {user?.isAdmin && tracks.some((t) => !t.cdDisc) && <button type="button" role="menuitem" aria-haspopup="dialog" onClick={() => { setCanvasOpen(true); close() }}>{t('Canvas: the looping video behind these songs…')}</button>}
+              {user?.isAdmin && tracks.some((t) => !t.cdDisc) && <MusicInfoItem label={t('Album details and cover')} onOpen={() => setInfoOpen(true)} close={close} />}
               {artist && <Link role="menuitem" className="mh-menu-link" to={artistLink(lib.id, artist)} onClick={close}>{t('Go to artist')}</Link>}
             </div>
           )}
@@ -98,6 +101,7 @@ export default function MusicAlbum({ lib }: { lib: Library }) {
       {versions.length > 0 && <Shelf title={t('Other versions')}>{versions.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={String(a.year || '')} />)}</Shelf>}
       {more.length > 0 && <Shelf title={t('More by {artist}', { artist })} to={artistLink(lib.id, artist)}>{more.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={String(a.year || '')} />)}</Shelf>}
       <LegalNote kind="metadata" />
+      {infoOpen && <MusicInfoDialog album id={tracks.find((t) => !t.cdDisc)!.id} title={title} onClose={() => setInfoOpen(false)} />}
       {canvasOpen && <Suspense fallback={null}><AlbumCanvasManager songs={tracks.filter((t) => !t.cdDisc)} onClose={() => setCanvasOpen(false)} /></Suspense>}
     </div>
   )

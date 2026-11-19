@@ -248,6 +248,8 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 		covers[key] = cover
 	}
 	it.Poster = cover
+	// What someone wrote in a .wittyaudio (the song's, or its album's) wins over the tags.
+	s.applyInfo(ctx, it)
 	if err := s.Store.upsertItem(ctx, it); err != nil {
 		return err
 	}

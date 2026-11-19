@@ -46,8 +46,8 @@ var idSpaces = map[string]string{
 	"/api/shows/{id}": "show",
 	// A person: called with every person there is, as "other" numbers are.
 	"/api/people/{id}":        "person",
-	"/api/meta/{target}/{id}": "target",
-	"/api/collections/{id}":   "other", "/api/creators/{id}": "other", "/api/hls/{id}": "other",
+	"/api/meta/{target}/{id}": "target", "/api/wittyinfo/{target}/{id}": "target",
+	"/api/collections/{id}": "other", "/api/creators/{id}": "other", "/api/hls/{id}": "other",
 	"/api/console-photos/{id}": "other", // a console's id (snes): a picture of the hardware, the same for everyone
 	"/api/logos/{id}":          "other", "/api/licenses/{id}": "other", "/api/libraries/{id}": "other", "/api/users/{id}": "other",
 	"/api/views/{id}": "other", "/api/channels/{id}": "other",

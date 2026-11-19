@@ -41,7 +41,7 @@ func publicBody(p string) bool {
 // integration (module_routes.go).
 func (s *Server) bigUploadPath(r *http.Request) bool {
 	p := r.URL.Path
-	if mediaUploadPath(p) || strings.HasSuffix(p, "/backup/restore/upload") || strings.HasSuffix(p, "/channels/bumpers/upload") {
+	if mediaUploadPath(p) || infoUploadPath(p) || strings.HasSuffix(p, "/backup/restore/upload") || strings.HasSuffix(p, "/channels/bumpers/upload") {
 		return true
 	}
 	return s.isModuleRoute(r)

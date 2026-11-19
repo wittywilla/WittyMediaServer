@@ -106,6 +106,8 @@ func SourceLabel(src string) string {
 		return "NFO file"
 	case SourceLocal:
 		return "Beside the file"
+	case "wittyinfo":
+		return "The title’s .wittyinfo"
 	case SourceFrame:
 		return "From the video"
 	case SourceMade:

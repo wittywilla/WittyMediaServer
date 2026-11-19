@@ -115,10 +115,19 @@ export type PlaybackAnswer = {
   decision: 'direct' | 'remux' | 'transcode' | string; reasons: string[]; protocol: string; url: string; streamId?: string; durationSec: number; container?: string
   seek: 'native' | 'restart' | 'none'; startAtSec: number; timeOffsetSec: number; resumeSec: number
   audio: Track[]; subtitles: PlaybackSubtitle[]; audioIndex: number; subtitleIndex: number; subtitleDelivery: string
-  chapters?: { start: number; title: string }[]; explain?: PlaybackExplain
+  chapters?: { start: number; title: string; thumbnailAt?: number }[]; explain?: PlaybackExplain
   videos?: { index: number; codec: string; width: number; height: number; title?: string }[]; videoIndex?: number; stereo?: string; flattened?: boolean
   streaming?: PlaybackStreaming
   quality?: QualityView; output?: PlaybackOutput
+  // From the video's .wittyinfo (docs/formats/wittyinfo.md): every part with its action and source,
+  // and what the file says beyond times.
+  segments?: { kind: string; startSec: number; endSec: number; label?: string; action: string; source: string }[]
+  info?: PlaybackInfoExtra
+}
+export type PlaybackInfoExtra = {
+  origin: '' | 'stored' | 'file'; defaults?: boolean; startAt?: number
+  match?: { result: string; usable: boolean; message?: string }
+  filters?: { id?: string; category: 'violence' | 'language' | 'nudity' | 'sex' | 'drugs' | 'frightening' | 'flashing' | 'discrimination' | 'other'; severity?: number; start: number; end: number; action?: 'skip' | 'mute' | 'warn'; label?: string }[]
 }
 // What a quality menu may offer (see docs/CLIENT-API.md, Quality). choice is what streams are made to now.
 export type QualityPreset = { name: string; height: number; kbps: number }

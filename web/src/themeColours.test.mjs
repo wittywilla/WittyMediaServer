@@ -81,8 +81,10 @@ test('the pairs are the ones the server checks', () => {
 // What the server answered (GET /api/theme, `warnings`) for these overrides on a module, with
 // the automatic theme: its dark look is the Witty theme and its light look the Light theme.
 const OVERRIDES = { accentFg: '#000000', accentText: '#7955FF', bg3: '#808080', fg: '#555555', ok: '#3AD29F80', warn: '#E0A030FF' }
-const SERVER_DARK = [['fg', 'bg', 2.53], ['fg', 'bg2', 2.34], ['fg', 'bg3', 1.89], ['fg2', 'bg3', 1.8], ['fg3', 'bg3', 1.15], ['accentText', 'bg', 4.1], ['accentText', 'bg2', 3.78], ['accentText', 'bg3', 1.17], ['danger', 'bg3', 1.32], ['warn', 'bg3', 1.74]]
-const SERVER_LIGHT = [['fg', 'bg3', 1.89], ['fg2', 'bg3', 2.02], ['fg3', 'bg3', 1.36], ['accentText', 'bg', 4.23], ['accentText', 'bg3', 1.17], ['danger', 'bg3', 1.34], ['warn', 'bg', 2.08], ['warn', 'bg2', 2.27], ['warn', 'bg3', 1.74], ['accentFg', 'accent', 3.84]]
+// The built-in accents are deep enough for white labels on a glossy button (#423), so the black label these overrides
+// set falls short on them: 3.47:1 on the Witty theme and 3.25:1 on Light, as internal/themes ContrastRatio has it.
+const SERVER_DARK = [['fg', 'bg', 2.53], ['fg', 'bg2', 2.34], ['fg', 'bg3', 1.89], ['fg2', 'bg3', 1.8], ['fg3', 'bg3', 1.15], ['accentText', 'bg', 4.1], ['accentText', 'bg2', 3.78], ['accentText', 'bg3', 1.17], ['danger', 'bg3', 1.32], ['warn', 'bg3', 1.74], ['accentFg', 'accent', 3.47]]
+const SERVER_LIGHT = [['fg', 'bg3', 1.89], ['fg2', 'bg3', 2.02], ['fg3', 'bg3', 1.36], ['accentText', 'bg', 4.23], ['accentText', 'bg3', 1.17], ['danger', 'bg3', 1.34], ['warn', 'bg', 2.08], ['warn', 'bg2', 2.27], ['warn', 'bg3', 1.74], ['accentFg', 'accent', 3.25]]
 
 test('the warnings worked out here are the server’s, pair for pair and to the same two places', () => {
   for (const [id, want] of [['default', SERVER_DARK], ['light', SERVER_LIGHT]]) {

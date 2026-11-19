@@ -3,7 +3,7 @@
   "name": "Satellite",
   "description": "Silver bars on dark teal with orange highlights.",
   "author": "WittyMediaServer",
-  "version": "2",
+  "version": "3",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -119,7 +119,7 @@
   },
   "tv": {
     "ringColor": "#eef3f6",
-    "heroScrim": 0.74,
+    "heroScrim": 0.77,
     "tvText": "#f0f4f7"
   }
 }

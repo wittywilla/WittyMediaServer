@@ -24,7 +24,7 @@ func TestThemeResolvesGlobalUserAndModule(t *testing.T) {
 		t.Fatalf("theme: %d %s", w.Code, w.Body)
 	}
 	th := decode[ResolvedTheme](t, w)
-	if th.ID != "default" || th.Source != "server" || th.Tokens["accent"] != "#7955FF" || th.ETag != w.Header().Get("ETag") || len(th.Warnings) != 0 {
+	if th.ID != "default" || th.Source != "server" || th.Tokens["accent"] != "#6334FF" || th.ETag != w.Header().Get("ETag") || len(th.Warnings) != 0 {
 		t.Fatalf("default theme: %+v", th)
 	}
 	if w := ts.do(t, "GET", "/api/theme", adult, nil, "If-None-Match", th.ETag); w.Code != 304 {

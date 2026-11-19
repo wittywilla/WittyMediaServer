@@ -108,13 +108,23 @@ html.tv-mode .set-shell:not(.tv-menu) :is(.set-nav, .set-back) { display: none; 
 
 /* Settings pages and this dialog are written for a computer. In TV mode the rest of the app sizes each button for a
    remote (tvmode.css), which left these pages with huge buttons beside small words. Here they keep the computer's
-   proportions, and the whole page is drawn larger instead, so it reads from across the room and still looks like
-   itself. */
+   proportions, and the computer's size tokens are made larger instead (about a third, at the screen's scale), so the
+   page reads from across the room and still looks like itself. Tokens, not CSS zoom: zoom would throw off where
+   menus and tooltips open (menuPlace.test.mjs). */
+html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) {
+  --tvl-k: calc(var(--tvu) * 1.35);
+  --text-2xs: calc(var(--tvl-k) * 11); --text-xs: calc(var(--tvl-k) * 12); --text-sm: calc(var(--tvl-k) * 13); --text-md: calc(var(--tvl-k) * 14);
+  --text-base: calc(var(--tvl-k) * 15); --text-lg: calc(var(--tvl-k) * 17); --text-xl: calc(var(--tvl-k) * 20); --text-2xl: calc(var(--tvl-k) * 24);
+  --text-3xl: calc(var(--tvl-k) * 30); --page-title: calc(var(--tvl-k) * 30);
+  --sp-1: calc(var(--tvl-k) * 4); --sp-2: calc(var(--tvl-k) * 8); --sp-3: calc(var(--tvl-k) * 12); --sp-4: calc(var(--tvl-k) * 16); --sp-5: calc(var(--tvl-k) * 20);
+  --sp-6: calc(var(--tvl-k) * 24); --sp-8: calc(var(--tvl-k) * 32); --sp-10: calc(var(--tvl-k) * 40); --sp-12: calc(var(--tvl-k) * 48);
+  --control-h: calc(var(--tvl-k) * 40); --control-h-sm: calc(var(--tvl-k) * 32); --control-h-lg: calc(var(--tvl-k) * 46);
+  font-size: var(--text-base);
+}
 html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) .btn { min-height: var(--control-h); padding: 0 var(--sp-4); border-radius: var(--r-md); font-size: var(--text-md); gap: var(--sp-2); }
 html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) .btn svg { width: 1.15em; height: 1.15em; }
 html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) .btn.sm { min-height: var(--control-h-sm); padding: 0 var(--sp-3); font-size: var(--text-sm); }
 html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) :is(.btn.icon, .btn.square) { width: var(--control-h); padding: 0; }
 html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) .btn.sm:is(.icon, .square) { width: var(--control-h-sm); }
-html.tv-mode .set-shell { zoom: 1.35; }
-html.tv-mode .set-shell:not(.tv-menu), html.tv-mode .set-shell.tv-menu { max-width: calc(var(--tvu) * 1040); margin-inline: auto; }
-html.tv-mode .ui-dialog:has(.tvl-dialog) { zoom: 1.3; }
+html.tv-mode .set-shell:not(.tv-menu), html.tv-mode .set-shell.tv-menu { max-width: calc(var(--tvu) * 1400); margin-inline: auto; }
+html.tv-mode .ui-dialog:has(.tvl-dialog) { width: min(calc(var(--tvu) * 760), calc(100vw - var(--tvu) * 96)); max-width: none; }

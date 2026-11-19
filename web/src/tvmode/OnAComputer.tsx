@@ -6,8 +6,10 @@ import { api } from '../api'
 import QrCode from '../pages/settings/QrCode'
 import { Button, Dialog } from '../ui'
 import { IconDevices } from '../icons'
+import { t, tx } from '../i18n'
 import { pageAddress, type TvLevel } from './levels'
-import { TV_LEVELS, TV_NOTE, tvPartLevel, tvPartTitle } from './levelTable'
+import { TV_LEVELS, tvPartLevel, tvPartTitle } from './levelTable'
+import './levelWords'
 import { leaveTvMode, tvClient, useTvMode } from './mode'
 import './levels.css'
 
@@ -37,14 +39,15 @@ function useSummary(id: string | undefined): Summary {
 const addressOf = (path: string, home: string[]) => pageAddress(window.location.origin, path, home)
 
 // tvElsewhere: a row's short label for a screen TV mode doesn't offer.
-export const tvElsewhere = () => (tvClient() === 'tvDevice' ? 'On a computer' : 'Outside TV mode')
+export const tvElsewhere = () => (tvClient() === 'tvDevice' ? t('On a computer') : t('Outside TV mode'))
 
 // tvNote: the words for this client.
-export const tvNote = () => (tvClient() === 'tvDevice' ? TV_NOTE : TV_LEVELS.noteDesktop || 'Leave TV mode to change this.')
+const TV_NOTE = () => tx(TV_LEVELS.note)
+export const tvNote = () => (tvClient() === 'tvDevice' ? TV_NOTE() : TV_LEVELS.noteDesktop ? tx(TV_LEVELS.noteDesktop) : t('Leave TV mode to change this.'))
 
 // The Leave TV mode button: the normal layout at the page that was showing.
 function LeaveButton({ buttonRef, primary = true, small }: { buttonRef?: React.Ref<HTMLButtonElement>; primary?: boolean; small?: boolean }) {
-  return <button ref={buttonRef} type="button" className={'btn' + (primary ? ' primary' : '') + (small ? ' sm' : '')} data-tv-first={primary || undefined} onClick={leaveTvMode}>Leave TV mode</button>
+  return <button ref={buttonRef} type="button" className={'btn' + (primary ? ' primary' : '') + (small ? ' sm' : '')} data-tv-first={primary || undefined} onClick={leaveTvMode}>{t('Leave TV mode')}</button>
 }
 
 // An address in words, with places to break only after each "/", never inside a name.
@@ -55,14 +58,14 @@ function Address({ text }: { text: string }) {
 
 // The small label at the top of a card or banner: what kind of screen this is.
 const Eyebrow = ({ device }: { device: boolean }) => (
-  <p className="tvl-eyebrow"><span className="tvl-eyebrow-ic" aria-hidden="true"><IconDevices /></span>{device ? 'On a computer' : 'Outside TV mode'}</p>
+  <p className="tvl-eyebrow"><span className="tvl-eyebrow-ic" aria-hidden="true"><IconDevices /></span>{device ? t('On a computer') : t('Outside TV mode')}</p>
 )
 
 function SetNow({ lines }: { lines: string[] }) {
   if (!lines.length) return null
   return (
     <div className="tvl-now">
-      <span className="tvl-now-label">Set now</span>
+      <span className="tvl-now-label">{t('Set now')}</span>
       <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>
     </div>
   )
@@ -86,8 +89,8 @@ export function OnAComputer({ level, title, path, summary, children }: { level: 
   const actions = (
     <div className="tvl-actions" data-nav-group>
       {device
-        ? <button ref={first} type="button" className="btn primary" data-tv-first onClick={goBack}>Back</button>
-        : <><LeaveButton buttonRef={first} /><button type="button" className="btn" onClick={goBack}>Back</button></>}
+        ? <button ref={first} type="button" className="btn primary" data-tv-first onClick={goBack}>{t('Back')}</button>
+        : <><LeaveButton buttonRef={first} /><button type="button" className="btn" onClick={goBack}>{t('Back')}</button></>}
     </div>
   )
   if (level === 'view') {
@@ -96,10 +99,10 @@ export function OnAComputer({ level, title, path, summary, children }: { level: 
         <section className="tvl-banner" aria-labelledby="tvl-title">
           <span className="tvl-banner-ic" aria-hidden="true"><IconDevices /></span>
           <div className="tvl-banner-text">
-            <h1 id="tvl-title" className="tvl-banner-title">{title}: shown only</h1>
-            <p>{device ? <>{TV_NOTE} <Address text={address} /></> : tvNote()}</p>
+            <h1 id="tvl-title" className="tvl-banner-title">{t('{title}: shown only', { title })}</h1>
+            <p>{device ? <>{TV_NOTE()} <Address text={address} /></> : tvNote()}</p>
           </div>
-          {device && <QrCode text={address} label={`QR code that opens ${title} on a phone or computer`} size={112} />}
+          {device && <QrCode text={address} label={t('QR code that opens {title} on a phone or computer', { title })} size={112} />}
           {actions}
         </section>
         {children && <ViewOnly>{children}</ViewOnly>}
@@ -112,15 +115,15 @@ export function OnAComputer({ level, title, path, summary, children }: { level: 
         <div className="tvl-text">
           <Eyebrow device={device} />
           <h1 id="tvl-title" className="tvl-title">{title}</h1>
-          <p className="tvl-note">{device ? TV_NOTE : tvNote()}</p>
+          <p className="tvl-note">{tvNote()}</p>
           <SetNow lines={s.lines} />
-          {device && <p className="tvl-follow">What you change there applies on this TV too.</p>}
+          {device && <p className="tvl-follow">{t('What you change there applies on this TV too.')}</p>}
           {actions}
         </div>
         {device && (
           <figure className="tvl-qr">
-            <QrCode text={address} label={`QR code that opens ${title} on a phone or computer`} size={240} />
-            <figcaption>Scan with a phone to open this page<Address text={address} /></figcaption>
+            <QrCode text={address} label={t('QR code that opens {title} on a phone or computer', { title })} size={240} />
+            <figcaption>{t('Scan with a phone to open this page')}<Address text={address} /></figcaption>
           </figure>
         )}
       </section>
@@ -141,7 +144,7 @@ export function ViewOnly({ children }: { children: ReactNode }) {
     watch.observe(el, { childList: true, subtree: true })
     return () => watch.disconnect()
   }, [])
-  return <fieldset ref={box} className="tvl-view" disabled aria-label="Shown only">{children}</fieldset>
+  return <fieldset ref={box} className="tvl-view" disabled aria-label={t('Shown only')}>{children}</fieldset>
 }
 
 // TvPart: a part of a screen that is otherwise usable in TV mode (the theme maker in Appearance).
@@ -153,7 +156,7 @@ export function TvPart({ id, children }: { id: string; children: ReactNode }) {
   const level = tvPartLevel(id)
   if (level === 'full') return <>{children}</>
   if (level === 'view') return <ViewOnly>{children}</ViewOnly>
-  return <PartNote title={tvPartTitle(id)} path={loc.pathname} />
+  return <PartNote title={tx(tvPartTitle(id))} path={loc.pathname} />
 }
 
 // tvPartBlocked: for a part opened by a button (a dialog, an editor), whether it opens here.
@@ -169,7 +172,7 @@ export function PartNote({ title, path }: { title: string; path: string }) {
     <div className="tvl-part" role="note">
       <span className="tvl-part-ic" aria-hidden="true"><IconDevices /></span>
       <p className="tvl-part-text">
-        <b>{title}.</b> {device ? <>{TV_NOTE} <Address text={addressOf(path, s.addresses)} /></> : tvNote()}
+        <b>{t('{title}.', { title })}</b> {device ? <>{TV_NOTE()} <Address text={addressOf(path, s.addresses)} /></> : tvNote()}
       </p>
       {!device && <LeaveButton primary={false} small />}
     </div>
@@ -183,19 +186,19 @@ export function OnAComputerDialog({ part, title: named, onClose }: { part?: stri
   const s = useSummary(undefined)
   const device = tvClient() === 'tvDevice'
   const address = addressOf(loc.pathname, s.addresses)
-  const title = named || (part ? tvPartTitle(part) : '') || 'This'
+  const title = named || (part ? tx(tvPartTitle(part)) : '') || t('On a computer')
   const actions = device
-    ? <Button variant="primary" data-tv-first onClick={onClose}>OK</Button>
-    : <><Button variant="primary" data-tv-first onClick={() => { onClose(); leaveTvMode() }}>Leave TV mode</Button><Button onClick={onClose}>Not now</Button></>
+    ? <Button variant="primary" data-tv-first onClick={onClose}>{t('OK')}</Button>
+    : <><Button variant="primary" data-tv-first onClick={() => { onClose(); leaveTvMode() }}>{t('Leave TV mode')}</Button><Button onClick={onClose}>{t('Not now')}</Button></>
   return (
     <Dialog title={title} onClose={onClose} size="sm" actions={actions}>
       <div className="tvl-dialog">
         <div>
-          <p>{device ? TV_NOTE : tvNote()}</p>
+          <p>{tvNote()}</p>
           {device && <p><Address text={address} /></p>}
-          {device && <p className="tvl-follow">What you change there applies on this TV too.</p>}
+          {device && <p className="tvl-follow">{t('What you change there applies on this TV too.')}</p>}
         </div>
-        {device && <QrCode text={address} label={`QR code that opens this page on a phone or computer`} size={160} />}
+        {device && <QrCode text={address} label={t('QR code that opens this page on a phone or computer')} size={160} />}
       </div>
     </Dialog>
   )

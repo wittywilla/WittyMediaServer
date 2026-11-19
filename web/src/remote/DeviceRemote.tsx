@@ -13,6 +13,7 @@ import { errorText, remoteControls, statusWords, stepWords, watchingTv, type Nav
 import type { RemoteCommand } from './device'
 import { partDone, positionNow, seekTarget } from './position'
 import { sendCommand, type RemoteDevice, type ServerClock } from './useDevices'
+import { t, tk, tx } from '../i18n'
 
 // The speeds the protocol carries (0.25 to 4), as the players offer them.
 const RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4]
@@ -86,7 +87,7 @@ function Scrubber({ d, serverNow, onSeek }: { d: RemoteDevice; serverNow: Server
     <div className="rr-scrub">
       <span className="rr-time" aria-hidden="true">{fmtTime(pos)}</span>
       <input type="range" className="rr-range" min={0} max={Math.max(1, Math.floor(dur))} step={1} value={Math.min(Math.floor(pos), Math.floor(dur))}
-        aria-label={`Position on ${d.name}`} aria-valuetext={`${fmtTime(pos)} of ${fmtTime(dur)}`}
+        aria-label={t('Position on {name}', { name: d.name })} aria-valuetext={t('{time} of {total}', { time: fmtTime(pos), total: fmtTime(dur) })}
         onChange={(e) => setHeld(Number(e.target.value))} onPointerUp={release} onTouchEnd={release} onKeyUp={release} onBlur={release} />
       <span className="rr-time" aria-hidden="true">{fmtTime(dur)}</span>
     </div>
@@ -115,9 +116,9 @@ function Queue({ d, send, open, setOpen }: { d: RemoteDevice; send: (cmd: Remote
     return () => { on = false }
   }, [open, ids.join(',')]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <section className="rr-queue" aria-label={`Queue on ${d.name}`}>
+    <section className="rr-queue" aria-label={t('Queue on {name}', { name: d.name })}>
       <button type="button" className="rr-queue-head" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span>Queue</span><span className="rr-queue-count">{at + 1} of {ids.length}</span><IconDown />
+        <span>{t('Queue')}</span><span className="rr-queue-count">{t('{n} of {total}', { n: at + 1, total: ids.length })}</span><IconDown />
       </button>
       {open && (
         <>
@@ -127,12 +128,12 @@ function Queue({ d, send, open, setOpen }: { d: RemoteDevice; send: (cmd: Remote
                 <button type="button" className={'rr-queue-item' + (i === at ? ' now' : '')} aria-current={i === at ? 'true' : undefined} disabled={!whole || i === at}
                   onClick={() => send({ type: 'play', queue: ids, queueIndex: i })}>
                   <span className="rr-queue-n" aria-hidden="true">{i === at ? <IconPlay /> : i + 1}</span>
-                  <span className="rr-queue-title">{id > 0 ? titles[id] || 'Loading…' : 'Something you can’t see'}</span>
+                  <span className="rr-queue-title">{id > 0 ? titles[id] || t('Loading…') : t('Something you can’t see')}</span>
                 </button>
               </li>
             ))}
           </ol>
-          {!whole && <p className="rr-note">This queue holds things you can’t see, so it can’t be jumped through from here. Next and Previous still work.</p>}
+          {!whole && <p className="rr-note">{t('This queue holds things you can’t see, so it can’t be jumped through from here. Next and Previous still work.')}</p>}
         </>
       )}
     </section>
@@ -140,9 +141,9 @@ function Queue({ d, send, open, setOpen }: { d: RemoteDevice; send: (cmd: Remote
 }
 
 const PAD: { key: NavKey; label: string; icon?: React.ReactNode; text?: string; place: string }[] = [
-  { key: 'back', label: 'Back', icon: <IconBack />, place: 'a' }, { key: 'up', label: 'Up', icon: <IconUp />, place: 'u' }, { key: 'home', label: 'Home', icon: <IconHome />, place: 'h' },
-  { key: 'left', label: 'Left', icon: <IconLeft />, place: 'l' }, { key: 'select', label: 'Select', text: 'OK', place: 'o' }, { key: 'right', label: 'Right', icon: <IconRight />, place: 'r' },
-  { key: 'menu', label: 'Menu', icon: <IconMenu />, place: 'm' }, { key: 'down', label: 'Down', icon: <IconDown />, place: 'd' }, { key: 'playpause', label: 'Play or pause', icon: <><IconPlay /><IconPause /></>, place: 'p' },
+  { key: 'back', label: tk('Back'), icon: <IconBack />, place: 'a' }, { key: 'up', label: tk('Up'), icon: <IconUp />, place: 'u' }, { key: 'home', label: tk('Home'), icon: <IconHome />, place: 'h' },
+  { key: 'left', label: tk('Left'), icon: <IconLeft />, place: 'l' }, { key: 'select', label: tk('Select'), text: 'OK', place: 'o' }, { key: 'right', label: tk('Right'), icon: <IconRight />, place: 'r' },
+  { key: 'menu', label: tk('Menu'), icon: <IconMenu />, place: 'm' }, { key: 'down', label: tk('Down'), icon: <IconDown />, place: 'd' }, { key: 'playpause', label: tk('Play or pause'), icon: <><IconPlay /><IconPause /></>, place: 'p' },
 ]
 
 export default function DeviceRemote({ d, serverNow }: { d: RemoteDevice; serverNow: ServerClock }) {
@@ -162,7 +163,7 @@ export default function DeviceRemote({ d, serverNow }: { d: RemoteDevice; server
     if (what) setBusy(what)
     try { const r = await sendCommand(d.id, cmd); setProblem(''); return r } catch (e) {
       const err = e as ApiError
-      const text = errorText(err.data?.code, err.message, d.name)
+      const text = errorText(err.data?.code, err.message, d.name, t)
       setProblem(text)
       toast(text, { tone: 'warn' })
       return null
@@ -181,16 +182,16 @@ export default function DeviceRemote({ d, serverNow }: { d: RemoteDevice; server
   const title = d.hidden ? '' : d.title || item?.title || ''
   const line = item ? itemLine(item) : ''
   const part = c.place === 'part' ? partDone(st.positionSec, st.durationSec) : null
-  const status = watchingTv(d) ? 'Live TV' : statusWords(d)
+  const status = watchingTv(d) ? t('Live TV') : tx(statusWords(d))
 
   return (
-    <div className="rr" role="group" aria-label={`Remote for ${d.name}`}>
+    <div className="rr" role="group" aria-label={t('Remote for {name}', { name: d.name })}>
       <div className="rr-now">
         {shown && item?.poster ? <img className="rr-art" src={sized(posterUrl(item), 240)} alt="" /> : null}
         <div className="rr-what">
           {title && <div className="rr-title">{title}</div>}
           {line && <div className="rr-line">{line}</div>}
-          <div className="rr-status" role="status" aria-live="polite">{[status, part != null ? `${part}% through` : ''].filter(Boolean).join(' · ')}{d.hidden ? '. What it is isn’t shown to this account.' : ''}</div>
+          <div className="rr-status" role="status" aria-live="polite">{[status, part != null ? t('{percent}% through', { percent: part }) : ''].filter(Boolean).join(' · ')}{d.hidden ? '. ' + t('What it is isn’t shown to this account.') : ''}</div>
         </div>
       </div>
       {problem && <p className="rr-problem" role="alert">{problem}</p>}
@@ -198,22 +199,22 @@ export default function DeviceRemote({ d, serverNow }: { d: RemoteDevice; server
       {c.seek && <Scrubber d={d} serverNow={serverNow} onSeek={(sec) => send({ type: 'seek', positionSec: seekTarget(sec, 0, st.durationSec || 0) })} />}
 
       {(c.transport || c.steps || st.status !== 'idle' || watchingTv(d)) && d.online && (
-        <div className="rr-keys" role="group" aria-label="Playback" aria-busy={!!busy || undefined}>
-          {c.steps && <IconButton label={words.previous} onClick={() => send({ type: 'previous' }, 'previous')}><IconPrev /></IconButton>}
-          {c.seek && <IconButton label="Back 10 seconds" onClick={() => seekBy(-10)}><IconRew /></IconButton>}
+        <div className="rr-keys" role="group" aria-label={t('Playback')} aria-busy={!!busy || undefined}>
+          {c.steps && <IconButton label={tx(words.previous)} onClick={() => send({ type: 'previous' }, 'previous')}><IconPrev /></IconButton>}
+          {c.seek && <IconButton label={t('Back 10 seconds')} onClick={() => seekBy(-10)}><IconRew /></IconButton>}
           {c.transport && (paused
-            ? <IconButton label="Play" variant="primary" round className="rr-play" onClick={() => send({ type: 'resume' }, 'toggle')}><IconPlay /></IconButton>
-            : <IconButton label="Pause" variant="primary" round className="rr-play" onClick={() => send({ type: 'pause' }, 'toggle')}><IconPause /></IconButton>)}
-          {c.seek && <IconButton label="Forward 30 seconds" onClick={() => seekBy(30)}><IconFf /></IconButton>}
-          {c.steps && <IconButton label={words.next} onClick={() => send({ type: 'next' }, 'next')}><IconNext /></IconButton>}
-          <IconButton label="Stop" onClick={() => send({ type: 'stop' }, 'stop')}><IconStop /></IconButton>
+            ? <IconButton label={t('Play')} variant="primary" round className="rr-play" onClick={() => send({ type: 'resume' }, 'toggle')}><IconPlay /></IconButton>
+            : <IconButton label={t('Pause')} variant="primary" round className="rr-play" onClick={() => send({ type: 'pause' }, 'toggle')}><IconPause /></IconButton>)}
+          {c.seek && <IconButton label={t('Forward 30 seconds')} onClick={() => seekBy(30)}><IconFf /></IconButton>}
+          {c.steps && <IconButton label={tx(words.next)} onClick={() => send({ type: 'next' }, 'next')}><IconNext /></IconButton>}
+          <IconButton label={t('Stop')} onClick={() => send({ type: 'stop' }, 'stop')}><IconStop /></IconButton>
         </div>
       )}
 
       {c.volume && (
         <div className="rr-volume">
-          <IconButton label={st.muted ? `Unmute ${d.name}` : `Mute ${d.name}`} aria-pressed={!!st.muted} onClick={() => send({ type: 'mute', muted: !st.muted })}>{st.muted ? <IconMute /> : <IconVolume />}</IconButton>
-          <input type="range" className="rr-range" min={0} max={1} step={0.05} aria-label={`Volume on ${d.name}`} aria-valuetext={`${Math.round((vol ?? st.volume ?? 0) * 100)}%`}
+          <IconButton label={st.muted ? t('Unmute {name}', { name: d.name }) : t('Mute {name}', { name: d.name })} aria-pressed={!!st.muted} onClick={() => send({ type: 'mute', muted: !st.muted })}>{st.muted ? <IconMute /> : <IconVolume />}</IconButton>
+          <input type="range" className="rr-range" min={0} max={1} step={0.05} aria-label={t('Volume on {name}', { name: d.name })} aria-valuetext={`${Math.round((vol ?? st.volume ?? 0) * 100)}%`}
             value={vol ?? st.volume ?? 0} onChange={(e) => { const v = Number(e.target.value); setVol(v); if (st.muted && v > 0 && vol == null) void send({ type: 'mute', muted: false }); sendVolume(v) }} />
         </div>
       )}
@@ -221,21 +222,21 @@ export default function DeviceRemote({ d, serverNow }: { d: RemoteDevice; server
       {(c.rate || c.audio || c.subtitles) && (
         <div className="rr-picks">
           {c.rate && (
-            <Field label="Speed">
+            <Field label={t('Speed')}>
               <Select value={String(RATES.includes(st.rate || 1) ? st.rate || 1 : 1)} onChange={(e) => send({ type: 'rate', rate: Number(e.target.value) })}
-                options={RATES.map((r) => ({ value: String(r), label: r === 1 ? 'Normal' : `${r}×` }))} />
+                options={RATES.map((r) => ({ value: String(r), label: r === 1 ? t('Normal') : `${r}×` }))} />
             </Field>
           )}
           {c.audio && (
-            <Field label="Sound">
+            <Field label={t('Sound')}>
               <Select value={st.audio || ''} onChange={(e) => send({ type: 'audio', audio: e.target.value })}
-                options={(st.audioTracks || []).map((t, i) => ({ value: t.id, label: t.label || `Sound ${i + 1}` }))} />
+                options={(st.audioTracks || []).map((tr, i) => ({ value: tr.id, label: tr.label || t('Sound {n}', { n: i + 1 }) }))} />
             </Field>
           )}
           {c.subtitles && (
-            <Field label="Subtitles">
+            <Field label={t('Subtitles')}>
               <Select value={st.subtitle || 'off'} onChange={(e) => send({ type: 'subtitle', subtitle: e.target.value })}
-                options={[{ value: 'off', label: 'Off' }, ...(st.subtitleTracks || []).map((t, i) => ({ value: t.id, label: t.label || `Subtitles ${i + 1}` }))]} />
+                options={[{ value: 'off', label: t('Off') }, ...(st.subtitleTracks || []).map((tr, i) => ({ value: tr.id, label: tr.label || t('Subtitles {n}', { n: i + 1 }) }))]} />
             </Field>
           )}
         </div>
@@ -244,13 +245,13 @@ export default function DeviceRemote({ d, serverNow }: { d: RemoteDevice; server
       {c.queue && <Queue d={d} send={send} open={queueOpen} setOpen={setQueueOpen} />}
 
       {c.dpad && (
-        <div className="rr-pad" role="group" aria-label={`Keys for ${d.name}`}>
+        <div className="rr-pad" role="group" aria-label={t('Keys for {name}', { name: d.name })}>
           {PAD.map((k) => (
-            <IconButton key={k.key} label={k.label} hideTip className={'rr-key rr-key-' + k.place} onClick={() => send({ type: 'navigate', key: k.key })}>{k.icon || <b>{k.text}</b>}</IconButton>
+            <IconButton key={k.key} label={tx(k.label)} hideTip className={'rr-key rr-key-' + k.place} onClick={() => send({ type: 'navigate', key: k.key })}>{k.icon || <b>{k.text}</b>}</IconButton>
           ))}
         </div>
       )}
-      {!d.online && <p className="rr-note">{d.name} isn’t connected. It comes back here by itself when it is.</p>}
+      {!d.online && <p className="rr-note">{t('{name} isn’t connected. It comes back here by itself when it is.', { name: d.name })}</p>}
     </div>
   )
 }

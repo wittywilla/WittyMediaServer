@@ -5,6 +5,7 @@ import { useLocation, useNavigationType } from 'react-router-dom'
 import { focusFirst, focusIsAnyonesChoice } from './tv'
 import { applyPageTitle } from './theme'
 import { isBackKey } from './ui/spatial'
+import { t } from './i18n'
 
 // Accessibility shared by every page: dialogs that hold the keyboard while
 // open, page changes announced and focused, and a polite voice for things
@@ -145,7 +146,7 @@ export function Announcer() {
     // chosen meanwhile.
     const before = document.activeElement
     const began = performance.now()
-    let t: ReturnType<typeof setTimeout>
+    let timer: ReturnType<typeof setTimeout>
     const look = () => {
       if (document.querySelector(DIALOGS)) return
       const main = document.getElementById('main')
@@ -153,13 +154,13 @@ export function Announcer() {
       const h1 = (main || document).querySelector('h1')?.textContent?.trim()
       // The page's own loading, not a spinner elsewhere (the music player buffering).
       const loading = (main || document).querySelector('.spinner, .loading-box, .skeleton-grid')
-      if ((!main || !h1) && loading && performance.now() - began < 6000) { t = setTimeout(look, 250); return }
-      announce(h1 ? `${h1}, page loaded` : `${document.title}, page loaded`)
+      if ((!main || !h1) && loading && performance.now() - began < 6000) { timer = setTimeout(look, 250); return }
+      announce(t('{page}, page loaded', { page: h1 || document.title }))
       const active = document.activeElement
       // A bar that keeps the focus when it changes the page (TV mode's tabs) keeps it.
       if (main && (!active || active === document.body || !active.isConnected || (active === before && !main.contains(active) && !active.closest('[data-keep-focus]')))) main.focus({ preventScroll: true })
     }
-    t = setTimeout(look, 350)
+    timer = setTimeout(look, 350)
     // Coming back: the page may still be loading what you left, so look a few times.
     const was = navType === 'POP' && usingKeys.current ? focusMemory.get(loc.key) : undefined
     const looks = [400, 800, 1500, 2500, 4000, 6000, 9000]
@@ -171,7 +172,7 @@ export function Announcer() {
       // What it left has gone. Across the room there has to be something with the focus all the same.
       else if (ms === looks[looks.length - 1] && document.documentElement.classList.contains('using-controller')) focusFirst()
     }, ms))
-    return () => { clearTimeout(t); later.forEach(clearTimeout) }
+    return () => { clearTimeout(timer); later.forEach(clearTimeout) }
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   // The window's title names the page by its heading. A page may still be loading what its heading
   // says, so it looks again a little later.

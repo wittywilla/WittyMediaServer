@@ -9,6 +9,7 @@ import { IconClose } from '../icons'
 import { IconButton } from '../ui'
 import PartyBody, { type PartyItem } from './PartyBody'
 import { useParty } from './party'
+import { t } from '../i18n'
 
 export default function PartyPanel({ item, onClose }: { item: PartyItem; onClose: () => void }) {
   const room = useParty()
@@ -30,11 +31,11 @@ export default function PartyPanel({ item, onClose }: { item: PartyItem; onClose
   return (
     <aside ref={box} className="party-panel" role="dialog" aria-modal="false" aria-labelledby="party-panel-h" onClick={stop} onDoubleClick={stop}>
       <header className="party-panel-head">
-        <h2 id="party-panel-h">{room ? room.name : 'Watch party'}</h2>
-        <IconButton label="Close the watch party panel" size="sm" onClick={onClose}><IconClose /></IconButton>
+        <h2 id="party-panel-h">{room ? room.name : t('Watch party')}</h2>
+        <IconButton label={t('Close the watch party panel')} size="sm" onClick={onClose}><IconClose /></IconButton>
       </header>
       <div className="party-panel-body">
-        {!room && <p className="muted">Watch with other people at the same moment, each on your own screen.</p>}
+        {!room && <p className="muted">{t('Watch with other people at the same moment, each on your own screen.')}</p>}
         <PartyBody item={item} onClose={onClose} />
       </div>
     </aside>

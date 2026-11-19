@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { Fragment, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { t, tx } from '../../i18n'
 import { IconCheck } from '../../icons'
 import { Button } from '../../ui'
 import { ranked, type Dir } from '../../ui/spatial'
@@ -33,14 +34,14 @@ export function StepHead({ title, lead }: { title: string; lead?: ReactNode }) {
 // Every step that asks something says where the answer can be changed.
 export function LaterNote({ info }: { info: StepInfo }) {
   if (!info.later) return null
-  return <p className="su-later">You can change this later in {info.later.where}.</p>
+  return <p className="su-later">{t('You can change this later in {where}.', { where: tx(info.later.where) })}</p>
 }
 
 // The row at the foot of a step: Back on the left, what happens next on the right.
 export function StepActions({ back, note, children }: { back?: () => void; note?: ReactNode; children: ReactNode }) {
   return (
     <div className="oobe-actions su-actions">
-      {back ? <Button variant="ghost" onClick={back}>Back</Button> : <span />}
+      {back ? <Button variant="ghost" onClick={back}>{t('Back')}</Button> : <span />}
       {note && <span className="muted oobe-grow">{note}</span>}
       <span className="su-actions-go">{children}</span>
     </div>
@@ -110,25 +111,30 @@ export function TickRow({ checked, onChange, title, text, icon, kind = 'checkbox
   )
 }
 
+// A translated sentence with pieces of the page in it: each {name} left in the text is replaced by parts[name].
+export function Fill({ text, parts }: { text: string; parts: Record<string, ReactNode> }) {
+  return <>{text.split(/\{(\w+)\}/).map((bit, i) => <Fragment key={i}>{i % 2 ? parts[bit] ?? `{${bit}}` : bit}</Fragment>)}</>
+}
+
 // Where the setup code is, for someone setting the server up from another device.
 export function WhereIsTheCode() {
   return (
     <div className="su-where">
-      <p>You’re on a different device from the server, so it asks for a code to prove the server is yours. The server wrote the code down in three places. You only need one:</p>
+      <p>{t('You’re on a different device from the server, so it asks for a code to prove the server is yours. The server wrote the code down in three places. You only need one:')}</p>
       <ul>
-        <li><b>The server’s window.</b> It’s printed when the server starts, under “This server has no accounts yet”.</li>
-        <li><b>Docker.</b> Run <code>docker logs</code> followed by the name of the container, such as <code>docker logs wittymediaserver</code>. On Linux, <code>journalctl -u wittymediaserver</code> shows it too.</li>
-        <li><b>A file.</b> It’s in <code>setup-code.txt</code>, in the server’s data folder:
+        <li><b>{t('The server’s window.')}</b> {t('It’s printed when the server starts, under “This server has no accounts yet”.')}</li>
+        <li><b>Docker.</b> <Fill text={t('Run {logs} followed by the name of the container, such as {example}. On Linux, {journal} shows it too.')} parts={{ logs: <code>docker logs</code>, example: <code>docker logs wittymediaserver</code>, journal: <code>journalctl -u wittymediaserver</code> }} /></li>
+        <li><b>{t('A file.')}</b> <Fill text={t('It’s in {file}, in the server’s data folder:')} parts={{ file: <code>setup-code.txt</code> }} />
           <ul>
-            <li>Windows: <code>%LOCALAPPDATA%\WittyMediaServer</code>, or <code>C:\ProgramData\WittyMediaServer</code> if it runs as a service</li>
-            <li>A Mac: <code>~/Library/Application Support/WittyMediaServer</code></li>
+            <li>Windows: <Fill text={t('{folder}, or {service} if it runs as a service')} parts={{ folder: <code>%LOCALAPPDATA%\WittyMediaServer</code>, service: <code>C:\ProgramData\WittyMediaServer</code> }} /></li>
+            <li>{t('A Mac:')} <code>~/Library/Application Support/WittyMediaServer</code></li>
             <li>Linux: <code>/var/lib/wittymediaserver</code></li>
             <li>FreeBSD: <code>/var/db/wittymediaserver</code></li>
-            <li>Docker: the folder you gave it for its data</li>
+            <li>Docker: {t('the folder you gave it for its data')}</li>
           </ul>
         </li>
       </ul>
-      <p>Setting up on the server’s own screen needs no code: open this page there instead. The code changes each time the server starts, and the file goes away once setup is done.</p>
+      <p>{t('Setting up on the server’s own screen needs no code: open this page there instead. The code changes each time the server starts, and the file goes away once setup is done.')}</p>
     </div>
   )
 }

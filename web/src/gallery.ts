@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, mediaUrl, serverBase, type Library } from './api'
+import { date, t, tn } from './i18n'
 
 // What the photo, vertical video and creator libraries share: their JSON types,
 // the addresses of their pictures, and small helpers. The rules themselves live
@@ -60,10 +61,10 @@ export const creatorArt = (id: number, kind: 'avatar' | 'banner', v?: number) =>
 // Taken-at times are the clock on the wall where the picture was taken; they
 // are shown as stored, whatever the viewer's time zone.
 const UTC = { timeZone: 'UTC' } as const
-export const monthName = (ym: number) => new Date(Date.UTC(Math.floor(ym / 100), ym % 100 - 1, 1)).toLocaleDateString([], { ...UTC, month: 'long', year: 'numeric' })
-export const takenDate = (t: number) => new Date(t * 1000).toLocaleDateString([], { ...UTC, weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
-export const takenTime = (t: number) => new Date(t * 1000).toLocaleTimeString([], { ...UTC, hour: '2-digit', minute: '2-digit' })
-export const takenMonth = (t: number) => new Date(t * 1000).toLocaleDateString([], { ...UTC, month: 'long', year: 'numeric' })
+export const monthName = (ym: number) => date(new Date(Date.UTC(Math.floor(ym / 100), ym % 100 - 1, 1)), { ...UTC, month: 'long', year: 'numeric' })
+export const takenDate = (t: number) => date(t * 1000, { ...UTC, weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+export const takenTime = (t: number) => date(t * 1000, { ...UTC, hour: '2-digit', minute: '2-digit' })
+export const takenMonth = (t: number) => date(t * 1000, { ...UTC, month: 'long', year: 'numeric' })
 export const dayKey = (t: number) => Math.floor(t / 86400)
 
 export function fmtSize(n: number) {
@@ -81,15 +82,15 @@ export function fmtCount(n: number) {
 }
 
 export function timeAgo(date: string | number) {
-  const t = typeof date === 'number' ? date * 1000 : Date.parse(date + 'T00:00:00Z')
-  if (!t) return ''
-  const days = Math.floor((Date.now() - t) / 86400000)
-  if (days < 1) return 'today'
-  if (days < 2) return 'yesterday'
-  if (days < 7) return `${days} days ago`
-  if (days < 30) return `${Math.floor(days / 7)} ${days < 14 ? 'week' : 'weeks'} ago`
-  if (days < 365) return `${Math.floor(days / 30)} ${days < 60 ? 'month' : 'months'} ago`
-  return `${Math.floor(days / 365)} ${days < 730 ? 'year' : 'years'} ago`
+  const when = typeof date === 'number' ? date * 1000 : Date.parse(date + 'T00:00:00Z')
+  if (!when) return ''
+  const days = Math.floor((Date.now() - when) / 86400000)
+  if (days < 1) return t('today')
+  if (days < 2) return t('yesterday')
+  if (days < 7) return tn('{count} day ago', '{count} days ago', days)
+  if (days < 30) return tn('{count} week ago', '{count} weeks ago', Math.floor(days / 7))
+  if (days < 365) return tn('{count} month ago', '{count} months ago', Math.floor(days / 30))
+  return tn('{count} year ago', '{count} years ago', Math.floor(days / 365))
 }
 
 // One viewer action, kept in step with the server's canPost and canReact.
@@ -107,13 +108,13 @@ export function uploadFile(lib: Library, file: File, onProgress: (done: number) 
     const tok = localStorage.getItem('wms.token')
     if (tok) x.setRequestHeader('Authorization', 'Bearer ' + tok)
     x.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total) }
-    x.onerror = () => resolve({ name: file.name, error: "Can't reach the server" })
+    x.onerror = () => resolve({ name: file.name, error: t("Can't reach the server") })
     x.onload = () => {
       try {
         const r = JSON.parse(x.responseText)
         if (x.status >= 400 && !r.files?.length) resolve({ name: file.name, error: r.error || x.statusText })
-        else resolve(r.files?.[0] || { name: file.name, error: 'Not saved' })
-      } catch { resolve({ name: file.name, error: x.statusText || 'Not saved' }) }
+        else resolve(r.files?.[0] || { name: file.name, error: t('Not saved') })
+      } catch { resolve({ name: file.name, error: x.statusText || t('Not saved') }) }
     }
     x.send(form)
   })

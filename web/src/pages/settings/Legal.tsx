@@ -13,6 +13,7 @@ import { NOTICE_HELP, ownerFormSpec, ownerNoticeSpec } from '../../spec/specs/le
 import { Field, Textarea } from '../../ui'
 import { PageHead, SaveBar, Section, useServerSettings } from './ui'
 import { WebLink } from '../../components/WebLink'
+import { t, tk, tx } from '../../i18n'
 import './settings.css'
 
 // The full Legal page: the words are in internal/legal/legal.json, which native
@@ -31,7 +32,7 @@ function Inline({ text, signedIn }: { text: string; signedIn: boolean }) {
     if (m.index > at) out.push(text.slice(at, m.index))
     const key = out.length
     if (m[1]) out.push(<b key={key}>{m[1]}</b>)
-    else if (m[2]) out.push(<mark key={key} className="legal-fill">[To be filled in: {m[2]}]</mark>)
+    else if (m[2]) out.push(<mark key={key} className="legal-fill">{t('[To be filled in: {what}]', { what: m[2] })}</mark>)
     else if (m[4].startsWith('/')) {
       // Settings pages can't open for someone who isn't signed in: they keep the words, without the link.
       if (signedIn || !m[4].startsWith('/settings/')) out.push(<Link key={key} to={m[4]}>{m[3]}</Link>)
@@ -62,14 +63,14 @@ function Body({ lines, signedIn }: { lines: string[]; signedIn: boolean }) {
 
 function Services({ signedIn }: { signedIn: boolean }) {
   return (
-    <ul className="legal-services" aria-label="Outside services and what each one receives">
+    <ul className="legal-services" aria-label={t('Outside services and what each one receives')}>
       {legal.services.map((s) => (
         <li key={s.name}>
           <b>{s.name}</b>
           <dl>
-            <div><dt>Receives</dt><dd>{s.gets}</dd></div>
-            <div><dt>When</dt><dd>{s.when}</dd></div>
-            <div><dt>Control</dt><dd>{s.setting && signedIn ? <Link to={s.setting}>{s.control}</Link> : s.control}</dd></div>
+            <div><dt>{t('Receives')}</dt><dd>{s.gets}</dd></div>
+            <div><dt>{t('When')}</dt><dd>{s.when}</dd></div>
+            <div><dt>{t('Control')}</dt><dd>{s.setting && signedIn ? <Link to={s.setting}>{s.control}</Link> : s.control}</dd></div>
           </dl>
         </li>
       ))}
@@ -100,19 +101,19 @@ function Doc({ signedIn }: { signedIn: boolean }) {
   }, [loc.hash])
   return (
     <div className="legal-doc">
-      <nav className="legal-toc" aria-label="On this page">
-        <ul>{legal.sections.map((s) => <li key={s.id}><a href={`#${s.id}`} onClick={(e) => { e.preventDefault(); document.getElementById(s.id)?.scrollIntoView({ block: 'start' }) }}>{s.title}</a></li>)}</ul>
+      <nav className="legal-toc" aria-label={t('On this page')} data-own-toc>
+        <ul>{legal.sections.map((s) => <li key={s.id}><a href={`#${s.id}`} onClick={(e) => { e.preventDefault(); document.getElementById(s.id)?.scrollIntoView({ block: 'start' }) }}>{tx(s.title)}</a></li>)}</ul>
       </nav>
       <OwnerNotice owner={owner} />
       {legal.sections.map((s) => (
         <Section key={s.id} id={s.id} title={s.title}>
           <div className="set-prose"><Body lines={s.body} signedIn={signedIn} /></div>
           {s.id === 'privacy' && <Services signedIn={signedIn} />}
-          {s.id === 'third-party' && signedIn && <><h3 className="legal-credit-head" id="poster-credits">Posters from Wikimedia Commons</h3><PosterCredits /></>}
-          {s.id === 'trademarks' && signedIn && <><h3 className="legal-credit-head" id="logo-credits">Where the logos here came from</h3><LogoCredits /></>}
+          {s.id === 'third-party' && signedIn && <><h3 className="legal-credit-head" id="poster-credits">{t('Posters from Wikimedia Commons')}</h3><PosterCredits /></>}
+          {s.id === 'trademarks' && signedIn && <><h3 className="legal-credit-head" id="logo-credits">{t('Where the logos here came from')}</h3><LogoCredits /></>}
         </Section>
       ))}
-      <p className="legal-updated muted">Last changed {legal.updated}. This page is plain-language information, not legal advice.</p>
+      <p className="legal-updated muted">{t('Last changed {date}. This page is plain-language information, not legal advice.', { date: legal.updated })}</p>
     </div>
   )
 }
@@ -121,12 +122,12 @@ function Doc({ signedIn }: { signedIn: boolean }) {
 function OwnerForm() {
   const st = useServerSettings()
   const { s, set } = st
-  if (!s) return st.failed ? <LoadError what="This page" onRetry={st.retry} /> : null
+  if (!s) return st.failed ? <LoadError what={t('This page')} onRetry={st.retry} /> : null
   return (
     <>
       <SpecPage embedded page={ownerFormSpec(s.legalOwnerContact || '')} handled={new Set(['contact'])} onField={(id, v) => { if (id === 'contact') set('legalOwnerContact', String(v)) }}
         after={{ 0: (
-          <Field label="Your notice" hint={NOTICE_HELP}>
+          <Field label={t('Your notice')} hint={tx(NOTICE_HELP)}>
             <Textarea rows={4} maxLength={4000} value={s.legalOwnerNotice || ''} onChange={(e) => set('legalOwnerNotice', e.target.value)} />
           </Field>
         ) }} />
@@ -139,7 +140,7 @@ export default function LegalSettings() {
   const { user } = useApp()
   return (
     <>
-      <PageHead title="Legal" desc="Terms of use, who’s responsible for what, what leaves this server, and the notices the law or a license asks for." />
+      <PageHead title={tk('Legal')} desc={t('Terms of use, who’s responsible for what, what leaves this server, and the notices the law or a license asks for.')} />
       <Doc signedIn />
       {user?.isAdmin && <OwnerForm />}
     </>
@@ -153,7 +154,7 @@ export function LegalPublicPage() {
     <div className="legal-public">
       <header className="legal-public-head">
         <div className="brand"><BrandMark /><Brand name={brandName} /></div>
-        <h1>Legal</h1>
+        <h1>{t('Legal')}</h1>
       </header>
       <Doc signedIn={!!user} />
     </div>

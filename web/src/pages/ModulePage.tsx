@@ -6,6 +6,7 @@ import { api, getToken, serverBase } from '../api'
 import { lazyModule } from '../moduleBundles'
 import { useApp } from '../state'
 import { Spinner } from '../components/common'
+import { t } from '../i18n'
 
 // A page a module adds to the app: /m/<module>/<page>. Its bundle exports `pages`, components by
 // id, and each gets one prop: `host`, which is all it knows of the app. It calls the API with the
@@ -22,14 +23,14 @@ const WORD = /^[a-z0-9-]+$/i
 
 // Only the server's own API: a page can't be made to send the viewer's sign-in anywhere else.
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  if (!path.startsWith('/') || path.startsWith('//')) throw new Error('A module can only ask this server.')
+  if (!path.startsWith('/') || path.startsWith('//')) throw new Error(t('A module can only ask this server.'))
   switch (method.toUpperCase()) {
     case 'GET': return api.get<T>(path)
     case 'POST': return api.post<T>(path, body)
     case 'PUT': return api.put<T>(path, body)
     case 'PATCH': return api.patch<T>(path, body)
     case 'DELETE': return api.del<T>(path)
-    default: throw new Error('A module asked in a way this server has no use for: ' + method)
+    default: throw new Error(t('A module asked in a way this server has no use for: {method}', { method }))
   }
 }
 

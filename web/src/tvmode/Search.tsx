@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 import { api, type Item, type Show } from '../api'
 import { EmptyState, ItemCard, ShowCard, SkeletonGrid } from '../components/common'
 import LegalNote from '../components/LegalNote'
+import { t } from '../i18n'
 import { IconSearch } from '../icons'
 
 // Search with an on-screen keyboard a remote or a controller can reach: letters and digits as keys, with
@@ -22,8 +23,8 @@ export default function Search() {
   const [failed, setFailed] = useState('')
   // Results come a moment after the typing stops.
   useEffect(() => {
-    const t = setTimeout(() => { if (text.trim() !== q) setParams(text.trim() ? { q: text.trim() } : {}, { replace: true }) }, 300)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => { if (text.trim() !== q) setParams(text.trim() ? { q: text.trim() } : {}, { replace: true }) }, 300)
+    return () => clearTimeout(timer)
   }, [text]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     setItems(null); setShows([]); setFailed('')
@@ -34,34 +35,34 @@ export default function Search() {
     return () => { live = false }
   }, [q])
 
-  const type = (k: string) => setText((t) => t + (t && k !== ' ' ? k.toLowerCase() : k))
+  const type = (k: string) => setText((was) => was + (was && k !== ' ' ? k.toLowerCase() : k))
   return (
     <div className="tvm-page tvm-search">
-      <h1 className="tvm-title">Search</h1>
+      <h1 className="tvm-title">{t('Search')}</h1>
       <div className="tvm-search-body">
         <div className="tvm-search-side">
           <label className="tvm-search-field">
             <IconSearch />
-            <input className="input" type="search" aria-label="Search" placeholder="Movies, shows, music, games…" value={text}
+            <input className="input" type="search" data-app-search aria-label={t('Search')} placeholder={t('Movies, shows, music, games…')} value={text}
               onChange={(e) => setText(e.target.value)} autoComplete="off" spellCheck={false} />
           </label>
-          <div className="tvm-keys" role="group" aria-label="Keyboard" data-nav-group>
+          <div className="tvm-keys" role="group" aria-label={t('Keyboard')} data-nav-group>
             {/* Focus starts on the first key. */}
             {KEYS.map((k, i) => <button key={k} data-tv-first={i === 0 || undefined} type="button" className="tvm-key" onClick={() => type(k)}>{k}</button>)}
-            <button type="button" className="tvm-key wide" onClick={() => type(' ')}>Space</button>
-            <button type="button" className="tvm-key wide" onClick={() => setText((t) => t.slice(0, -1))}>Delete</button>
-            <button type="button" className="tvm-key wide" onClick={() => setText('')}>Clear</button>
+            <button type="button" className="tvm-key wide" onClick={() => type(' ')}>{t('Space')}</button>
+            <button type="button" className="tvm-key wide" onClick={() => setText((was) => was.slice(0, -1))}>{t('Delete')}</button>
+            <button type="button" className="tvm-key wide" onClick={() => setText('')}>{t('Clear')}</button>
           </div>
         </div>
         <div className="tvm-search-results">
-          {!q ? <EmptyState icon={<IconSearch />} title="Find anything on this server" text="Movies, shows, episodes, music, books and games are all included." />
-            : failed ? <EmptyState icon={<IconSearch />} title="The search didn’t work" text={failed} />
+          {!q ? <EmptyState icon={<IconSearch />} title={t('Find anything on this server')} text={t('Movies, shows, episodes, music, books and games are all included.')} />
+            : failed ? <EmptyState icon={<IconSearch />} title={t('The search didn’t work')} text={failed} />
             : !items ? <SkeletonGrid />
-            : items.length + shows.length === 0 ? <EmptyState icon={<IconSearch />} title="No results" text={`Nothing on this server matches “${q}”. Try a shorter or different word.`} />
+            : items.length + shows.length === 0 ? <EmptyState icon={<IconSearch />} title={t('No results')} text={t('Nothing on this server matches “{query}”. Try a shorter or different word.', { query: q })} />
             : (
               <>
-                {shows.length > 0 && <><h2 className="shelf-head">Shows</h2><div className="grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div></>}
-                {items.length > 0 && <>{shows.length > 0 && <h2 className="shelf-head">Everything else</h2>}<div className="grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div></>}
+                {shows.length > 0 && <><h2 className="shelf-head">{t('Shows')}</h2><div className="grid">{shows.map((s) => <ShowCard key={s.id} show={s} />)}</div></>}
+                {items.length > 0 && <>{shows.length > 0 && <h2 className="shelf-head">{t('Everything else')}</h2>}<div className="grid">{items.map((it) => <ItemCard key={it.id} item={it} />)}</div></>}
                 <LegalNote kind="searchResults" />
               </>
             )}

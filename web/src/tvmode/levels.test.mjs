@@ -4,6 +4,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { pageAddress, pathMatches, screenFor, strictest, tvClientOf } from './levels.ts'
+import { messagesIn } from '../i18n/extract.ts'
 
 const table = JSON.parse(readFileSync(new URL('../../../pkg/sdui/data/tvlevels.json', import.meta.url), 'utf8'))
 const level = (p) => screenFor(table, p)?.level || 'full'
@@ -65,4 +66,10 @@ test('a computer in TV mode is told to leave TV mode, whatever its window size',
   assert.equal(tvClientOf({ shell: true, ua: 'Mozilla/5.0 (Windows NT 10.0) Electron/38' }), 'computer')
   assert.equal(tvClientOf({ client: 'desktop', ua: 'Mozilla/5.0 (SMART-TV; Tizen)' }), 'computer')
   assert.equal(table.noteDesktop, 'Leave TV mode to change this.')
+})
+
+test("every word in the table is written out for translation (levelWords.ts)", () => {
+  const words = new Set(messagesIn(readFileSync(new URL('./levelWords.ts', import.meta.url), 'utf8')))
+  const used = [table.note, table.noteDesktop, ...table.screens.map((s) => s.title), ...table.parts.map((p) => p.title)]
+  for (const w of used) assert.ok(words.has(w), `levelWords.ts is missing ${JSON.stringify(w)}`)
 })

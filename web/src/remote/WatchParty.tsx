@@ -7,12 +7,13 @@
 import { Dialog } from '../ui'
 import PartyBody, { type PartyItem } from './PartyBody'
 import { useParty } from './party'
+import { t } from '../i18n'
 
 export default function WatchParty({ item, onClose }: { item?: PartyItem; onClose: () => void }) {
   const room = useParty()
   return (
-    <Dialog title={room ? room.name : 'Watch party'} onClose={onClose} className="rc-dialog"
-      description={room ? undefined : 'Watch or listen with other people at the same moment, each on your own screen.'}>
+    <Dialog title={room ? room.name : t('Watch party')} onClose={onClose} className="rc-dialog"
+      description={room ? undefined : t('Watch or listen with other people at the same moment, each on your own screen.')}>
       <PartyBody item={item} onClose={onClose} />
     </Dialog>
   )

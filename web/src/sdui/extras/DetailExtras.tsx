@@ -18,6 +18,7 @@ import { Menu, type MenuEntry } from '../../ui/Menu'
 import { bump } from '../client'
 import { useModuleItemMenu } from '../../moduleRegistry'
 import type { Document, Node } from '../types'
+import { t, tn } from '../../i18n'
 
 const EditDetails = lazy(() => import('../../components/edit/EditDetails'))
 const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
@@ -65,34 +66,34 @@ function Credit({ provider, providerId }: { provider?: string; providerId?: stri
 
 export default function DetailExtras({ place, header, doc }: { place: 'tools' | 'below'; header: Node; doc: Document }) {
   const { user } = useApp()
-  const t = targetOf(header)
-  const title = useTitle(t, doc.meta?.etag || '')
+  const tg = targetOf(header)
+  const title = useTitle(tg, doc.meta?.etag || '')
   const [open, setOpen] = useState<'' | 'art' | 'edit' | 'refresh' | 'canvas'>('')
   // A disc's own tools (Disc settings, names of its titles) are WittyDisc's, with its player.
-  const discItem = t?.target === 'item' && title && isDisc(title as Item) ? title as Item : null
+  const discItem = tg?.target === 'item' && title && isDisc(title as Item) ? title as Item : null
   const discMenu = useModuleItemMenu(discItem ? 'disc' : null, discItem, !!user?.isAdmin)
   if (place === 'tools' && header.props?.kind === 'album' && user?.isAdmin) return <AlbumCanvasTool doc={doc} />
-  if (!t || !title) return null
-  const item = t.target === 'item' ? title as Item : null
-  const show = t.target === 'show' ? title as Show : null
+  if (!tg || !title) return null
+  const item = tg.target === 'item' ? title as Item : null
+  const show = tg.target === 'show' ? title as Show : null
   const changed = () => { asked.clear(); bump() }
   if (place === 'tools') {
-    if (show) return <ShowTools show={show} admin={!!user?.isAdmin} onPick={(w) => setOpen(w)} open={open} close={() => setOpen('')} t={t} changed={changed} />
+    if (show) return <ShowTools show={show} admin={!!user?.isAdmin} onPick={(w) => setOpen(w)} open={open} close={() => setOpen('')} tg={tg} changed={changed} />
     if (!user?.isAdmin) return null
     const entries: MenuEntry[] = [
-      { key: 'art', label: 'Artwork', icon: <IconImage />, onSelect: () => setOpen('art') },
-      { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => setOpen('edit') },
-      ...(item && (item.kind === 'video' || isDisc(item)) ? [{ key: 'canvas', label: 'Canvas', icon: <IconFilm />, onSelect: () => setOpen('canvas') } as MenuEntry] : []),
+      { key: 'art', label: t('Artwork'), icon: <IconImage />, onSelect: () => setOpen('art') },
+      { key: 'edit', label: t('Edit details'), icon: <IconEdit />, onSelect: () => setOpen('edit') },
+      ...(item && (item.kind === 'video' || isDisc(item)) ? [{ key: 'canvas', label: t('Canvas'), icon: <IconFilm />, onSelect: () => setOpen('canvas') } as MenuEntry] : []),
       ...discMenu.entries.map((e) => ({ key: e.key, label: e.label, icon: e.icon === 'edit' ? <IconEdit /> : <IconSettings />, onSelect: () => discMenu.choose(e) } as MenuEntry)),
-      ...(item?.showId == null ? [{ key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => setOpen('refresh') } as MenuEntry] : []),
+      ...(item?.showId == null ? [{ key: 'refresh', label: t('Check for new details'), icon: <IconRefresh />, onSelect: () => setOpen('refresh') } as MenuEntry] : []),
     ]
     return (
       <>
-        <Menu label="Manage this title" align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost square" aria-label="Manage this title" title="Manage this title"><IconMore /></button>} />
+        <Menu label={t('Manage this title')} align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost square" aria-label={t('Manage this title')} title={t('Manage this title')}><IconMore /></button>} />
         <Suspense fallback={null}>
-          {open === 'art' && <TitleArtPicker target={t.target} id={t.id} onApplied={appliedOnPage(changed)} onClose={() => setOpen('')} />}
-          {open === 'edit' && <EditDetails target={t.target} id={t.id} start="match" onClose={() => setOpen('')} onChanged={changed} />}
-          {open === 'refresh' && <RefreshDialog target={t.target} id={t.id} onClose={() => setOpen('')} onChanged={changed} />}
+          {open === 'art' && <TitleArtPicker target={tg.target} id={tg.id} onApplied={appliedOnPage(changed)} onClose={() => setOpen('')} />}
+          {open === 'edit' && <EditDetails target={tg.target} id={tg.id} start="match" onClose={() => setOpen('')} onChanged={changed} />}
+          {open === 'refresh' && <RefreshDialog target={tg.target} id={tg.id} onClose={() => setOpen('')} onChanged={changed} />}
           {discMenu.dialog(changed)}
           {open === 'canvas' && item && <CanvasManager itemId={item.id} title={item.title} kind={isDisc(item) ? 'disc' : 'video'} runtimeSec={item.runtimeSec} onClose={() => { setOpen(''); changed() }} />}
         </Suspense>
@@ -108,16 +109,16 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
       <Credit provider={title.provider} providerId={title.providerId} />
       {item && (item.width > 0 || item.container || disc) && (
         <div className="facts">
-          {item.width > 0 && <div className="fact"><div className="k">Video</div><div className="v">{item.width}×{item.height} {codecName(item.videoCodec)}{disc && main ? ` · ${isBluray(item) ? main.standard : ''}` : ''}</div></div>}
-          {(item.audioLangs || []).length > 0 && <div className="fact"><div className="k">Audio</div><div className="v">{[...new Set(item.audioLangs.map(langName))].join(', ')}</div></div>}
-          {(item.subLangs || []).length > 0 && <div className="fact"><div className="k">Subtitles</div><div className="v">{[...new Set(item.subLangs.map(langName))].join(', ')}</div></div>}
-          <div className="fact"><div className="k">Source</div><div className="v">{disc ? `${discName(item)} ${item.kind.endsWith('-iso') ? 'image' : 'folder'}` : item.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>
-          {disc && item.disc && <div className="fact"><div className="k">Disc</div><div className="v">{item.disc.label} · {item.disc.titles.length} titles{item.disc.hasMenus ? ' · menus' : ''}</div></div>}
-          {user?.isAdmin && <div className="fact wide"><div className="k">File</div><div className="v">{item.path}</div></div>}
+          {item.width > 0 && <div className="fact"><div className="k">{t('Video')}</div><div className="v">{item.width}×{item.height} {codecName(item.videoCodec)}{disc && main ? ` · ${isBluray(item) ? main.standard : ''}` : ''}</div></div>}
+          {(item.audioLangs || []).length > 0 && <div className="fact"><div className="k">{t('Audio')}</div><div className="v">{[...new Set(item.audioLangs.map(langName))].join(', ')}</div></div>}
+          {(item.subLangs || []).length > 0 && <div className="fact"><div className="k">{t('Subtitles')}</div><div className="v">{[...new Set(item.subLangs.map(langName))].join(', ')}</div></div>}
+          <div className="fact"><div className="k">{t('Source')}</div><div className="v">{disc ? (item.kind.endsWith('-iso') ? t('{disc} image', { disc: discName(item) }) : t('{disc} folder', { disc: discName(item) })) : item.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>
+          {disc && item.disc && <div className="fact"><div className="k">{t('Disc')}</div><div className="v">{item.disc.label} · {tn('{count} title', '{count} titles', item.disc.titles.length)}{item.disc.hasMenus ? ' · ' + t('menus') : ''}</div></div>}
+          {user?.isAdmin && <div className="fact wide"><div className="k">{t('File')}</div><div className="v">{item.path}</div></div>}
         </div>
       )}
       <Suspense fallback={null}>
-        <TitleExtras target={t.target} id={t.id} libraryId={title.libraryId} />
+        <TitleExtras target={tg.target} id={tg.id} libraryId={title.libraryId} />
       </Suspense>
       <LegalNote kind="metadata" />
     </div>
@@ -136,8 +137,8 @@ function AtPageEnd({ children }: { children: ReactNode }) {
 // A show's tools: its episodes' layout (the show's own, which an administrator keeps for
 // everyone, else the server's default), and for an administrator the same menu as a film's
 // with "Find intros and credits", which compares a season's episodes by ear as a task.
-function ShowTools({ show, admin, onPick, open, close, t, changed }: {
-  show: Show; admin: boolean; onPick: (w: 'art' | 'edit' | 'refresh') => void; open: string; close: () => void; t: NonNullable<Target>; changed: () => void
+function ShowTools({ show, admin, onPick, open, close, tg, changed }: {
+  show: Show; admin: boolean; onPick: (w: 'art' | 'edit' | 'refresh') => void; open: string; close: () => void; tg: NonNullable<Target>; changed: () => void
 }) {
   const key = `show-${show.id}`
   const now = useEpisodeView(key)
@@ -159,21 +160,21 @@ function ShowTools({ show, admin, onPick, open, close, t, changed }: {
   }, [admin, key, show.id])
   if (!admin) return null
   const findIntros = async () => {
-    try { await api.post(`/shows/${show.id}/detect-intros`, {}); toast('Looking for intros and credits. Tasks shows how far it has got.') } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
+    try { await api.post(`/shows/${show.id}/detect-intros`, {}); toast(t('Looking for intros and credits. Tasks shows how far it has got.')) } catch (e) { toast((e as Error).message, { tone: 'danger' }) }
   }
   const entries: MenuEntry[] = [
-    { key: 'art', label: 'Artwork', icon: <IconImage />, onSelect: () => onPick('art') },
-    { key: 'edit', label: 'Edit details', icon: <IconEdit />, onSelect: () => onPick('edit') },
-    { key: 'refresh', label: 'Check for new details', icon: <IconRefresh />, onSelect: () => onPick('refresh') },
-    { key: 'intros', label: 'Find intros and credits', icon: <IconPlay />, onSelect: () => void findIntros() },
+    { key: 'art', label: t('Artwork'), icon: <IconImage />, onSelect: () => onPick('art') },
+    { key: 'edit', label: t('Edit details'), icon: <IconEdit />, onSelect: () => onPick('edit') },
+    { key: 'refresh', label: t('Check for new details'), icon: <IconRefresh />, onSelect: () => onPick('refresh') },
+    { key: 'intros', label: t('Find intros and credits'), icon: <IconPlay />, onSelect: () => void findIntros() },
   ]
   return (
     <>
-      <Menu label="Manage this show" align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost square" aria-label="Manage this show" title="Manage this show"><IconMore /></button>} />
+      <Menu label={t('Manage this show')} align="end" items={entries} trigger={(props) => <button type="button" {...props} className="btn ghost square" aria-label={t('Manage this show')} title={t('Manage this show')}><IconMore /></button>} />
       <Suspense fallback={null}>
-        {open === 'art' && <TitleArtPicker target={t.target} id={t.id} onApplied={appliedOnPage(changed)} onClose={close} />}
-        {open === 'edit' && <EditDetails target={t.target} id={t.id} start="match" onClose={close} onChanged={changed} />}
-        {open === 'refresh' && <RefreshDialog target={t.target} id={t.id} onClose={close} onChanged={changed} />}
+        {open === 'art' && <TitleArtPicker target={tg.target} id={tg.id} onApplied={appliedOnPage(changed)} onClose={close} />}
+        {open === 'edit' && <EditDetails target={tg.target} id={tg.id} start="match" onClose={close} onChanged={changed} />}
+        {open === 'refresh' && <RefreshDialog target={tg.target} id={tg.id} onClose={close} onChanged={changed} />}
       </Suspense>
     </>
   )
@@ -192,7 +193,7 @@ function AlbumCanvasTool({ doc }: { doc: Document }) {
   if (!songs.length) return null
   return (
     <>
-      <button type="button" className="btn ghost" aria-haspopup="dialog" onClick={() => setOpen(true)} title="The looping video behind these songs"><IconFilm /> Canvas</button>
+      <button type="button" className="btn ghost" aria-haspopup="dialog" onClick={() => setOpen(true)} title={t('The looping video behind these songs')}><IconFilm /> {t('Canvas')}</button>
       {open && <Suspense fallback={null}><AlbumCanvasManager songs={songs} onClose={() => { setOpen(false); bump() }} /></Suspense>}
     </>
   )

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconPause, IconPlay } from '../icons'
+import { num, t } from '../i18n'
 
 // The loop editor of the Canvas studio: a picture, a timeline with a filmstrip, and the part to loop between two
 // handles. Drag a handle to move one end, drag the part to move both, click the strip to look there. Each handle is a
@@ -140,11 +141,11 @@ export default function LoopEditor({ source, duration, value, onChange, min, max
         <span className="le-time" aria-hidden="true">{clock(head)}</span>
       </div>
       <div className="le-bar">
-        <button type="button" className="le-play" onClick={() => setPlaying(!playing)} aria-pressed={playing}>{playing ? <IconPause size={18} /> : <IconPlay size={18} />} {playing ? 'Stop' : 'Play the loop'}</button>
-        <span className="le-facts" aria-live="polite"><b>{len.toFixed(1)} s</b> from {clock(value.start)} to {clock(value.end)}</span>
+        <button type="button" className="le-play" onClick={() => setPlaying(!playing)} aria-pressed={playing}>{playing ? <IconPause size={18} /> : <IconPlay size={18} />} {playing ? t('Stop') : t('Play the loop')}</button>
+        <span className="le-facts" aria-live="polite"><b>{t('{n} s', { n: num(len, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}</b> {t('from {start} to {end}', { start: clock(value.start), end: clock(value.end) })}</span>
       </div>
       {zoomed && (
-        <div className="le-overview" onPointerDown={jump} title="The whole video: press to put the loop there">
+        <div className="le-overview" onPointerDown={jump} title={t('The whole video: press to put the loop there')}>
           <span className="le-ov-win" style={{ left: whole(from), width: whole(span) }} aria-hidden="true" />
           <span className="le-ov-sel" style={{ left: whole(value.start), width: `max(3px, ${whole(value.end - value.start)})` }} aria-hidden="true" />
           <span className="le-ov-t">{clock(0)}</span><span className="le-ov-t end">{clock(dur)}</span>
@@ -154,17 +155,17 @@ export default function LoopEditor({ source, duration, value, onChange, min, max
         <div className="le-strip" aria-hidden="true">{Array.from({ length: STRIP }, (_, i) => <span key={i} style={strip[i] ? { backgroundImage: `url("${strip[i]}")` } : undefined} />)}</div>
         <div className="le-shade" style={{ left: 0, width: pct(value.start) }} aria-hidden="true" />
         <div className="le-shade" style={{ left: pct(value.end), right: 0 }} aria-hidden="true" />
-        <div className="le-sel" style={{ left: pct(value.start), width: `calc(${pct(value.end)} - ${pct(value.start)})` }} onPointerDown={down('both')} title="Drag to move the loop" />
+        <div className="le-sel" style={{ left: pct(value.start), width: `calc(${pct(value.end)} - ${pct(value.start)})` }} onPointerDown={down('both')} title={t('Drag to move the loop')} />
         <div className="le-head" style={{ left: pct(head) }} aria-hidden="true" />
-        <span className="le-handle start" style={{ left: pct(value.start) }} role="slider" tabIndex={0} aria-label="Loop start" aria-valuemin={0} aria-valuemax={Math.round(dur * 10) / 10} aria-valuenow={value.start} aria-valuetext={clock(value.start)} onPointerDown={down('start')} onKeyDown={keys('start')} />
-        <span className="le-handle end" style={{ left: pct(value.end) }} role="slider" tabIndex={0} aria-label="Loop end" aria-valuemin={0} aria-valuemax={Math.round(dur * 10) / 10} aria-valuenow={value.end} aria-valuetext={clock(value.end)} onPointerDown={down('end')} onKeyDown={keys('end')} />
+        <span className="le-handle start" style={{ left: pct(value.start) }} role="slider" tabIndex={0} aria-label={t('Loop start')} aria-valuemin={0} aria-valuemax={Math.round(dur * 10) / 10} aria-valuenow={value.start} aria-valuetext={clock(value.start)} onPointerDown={down('start')} onKeyDown={keys('start')} />
+        <span className="le-handle end" style={{ left: pct(value.end) }} role="slider" tabIndex={0} aria-label={t('Loop end')} aria-valuemin={0} aria-valuemax={Math.round(dur * 10) / 10} aria-valuenow={value.end} aria-valuetext={clock(value.end)} onPointerDown={down('end')} onKeyDown={keys('end')} />
       </div>
       <div className="le-seam">
-        <span className="le-seam-l">The seam</span>
-        <figure><span style={seam.a ? { backgroundImage: `url("${seam.a}")` } : undefined} /><figcaption>Last frame</figcaption></figure>
+        <span className="le-seam-l">{t('The seam')}</span>
+        <figure><span style={seam.a ? { backgroundImage: `url("${seam.a}")` } : undefined} /><figcaption>{t('Last frame')}</figcaption></figure>
         <span className={'le-join' + (crossfade ? ' fade' : '')} aria-hidden="true">{crossfade ? '⇄' : '→'}</span>
-        <figure><span style={seam.b ? { backgroundImage: `url("${seam.b}")` } : undefined} /><figcaption>First frame</figcaption></figure>
-        <p className="le-seam-note">{crossfade ? 'The last second is blended into the first, so the join doesn’t show.' : 'The closer these two look, the smoother the loop.'}</p>
+        <figure><span style={seam.b ? { backgroundImage: `url("${seam.b}")` } : undefined} /><figcaption>{t('First frame')}</figcaption></figure>
+        <p className="le-seam-note">{crossfade ? t('The last second is blended into the first, so the join doesn’t show.') : t('The closer these two look, the smoother the loop.')}</p>
       </div>
     </div>
   )

@@ -3,17 +3,21 @@
 // What the layout editor works out, with nothing of the page in it (layoutModel.test.mjs): which zone of the picture a
 // region is drawn in, where it may be dropped, and the presets.
 
+// Marks the labels below for translation; they are shown with tx() where drawn. A local stand-in for the app's tk(),
+// so this file loads without the app (layoutModel.test.mjs).
+const tk = <S extends string>(s: S): S => s
+
 export type Region = { id: string; label: string; positions?: string[]; locked?: boolean; styles?: string[] }
 export type Placement = { position?: string; visible?: boolean; style?: string }
 export type Placements = Record<string, Placement>
 export type Zone = 'top' | 'start' | 'end' | 'bottom' | 'main'
 
 export const DEVICES = [
-  { id: 'tv', label: 'TV' },
-  { id: 'desktop', label: 'Desktop' },
-  { id: 'tablet', label: 'Tablet' },
-  { id: 'phone', label: 'Phone' },
-  { id: 'headset', label: 'VR' },
+  { id: 'tv', label: tk('TV') },
+  { id: 'desktop', label: tk('Desktop') },
+  { id: 'tablet', label: tk('Tablet') },
+  { id: 'phone', label: tk('Phone') },
+  { id: 'headset', label: tk('VR') },
 ] as const
 export type DeviceId = typeof DEVICES[number]['id']
 
@@ -43,12 +47,12 @@ export function zoneOf(id: string, position: string | undefined, nav: string | u
 // Presets: whole arrangements. Each says what it sets; positions a region doesn't have are left alone.
 export type Preset = { id: string; label: string; set: Placements }
 export const LAYOUT_PRESETS: Preset[] = [
-  { id: 'left', label: 'Menu on the left', set: { nav: { position: 'start' }, brand: { position: 'start' }, search: { position: 'nav' }, profile: { position: 'nav' } } },
-  { id: 'top', label: 'Menu on top', set: { nav: { position: 'top' }, brand: { position: 'top' }, search: { position: 'top' }, profile: { position: 'top' } } },
-  { id: 'right', label: 'Menu on the right', set: { nav: { position: 'end' }, brand: { position: 'top' }, search: { position: 'top' }, profile: { position: 'nav' } } },
-  { id: 'bottom', label: 'Menu at the bottom', set: { nav: { position: 'bottom' }, brand: { position: 'top' }, search: { position: 'top' }, profile: { position: 'top' } } },
-  { id: 'calm', label: 'Calm: no clock or key legend', set: { clock: { visible: false }, legend: { visible: false } } },
-  { id: 'dockbottom', label: 'Controls at the bottom', set: { dock: { position: 'bottom' }, clock: { position: 'dock' } } },
+  { id: 'left', label: tk('Menu on the left'), set: { nav: { position: 'start' }, brand: { position: 'start' }, search: { position: 'nav' }, profile: { position: 'nav' } } },
+  { id: 'top', label: tk('Menu on top'), set: { nav: { position: 'top' }, brand: { position: 'top' }, search: { position: 'top' }, profile: { position: 'top' } } },
+  { id: 'right', label: tk('Menu on the right'), set: { nav: { position: 'end' }, brand: { position: 'top' }, search: { position: 'top' }, profile: { position: 'nav' } } },
+  { id: 'bottom', label: tk('Menu at the bottom'), set: { nav: { position: 'bottom' }, brand: { position: 'top' }, search: { position: 'top' }, profile: { position: 'top' } } },
+  { id: 'calm', label: tk('Calm: no clock or key legend'), set: { clock: { visible: false }, legend: { visible: false } } },
+  { id: 'dockbottom', label: tk('Controls at the bottom'), set: { dock: { position: 'bottom' }, clock: { position: 'dock' } } },
 ]
 
 export function applyPreset(regions: Region[], edit: Placements, p: Preset): Placements {

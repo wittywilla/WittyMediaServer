@@ -8,6 +8,7 @@ import { createPortal } from 'react-dom'
 import { usableHeight } from '../../ui/overlayFoot'
 import type { View } from '../model'
 import type { Action } from '../types'
+import { t } from '../../i18n'
 
 const WATCHABLE = ['movie', 'episode', 'video', 'disc']
 
@@ -19,16 +20,16 @@ export default function CardMenu({ card, x, y, act, onClose }: { card: View; x: 
   const kind = typeof p.kind === 'string' ? p.kind : ''
   const playId = typeof p.playId === 'string' ? p.playId : ''
   const entries: { key: string; label: string; action: Action | undefined }[] = []
-  if (card.node.action) entries.push({ key: 'open', label: 'Open', action: card.node.action })
+  if (card.node.action) entries.push({ key: 'open', label: t('Open'), action: card.node.action })
   if (playId) {
-    entries.push({ key: 'play', label: 'Play', action: { type: 'play', item: playId } })
-    entries.push({ key: 'restart', label: 'Play from the start', action: { type: 'play', item: playId, params: { resume: false } } })
+    entries.push({ key: 'play', label: t('Play'), action: { type: 'play', item: playId } })
+    entries.push({ key: 'restart', label: t('Play from the start'), action: { type: 'play', item: playId, params: { resume: false } } })
   }
-  if (id && (WATCHABLE.includes(kind) || kind === 'show')) entries.push({ key: 'later', label: 'Add to Watch later', action: { type: 'command', op: 'watchLater.add', item: id } })
+  if (id && (WATCHABLE.includes(kind) || kind === 'show')) entries.push({ key: 'later', label: t('Add to Watch later'), action: { type: 'command', op: 'watchLater.add', item: id } })
   if (/^\d+$/.test(id) && WATCHABLE.includes(kind)) {
     entries.push(p.watched === true
-      ? { key: 'unwatch', label: 'Mark as not watched', action: { type: 'command', op: 'watched.clear', item: id } }
-      : { key: 'watch', label: 'Mark as watched', action: { type: 'command', op: 'watched.set', item: id } })
+      ? { key: 'unwatch', label: t('Mark as not watched'), action: { type: 'command', op: 'watched.clear', item: id } }
+      : { key: 'watch', label: t('Mark as watched'), action: { type: 'command', op: 'watched.set', item: id } })
   }
   // Kept inside the window.
   useLayoutEffect(() => {
@@ -57,7 +58,7 @@ export default function CardMenu({ card, x, y, act, onClose }: { card: View; x: 
   }
   if (!entries.length) return null
   return createPortal(
-    <div ref={box} className="ui-menu sdui-card-menu" role="menu" aria-label={typeof p.title === 'string' ? p.title : 'Options'} style={{ position: 'fixed', left: at.left, top: at.top }} onKeyDown={keys}>
+    <div ref={box} className="ui-menu sdui-card-menu" role="menu" aria-label={typeof p.title === 'string' ? p.title : t('Options')} style={{ position: 'fixed', left: at.left, top: at.top }} onKeyDown={keys}>
       {entries.map((e) => <button key={e.key} type="button" role="menuitem" className="ui-menu-item" onClick={() => { onClose(); act(e.action, card) }}>{e.label}</button>)}
     </div>, document.body)
 }

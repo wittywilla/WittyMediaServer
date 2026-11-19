@@ -1,0 +1,15 @@
+{
+  "Control bar": "Ovládací lišta",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Podrobná dá na lištu všechna tlačítka. Jednoduchá nechá obraz volný: přehrávání a skoky uprostřed a zbytek (zvuk, titulky, kvalita, rychlost, scény) v jedné nabídce Možnosti. Automatická je jednoduchá na telefonu nebo tabletu a podrobná na širší obrazovce.",
+  "Detailed": "Podrobná",
+  "Back to options": "Zpět na možnosti",
+  "Mono": "Mono",
+  "Styled text": "Text se stylem",
+  "Keep playing in a corner": "Přehrávat dál v rohu",
+  "{count} watching": {
+    "one": "sleduje {count} divák",
+    "few": "sledují {count} diváci",
+    "many": "sleduje {count} diváka",
+    "other": "sleduje {count} diváků"
+  }
+}

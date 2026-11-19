@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { tvScreenFor } from './levelTable'
 import { OnAComputer } from './OnAComputer'
+import { tx } from '../i18n'
 
 // Every page TV mode shows passes through here (TvFrame.tsx). A screen the table says is desktopOnly is
 // the card that says to use a computer; one that says view is the card with the screen beneath it,
@@ -14,7 +15,7 @@ export function TvLevelGate({ children }: { children: ReactNode }) {
   const screen = tvScreenFor(loc.pathname)
   if (!screen || screen.level === 'full') return <>{children}</>
   return (
-    <OnAComputer key={screen.id} level={screen.level} title={screen.title} path={loc.pathname + loc.search} summary={screen.summary}>
+    <OnAComputer key={screen.id} level={screen.level} title={tx(screen.title)} path={loc.pathname + loc.search} summary={screen.summary}>
       {children}
     </OnAComputer>
   )

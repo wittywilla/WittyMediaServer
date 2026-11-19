@@ -5,34 +5,36 @@ import { api } from '../../api'
 import LegalNote from '../../components/LegalNote'
 import { IconCheck } from '../../icons'
 import { Button } from '../../ui'
-import { LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
+import { Fill, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
+import { t, tk } from '../../i18n'
 
 // Where posters, plots and ratings come from. These all work with nothing to set up.
 const FREE = [
-  { name: 'TVmaze', what: 'TV shows' },
-  { name: 'Wikidata and Wikipedia', what: 'Movies' },
-  { name: 'AniList', what: 'Anime' },
+  { name: 'TVmaze', what: tk('TV shows') },
+  { name: 'Wikidata and Wikipedia', what: tk('Movies') },
+  { name: 'AniList', what: tk('Anime') },
 ]
-const FREE_GAMES = [{ name: 'libretro', what: 'Game pictures' }, { name: 'Wikidata and Wikipedia', what: 'Game details' }]
+const FREE_GAMES = [{ name: 'libretro', what: tk('Game pictures') }, { name: 'Wikidata and Wikipedia', what: tk('Game details') }]
 
 export const PROVIDERS = [
   {
-    id: 'tmdb', name: 'The Movie Database (TMDB)', for: 'Movies, discs and TV', key: 'tmdbKey',
-    steps: [
-      <>Make a free account at <a href="https://www.themoviedb.org/signup" target="_blank" rel="noreferrer">themoviedb.org</a>.</>,
-      <>Open its <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">API settings</a> and ask for a key. Choose “Personal use”.</>,
-      <>Copy the <b>API Key</b> and paste it below.</>,
+    id: 'tmdb', name: 'The Movie Database (TMDB)', for: tk('Movies, discs and TV'), key: 'tmdbKey',
+    // A function, so the steps are in the language the page is in when they're shown.
+    steps: () => [
+      <Fill text={t('Make a free account at {site}.')} parts={{ site: <a href="https://www.themoviedb.org/signup" target="_blank" rel="noreferrer">themoviedb.org</a> }} />,
+      <Fill text={t('Open its {link} and ask for a key. Choose “Personal use”.')} parts={{ link: <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">{t('API settings')}</a> }} />,
+      <Fill text={t('Copy the {key} and paste it below.')} parts={{ key: <b>{t('API Key')}</b> }} />,
     ],
-    note: 'This product uses the TMDB API but is not endorsed or certified by TMDB.',
+    note: tk('This product uses the TMDB API but is not endorsed or certified by TMDB.'),
   },
   {
-    id: 'tvdb', name: 'TheTVDB', for: 'TV shows', key: 'tvdbKey', pinKey: 'tvdbPin',
-    steps: [
-      <>Make an account at <a href="https://thetvdb.com/auth/register" target="_blank" rel="noreferrer">thetvdb.com</a>.</>,
-      <>Open its <a href="https://thetvdb.com/api-information" target="_blank" rel="noreferrer">API information</a> page and make a key.</>,
-      <>Paste the key below. If TheTVDB gave you a <b>subscriber PIN</b>, add that too.</>,
+    id: 'tvdb', name: 'TheTVDB', for: tk('TV shows'), key: 'tvdbKey', pinKey: 'tvdbPin',
+    steps: () => [
+      <Fill text={t('Make an account at {site}.')} parts={{ site: <a href="https://thetvdb.com/auth/register" target="_blank" rel="noreferrer">thetvdb.com</a> }} />,
+      <Fill text={t('Open its {link} page and make a key.')} parts={{ link: <a href="https://thetvdb.com/api-information" target="_blank" rel="noreferrer">{t('API information')}</a> }} />,
+      <Fill text={t('Paste the key below. If TheTVDB gave you a {pin}, add that too.')} parts={{ pin: <b>{t('subscriber PIN')}</b> }} />,
     ],
-    note: 'Metadata provided by TheTVDB (thetvdb.com).',
+    note: tk('Metadata provided by TheTVDB (thetvdb.com).'),
   },
 ] as const
 
@@ -48,7 +50,7 @@ export function Details({ info, facts, next, back }: StepProps) {
     setState((s) => ({ ...s, [p.id]: { busy: true } }))
     try {
       const r = await api.post<{ ok: boolean; error?: string }>('/metadata/test', { provider: p.id, key: keys[p.key] || '', pin: 'pinKey' in p ? keys[p.pinKey] || '' : '' })
-      setState((s) => ({ ...s, [p.id]: { ok: r.ok, msg: r.ok ? 'Connected' : r.error } }))
+      setState((s) => ({ ...s, [p.id]: { ok: r.ok, msg: r.ok ? t('Connected') : r.error } }))
     } catch (e: any) { setState((s) => ({ ...s, [p.id]: { ok: false, msg: e.message } })) }
   }
   const save = async () => {
@@ -63,16 +65,16 @@ export function Details({ info, facts, next, back }: StepProps) {
   const sources = facts.modules.includes('wittyplay') ? [...FREE, ...FREE_GAMES] : FREE
   return (
     <section>
-      <StepHead title="Posters and details" lead="Your server looks up posters, plots and ratings for what you own. These sources work already, for free, with nothing to set up. Names taken from your files and folders are sent to them to look things up. Your files stay on this computer." />
-      <ul className="oobe-agents su-plain" aria-label="Sources that work already">
-        {sources.map((a) => <li key={a.name + a.what} className="oobe-agent"><IconCheck size={16} /><b>{a.name}</b><span>{a.what}</span><em>Nothing to set up</em></li>)}
+      <StepHead title={t('Posters and details')} lead={t('Your server looks up posters, plots and ratings for what you own. These sources work already, for free, with nothing to set up. Names taken from your files and folders are sent to them to look things up. Your files stay on this computer.')} />
+      <ul className="oobe-agents su-plain" aria-label={t('Sources that work already')}>
+        {sources.map((a) => <li key={a.name + a.what} className="oobe-agent"><IconCheck size={16} /><b>{a.name}</b><span>{t(a.what)}</span><em>{t('Nothing to set up')}</em></li>)}
       </ul>
       <div className="su-gap">
-        <TickRow checked={beside} onChange={setBeside} title="Save posters and details beside your files"
-          text="They stay with your media if you ever move it. Your videos and music aren’t changed. Untick this to leave your media folders exactly as they are, and keep it all on this server instead." />
+        <TickRow checked={beside} onChange={setBeside} title={t('Save posters and details beside your files')}
+          text={t('They stay with your media if you ever move it. Your videos and music aren’t changed. Untick this to leave your media folders exactly as they are, and keep it all on this server instead.')} />
       </div>
-      <h2 className="oobe-sub">Optional: more posters and better matches</h2>
-      <p className="muted oobe-hint">These two give you a free key: a code that lets your server ask them for things. Each takes about two minutes. It’s fine to skip this, and to do it another day.</p>
+      <h2 className="oobe-sub">{t('Optional: more posters and better matches')}</h2>
+      <p className="muted oobe-hint">{t('These two give you a free key: a code that lets your server ask them for things. Each takes about two minutes. It’s fine to skip this, and to do it another day.')}</p>
       <div className="oobe-providers">
         {PROVIDERS.map((p) => {
           const st = state[p.id] || {}
@@ -80,21 +82,21 @@ export function Details({ info, facts, next, back }: StepProps) {
           return (
             <div key={p.id} className={'oobe-provider' + (st.ok ? ' ok' : '')}>
               <button type="button" className="op-head" onClick={() => setOpen(open === p.id ? null : p.id)} aria-expanded={shown}>
-                <b>{p.name}</b><span className="pill">{p.for}</span>
-                {st.ok ? <span className="op-ok"><IconCheck size={14} /> Connected</span> : <span className="op-add">{shown ? 'Hide' : 'Add a key'}</span>}
+                <b>{p.name}</b><span className="pill">{t(p.for)}</span>
+                {st.ok ? <span className="op-ok"><IconCheck size={14} /> {t('Connected')}</span> : <span className="op-add">{shown ? t('Hide') : t('Add a key')}</span>}
               </button>
               {shown && (
                 <>
-                  <ol className="op-steps">{p.steps.map((s, i) => <li key={i}>{s}</li>)}</ol>
+                  <ol className="op-steps">{p.steps().map((s, i) => <li key={i}>{s}</li>)}</ol>
                   <div className="field-row">
-                    <input className="input" aria-label={`${p.name} key`} placeholder="Paste your key" value={keys[p.key] || ''} spellCheck={false} autoComplete="off"
+                    <input className="input" aria-label={t('{name} key', { name: p.name })} placeholder={t('Paste your key')} value={keys[p.key] || ''} spellCheck={false} autoComplete="off"
                       onChange={(e) => { setKeys((k) => ({ ...k, [p.key]: e.target.value })); setState((s) => ({ ...s, [p.id]: {} })) }} />
-                    {'pinKey' in p && <input className="input pin" aria-label="Subscriber PIN" placeholder="PIN (optional)" value={keys[p.pinKey] || ''} onChange={(e) => setKeys((k) => ({ ...k, [p.pinKey]: e.target.value }))} />}
-                    <button type="button" className="btn" aria-busy={st.busy || undefined} onClick={() => { if (keys[p.key]?.trim() && !st.busy) void test(p) }}>{st.busy ? 'Checking…' : 'Test'}</button>
+                    {'pinKey' in p && <input className="input pin" aria-label={t('Subscriber PIN')} placeholder={t('PIN (optional)')} value={keys[p.pinKey] || ''} onChange={(e) => setKeys((k) => ({ ...k, [p.pinKey]: e.target.value }))} />}
+                    <button type="button" className="btn" aria-busy={st.busy || undefined} onClick={() => { if (keys[p.key]?.trim() && !st.busy) void test(p) }}>{st.busy ? t('Checking…') : t('Test')}</button>
                   </div>
                   {st.msg && !st.ok && <div className="error" role="alert">{st.msg}</div>}
-                  {st.ok && <span className="sr-only" role="status">Connected</span>}
-                  <div className="muted op-note">{p.note}</div>
+                  {st.ok && <span className="sr-only" role="status">{t('Connected')}</span>}
+                  <div className="muted op-note">{t(p.note)}</div>
                 </>
               )}
             </div>
@@ -103,7 +105,7 @@ export function Details({ info, facts, next, back }: StepProps) {
       </div>
       <LegalNote kind="webResults" newTab className="su-gap" />
       <LaterNote info={info} />
-      <StepActions back={back}><Button variant="primary" size="big" busy={saving} onClick={save}>{any ? 'Save and continue' : 'Continue'}</Button></StepActions>
+      <StepActions back={back}><Button variant="primary" size="big" busy={saving} onClick={save}>{any ? t('Save and continue') : t('Continue')}</Button></StepActions>
     </section>
   )
 }

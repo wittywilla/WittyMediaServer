@@ -1,0 +1,15 @@
+{
+  "Language and time zone": "言語とタイムゾーン",
+  "Before anything else: the language for these pages, disc menus and sound tracks, and the time zone the server keeps.": "最初に、このページ、ディスクメニュー、音声トラックの言語と、サーバーのタイムゾーンを選びます。",
+  "Language": "言語",
+  "Everything on these pages, for everyone who uses this server.": "このページのすべての表示に使われます。このサーバーを使う全員に適用されます。",
+  "Disc menus and sound tracks": "ディスクメニューと音声トラック",
+  "Disc menus, and the sound track a film or show starts with when it has one in this language. Subtitles stay off until someone turns them on.": "ディスクメニューと、この言語の音声トラックがある場合に映画や番組が最初に使う音声トラックです。字幕は誰かがオンにするまでオフのままです。",
+  "The original language": "元の言語",
+  "Time zone": "タイムゾーン",
+  "Guide days, schedules, recordings and the logs follow this. The server restarts once to use it, when setup is finished, if it isn’t the one it’s running in.": "番組表、予定、録画、ログはこれに従います。現在のタイムゾーンと違う場合、セットアップ完了時にサーバーが一度再起動します。",
+  "The time zone of the computer the server runs on. Guide days, schedules, recordings and the logs follow it.": "サーバーが動いているコンピューターのタイムゾーンです。番組表、予定、録画、ログはこれに従います。",
+  "This device is set to {zone}.": "このデバイスは {zone} に設定されています。",
+  "You can change these again on the Name and address step, and later in Settings.": "これらは「名前とアドレス」の手順や、後で設定から変更できます。",
+  "Continue": "続ける"
+}

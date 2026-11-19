@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
+import { t, tk } from '../../../i18n'
 import { Tabs } from '../../../ui'
 import { PageHead } from '../ui'
 import { getPresets } from './api'
@@ -22,17 +23,17 @@ import './pages-editor.css'
 type View = 'pages' | 'navigation' | 'layouts' | 'presets' | 'history'
 const BASE = editPath('')
 const TABS: { value: View; label: string; to: string }[] = [
-  { value: 'pages', label: 'Pages', to: BASE },
-  { value: 'navigation', label: 'The menu', to: `${BASE}/navigation` },
-  { value: 'layouts', label: 'Looks', to: `${BASE}/layouts` },
-  { value: 'presets', label: 'Ready-made', to: `${BASE}/presets` },
-  { value: 'history', label: 'History and files', to: `${BASE}/history` },
+  { value: 'pages', label: tk('Pages'), to: BASE },
+  { value: 'navigation', label: tk('The menu'), to: `${BASE}/navigation` },
+  { value: 'layouts', label: tk('Looks'), to: `${BASE}/layouts` },
+  { value: 'presets', label: tk('Ready-made'), to: `${BASE}/presets` },
+  { value: 'history', label: tk('History and files'), to: `${BASE}/history` },
 ]
 
 export default function PagesSettings() {
   const { pathname } = useLocation()
   const [first, second] = pathname.slice(BASE.length).split('/').filter(Boolean)
-  const view = !first ? 'pages' : !second && TABS.some((t) => t.value === first) ? first as View : null
+  const view = !first ? 'pages' : !second && TABS.some((tab) => tab.value === first) ? first as View : null
   // The gallery is asked for when it is first wanted, and kept while Settings stays on these pages.
   const [presets, setPresets] = useState<Preset[] | null>(null)
   useEffect(() => {
@@ -41,22 +42,22 @@ export default function PagesSettings() {
   }, [view, presets])
   return (
     <EditorProvider>
-      {view && <Tabs label="Pages and menu" value={view} items={TABS} />}
+      {view && <Tabs label={t('Pages and menu')} value={view} items={TABS.map((tab) => ({ ...tab, label: t(tab.label) }))} />}
       <Routes>
         <Route index element={<>
-          <PageHead title="Pages & menu" desc="What Home, each library, a title’s page and the main menu hold, for everyone and in every app. Change a page, try it as a phone or a television would show it, and publish when it is right." />
+          <PageHead title={t('Pages & menu')} desc={t('What Home, each library, a title’s page and the main menu hold, for everyone and in every app. Change a page, try it as a phone or a television would show it, and publish when it is right.')} />
           <DraftBar />
           <PagesList />
         </>} />
         <Route path="navigation" element={<NavigationEditor />} />
         <Route path="layouts" element={<LayoutsEditor />} />
         <Route path="presets" element={<>
-          <PageHead title="Ready-made" desc="Pages and sections made for you to start from." />
+          <PageHead title={t('Ready-made')} desc={t('Pages and sections made for you to start from.')} />
           <DraftBar />
           <PresetsGallery presets={presets} />
         </>} />
         <Route path="history" element={<>
-          <PageHead title="History and files" desc="What was published and when, going back to an earlier revision, and pages as files in and out." />
+          <PageHead title={t('History and files')} desc={t('What was published and when, going back to an earlier revision, and pages as files in and out.')} />
           <DraftBar />
           <HistoryAndFiles />
         </>} />

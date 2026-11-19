@@ -12,6 +12,7 @@ import { fetchPage } from '../../../sdui/client'
 import type { Device } from '../../../sdui/device'
 import { PageView } from '../../../sdui/SduiPage'
 import type { Document } from '../../../sdui/types'
+import { list, t, tx } from '../../../i18n'
 import { Button, Field, Input, Segmented, Select, Spinner } from '../../../ui'
 import { useEditor } from './context'
 import { PREVIEW_FRAMES, pageKindSpec, pageName, previewDevice, previewInputs, previewLibrary, previewScale, words, type FormFactor, type Page } from './editorModel.ts'
@@ -71,12 +72,12 @@ export function Preview({ page, saved, dirty, onSave, onParams }: {
     let live = true
     setState('loading')
     const ask = async (retry: boolean): Promise<Document> => {
-      const t = status.draft ? await token() : ''
+      const tok = status.draft ? await token() : ''
       try {
-        return await fetchPage(page.id, device, params, { preview: t, diff: false, signal: stop.signal })
+        return await fetchPage(page.id, device, params, { preview: tok, diff: false, signal: stop.signal })
       } catch (e) {
         // A token that has run out (two hours) is asked for again, once.
-        if (retry && t && e instanceof ApiError && e.status === 403) return ask(false)
+        if (retry && tok && e instanceof ApiError && e.status === 403) return ask(false)
         throw e
       }
     }
@@ -85,7 +86,7 @@ export function Preview({ page, saved, dirty, onSave, onParams }: {
       setDoc(null)
       setState('error')
       setError(e instanceof ApiError && e.status === 404
-        ? 'There is nothing to draw here yet: the page isn’t in the draft, or what it is about (the library, the title) can’t be found.'
+        ? t('There is nothing to draw here yet: the page isn’t in the draft, or what it is about (the library, the title) can’t be found.')
         : e instanceof Error ? e.message : String(e))
     })
     return () => { live = false; stop.abort() }
@@ -116,36 +117,36 @@ export function Preview({ page, saved, dirty, onSave, onParams }: {
   return (
     <div className="pe-preview">
       <div className="pe-preview-bar">
-        <Segmented label="Preview as" value={formFactor} onChange={setFormFactor} options={FORM_FACTORS.map((f) => ({ value: f, label: PREVIEW_FRAMES[f].label }))} />
-        <Button size="sm" variant="ghost" onClick={() => setAgain((n) => n + 1)}>Refresh</Button>
+        <Segmented label={t('Preview as')} value={formFactor} onChange={setFormFactor} options={FORM_FACTORS.map((f) => ({ value: f, label: tx(PREVIEW_FRAMES[f].label) }))} />
+        <Button size="sm" variant="ghost" onClick={() => setAgain((n) => n + 1)}>{t('Refresh')}</Button>
       </div>
       {inputs.length > 0 && (
         <div className="pe-preview-with">
           {inputs.map((i) => (i.kind === 'library'
-            ? <Field key={i.name} label="Preview with the library">
+            ? <Field key={i.name} label={t('Preview with the library')}>
                 <Select inputSize="sm" value={params.library || ''} onChange={(e) => setParams((p) => ({ ...p, library: e.target.value }))}>
-                  <option value="">Choose a library…</option>
+                  <option value="">{t('Choose a library…')}</option>
                   {libraries.map((l) => <option key={l.id} value={String(l.id)}>{l.name}</option>)}
                 </Select>
               </Field>
-            : <Field key={i.name} label={`Preview with the ${words(i.name).toLowerCase()}`} hint={`Its number, from the end of its address in the app (${(kind?.route || '').replace(`{${i.name}}`, '123')}).`}>
+            : <Field key={i.name} label={t('Preview with the {what}', { what: tx(words(i.name)).toLowerCase() })} hint={t('Its number, from the end of its address in the app ({address}).', { address: (kind?.route || '').replace(`{${i.name}}`, '123') })}>
                 <Input inputSize="sm" value={params[i.name] || ''} inputMode="numeric" placeholder="123" onChange={(e) => setParams((p) => ({ ...p, [i.name]: e.target.value.trim() }))} />
               </Field>))}
         </div>
       )}
       <p className="pe-preview-note" role="status">
-        {!ready ? `Choose ${missing.map((m) => 'the ' + words(m.name).toLowerCase()).join(' and ')} to draw this page with.`
-          : dirty ? <>This is the draft as last saved. <button type="button" className="linkish" onClick={onSave}>Save to see your latest changes</button></>
-          : status.draft ? 'This is the draft, as that device would get it.' : 'This is the page as it is published.'}
-        {doc?.page.variant ? ` Showing the variant “${doc.page.variant}”: you match its condition.` : ''}
-        {doc?.layout?.truncated ? ' This device leaves the last sections out: the page is longer than it shows.' : ''}
+        {!ready ? t('Choose {what} to draw this page with.', { what: list(missing.map((m) => t('the {what}', { what: tx(words(m.name)).toLowerCase() }))) })
+          : dirty ? <>{t('This is the draft as last saved.')} <button type="button" className="linkish" onClick={onSave}>{t('Save to see your latest changes')}</button></>
+          : status.draft ? t('This is the draft, as that device would get it.') : t('This is the page as it is published.')}
+        {doc?.page.variant ? ' ' + t('Showing the variant “{variant}”: you match its condition.', { variant: doc.page.variant }) : ''}
+        {doc?.layout?.truncated ? ' ' + t('This device leaves the last sections out: the page is longer than it shows.') : ''}
       </p>
       <div className="pe-preview-pane" ref={pane}>
         {state === 'error' && <p className="pe-preview-empty" role="alert">{error}</p>}
         {state === 'loading' && !doc && <Spinner />}
         {doc && (
           <div className={'pe-frame ' + formFactor + (state === 'loading' ? ' stale' : '')} style={{ width: frame.width * scale, height: Math.max(frame.height, sheetHeight) * scale }}
-            role="img" aria-label={`${pageName(cat, page)} as a ${formFactor === 'tv' ? 'television' : frame.label.toLowerCase()} would show it`}>
+            role="img" aria-label={t('{page} as a {device} would show it', { page: pageName(cat, page), device: formFactor === 'tv' ? t('television') : tx(frame.label).toLowerCase() })}>
             <div className="pe-frame-page" ref={sheet} inert style={{ '--gutter': `${pad.left}px`, '--pe-vh': `${frame.height / 100}px`, width: frame.width, minHeight: frame.height, transform: `scale(${scale})`, paddingTop: pad.top, paddingRight: pad.right, paddingBottom: pad.bottom, paddingLeft: pad.left } as CSSProperties}>
               <PageView doc={doc} device={device} width={frame.width - pad.left - pad.right} />
             </div>

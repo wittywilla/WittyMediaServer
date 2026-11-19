@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import type { VideoCard } from '../../gallery'
+import { tk } from '../../i18n'
 
 // Songs tied to their music videos (GET /api/music/links/{id}, docs/CLIENT-API.md).
 
@@ -14,9 +15,9 @@ export type MusicLink = {
 export type MusicLinks = { itemId: number; role: 'song' | 'video' | ''; tied: MusicLink[]; suggested: MusicLink[]; canEdit: boolean }
 export type MusicVideoCard = VideoCard & { song?: MusicLinkSide; syncMs?: number }
 
-// Why a suggestion was made, in words.
+// Why a suggestion was made, in words: shown with tx().
 export const howWords: Record<MusicLink['how'], string> = {
-  isrc: 'The same ISRC', recording: 'The same MusicBrainz recording', name: 'The same artist and title', close: 'A nearly matching name', hand: 'Tied by hand',
+  isrc: tk('The same ISRC'), recording: tk('The same MusicBrainz recording'), name: tk('The same artist and title'), close: tk('A nearly matching name'), hand: tk('Tied by hand'),
 }
 
 // The links of one song or video, again whenever `reload` changes.

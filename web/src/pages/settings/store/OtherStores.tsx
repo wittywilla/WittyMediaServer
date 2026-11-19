@@ -2,7 +2,8 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import { PageHelp } from '../../../components/HelpLink'
-import { ApiError, fmtDateTime } from '../../../api'
+import { ApiError } from '../../../api'
+import { date, t, tk } from '../../../i18n'
 import { BackLink } from '../../../components/common'
 import { ConfirmOwner } from '../ConfirmOwner'
 import { toast } from '../../../state'
@@ -22,11 +23,11 @@ export default function OtherStores() {
   const { view, error, reload } = useStoreView()
   const head = (
     <>
-      <BackLink to="/settings/modules/store" label="Module store" />
-      <PageHead title="Other stores" desc="Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you." actions={<PageHelp to="module-store#other-stores">What to know first</PageHelp>} />
+      <BackLink to="/settings/modules/store" label={t('Module store')} />
+      <PageHead title={t('Other stores')} desc={t('Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you.')} actions={<PageHelp to="module-store#other-stores">{t('What to know first')}</PageHelp>} />
     </>
   )
-  if (error && !view) return <div className="ms-page st-page">{head}<Notice tone="danger" title={error.title} action={<Button size="sm" onClick={() => reload()}>Try again</Button>}>{error.message}</Notice></div>
+  if (error && !view) return <div className="ms-page st-page">{head}<Notice tone="danger" title={error.title} action={<Button size="sm" onClick={() => reload()}>{t('Try again')}</Button>}>{error.message}</Notice></div>
   if (!view) return <div className="ms-page st-page">{head}<Spinner /></div>
   const others = view.stores.filter((s) => !s.official)
   return (
@@ -34,12 +35,14 @@ export default function OtherStores() {
       {head}
       <AddStore onAdded={reload} repairRoute={view.repairRoute} />
       <Stores stores={others} onChanged={reload} repairRoute={view.repairRoute} />
-      <Section title="Custom modules" actions={<span className="set-pill">In development</span>} desc="A store can already offer a different version of a module this server knows, which you choose module by module. Wholly new kinds of module are shown in the store, marked in development, and can’t be installed yet." >
-        <p className="ms-note">WittyTuner can’t be replaced by anyone’s version, because it’s what refuses encrypted channels, and the server couldn’t tell whether another version still did.</p>
+      <Section title={tk('Custom modules')} actions={<span className="set-pill">{t('In development')}</span>} desc={t('A store can already offer a different version of a module this server knows, which you choose module by module. Wholly new kinds of module are shown in the store, marked in development, and can’t be installed yet.')} >
+        <p className="ms-note">{t('WittyTuner can’t be replaced by anyone’s version, because it’s what refuses encrypted channels, and the server couldn’t tell whether another version still did.')}</p>
       </Section>
     </div>
   )
 }
+
+const when = (at: number) => date(at, { dateStyle: 'medium', timeStyle: 'short' })
 
 // Each store: its switch, facts and buttons from the spec; its own problem notice and what an action said stay here.
 function Stores({ stores, onChanged, repairRoute }: { stores: StoreInfo[]; onChanged: () => void; repairRoute: string }) {
@@ -47,7 +50,7 @@ function Stores({ stores, onChanged, repairRoute }: { stores: StoreInfo[]; onCha
   const [failures, setFailures] = useState<Record<string, Failure>>({})
   const lines: StoreLine[] = stores.map((s) => ({
     id: s.id, name: s.name, host: s.host, enabled: s.enabled, url: s.url, fingerprint: s.fingerprint || '', modules: s.modules,
-    added: `${s.addedAt ? fmtDateTime(s.addedAt) : ''}${s.addedBy ? ` by ${s.addedBy}` : ''}`, checked: s.checkedAt ? fmtDateTime(s.checkedAt) : '',
+    added: [s.addedAt ? when(s.addedAt) : '', s.addedBy ? t('by {user}', { user: s.addedBy }) : ''].filter(Boolean).join(' '), checked: s.checkedAt ? when(s.checkedAt) : '',
     private: !!s.private, inUse: s.inUse || [], working: working === s.id,
   }))
   const page = otherStoresSpec(lines)
@@ -56,20 +59,22 @@ function Stores({ stores, onChanged, repairRoute }: { stores: StoreInfo[]; onCha
     try { await what(); if (done) toast(done); onChanged() } catch (e) { setFailures((f) => ({ ...f, [String(s.id)]: failureOf(e, s.name) })) } finally { setWorking('') }
   }
   const remove = async (s: StoreInfo) => {
-    const using = s.inUse?.length ? ` ${s.inUse.join(', ')} ${s.inUse.length === 1 ? 'goes' : 'go'} back to the official version, and what came from this store is deleted.` : ''
-    if (!await ask({ title: `Remove ${s.name}?`, body: `This server forgets the store and its key.${using}`, confirm: 'Remove store', danger: true })) return
-    await run(s, () => removeStore(s.id), `${s.name} removed`)
+    const using = !s.inUse?.length ? '' : s.inUse.length === 1
+      ? t('{names} goes back to the official version, and what came from this store is deleted.', { names: s.inUse[0] })
+      : t('{names} go back to the official version, and what came from this store is deleted.', { names: s.inUse.join(', ') })
+    if (!await ask({ title: t('Remove {name}?', { name: s.name }), body: [t('This server forgets the store and its key.'), using].filter(Boolean).join(' '), confirm: t('Remove store'), danger: true })) return
+    await run(s, () => removeStore(s.id), t('{name} removed', { name: s.name }))
   }
   const act = (id: string) => {
     const m = /^store(.+):(check|remove)$/.exec(id)
     const s = m && stores.find((x) => String(x.id) === m[1])
     if (!m || !s) return
-    if (m[2] === 'check') void run(s, () => checkStore(s.id), `${s.name} checked`); else void remove(s)
+    if (m[2] === 'check') void run(s, () => checkStore(s.id), t('{name} checked', { name: s.name })); else void remove(s)
   }
   const field = (id: string, v: string | number | boolean | File) => {
     const m = /^store(.+):on$/.exec(id)
     const s = m && stores.find((x) => String(x.id) === m[1])
-    if (s) { const on = !!v; void run(s, () => setStoreOn(s.id, on), on ? `${s.name} turned on` : `${s.name} turned off. Anything installed from it stays until you remove it.`) }
+    if (s) { const on = !!v; void run(s, () => setStoreOn(s.id, on), on ? t('{name} turned on', { name: s.name }) : t('{name} turned off. Anything installed from it stays until you remove it.', { name: s.name })) }
   }
   return (
     <>
@@ -100,13 +105,13 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
     try { setPreview(await previewStore(url.trim(), key.trim(), allowPrivate, secrets)) } catch (err) {
       if (secrets && err instanceof ApiError && err.status === 403) throw err // the dialog says what was wrong with the password
       if (err instanceof ApiError && err.data?.code === 'need-key') setNeedKey(true)
-      setFailure(failureOf(err, 'That store'))
+      setFailure(failureOf(err, t('That store')))
     } finally { setWorking(false) }
   }
   const agree = async (password: string, code: string) => {
     if (!preview) return
     await addStore(preview.url, preview.key, allowPrivate, true, { password, code })
-    toast(`${preview.name} added`)
+    toast(t('{name} added', { name: preview.name }))
     setUrl(''); setKey(''); setAllowPrivate(false); reset(); onAdded()
     setTimeout(() => urlField.current?.focus(), 0)
   }
@@ -114,7 +119,7 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
   const page = addStoreSpec({
     url, key, allowPrivate, needKey, working, trust, failure: failure ? { title: failure.title, message: failure.message } : undefined,
     preview: preview ? { name: preview.name, host: preview.host, count: preview.count, warning: preview.warning, fingerprint: preview.fingerprint, keySource: preview.keySource,
-      modules: preview.modules.map((m) => ({ id: m.id, name: m.name, tag: m.kind === 'fork' ? 'A different version of one you know' : m.kind === 'refused' ? 'Can’t be used' : 'In development', summary: m.summary })) } : undefined,
+      modules: preview.modules.map((m) => ({ id: m.id, name: m.name, tag: m.kind === 'fork' ? t('A different version of one you know') : m.kind === 'refused' ? t('Can’t be used') : t('In development'), summary: m.summary })) } : undefined,
   })
   const act = (id: string) => { if (id === 'look') { if (!working) { if (allowPrivate) setLookOwner(true); else void fetchPreview() } } else if (id === 'add') setOwner(true); else if (id === 'cancel') cancel() }
   const field = (id: string, v: string | number | boolean | File) => {
@@ -122,16 +127,16 @@ function AddStore({ onAdded, repairRoute }: { onAdded: () => void; repairRoute: 
   }
   return (
     <div ref={warned} tabIndex={-1}>
-      {failure && <FailureBody failure={failure} name="That store" repairRoute={repairRoute} />}
+      {failure && <FailureBody failure={failure} name={t('That store')} repairRoute={repairRoute} />}
       <SpecPage embedded page={page} handled={handledIds(page)} onAction={act} onField={field} />
       {lookOwner && <ConfirmOwner onClose={() => setLookOwner(false)} ask={{
-        title: 'Look on your own network?', action: 'Look at this store',
-        body: <p>This server will fetch from an address on your own network, so this asks for your password.</p>,
+        title: t('Look on your own network?'), action: t('Look at this store'),
+        body: <p>{t('This server will fetch from an address on your own network, so this asks for your password.')}</p>,
         run: (password, code) => fetchPreview({ password, code }),
       }} />}
       {owner && preview && <ConfirmOwner onClose={() => setOwner(false)} ask={{
-        title: `Add ${preview.name}?`, action: 'Add this store',
-        body: <p>From now on this store can offer code for this server to run, so this asks for your password.</p>,
+        title: t('Add {name}?', { name: preview.name }), action: t('Add this store'),
+        body: <p>{t('From now on this store can offer code for this server to run, so this asks for your password.')}</p>,
         run: agree,
       }} />}
     </div>

@@ -9,17 +9,18 @@ import { devicesSpec, twoFactorSpec, type TwoFactorState } from '../../spec/spec
 import { PageHead, Row, Section } from './ui'
 import './remote.css'
 import { ask } from '../../ui/Overlay'
+import { t, tk } from '../../i18n'
 
 // Settings → Sign-in & security, for everyone: the devices signed in to this
 // account, and two-factor sign-in for adults.
 
-const when = (t: number) => (t ? fmtDateTime(t * 1000) : 'not yet')
+const when = (at: number) => (at ? fmtDateTime(at * 1000) : t('not yet'))
 
 export default function Security() {
   const { user } = useApp()
   return (
     <>
-      <PageHead title="Sign-in & security" desc="Where you are signed in, and how your account is protected." />
+      <PageHead title={tk('Sign-in & security')} desc={t('Where you are signed in, and how your account is protected.')} />
       <Devices />
       {user?.kind === 'adult' && <TwoFactor />}
       {user?.isAdmin && <ResetOthers />}
@@ -35,14 +36,14 @@ function Devices() {
   const handled = useMemo(() => handledIds(page), [page])
   const act = async (id: string) => {
     if (id === 'others') {
-      if (!await ask({ title: 'Sign out everywhere except on this device?', confirm: 'Sign out the others', danger: true })) return
-      try { await api.del('/sessions'); toast('Signed out on your other devices'); load() } catch (e: any) { toast(e.message) }
+      if (!await ask({ title: t('Sign out everywhere except on this device?'), confirm: t('Sign out the others'), danger: true })) return
+      try { await api.del('/sessions'); toast(t('Signed out on your other devices')); load() } catch (e: any) { toast(e.message) }
     } else if (id.startsWith('out:')) {
-      try { await api.del(`/sessions/${id.slice(4)}`); toast('Signed out on that device'); load() } catch (e: any) { toast(e.message) }
+      try { await api.del(`/sessions/${id.slice(4)}`); toast(t('Signed out on that device')); load() } catch (e: any) { toast(e.message) }
     }
   }
   return (
-    <Section title="Your devices" desc="Anything you don't recognise? Sign it out, then change your password.">
+    <Section title={tk('Your devices')} desc={t("Anything you don't recognise? Sign it out, then change your password.")}>
       <SpecPage embedded page={page} handled={handled} onAction={act} />
     </Section>
   )
@@ -70,7 +71,7 @@ function TwoFactor() {
   })
   const disable = () => run(async () => {
     await api.post('/me/2fa/disable', { password, code })
-    setTurningOff(false); setPassword(''); setCode(''); await load(); toast('Two-factor sign-in is off')
+    setTurningOff(false); setPassword(''); setCode(''); await load(); toast(t('Two-factor sign-in is off'))
     if (user) setUser({ ...user, twoFactor: false })
   })
   const st: TwoFactorState | null = !state ? null
@@ -90,11 +91,11 @@ function TwoFactor() {
     else if (id === 'confirm') void confirmCode()
     else if (id === 'cancel') { setSetup(null); setCode('') }
     else if (id === 'saved') setRecovery(null)
-    else if (id === 'copy' && recovery) navigator.clipboard.writeText(recovery.join('\n')).then(() => toast('Copied')).catch(() => toast('Select them and copy by hand'))
+    else if (id === 'copy' && recovery) navigator.clipboard.writeText(recovery.join('\n')).then(() => toast(t('Copied'))).catch(() => toast(t('Select them and copy by hand')))
   }
   const field = (id: string, v: string | number | boolean | File) => { if (id === 'password') setPassword(String(v)); else if (id === 'code') setCode(String(v)) }
   return (
-    <Section title="Two-factor sign-in" desc="Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote Access. Any authenticator app works.">
+    <Section title={tk('Two-factor sign-in')} desc={t("Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote Access. Any authenticator app works.")}>
       <form onSubmit={(e) => { e.preventDefault(); const id = primary[st.mode]; if (id && !page.actions.find((a) => a.id === id)?.disabled) act(id) }}>
         <SpecPage embedded page={page} handled={handled} onAction={act} onField={field} />
         <button type="submit" hidden tabIndex={-1} aria-hidden="true" />
@@ -112,13 +113,13 @@ function ResetOthers() {
   useEffect(() => { load() }, [load])
   if (users.length === 0) return null
   const reset = async (u: UserView) => {
-    if (!await ask({ title: `Turn off two-factor sign-in for ${u.name}?`, body: 'Do this only if you know it’s really them who lost their phone.', confirm: 'Turn it off', danger: true })) return
-    try { await api.del(`/users/${u.id}/2fa`); toast(`Turned off for ${u.name}`); load() } catch (e: any) { toast(e.message) }
+    if (!await ask({ title: t('Turn off two-factor sign-in for {name}?', { name: u.name }), body: t('Do this only if you know it’s really them who lost their phone.'), confirm: t('Turn it off'), danger: true })) return
+    try { await api.del(`/users/${u.id}/2fa`); toast(t('Turned off for {name}', { name: u.name })); load() } catch (e: any) { toast(e.message) }
   }
   return (
-    <Section title="Other people's two-factor sign-in" desc="For someone who lost their phone and their recovery codes. An administrator's own can only be reset on the server itself, with: wittymediaserver reset-2fa">
+    <Section title={tk("Other people's two-factor sign-in")} desc={t("For someone who lost their phone and their recovery codes. An administrator's own can only be reset on the server itself, with: {command}", { command: 'wittymediaserver reset-2fa' })}>
       {users.map((u) => (
-        <Row key={u.id} label={u.name}><button type="button" className="btn sm ghost" onClick={() => reset(u)}>Turn off</button></Row>
+        <Row key={u.id} label={u.name}><button type="button" className="btn sm ghost" onClick={() => reset(u)}>{t('Turn off')}</button></Row>
       ))}
     </Section>
   )

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { api } from '../api'
+import { t, tx } from '../i18n'
 import { Button, Input, Notice } from '../ui'
 import './portsetting.css'
 
@@ -26,6 +27,12 @@ export function useNetwork() {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+// A translated sentence with the address drawn in it: {address} in the text is where it goes.
+function withAddress(text: string, address: ReactNode) {
+  const [before, after = ''] = text.split('{address}')
+  return <>{before}{address}{after}</>
+}
 
 // The page is on the server's home port, so it can follow it to the new one. Through Remote
 // Access's HTTPS port, a proxy or the web app's dev server, the address doesn't change.
@@ -75,13 +82,13 @@ export function PortSetting({ view, onSaved, compact }: { view: NetworkView; onS
     setError('')
     if (locked || !changed) { setCheck(null); return }
     const n = ++seq.current
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setChecking(true)
       api.post<PortCheck>('/network/check', { port }).then((c) => { if (n === seq.current) setCheck(c) })
         .catch((e) => { if (n === seq.current) setError(e.message) })
         .finally(() => { if (n === seq.current) setChecking(false) })
     }, 400)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [port, changed, locked])
 
   const save = async () => {
@@ -112,36 +119,40 @@ export function PortSetting({ view, onSaved, compact }: { view: NetworkView; onS
 
   const newAddr = `http://${location.hostname}:${view.next}`
   const invalid = value.trim() !== '' && Number.isNaN(port)
-  const problems = invalid ? ['A port is a whole number, such as 8096.'] : check?.problems || []
+  const problems = invalid ? [t('A port is a whole number, such as 8096.')] : (check?.problems || []).map(tx)
   return (
     <div className={'port-setting' + (compact ? ' compact' : '')}>
-      {locked && <Notice tone="warn" title={view.docker ? 'Set by Docker' : 'Set somewhere else'}>{view.locked}</Notice>}
+      {locked && <Notice tone="warn" title={view.docker ? t('Set by Docker') : t('Set somewhere else')}>{tx(view.locked)}</Notice>}
       <div className="port-row">
-        <label htmlFor={id + 'p'} className="port-label">Port</label>
+        <label htmlFor={id + 'p'} className="port-label">{t('Port')}</label>
         <Input id={id + 'p'} inputMode="numeric" autoComplete="off" className="port-input" value={value} disabled={locked || saving || !!restart}
           aria-describedby={id + 'h'} aria-invalid={problems.length > 0 || undefined}
           onChange={(e) => setValue(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
           onKeyDown={(e) => { if (e.key === 'Enter' && changed && !problems.length) void save() }} />
-        <Button variant="primary" busy={saving} disabled={locked || !changed || problems.length > 0 || checking || !!restart} onClick={save}>Save</Button>
+        <Button variant="primary" busy={saving} disabled={locked || !changed || problems.length > 0 || checking || !!restart} onClick={save}>{t('Save')}</Button>
       </div>
       <small id={id + 'h'} className="port-hint">
-        {locked ? <>It answers on port {view.port}.</> : <>A number from 1024 to 65535 that nothing else on this computer uses. Now {view.port}{view.next !== view.port && <>, {view.next} after a restart</>}.</>}
+        {locked
+          ? t('It answers on port {port}.', { port: String(view.port) })
+          : <>{t('A number from 1024 to 65535 that nothing else on this computer uses.')} {view.next !== view.port
+            ? t('Now {port}, {next} after a restart.', { port: String(view.port), next: String(view.next) })
+            : t('Now {port}.', { port: String(view.port) })}</>}
       </small>
       <div aria-live="polite" className="port-messages">
-        {changed && checking && !problems.length && <small className="port-hint">Checking port {port}…</small>}
+        {changed && checking && !problems.length && <small className="port-hint">{t('Checking port {port}…', { port: String(port) })}</small>}
         {problems.map((p) => <Notice key={p} tone="danger">{p}</Notice>)}
-        {(check?.warnings || []).map((w) => <Notice key={w} tone="warn">{w}</Notice>)}
-        {changed && check?.ok && !check.current && !checking && <small className="port-ok">Port {port} is free.</small>}
+        {(check?.warnings || []).map((w) => <Notice key={w} tone="warn">{tx(w)}</Notice>)}
+        {changed && check?.ok && !check.current && !checking && <small className="port-ok">{t('Port {port} is free.', { port: String(port) })}</small>}
         {error && <Notice tone="danger">{error}</Notice>}
       </div>
       {!locked && view.next !== view.port && (
-        <Notice tone="ok" title={`Saved: port ${view.next} from the next start`}
-          action={view.canRestart && restart !== 'waiting' ? <Button variant="primary" busy={restart === 'going'} onClick={restartNow}>Restart now</Button> : undefined}>
+        <Notice tone="ok" title={t('Saved: port {port} from the next start', { port: String(view.next) })}
+          action={view.canRestart && restart !== 'waiting' ? <Button variant="primary" busy={restart === 'going'} onClick={restartNow}>{t('Restart now')}</Button> : undefined}>
           {restart === 'waiting'
-            ? <span>Restarting… {followsPort(view) ? <>This page opens again at <code>{newAddr}</code> when it’s ready.</> : 'This page comes back when it’s ready.'}</span>
+            ? <span>{t('Restarting…')} {followsPort(view) ? withAddress(t('This page opens again at {address} when it’s ready.'), <code>{newAddr}</code>) : t('This page comes back when it’s ready.')}</span>
             : restart === 'lost'
-              ? <span>It hasn’t answered yet. Try opening <a href={newAddr}>{newAddr}</a> in a moment, or restart it from its tray or menu-bar icon.</span>
-              : <span>{view.canRestart ? 'Restart now, or it moves the next time the server starts. ' : 'Restart the server the way you started it. '}Then it’s at <code>{newAddr}</code>, and anything that uses the old address, such as a bookmark, needs the new one.</span>}
+              ? <span>{withAddress(t('It hasn’t answered yet. Try opening {address} in a moment, or restart it from its tray or menu-bar icon.'), <a href={newAddr}>{newAddr}</a>)}</span>
+              : <span>{view.canRestart ? t('Restart now, or it moves the next time the server starts.') : t('Restart the server the way you started it.')} {withAddress(t('Then it’s at {address}, and anything that uses the old address, such as a bookmark, needs the new one.'), <code>{newAddr}</code>)}</span>}
         </Notice>
       )}
     </div>

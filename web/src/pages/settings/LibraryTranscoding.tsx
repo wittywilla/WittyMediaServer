@@ -15,6 +15,7 @@ import { handledIds } from '../../spec/model'
 import { runPatch, runSettingsSpec } from '../../spec/specs/libtranscode'
 import type { Library, Options, Policy, Run, Settings, Step, FileRow, Preview, Sample } from './libraryTranscodingTypes'
 import { LANGUAGES, languageName } from '../../languages'
+import { t, tn, tk, tx, num, date } from '../../i18n'
 
 // Library transcoding: converting a library's files ahead of time. Everything that could
 // lose something is said before it happens: a preset says what it does, a preview says what
@@ -22,9 +23,9 @@ import { LANGUAGES, languageName } from '../../languages'
 
 
 const OUTPUTS: { value: string; title: string; text: string }[] = [
-  { value: 'keep', title: 'Keep the original', text: 'The new file takes over and the old one moves to a hidden folder beside it, where you can put it back or delete it later. The safest choice, and it needs the most room.' },
-  { value: 'replace', title: 'Replace the original', text: 'Once the new file has been checked, the old one is deleted for good. This frees the most room, and it can’t be undone.' },
-  { value: 'beside', title: 'Write it beside the original', text: 'The old file stays in use and a copy is written next to it. Nothing changes for viewers until you choose to use the copy.' },
+  { value: 'keep', title: tk('Keep the original'), text: tk('The new file takes over and the old one moves to a hidden folder beside it, where you can put it back or delete it later. The safest choice, and it needs the most room.') },
+  { value: 'replace', title: tk('Replace the original'), text: tk('Once the new file has been checked, the old one is deleted for good. This frees the most room, and it can’t be undone.') },
+  { value: 'beside', title: tk('Write it beside the original'), text: tk('The old file stays in use and a copy is written next to it. Nothing changes for viewers until you choose to use the copy.') },
 ]
 
 export default function LibraryTranscoding() {
@@ -38,8 +39,8 @@ export default function LibraryTranscoding() {
       .then(([o, l, s]) => { setOptions(o); setLibs(l); setSettings(s) }).catch(() => setFailed(true))
   }, [])
   useEffect(load, [load])
-  const head = <PageHead title="Library transcoding" desc={<>Converts the files in a library ahead of time, so they play without being converted later. It changes your files, so it starts off. Converting while someone watches is a separate thing, under <Link to="/settings/transcoding">Live transcoding</Link>. <Link to="/help/library-transcoding">The guide</Link> explains it all.</>} />
-  if (failed) return <>{head}<LoadError what="This page" onRetry={load} /></>
+  const head = <PageHead title={tk('Library transcoding')} desc={<>{t('Converts the files in a library ahead of time, so they play without being converted later. It changes your files, so it starts off.')} {t('Converting while someone watches is a separate thing, under')} <Link to="/settings/transcoding">{t('Live transcoding')}</Link>. <Link to="/help/library-transcoding">{t('The guide')}</Link> {t('explains it all.')}</>} />
+  if (failed) return <>{head}<LoadError what={t('This page')} onRetry={load} /></>
   if (!options || !libs || !settings) return <>{head}<Spinner /></>
   return (
     <>
@@ -47,7 +48,7 @@ export default function LibraryTranscoding() {
       {!settings.enabled && <TurnOn settings={settings} onChange={(s) => { setSettings(s); load() }} />}
       {settings.enabled && <RunSettings settings={settings} options={options} onChange={setSettings} />}
       {libs.length === 0
-        ? <Section title="Your libraries"><EmptyState title="No video libraries yet" text="Add a library of films or shows, and it will be here." /></Section>
+        ? <Section title={tk('Your libraries')}><EmptyState title={t('No video libraries yet')} text={t('Add a library of films or shows, and it will be here.')} /></Section>
         : <Libraries libs={libs} setLibs={setLibs} options={options} settings={settings} />}
       <TdarrSection libs={libs} />
     </>
@@ -64,20 +65,20 @@ function TurnOn({ settings, onChange }: { settings: Settings; onChange: (s: Sett
     try { onChange(await api.put<Settings>('/libtranscode/settings', { ...settings, enabled: true, acknowledged: true })) } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
   }
   return (
-    <Section title="Before you turn this on" desc="Trying a file and checking a whole library, below, work without it, and change nothing.">
-      <Notice tone="warn" title="This can get in the way of people watching.">
+    <Section title={tk('Before you turn this on')} desc={t('Trying a file and checking a whole library, below, work without it, and change nothing.')}>
+      <Notice tone="warn" title={t('This can get in the way of people watching.')}>
         <ul className="ltc-list">
-          <li><b>Processor.</b> Converting a film can keep every core busy for hours. Anyone watching at the same time may see stutters, or a film that takes longer to start, especially if their device needs the server to convert while playing.</li>
-          <li><b>Disk.</b> Each file needs room for a second copy while it converts, and reading it slows down anything else using that drive.</li>
-          <li><b>Your files.</b> This rewrites them. Each new file is checked before anything is replaced, and you choose whether the old one is kept, but a converted file is never better than its original.</li>
+          <li><b>{t('Processor.')}</b> {t('Converting a film can keep every core busy for hours. Anyone watching at the same time may see stutters, or a film that takes longer to start, especially if their device needs the server to convert while playing.')}</li>
+          <li><b>{t('Disk.')}</b> {t('Each file needs room for a second copy while it converts, and reading it slows down anything else using that drive.')}</li>
+          <li><b>{t('Your files.')}</b> {t('This rewrites them. Each new file is checked before anything is replaced, and you choose whether the old one is kept, but a converted file is never better than its original.')}</li>
         </ul>
-        <p>Out of the box it does one file at a time, on half the processor, at low priority, and it stops whenever someone is playing something. You can change all of that once it’s on.</p>
+        <p>{t('Out of the box it does one file at a time, on half the processor, at low priority, and it stops whenever someone is playing something. You can change all of that once it’s on.')}</p>
       </Notice>
       <div className="ltc-accept">
         <input id={check} type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
-        <label htmlFor={check}>I understand how this affects streaming and my files.</label>
+        <label htmlFor={check}>{t('I understand how this affects streaming and my files.')}</label>
       </div>
-      <p className="ltc-actions"><Button variant="primary" disabled={!ok} busy={busy} onClick={on}>Turn on library transcoding</Button></p>
+      <p className="ltc-actions"><Button variant="primary" disabled={!ok} busy={busy} onClick={on}>{t('Turn on library transcoding')}</Button></p>
     </Section>
   )
 }
@@ -90,23 +91,23 @@ function RunSettings({ settings, options, onChange }: { settings: Settings; opti
   const set = (patch: Partial<Settings>) => setDraft((d) => ({ ...d, ...patch }))
   const save = async () => {
     setBusy(true)
-    try { onChange(await api.put<Settings>('/libtranscode/settings', draft)); toast('Saved. This applies straight away.') } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
+    try { onChange(await api.put<Settings>('/libtranscode/settings', draft)); toast(t('Saved. This applies straight away.')) } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
   }
   const off = async () => {
-    if (!await ask({ title: 'Turn off library transcoding?', body: 'Anything converting now carries on to the end or until you cancel it. Nothing new can start. Kept originals stay where they are.', confirm: 'Turn off' })) return
+    if (!await ask({ title: t('Turn off library transcoding?'), body: t('Anything converting now carries on to the end or until you cancel it. Nothing new can start. Kept originals stay where they are.'), confirm: t('Turn off') })) return
     try { onChange(await api.put<Settings>('/libtranscode/settings', { ...settings, enabled: false })) } catch (e) { toast((e as Error).message) }
   }
   const cores = options.capabilities.cores
   const threadChoices = [
-    { value: '0', label: `Half of it: ${Math.max(1, Math.floor(cores / 2))} of ${cores} threads (recommended)` },
-    { value: String(Math.max(1, Math.floor(cores / 4))), label: `A quarter: ${Math.max(1, Math.floor(cores / 4))} of ${cores} threads` },
-    { value: String(Math.max(1, Math.floor((cores * 3) / 4))), label: `Three quarters: ${Math.max(1, Math.floor((cores * 3) / 4))} of ${cores} threads` },
-    { value: String(cores), label: `All of it: ${cores} threads (people watching will notice)` },
+    { value: '0', label: t('Half of it: {n} of {cores} threads (recommended)', { n: Math.max(1, Math.floor(cores / 2)), cores }) },
+    { value: String(Math.max(1, Math.floor(cores / 4))), label: t('A quarter: {n} of {cores} threads', { n: Math.max(1, Math.floor(cores / 4)), cores }) },
+    { value: String(Math.max(1, Math.floor((cores * 3) / 4))), label: t('Three quarters: {n} of {cores} threads', { n: Math.max(1, Math.floor((cores * 3) / 4)), cores }) },
+    { value: String(cores), label: t('All of it: {cores} threads (people watching will notice)', { cores }) },
   ].filter((o, i, list) => list.findIndex((x) => x.value === o.value) === i)
-  if (!threadChoices.some((o) => o.value === String(draft.threads))) threadChoices.push({ value: String(draft.threads), label: `${draft.threads} threads` })
+  if (!threadChoices.some((o) => o.value === String(draft.threads))) threadChoices.push({ value: String(draft.threads), label: t('{count} threads', { count: draft.threads }) })
   const runPage = runSettingsSpec(draft, threadChoices)
   return (
-    <Section title="How it runs on this server" desc="Converting competes with people watching. These keep it out of their way." actions={<Button variant="ghost" size="sm" onClick={off}>Turn off</Button>}>
+    <Section title={tk('How it runs on this server')} desc={t('Converting competes with people watching. These keep it out of their way.')} actions={<Button variant="ghost" size="sm" onClick={off}>{t('Turn off')}</Button>}>
       <SpecPage embedded bare page={runPage} handled={handledIds(runPage)} onField={(id, v) => { const patch = v instanceof File ? null : runPatch(id, v); if (patch) set(patch) }} />
       <SaveBar dirty={dirty} busy={busy} save={save} discard={() => setDraft(settings)} />
     </Section>
@@ -119,8 +120,8 @@ function Libraries({ libs, setLibs, options, settings }: { libs: Library[]; setL
   const update = (l: Library) => setLibs(libs.map((x) => (x.id === l.id ? l : x)))
   return (
     <>
-      <Section title="Choose a library" desc="Each library has its own recipe.">
-        <Row label="Library" desc={`${lib.items.toLocaleString()} items`}>
+      <Section title={tk('Choose a library')} desc={t('Each library has its own recipe.')}>
+        <Row label={t('Library')} desc={tn('{count} item', '{count} items', lib.items)}>
           <Select value={String(lib.id)} options={libs.map((l) => ({ value: String(l.id), label: l.name }))} onChange={(e) => setId(Number(e.target.value))} />
         </Row>
       </Section>
@@ -149,62 +150,62 @@ function LibraryPanel({ lib, onSaved, options, settings }: { lib: Library; onSav
       setCurrent(''); setCode('')
       // What came back is what's saved, tidied by the server, and is what's compared from now on.
       setPolicy(n.rule.policy); setOutput(n.rule.output); setReadOnly(n.readOnly); setAllow(n.rule.allowWrites); setAuto(n.rule.auto)
-      onSaved(n); toast('Saved')
+      onSaved(n); toast(t('Saved'))
     } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
   }
   const change = (next: Policy) => setPolicy({ ...next, preset: 'custom' })
   const presetOf = options.presets.find((p) => p.id === policy.preset)
   return (
     <>
-      <Section title="What should the files become?" desc="Pick the one that sounds like what you want. The details under each one say exactly what it does.">
-        <div className="ltc-cards" role="radiogroup" aria-label="What the files should become">
+      <Section title={tk('What should the files become?')} desc={t('Pick the one that sounds like what you want. The details under each one say exactly what it does.')}>
+        <div className="ltc-cards" role="radiogroup" aria-label={t('What the files should become')}>
           {options.presets.map((p) => {
             const chosen = policy.preset === p.id
             return (
               <div key={p.id} className={'ltc-card' + (chosen ? ' on' : '')}>
                 <label className="ltc-card-head">
                   <input type="radio" name={`preset-${lib.id}`} checked={chosen} onChange={() => setPolicy(p.policy)} />
-                  <span><b>{p.name}</b><span className="ltc-card-text">{p.summary}</span></span>
+                  <span><b>{tx(p.name)}</b><span className="ltc-card-text">{tx(p.summary)}</span></span>
                 </label>
                 <details className="ltc-more">
-                  <summary>What this does</summary>
-                  <ul className="ltc-list">{p.details.map((d) => <li key={d}>{d}</li>)}</ul>
-                  <p className="ltc-cost"><b>Cost.</b> {p.cost}</p>
+                  <summary>{t('What this does')}</summary>
+                  <ul className="ltc-list">{p.details.map((d) => <li key={d}>{tx(d)}</li>)}</ul>
+                  <p className="ltc-cost"><b>{t('Cost.')}</b> {tx(p.cost)}</p>
                 </details>
               </div>
             )
           })}
         </div>
-        {policy.preset === 'custom' && <Notice title="Your own recipe.">This started from a preset, and you’ve changed its details. Choosing a preset above goes back to it.</Notice>}
-        {policy.preset === 'save-space' && !options.capabilities.hevc && <Notice tone="warn" title="This server’s FFmpeg can’t encode H.265.">Save space falls back on H.264 at a stronger setting, which saves less. Choose a different FFmpeg with the WMS_FFMPEG setting if you want H.265.</Notice>}
-        {presetOf === undefined && policy.preset !== 'custom' && <Notice tone="warn">This recipe’s preset no longer exists.</Notice>}
+        {policy.preset === 'custom' && <Notice title={t('Your own recipe.')}>{t('This started from a preset, and you’ve changed its details. Choosing a preset above goes back to it.')}</Notice>}
+        {policy.preset === 'save-space' && !options.capabilities.hevc && <Notice tone="warn" title={t('This server’s FFmpeg can’t encode H.265.')}>{t('Save space falls back on H.264 at a stronger setting, which saves less. Choose a different FFmpeg with the WMS_FFMPEG setting if you want H.265.')}</Notice>}
+        {presetOf === undefined && policy.preset !== 'custom' && <Notice tone="warn">{t('This recipe’s preset no longer exists.')}</Notice>}
         <RecipeDetails policy={policy} change={change} options={options} />
       </Section>
 
-      <Section title="What happens to the old file?">
-        <div className="ltc-cards" role="radiogroup" aria-label="What happens to the old file">
+      <Section title={tk('What happens to the old file?')}>
+        <div className="ltc-cards" role="radiogroup" aria-label={t('What happens to the old file')}>
           {OUTPUTS.map((o) => (
             <label key={o.value} className={'ltc-card ltc-card-head' + (output === o.value ? ' on' : '')}>
               <input type="radio" name={`output-${lib.id}`} checked={output === o.value} onChange={() => setOutput(o.value)} />
-              <span><b>{o.title}</b><span className="ltc-card-text">{o.text}</span></span>
+              <span><b>{tx(o.title)}</b><span className="ltc-card-text">{tx(o.text)}</span></span>
             </label>
           ))}
         </div>
         {replacing && (
           <div className="form full">
-            <Field label="Your password" hint="Replacing originals deletes them, so this asks for your password."><Input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>
-            {user?.twoFactor && <Field label="Code from your authenticator app"><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
+            <Field label={t('Your password')} hint={t('Replacing originals deletes them, so this asks for your password.')}><Input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>
+            {user?.twoFactor && <Field label={t('Code from your authenticator app')}><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
           </div>
         )}
-        <Row label="This library is read-only" desc="Nothing the server does may change this library’s files: no conversions, and no saved artwork or details beside them. Previews and dry runs still work.">
-          <Switch label="This library is read-only" checked={readOnly} onChange={setReadOnly} />
+        <Row label={t('This library is read-only')} desc={t('Nothing the server does may change this library’s files: no conversions, and no saved artwork or details beside them. Previews and dry runs still work.')}>
+          <Switch label={t('This library is read-only')} checked={readOnly} onChange={setReadOnly} />
         </Row>
-        <Row label="Convert new files by themselves" desc={<>When a scan finds a new or changed file, it waits until the file has stopped changing, then converts it with this recipe, within the limits above, and shows in the activity panel. Files already here when you turn this on are left alone: use Start converting for those. A file that fails or that you put back isn’t tried again unless it changes.{lib.blocked && auto ? <> It can’t run at the moment: {lib.blocked}</> : null}</>}>
-          <Switch label="Convert new files by themselves" checked={auto} onChange={setAuto} />
+        <Row label={t('Convert new files by themselves')} desc={<>{t('When a scan finds a new or changed file, it waits until the file has stopped changing, then converts it with this recipe, within the limits above, and shows in the activity panel. Files already here when you turn this on are left alone: use Start converting for those. A file that fails or that you put back isn’t tried again unless it changes.')}{lib.blocked && auto ? <> {t('It can’t run at the moment: {reason}', { reason: tx(lib.blocked) })}</> : null}</>}>
+          <Switch label={t('Convert new files by themselves')} checked={auto} onChange={setAuto} />
         </Row>
         {!options.saveMeta && (
-          <Row label="Allow conversions in this library" desc={<>This server keeps metadata out of media folders (<Link to="/settings/metadata">Save next to media</Link> is off), so nothing is written here unless you say so. With this on, new video files are written, but still no subtitle files or artwork.</>}>
-            <Switch label="Allow conversions in this library" checked={allow} onChange={setAllow} />
+          <Row label={t('Allow conversions in this library')} desc={<>{t('This server keeps metadata out of media folders')} (<Link to="/settings/metadata">{t('Save next to media')}</Link> {t('is off), so nothing is written here unless you say so.')} {t('With this on, new video files are written, but still no subtitle files or artwork.')}</>}>
+            <Switch label={t('Allow conversions in this library')} checked={allow} onChange={setAllow} />
           </Row>
         )}
       </Section>
@@ -222,122 +223,122 @@ function RecipeDetails({ policy: p, change, options }: { policy: Policy; change:
   const video = (patch: Partial<Policy['video']>) => change({ ...p, video: { ...p.video, ...patch } })
   const audio = (patch: Partial<Policy['audio']>) => change({ ...p, audio: { ...p.audio, ...patch } })
   const subs = (patch: Partial<Policy['subtitles']>) => change({ ...p, subtitles: { ...p.subtitles, ...patch } })
-  const yesNo = [{ value: 'keep', label: 'Keep' }, { value: 'drop', label: 'Remove' }]
+  const yesNo = [{ value: 'keep', label: t('Keep') }, { value: 'drop', label: t('Remove') }]
   const converting = p.video.codec !== 'keep'
   return (
     <div className="ltc-details">
       <details className="ltc-more big">
-        <summary>Picture details</summary>
-        <Row label="Picture format" desc="H.264 plays on everything. H.265 and AV1 are much smaller, and older devices may not play them. Leaving it alone is quickest and loses nothing.">
+        <summary>{t('Picture details')}</summary>
+        <Row label={t('Picture format')} desc={t('H.264 plays on everything. H.265 and AV1 are much smaller, and older devices may not play them. Leaving it alone is quickest and loses nothing.')}>
           <Select value={p.video.codec} onChange={(e) => video({ codec: e.target.value })} options={[
-            { value: 'keep', label: 'Leave as it is' }, { value: 'h264', label: 'H.264' }, { value: 'hevc', label: options.capabilities.hevc ? 'H.265 (HEVC)' : 'H.265 (HEVC): not in this FFmpeg' }, { value: 'av1', label: options.capabilities.av1 ? 'AV1' : 'AV1: not in this FFmpeg' },
+            { value: 'keep', label: t('Leave as it is') }, { value: 'h264', label: 'H.264' }, { value: 'hevc', label: options.capabilities.hevc ? 'H.265 (HEVC)' : t('H.265 (HEVC): not in this FFmpeg') }, { value: 'av1', label: options.capabilities.av1 ? 'AV1' : t('AV1: not in this FFmpeg') },
           ]} />
         </Row>
-        <Row label="File type" desc="MP4 plays everywhere, and holds fewer kinds of sound and subtitles. MKV holds anything.">
-          <Select value={p.container} onChange={(e) => change({ ...p, container: e.target.value })} options={[{ value: 'keep', label: 'Keep MP4 and MKV as they are; make others MKV' }, { value: 'mkv', label: 'MKV' }, { value: 'mp4', label: 'MP4' }]} />
+        <Row label={t('File type')} desc={t('MP4 plays everywhere, and holds fewer kinds of sound and subtitles. MKV holds anything.')}>
+          <Select value={p.container} onChange={(e) => change({ ...p, container: e.target.value })} options={[{ value: 'keep', label: t('Keep MP4 and MKV as they are; make others MKV') }, { value: 'mkv', label: 'MKV' }, { value: 'mp4', label: 'MP4' }]} />
         </Row>
-        <Row dim={!converting} label="Quality" desc="Lower numbers look better and take more room.">
-          <Select disabled={!converting} value={String(p.video.quality)} onChange={(e) => video({ quality: Number(e.target.value) })} options={[...new Set([18, 21, 23, 26, 28, p.video.quality || 23])].sort((a, b) => a - b).map((q) => ({ value: String(q), label: `${q}: ${q <= 18 ? 'looks the same as the source' : q <= 21 ? 'very good' : q <= 23 ? 'good' : q <= 26 ? 'smaller' : 'smallest'}` }))} />
+        <Row dim={!converting} label={t('Quality')} desc={t('Lower numbers look better and take more room.')}>
+          <Select disabled={!converting} value={String(p.video.quality)} onChange={(e) => video({ quality: Number(e.target.value) })} options={[...new Set([18, 21, 23, 26, 28, p.video.quality || 23])].sort((a, b) => a - b).map((q) => ({ value: String(q), label: q <= 18 ? t('{q}: looks the same as the source', { q }) : q <= 21 ? t('{q}: very good', { q }) : q <= 23 ? t('{q}: good', { q }) : q <= 26 ? t('{q}: smaller', { q }) : t('{q}: smallest', { q }) }))} />
         </Row>
-        <Row dim={!converting} label="Speed" desc="Slower makes smaller files for the same quality.">
-          <Segmented label="Speed" value={(p.video.speed || 'balanced') as 'faster' | 'balanced' | 'slower'} onChange={(v) => video({ speed: v })} options={[{ value: 'faster', label: 'Faster' }, { value: 'balanced', label: 'Balanced' }, { value: 'slower', label: 'Slower' }]} />
+        <Row dim={!converting} label={t('Speed')} desc={t('Slower makes smaller files for the same quality.')}>
+          <Segmented label={t('Speed')} value={(p.video.speed || 'balanced') as 'faster' | 'balanced' | 'slower'} onChange={(v) => video({ speed: v })} options={[{ value: 'faster', label: t('Faster') }, { value: 'balanced', label: t('Balanced') }, { value: 'slower', label: t('Slower') }]} />
         </Row>
-        <Row dim={!converting} label="Largest picture" desc="Anything taller is made this size.">
-          <Select disabled={!converting} value={String(p.video.maxHeight)} onChange={(e) => video({ maxHeight: Number(e.target.value) })} options={[{ value: '0', label: 'Keep its size' }, { value: '2160', label: '4K (2160p)' }, { value: '1080', label: '1080p' }, { value: '720', label: '720p' }, { value: '480', label: '480p' }]} />
+        <Row dim={!converting} label={t('Largest picture')} desc={t('Anything taller is made this size.')}>
+          <Select disabled={!converting} value={String(p.video.maxHeight)} onChange={(e) => video({ maxHeight: Number(e.target.value) })} options={[{ value: '0', label: t('Keep its size') }, { value: '2160', label: '4K (2160p)' }, { value: '1080', label: '1080p' }, { value: '720', label: '720p' }, { value: '480', label: '480p' }]} />
         </Row>
-        <Row label="HDR pictures" desc={options.capabilities.toneMap ? 'Ordinary pictures play on every screen, and lose the extra brightness and colour.' : 'Ordinary pictures play on every screen, but this server’s FFmpeg can’t make them, so those files would be left alone.'}>
-          <Select value={p.video.hdr} onChange={(e) => video({ hdr: e.target.value })} options={[{ value: 'keep', label: 'Keep HDR' }, { value: 'tonemap', label: 'Make an ordinary picture' }, { value: 'refuse', label: 'Leave those files alone' }]} />
+        <Row label={t('HDR pictures')} desc={options.capabilities.toneMap ? t('Ordinary pictures play on every screen, and lose the extra brightness and colour.') : t('Ordinary pictures play on every screen, but this server’s FFmpeg can’t make them, so those files would be left alone.')}>
+          <Select value={p.video.hdr} onChange={(e) => video({ hdr: e.target.value })} options={[{ value: 'keep', label: t('Keep HDR') }, { value: 'tonemap', label: t('Make an ordinary picture') }, { value: 'refuse', label: t('Leave those files alone') }]} />
         </Row>
-        <Row label="Dolby Vision" desc="It only survives if the picture isn’t converted. Files with no ordinary HDR layer inside (profile 5) can’t be converted either way.">
-          <Select value={p.video.dolbyVision} onChange={(e) => video({ dolbyVision: e.target.value })} options={[{ value: 'keep', label: 'Keep it: leave a file alone rather than lose it' }, { value: 'base', label: 'Convert from the ordinary layer, losing it' }]} />
+        <Row label={t('Dolby Vision')} desc={t('It only survives if the picture isn’t converted. Files with no ordinary HDR layer inside (profile 5) can’t be converted either way.')}>
+          <Select value={p.video.dolbyVision} onChange={(e) => video({ dolbyVision: e.target.value })} options={[{ value: 'keep', label: t('Keep it: leave a file alone rather than lose it') }, { value: 'base', label: t('Convert from the ordinary layer, losing it') }]} />
         </Row>
-        <Row dim={!converting} label="Make 10-bit pictures 8-bit" desc="Many older devices can’t show 10-bit. Some smooth gradients may show bands.">
-          <Switch label="Make 10-bit pictures 8-bit" disabled={!converting} checked={p.video.eightBit} onChange={(v) => video({ eightBit: v })} />
+        <Row dim={!converting} label={t('Make 10-bit pictures 8-bit')} desc={t('Many older devices can’t show 10-bit. Some smooth gradients may show bands.')}>
+          <Switch label={t('Make 10-bit pictures 8-bit')} disabled={!converting} checked={p.video.eightBit} onChange={(v) => video({ eightBit: v })} />
         </Row>
-        <Row dim={!converting} label="Deinterlace" desc="Old TV recordings and DVDs store two half-pictures per frame. This makes whole ones.">
-          <Switch label="Deinterlace" disabled={!converting} checked={p.video.deinterlace} onChange={(v) => video({ deinterlace: v })} />
+        <Row dim={!converting} label={t('Deinterlace')} desc={t('Old TV recordings and DVDs store two half-pictures per frame. This makes whole ones.')}>
+          <Switch label={t('Deinterlace')} disabled={!converting} checked={p.video.deinterlace} onChange={(v) => video({ deinterlace: v })} />
         </Row>
-        <Row dim={!converting} label="Make a varying frame rate constant" desc="Phone videos and screen recordings often vary, and some devices stutter on them. Left off, it stays as it is, and sound stays in step either way.">
-          <Switch label="Make a varying frame rate constant" disabled={!converting} checked={p.video.constantRate} onChange={(v) => video({ constantRate: v })} />
+        <Row dim={!converting} label={t('Make a varying frame rate constant')} desc={t('Phone videos and screen recordings often vary, and some devices stutter on them. Left off, it stays as it is, and sound stays in step either way.')}>
+          <Switch label={t('Make a varying frame rate constant')} disabled={!converting} checked={p.video.constantRate} onChange={(v) => video({ constantRate: v })} />
         </Row>
-        <Row label="3D films" desc="One eye makes an ordinary film, which is the same picture to anyone without 3D glasses.">
-          <Select value={p.video.threeD} onChange={(e) => video({ threeD: e.target.value })} options={[{ value: 'keep', label: 'Keep both eyes' }, { value: 'flatten', label: 'Keep one eye' }, { value: 'refuse', label: 'Leave those files alone' }]} />
+        <Row label={t('3D films')} desc={t('One eye makes an ordinary film, which is the same picture to anyone without 3D glasses.')}>
+          <Select value={p.video.threeD} onChange={(e) => video({ threeD: e.target.value })} options={[{ value: 'keep', label: t('Keep both eyes') }, { value: 'flatten', label: t('Keep one eye') }, { value: 'refuse', label: t('Leave those files alone') }]} />
         </Row>
-        <Row label="Files with more than one picture" desc="Some files hold other camera angles or a small inset picture. Most players only show the main one, which is the largest unless the file says otherwise. Cover pictures are always kept.">
-          <Select value={p.video.extraVideo} onChange={(e) => video({ extraVideo: e.target.value })} options={[{ value: 'keep', label: 'Keep them all' }, { value: 'drop', label: 'Keep only the main picture' }]} />
+        <Row label={t('Files with more than one picture')} desc={t('Some files hold other camera angles or a small inset picture. Most players only show the main one, which is the largest unless the file says otherwise. Cover pictures are always kept.')}>
+          <Select value={p.video.extraVideo} onChange={(e) => video({ extraVideo: e.target.value })} options={[{ value: 'keep', label: t('Keep them all') }, { value: 'drop', label: t('Keep only the main picture') }]} />
         </Row>
-        <Row dim={!converting} label="Smallest saving worth keeping" desc="If a new file doesn’t come out at least this much smaller, the old one stays and it isn’t tried again.">
-          <Select disabled={!converting} value={String(p.video.minSavingPercent)} onChange={(e) => video({ minSavingPercent: Number(e.target.value) })} options={[...new Set([0, 5, 10, 20, 30, p.video.minSavingPercent])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: n === 0 ? 'Any size' : `${n}% smaller` }))} />
+        <Row dim={!converting} label={t('Smallest saving worth keeping')} desc={t('If a new file doesn’t come out at least this much smaller, the old one stays and it isn’t tried again.')}>
+          <Select disabled={!converting} value={String(p.video.minSavingPercent)} onChange={(e) => video({ minSavingPercent: Number(e.target.value) })} options={[...new Set([0, 5, 10, 20, 30, p.video.minSavingPercent])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: n === 0 ? t('Any size') : t('{n}% smaller', { n }) }))} />
         </Row>
       </details>
 
       <details className="ltc-more big">
-        <summary>Sound details</summary>
-        <Row label="Which sound tracks" desc="At least one track always stays, whatever you choose here.">
-          <Select value={p.audio.keep} onChange={(e) => audio({ keep: e.target.value })} options={[{ value: 'all', label: 'Keep them all' }, { value: 'languages', label: 'Only these languages' }]} />
+        <summary>{t('Sound details')}</summary>
+        <Row label={t('Which sound tracks')} desc={t('At least one track always stays, whatever you choose here.')}>
+          <Select value={p.audio.keep} onChange={(e) => audio({ keep: e.target.value })} options={[{ value: 'all', label: t('Keep them all') }, { value: 'languages', label: t('Only these languages') }]} />
         </Row>
-        {p.audio.keep === 'languages' && <LanguageList label="Languages to keep, in this order" list={p.audio.languages} onChange={(languages) => audio({ languages })} />}
+        {p.audio.keep === 'languages' && <LanguageList label={t('Languages to keep, in this order')} list={p.audio.languages} onChange={(languages) => audio({ languages })} />}
         {p.audio.keep === 'languages' && (
-          <Row label="Also keep the original language" desc="Whatever the film was made in, if the file says or its first track shows it.">
-            <Switch label="Also keep the original language" checked={p.audio.keepOriginal} onChange={(v) => audio({ keepOriginal: v })} />
+          <Row label={t('Also keep the original language')} desc={t('Whatever the film was made in, if the file says or its first track shows it.')}>
+            <Switch label={t('Also keep the original language')} checked={p.audio.keepOriginal} onChange={(v) => audio({ keepOriginal: v })} />
           </Row>
         )}
-        <Row label="Plays first" desc="The language chosen when a viewer hasn’t said what they want.">
+        <Row label={t('Plays first')} desc={t('The language chosen when a viewer hasn’t said what they want.')}>
           <Select value={p.audio.default} onChange={(e) => audio({ default: e.target.value })}>
-            <option value="">What the file says</option>
+            <option value="">{t('What the file says')}</option>
             {LANGUAGES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
           </Select>
         </Row>
-        <Row label="Tracks that don’t say their language">
+        <Row label={t('Tracks that don’t say their language')}>
           <Select value={p.audio.untagged} onChange={(e) => audio({ untagged: e.target.value })} options={yesNo} />
         </Row>
-        <Row label="Label those tracks as" desc="If you know what they are.">
+        <Row label={t('Label those tracks as')} desc={t('If you know what they are.')}>
           <Select value={p.audio.untaggedAs} onChange={(e) => audio({ untaggedAs: e.target.value })}>
-            <option value="">Leave them unlabelled</option>
+            <option value="">{t('Leave them unlabelled')}</option>
             {LANGUAGES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
           </Select>
         </Row>
-        <Row label="Commentary tracks"><Select value={p.audio.commentary} onChange={(e) => audio({ commentary: e.target.value })} options={yesNo} /></Row>
-        <Row label="Audio description" desc="A voice describing what’s on screen, for people who can’t see it."><Select value={p.audio.description} onChange={(e) => audio({ description: e.target.value })} options={yesNo} /></Row>
-        <Row label="Sound format" desc="AAC plays everywhere. Dolby Digital Plus keeps surround and passes through to most sound systems. Opus is smallest, and needs MKV.">
-          <Select value={p.audio.codec} onChange={(e) => audio({ codec: e.target.value })} options={[{ value: 'keep', label: 'Leave as it is' }, { value: 'aac', label: 'AAC' }, { value: 'eac3', label: 'Dolby Digital Plus' }, { value: 'ac3', label: 'Dolby Digital' }, ...(options.capabilities.opus ? [{ value: 'opus', label: 'Opus' }] : [])]} />
+        <Row label={t('Commentary tracks')}><Select value={p.audio.commentary} onChange={(e) => audio({ commentary: e.target.value })} options={yesNo} /></Row>
+        <Row label={t('Audio description')} desc={t('A voice describing what’s on screen, for people who can’t see it.')}><Select value={p.audio.description} onChange={(e) => audio({ description: e.target.value })} options={yesNo} /></Row>
+        <Row label={t('Sound format')} desc={t('AAC plays everywhere. Dolby Digital Plus keeps surround and passes through to most sound systems. Opus is smallest, and needs MKV.')}>
+          <Select value={p.audio.codec} onChange={(e) => audio({ codec: e.target.value })} options={[{ value: 'keep', label: t('Leave as it is') }, { value: 'aac', label: 'AAC' }, { value: 'eac3', label: 'Dolby Digital Plus' }, { value: 'ac3', label: 'Dolby Digital' }, ...(options.capabilities.opus ? [{ value: 'opus', label: 'Opus' }] : [])]} />
         </Row>
-        <Row label="Lossless sound" desc="TrueHD, DTS-HD MA, FLAC and PCM sound exactly like the master, and often take as much room as a small film.">
-          <Select value={p.audio.lossless} onChange={(e) => audio({ lossless: e.target.value })} options={[{ value: 'keep', label: 'Keep' }, { value: 'convert', label: 'Convert to the format above' }]} />
+        <Row label={t('Lossless sound')} desc={t('TrueHD, DTS-HD MA, FLAC and PCM sound exactly like the master, and often take as much room as a small film.')}>
+          <Select value={p.audio.lossless} onChange={(e) => audio({ lossless: e.target.value })} options={[{ value: 'keep', label: t('Keep') }, { value: 'convert', label: t('Convert to the format above') }]} />
         </Row>
-        <Row label="Object sound (Atmos, DTS:X)" desc="Its height and object information doesn’t survive conversion. Tracks left as they are keep it.">
-          <Select value={p.audio.objects} onChange={(e) => audio({ objects: e.target.value })} options={[{ value: 'keep', label: 'Keep' }, { value: 'convert', label: 'Convert, losing it' }]} />
+        <Row label={t('Object sound (Atmos, DTS:X)')} desc={t('Its height and object information doesn’t survive conversion. Tracks left as they are keep it.')}>
+          <Select value={p.audio.objects} onChange={(e) => audio({ objects: e.target.value })} options={[{ value: 'keep', label: t('Keep') }, { value: 'convert', label: t('Convert, losing it') }]} />
         </Row>
-        <Row label="Most channels" desc="Wider tracks are converted down.">
-          <Select value={String(p.audio.maxChannels)} onChange={(e) => audio({ maxChannels: Number(e.target.value) })} options={[{ value: '0', label: 'No limit' }, { value: '8', label: '7.1' }, { value: '6', label: '5.1' }, { value: '2', label: 'Stereo' }]} />
+        <Row label={t('Most channels')} desc={t('Wider tracks are converted down.')}>
+          <Select value={String(p.audio.maxChannels)} onChange={(e) => audio({ maxChannels: Number(e.target.value) })} options={[{ value: '0', label: t('No limit') }, { value: '8', label: '7.1' }, { value: '6', label: '5.1' }, { value: '2', label: t('Stereo') }]} />
         </Row>
-        <Row label="Add a stereo track beside surround" desc="Where a language has only surround sound, so that phones, headphones and TVs without a sound system have something simple to play.">
-          <Switch label="Add a stereo track beside surround" checked={p.audio.addStereo} onChange={(v) => audio({ addStereo: v })} />
+        <Row label={t('Add a stereo track beside surround')} desc={t('Where a language has only surround sound, so that phones, headphones and TVs without a sound system have something simple to play.')}>
+          <Switch label={t('Add a stereo track beside surround')} checked={p.audio.addStereo} onChange={(v) => audio({ addStereo: v })} />
         </Row>
-        <Row dim={!p.audio.addStereo} label="Put stereo ahead of surround" desc="Plain devices start with the first track.">
-          <Switch label="Put stereo ahead of surround" disabled={!p.audio.addStereo} checked={p.audio.stereoFirst} onChange={(v) => audio({ stereoFirst: v })} />
+        <Row dim={!p.audio.addStereo} label={t('Put stereo ahead of surround')} desc={t('Plain devices start with the first track.')}>
+          <Switch label={t('Put stereo ahead of surround')} disabled={!p.audio.addStereo} checked={p.audio.stereoFirst} onChange={(v) => audio({ stereoFirst: v })} />
         </Row>
       </details>
 
       <details className="ltc-more big">
-        <summary>Subtitle details</summary>
-        <Row label="Which subtitles">
-          <Select value={p.subtitles.keep} onChange={(e) => subs({ keep: e.target.value })} options={[{ value: 'all', label: 'Keep them all' }, { value: 'languages', label: 'Only these languages' }, { value: 'none', label: 'Remove them' }]} />
+        <summary>{t('Subtitle details')}</summary>
+        <Row label={t('Which subtitles')}>
+          <Select value={p.subtitles.keep} onChange={(e) => subs({ keep: e.target.value })} options={[{ value: 'all', label: t('Keep them all') }, { value: 'languages', label: t('Only these languages') }, { value: 'none', label: t('Remove them') }]} />
         </Row>
-        {p.subtitles.keep === 'languages' && <LanguageList label="Subtitle languages to keep, in this order" list={p.subtitles.languages} onChange={(languages) => subs({ languages })} />}
-        <Row label="Forced subtitles" desc="Only the lines in another language, such as a character speaking French in an English film. Burned-in ones can’t be turned off, and burning means converting the picture.">
-          <Select value={p.subtitles.forced} onChange={(e) => subs({ forced: e.target.value })} options={[{ value: 'keep', label: 'Keep as tracks' }, { value: 'burn-images', label: 'Burn in if stored as pictures and the file type needs it' }, { value: 'burn', label: 'Always burn into the picture' }, { value: 'drop', label: 'Remove' }]} />
+        {p.subtitles.keep === 'languages' && <LanguageList label={t('Subtitle languages to keep, in this order')} list={p.subtitles.languages} onChange={(languages) => subs({ languages })} />}
+        <Row label={t('Forced subtitles')} desc={t('Only the lines in another language, such as a character speaking French in an English film. Burned-in ones can’t be turned off, and burning means converting the picture.')}>
+          <Select value={p.subtitles.forced} onChange={(e) => subs({ forced: e.target.value })} options={[{ value: 'keep', label: t('Keep as tracks') }, { value: 'burn-images', label: t('Burn in if stored as pictures and the file type needs it') }, { value: 'burn', label: t('Always burn into the picture') }, { value: 'drop', label: t('Remove') }]} />
         </Row>
-        <Row label="SDH subtitles" desc="With sound descriptions, for people who can’t hear."><Select value={p.subtitles.sdh} onChange={(e) => subs({ sdh: e.target.value })} options={yesNo} /></Row>
-        <Row label="Subtitles that don’t say their language"><Select value={p.subtitles.untagged} onChange={(e) => subs({ untagged: e.target.value })} options={yesNo} /></Row>
-        <Row label="Subtitles stored as pictures" desc="Blu-ray and DVD subtitles are pictures, and they can’t become text here: that would need character recognition, which this doesn’t do. An MP4 can’t hold them at all.">
-          <Select value={p.subtitles.images} onChange={(e) => subs({ images: e.target.value })} options={[{ value: 'keep', label: 'Keep them, staying in MKV if need be' }, { value: 'export', label: 'Save Blu-ray ones as a file beside the video' }, { value: 'drop', label: 'Remove' }]} />
+        <Row label={t('SDH subtitles')} desc={t('With sound descriptions, for people who can’t hear.')}><Select value={p.subtitles.sdh} onChange={(e) => subs({ sdh: e.target.value })} options={yesNo} /></Row>
+        <Row label={t('Subtitles that don’t say their language')}><Select value={p.subtitles.untagged} onChange={(e) => subs({ untagged: e.target.value })} options={yesNo} /></Row>
+        <Row label={t('Subtitles stored as pictures')} desc={t('Blu-ray and DVD subtitles are pictures, and they can’t become text here: that would need character recognition, which this doesn’t do. An MP4 can’t hold them at all.')}>
+          <Select value={p.subtitles.images} onChange={(e) => subs({ images: e.target.value })} options={[{ value: 'keep', label: t('Keep them, staying in MKV if need be') }, { value: 'export', label: t('Save Blu-ray ones as a file beside the video') }, { value: 'drop', label: t('Remove') }]} />
         </Row>
-        <Row label="Text subtitles" desc="Plain text is the most widely shown, and loses colours and positioning. An MP4 always converts them to its own kind.">
-          <Select value={p.subtitles.text} onChange={(e) => subs({ text: e.target.value })} options={[{ value: 'keep', label: 'Keep as they are' }, { value: 'srt', label: 'Make them plain text' }]} />
+        <Row label={t('Text subtitles')} desc={t('Plain text is the most widely shown, and loses colours and positioning. An MP4 always converts them to its own kind.')}>
+          <Select value={p.subtitles.text} onChange={(e) => subs({ text: e.target.value })} options={[{ value: 'keep', label: t('Keep as they are') }, { value: 'srt', label: t('Make them plain text') }]} />
         </Row>
-        <Row label="Subtitle files beside the video" desc="Files such as Film.en.srt. Left where they are, they keep working, since the name stays the same. Moved inside, the file is no longer needed.">
-          <Select value={p.subtitles.sidecars} onChange={(e) => subs({ sidecars: e.target.value })} options={[{ value: 'leave', label: 'Leave them where they are' }, { value: 'embed', label: 'Move text ones inside the new file' }]} />
+        <Row label={t('Subtitle files beside the video')} desc={t('Files such as Film.en.srt. Left where they are, they keep working, since the name stays the same. Moved inside, the file is no longer needed.')}>
+          <Select value={p.subtitles.sidecars} onChange={(e) => subs({ sidecars: e.target.value })} options={[{ value: 'leave', label: t('Leave them where they are') }, { value: 'embed', label: t('Move text ones inside the new file') }]} />
         </Row>
       </details>
     </div>
@@ -350,19 +351,19 @@ function LanguageList({ label, list, onChange }: { label: string; list: string[]
   return (
     <Row stack label={label}>
       <div className="ltc-langs">
-        {list.length === 0 && <p className="ltc-muted">None yet. Add one from the list.</p>}
+        {list.length === 0 && <p className="ltc-muted">{t('None yet. Add one from the list.')}</p>}
         <ol>
           {list.map((c, i) => (
             <li key={c}>
               <span>{languageName(c)}</span>
-              <Button size="sm" variant="ghost" disabled={i === 0} aria-label={`Move ${languageName(c)} up`} onClick={() => move(i, -1)}>Up</Button>
-              <Button size="sm" variant="ghost" disabled={i === list.length - 1} aria-label={`Move ${languageName(c)} down`} onClick={() => move(i, 1)}>Down</Button>
-              <Button size="sm" variant="ghost" aria-label={`Remove ${languageName(c)}`} onClick={() => onChange(list.filter((x) => x !== c))}>Remove</Button>
+              <Button size="sm" variant="ghost" disabled={i === 0} aria-label={t('Move {name} up', { name: languageName(c) })} onClick={() => move(i, -1)}>{t('Up')}</Button>
+              <Button size="sm" variant="ghost" disabled={i === list.length - 1} aria-label={t('Move {name} down', { name: languageName(c) })} onClick={() => move(i, 1)}>{t('Down')}</Button>
+              <Button size="sm" variant="ghost" aria-label={t('Remove {name}', { name: languageName(c) })} onClick={() => onChange(list.filter((x) => x !== c))}>{t('Remove')}</Button>
             </li>
           ))}
         </ol>
-        <Select aria-label="Add a language" value="" onChange={(e) => add(e.target.value)}>
-          <option value="">Add a language…</option>
+        <Select aria-label={t('Add a language')} value="" onChange={(e) => add(e.target.value)}>
+          <option value="">{t('Add a language…')}</option>
           {LANGUAGES.filter(([c]) => !list.includes(c)).map(([c, n]) => <option key={c} value={c}>{n}</option>)}
         </Select>
       </div>
@@ -380,14 +381,14 @@ function TryOneFile({ lib, policy }: { lib: Library; policy: Policy }) {
   const [busy, setBusy] = useState('')
   useEffect(() => {
     let gone = false
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       api.get<{ id: number; title: string; kind: string }[]>(`/libtranscode/libraries/${lib.id}/items?q=${encodeURIComponent(q)}`).then((l) => {
         if (gone) return
         setItems(l)
         setItem((cur) => (l.some((x) => x.id === cur) ? cur : (l[0]?.id ?? 0)))
       }).catch(() => { if (!gone) setItems([]) })
     }, q ? 250 : 0)
-    return () => { gone = true; clearTimeout(t) }
+    return () => { gone = true; clearTimeout(timer) }
   }, [lib.id, q])
   // A changed recipe makes what's shown out of date.
   useEffect(() => { setPreview(null); setSample(null) }, [policy, item])
@@ -401,41 +402,41 @@ function TryOneFile({ lib, policy }: { lib: Library; policy: Policy }) {
   }
   const convertible = preview?.parts.some((p) => p.plan.verdict === 'convert' || p.plan.verdict === 'remux')
   return (
-    <Section title="Try it on one file" desc="Shows what would become of each track. Nothing is changed.">
+    <Section title={tk('Try it on one file')} desc={t('Shows what would become of each track. Nothing is changed.')}>
       <div className="ltc-pick">
-        <Field label="Find a file"><Input value={q} placeholder="Part of its title" onChange={(e) => setQ(e.target.value)} /></Field>
-        <Field label="File">
+        <Field label={t('Find a file')}><Input value={q} placeholder={t('Part of its title')} onChange={(e) => setQ(e.target.value)} /></Field>
+        <Field label={t('File')}>
           <Select value={String(item)} disabled={!items?.length} onChange={(e) => setItem(Number(e.target.value))}>
-            {items?.length === 0 && <option value="0">Nothing found</option>}
+            {items?.length === 0 && <option value="0">{t('Nothing found')}</option>}
             {items?.map((i) => <option key={i.id} value={i.id}>{i.title}</option>)}
           </Select>
         </Field>
       </div>
       <p className="ltc-actions">
-        <Button variant="primary" disabled={!item} busy={busy === 'preview'} onClick={show}>Show what would happen</Button>
-        {convertible && <Button busy={busy === 'sample'} onClick={measure}>Time a 20-second test</Button>}
+        <Button variant="primary" disabled={!item} busy={busy === 'preview'} onClick={show}>{t('Show what would happen')}</Button>
+        {convertible && <Button busy={busy === 'sample'} onClick={measure}>{t('Time a 20-second test')}</Button>}
       </p>
       {sample && (
-        <Notice tone="ok" title="Measured on this machine.">
-          20 seconds took {fmtDuration(Math.max(1, Math.round(sample.took)))}, or {sample.speed.toFixed(1)} times real time. The whole film would take about {fmtDuration(Math.round(sample.estFileSec))} and come to about {fmtBytes(sample.estFileBytes)}. {sample.note}
+        <Notice tone="ok" title={t('Measured on this machine.')}>
+          {t('20 seconds took {took}, or {speed} times real time. The whole film would take about {time} and come to about {size}.', { took: fmtDuration(Math.max(1, Math.round(sample.took))), speed: num(sample.speed, { minimumFractionDigits: 1, maximumFractionDigits: 1 }), time: fmtDuration(Math.round(sample.estFileSec)), size: fmtBytes(sample.estFileBytes) })} {tx(sample.note)}
         </Notice>
       )}
       <div aria-live="polite">
-        {preview?.parts.map((part, i) => <PlanView key={part.path} plan={part.plan} size={part.size} heading={preview.parts.length > 1 ? `Part ${i + 1}` : ''} />)}
+        {preview?.parts.map((part, i) => <PlanView key={part.path} plan={part.plan} size={part.size} heading={preview.parts.length > 1 ? t('Part {n}', { n: i + 1 }) : ''} />)}
       </div>
     </Section>
   )
 }
 
 const VERDICTS: Record<string, { label: string; tone: 'ok' | 'info' | 'warn' }> = {
-  convert: { label: 'Will be converted', tone: 'info' },
-  remux: { label: 'Will be tidied', tone: 'ok' },
-  skip: { label: 'Nothing to do', tone: 'ok' },
-  refuse: { label: 'Left alone', tone: 'warn' },
+  convert: { label: tk('Will be converted'), tone: 'info' },
+  remux: { label: tk('Will be tidied'), tone: 'ok' },
+  skip: { label: tk('Nothing to do'), tone: 'ok' },
+  refuse: { label: tk('Left alone'), tone: 'warn' },
 }
 
-const ACTION_WORDS: Record<string, string> = { keep: 'Keep', convert: 'Convert', drop: 'Remove', add: 'Add', burn: 'Burn in', export: 'Save beside', embed: 'Move inside', leave: 'Leave' }
-const KIND_WORDS: Record<string, string> = { video: 'Picture', cover: 'Cover', audio: 'Sound', subtitle: 'Subtitles', attachment: 'Attached files', data: 'Other', file: 'Files beside it' }
+const ACTION_WORDS: Record<string, string> = { keep: tk('Keep'), convert: tk('Convert'), drop: tk('Remove'), add: tk('Add'), burn: tk('Burn in'), export: tk('Save beside'), embed: tk('Move inside'), leave: tk('Leave') }
+const KIND_WORDS: Record<string, string> = { video: tk('Picture'), cover: tk('Cover'), audio: tk('Sound'), subtitle: tk('Subtitles'), attachment: tk('Attached files'), data: tk('Other'), file: tk('Files beside it') }
 
 function PlanView({ plan, size, heading }: { plan: Step['plan']; size: number; heading?: string }) {
   const v = VERDICTS[plan.verdict] ?? VERDICTS.skip
@@ -451,22 +452,22 @@ function PlanView({ plan, size, heading }: { plan: Step['plan']; size: number; h
   return (
     <div className="ltc-plan">
       {heading && <h3>{heading}</h3>}
-      <Notice tone={v.tone} title={v.label}>{plan.reason}</Notice>
-      {plan.warnings.map((w) => <Notice key={w} tone="warn">{w}</Notice>)}
-      {plan.notes.map((w) => <p key={w} className="ltc-note"><IconInfo size={16} /> {w}</p>)}
+      <Notice tone={v.tone} title={tx(v.label)}>{tx(plan.reason)}</Notice>
+      {plan.warnings.map((w) => <Notice key={w} tone="warn">{tx(w)}</Notice>)}
+      {plan.notes.map((w) => <p key={w} className="ltc-note"><IconInfo size={16} /> {tx(w)}</p>)}
       {(plan.verdict === 'convert' || plan.verdict === 'remux') && plan.estBytes > 0 && (
-        <p className="ltc-muted">Rough estimate: {fmtBytes(size)} becomes about {fmtBytes(plan.estBytes)}, taking about {fmtDuration(Math.max(60, Math.round(plan.estSec)))} here. A 20-second test measures it properly.</p>
+        <p className="ltc-muted">{t('Rough estimate: {from} becomes about {to}, taking about {time} here. A 20-second test measures it properly.', { from: fmtBytes(size), to: fmtBytes(plan.estBytes), time: fmtDuration(Math.max(60, Math.round(plan.estSec))) })}</p>
       )}
       {kinds.map(([kind, steps]) => (
         <div key={kind} className="ltc-steps">
-          <h4>{KIND_WORDS[kind] ?? kind}</h4>
+          <h4>{tx(KIND_WORDS[kind] ?? kind)}</h4>
           <ul>
             {steps.map((st, i) => (
               <li key={i} className={'ltc-step ' + st.action}>
-                <span className="ltc-step-act">{ACTION_WORDS[st.action] ?? st.action}</span>
+                <span className="ltc-step-act">{tx(ACTION_WORDS[st.action] ?? st.action)}</span>
                 <span className="ltc-step-what">
-                  <span>{st.from}{st.to && st.action !== 'keep' ? <> <span className="ltc-arrow" aria-hidden="true">→</span><span className="ltc-sr"> becomes </span>{st.to}</> : null}</span>
-                  {st.why && <small>{st.why}</small>}
+                  <span>{st.from}{st.to && st.action !== 'keep' ? <> <span className="ltc-arrow" aria-hidden="true">→</span><span className="ltc-sr"> {t('becomes')} </span>{st.to}</> : null}</span>
+                  {st.why && <small>{tx(st.why)}</small>}
                 </span>
               </li>
             ))}
@@ -488,7 +489,7 @@ function Whole({ lib, policy, output, dirty, settings, save, saving, onEnded }: 
     api.get<Run[]>(`/libtranscode/runs?library=${lib.id}`).then(setRuns).catch(() => setFailed(true))
   }, [lib.id])
   useEffect(load, [load])
-  const live = a.tasks.find((t) => t.type === 'convert' && t.libraryId === lib.id)
+  const live = a.tasks.find((x) => x.type === 'convert' && x.libraryId === lib.id)
   const going = runs?.some((r) => r.state === 'running' || r.state === 'queued')
   // The activity stream says when something has moved. Without it (it can be turned off),
   // asking now and then while something's going is all there is.
@@ -496,8 +497,8 @@ function Whole({ lib, policy, output, dirty, settings, save, saving, onEnded }: 
   useEffect(() => { load(); if (!liveId) onEnded() }, [load, liveId]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!going || (a.access.visible && a.connected)) return
-    const t = setInterval(load, 5000)
-    return () => clearInterval(t)
+    const timer = setInterval(load, 5000)
+    return () => clearInterval(timer)
   }, [going, a.access.visible, a.connected, load])
   const dry = async () => {
     setBusy('dry')
@@ -508,57 +509,57 @@ function Whole({ lib, policy, output, dirty, settings, save, saving, onEnded }: 
   const start = async () => {
     const s = lastDry?.summary
     const count = s ? s.convert + s.remux : 0
-    const after = { keep: 'Old files then move to a hidden folder beside them, until you decide.', replace: 'Old files are then deleted for good.', beside: 'Old files stay in use, with a copy written beside each one.' }[lib.rule.output] ?? ''
+    const after = ({ keep: t('Old files then move to a hidden folder beside them, until you decide.'), replace: t('Old files are then deleted for good.'), beside: t('Old files stay in use, with a copy written beside each one.') } as Record<string, string>)[lib.rule.output] ?? ''
     if (!await ask({
-      title: `Convert ${lib.name}?`,
-      body: `${s ? `The last check found ${count.toLocaleString()} files to change.` : 'You haven’t checked this library yet, so there’s no estimate.'} Each new file is checked before anything happens to the old one. ${after} You can pause or cancel it here or in the activity panel.`,
-      confirm: 'Start converting',
+      title: t('Convert {name}?', { name: lib.name }),
+      body: [s ? t('The last check found {count} files to change.', { count: num(count) }) : t('You haven’t checked this library yet, so there’s no estimate.'), t('Each new file is checked before anything happens to the old one.'), after, t('You can pause or cancel it here or in the activity panel.')].filter(Boolean).join(' '),
+      confirm: t('Start converting'),
     })) return
     setBusy('start')
     try { await api.post(`/libtranscode/libraries/${lib.id}/runs`, { dry: false }); load() } catch (e) { toast((e as Error).message) } finally { setBusy('') }
   }
-  const blocked = !settings.enabled ? 'Turn library transcoding on first, at the top of this page.' : lib.blocked
+  const blocked = !settings.enabled ? t('Turn library transcoding on first, at the top of this page.') : tx(lib.blocked)
   return (
-    <Section title="This whole library" desc="A check looks at every file and changes nothing. It’s the way to see what you’d get before you start.">
+    <Section title={tk('This whole library')} desc={t('A check looks at every file and changes nothing. It’s the way to see what you’d get before you start.')}>
       <p className="ltc-actions">
-        <Button disabled={busy === 'dry' || !!live} busy={busy === 'dry'} icon={<IconRefresh size={16} />} onClick={dry}>Check this library</Button>
-        <Button variant="primary" disabled={!!blocked || dirty || !!live || busy === 'start' || !lib.rule.saved} busy={busy === 'start'} onClick={start}>Start converting</Button>
+        <Button disabled={busy === 'dry' || !!live} busy={busy === 'dry'} icon={<IconRefresh size={16} />} onClick={dry}>{t('Check this library')}</Button>
+        <Button variant="primary" disabled={!!blocked || dirty || !!live || busy === 'start' || !lib.rule.saved} busy={busy === 'start'} onClick={start}>{t('Start converting')}</Button>
       </p>
       {blocked && <p className="ltc-muted">{blocked}</p>}
-      {!blocked && dirty && <p className="ltc-muted">Save your changes first: a run does what’s saved.</p>}
-      {!blocked && !dirty && !lib.rule.saved && <p className="ltc-actions"><span className="ltc-muted">This library has no recipe saved yet. A run does what’s saved.</span> <Button size="sm" busy={saving} onClick={save}>Save this recipe</Button></p>}
+      {!blocked && dirty && <p className="ltc-muted">{t('Save your changes first: a run does what’s saved.')}</p>}
+      {!blocked && !dirty && !lib.rule.saved && <p className="ltc-actions"><span className="ltc-muted">{t('This library has no recipe saved yet. A run does what’s saved.')}</span> <Button size="sm" busy={saving} onClick={save}>{t('Save this recipe')}</Button></p>}
       {live && <LiveRun task={live} />}
-      {failed && <LoadError what="The results" onRetry={load} />}
-      {runs && latest && !live && <RunResult key={latest.id} run={latest} heading={latest.dry ? 'Latest check' : latest.auto ? 'Latest automatic conversion' : 'Latest conversion'} />}
+      {failed && <LoadError what={t('The results')} onRetry={load} />}
+      {runs && latest && !live && <RunResult key={latest.id} run={latest} heading={latest.dry ? t('Latest check') : latest.auto ? t('Latest automatic conversion') : t('Latest conversion')} />}
       {runs && <Past runs={runs.filter((r) => r.id !== latest?.id)} />}
     </Section>
   )
 }
 
-function LiveRun({ task: t }: { task: Task }) {
+function LiveRun({ task }: { task: Task }) {
   const [busy, setBusy] = useState(false)
   const act = async (what: 'pause' | 'resume' | 'cancel') => {
     setBusy(true)
-    try { await taskAction(t.id, what) } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
+    try { await taskAction(task.id, what) } catch (e) { toast((e as Error).message) } finally { setBusy(false) }
   }
   return (
     <div className="ltc-live" aria-live="polite">
-      <div className="ltc-live-head"><b>{t.title}</b><span>{t.state === 'paused' ? 'Paused' : t.state === 'queued' ? 'Waiting' : `${Math.max(0, Math.round(t.percent))}%`}</span></div>
-      <Progress label={t.title} value={t.percent >= 0 ? t.percent : undefined} />
-      {t.phase && <div className="ltc-muted">{t.phase}</div>}
-      {t.item && <div className="ltc-muted ltc-path">{t.item}</div>}
-      {!!t.etaSec && <div className="ltc-muted">About {fmtDuration(t.etaSec)} left</div>}
-      {!!t.problemCount && <div className="ltc-muted">{t.problemCount} {t.problemCount === 1 ? 'problem' : 'problems'} so far. They’re in the activity panel.</div>}
+      <div className="ltc-live-head"><b>{tx(task.title)}</b><span>{task.state === 'paused' ? t('Paused') : task.state === 'queued' ? t('Waiting') : `${Math.max(0, Math.round(task.percent))}%`}</span></div>
+      <Progress label={tx(task.title)} value={task.percent >= 0 ? task.percent : undefined} />
+      {task.phase && <div className="ltc-muted">{tx(task.phase)}</div>}
+      {task.item && <div className="ltc-muted ltc-path">{task.item}</div>}
+      {!!task.etaSec && <div className="ltc-muted">{t('About {time} left', { time: fmtDuration(task.etaSec) })}</div>}
+      {!!task.problemCount && <div className="ltc-muted">{tn('{count} problem so far. They’re in the activity panel.', '{count} problems so far. They’re in the activity panel.', task.problemCount)}</div>}
       <p className="ltc-actions">
-        {t.canPause && <Button size="sm" disabled={busy} icon={<IconPause size={16} />} onClick={() => act('pause')}>Pause</Button>}
-        {t.canResume && <Button size="sm" disabled={busy} icon={<IconPlay size={16} />} onClick={() => act('resume')}>Resume</Button>}
-        {t.canCancel && <Button size="sm" variant="ghost" disabled={busy} icon={<IconStop size={16} />} onClick={() => act('cancel')}>Cancel</Button>}
+        {task.canPause && <Button size="sm" disabled={busy} icon={<IconPause size={16} />} onClick={() => act('pause')}>{t('Pause')}</Button>}
+        {task.canResume && <Button size="sm" disabled={busy} icon={<IconPlay size={16} />} onClick={() => act('resume')}>{t('Resume')}</Button>}
+        {task.canCancel && <Button size="sm" variant="ghost" disabled={busy} icon={<IconStop size={16} />} onClick={() => act('cancel')}>{t('Cancel')}</Button>}
       </p>
     </div>
   )
 }
 
-const STATE_WORDS: Record<string, string> = { planned: 'To do', pending: 'Waiting', running: 'Converting', done: 'Done', skipped: 'Nothing to do', refused: 'Left alone', failed: 'Failed', changed: 'Changed meanwhile', notworth: 'Not worth it', postponed: 'Being played', undone: 'Put back' }
+const STATE_WORDS: Record<string, string> = { planned: tk('To do'), pending: tk('Waiting'), running: tk('Converting'), done: tk('Done'), skipped: tk('Nothing to do'), refused: tk('Left alone'), failed: tk('Failed'), changed: tk('Changed meanwhile'), notworth: tk('Not worth it'), postponed: tk('Being played'), undone: tk('Put back') }
 
 function Tile({ value, label }: { value: ReactNode; label: string }) {
   return <div className="ltc-tile"><b>{value}</b><span>{label}</span></div>
@@ -580,50 +581,50 @@ function RunResult({ run, heading }: { run: Run; heading?: string }) {
   useEffect(load, [load])
   const changed = s.convert + s.remux
   const filters = run.dry
-    ? [['', 'All'], ['planned', 'To do'], ['skipped', 'Nothing to do'], ['refused', 'Left alone']]
-    : [['', 'All'], ['done', 'Done'], ['failed', 'Failed'], ['notworth', 'Not worth it'], ['postponed', 'Being played'], ['skipped', 'Nothing to do'], ['refused', 'Left alone']]
+    ? [['', t('All')], ['planned', t('To do')], ['skipped', t('Nothing to do')], ['refused', t('Left alone')]]
+    : [['', t('All')], ['done', t('Done')], ['failed', t('Failed')], ['notworth', t('Not worth it')], ['postponed', t('Being played')], ['skipped', t('Nothing to do')], ['refused', t('Left alone')]]
   return (
     <div className="ltc-result">
       {heading && <h3>{heading}</h3>}
       <div className="ltc-tiles">
-        <Tile value={s.files.toLocaleString()} label="files looked at" />
-        <Tile value={s.convert.toLocaleString()} label="to convert" />
-        <Tile value={s.remux.toLocaleString()} label="only to tidy" />
-        <Tile value={s.skip.toLocaleString()} label="nothing to do" />
-        <Tile value={s.refuse.toLocaleString()} label="left alone" />
-        {!run.dry && <Tile value={s.done.toLocaleString()} label="done" />}
-        {!run.dry && !!s.notWorth && <Tile value={s.notWorth.toLocaleString()} label="came out no smaller" />}
-        {!run.dry && !!s.postponed && <Tile value={s.postponed.toLocaleString()} label="being played" />}
-        {!run.dry && !!s.failed && <Tile value={s.failed.toLocaleString()} label="failed" />}
+        <Tile value={num(s.files)} label={t('files looked at')} />
+        <Tile value={num(s.convert)} label={t('to convert')} />
+        <Tile value={num(s.remux)} label={t('only to tidy')} />
+        <Tile value={num(s.skip)} label={t('nothing to do')} />
+        <Tile value={num(s.refuse)} label={t('left alone')} />
+        {!run.dry && <Tile value={num(s.done)} label={t('done')} />}
+        {!run.dry && !!s.notWorth && <Tile value={num(s.notWorth)} label={t('came out no smaller')} />}
+        {!run.dry && !!s.postponed && <Tile value={num(s.postponed)} label={t('being played')} />}
+        {!run.dry && !!s.failed && <Tile value={num(s.failed)} label={t('failed')} />}
       </div>
       {run.dry && changed > 0 && (
         <>
-          <p>Rough estimate: the library goes from <b>{fmtBytes(s.bytesBefore)}</b> to about <b>{fmtBytes(s.estBytes)}</b>, taking about <b>{fmtDuration(Math.max(60, Math.round(s.estSec)))}</b> of processor work. Pauses for people watching come on top. Try a file above for a real measurement.</p>
+          <p>{t('Rough estimate: the library goes from {from} to about {to}, taking about {time} of processor work.', { from: fmtBytes(s.bytesBefore), to: fmtBytes(s.estBytes), time: fmtDuration(Math.max(60, Math.round(s.estSec))) })} {t('Pauses for people watching come on top. Try a file above for a real measurement.')}</p>
           {s.drives?.map((d) => (
-            <Notice key={d.folder} tone={d.enough ? 'ok' : 'danger'} title={d.enough ? 'Enough room' : 'Not enough room'}>
-              {d.folder}: {fmtBytes(d.free)} free, and this may need about {fmtBytes(d.needs)} while working. {d.enough ? '' : 'Files that don’t fit will wait and be reported. Free up some space, or choose to replace originals.'}
+            <Notice key={d.folder} tone={d.enough ? 'ok' : 'danger'} title={d.enough ? t('Enough room') : t('Not enough room')}>
+              {t('{folder}: {free} free, and this may need about {needs} while working.', { folder: d.folder, free: fmtBytes(d.free), needs: fmtBytes(d.needs) })} {d.enough ? '' : t('Files that don’t fit will wait and be reported. Free up some space, or choose to replace originals.')}
             </Notice>
           ))}
         </>
       )}
-      {!run.dry && s.done > 0 && <p>Files that were changed now take <b>{fmtBytes(s.bytesAfter)}</b>.</p>}
-      {run.dry && changed === 0 && <Notice tone="ok" title="Nothing to do">Every file here already matches this recipe, or is being left alone for a reason shown below.</Notice>}
-      <Chips label="Show">
+      {!run.dry && s.done > 0 && <p>{t('Files that were changed now take {size}.', { size: fmtBytes(s.bytesAfter) })}</p>}
+      {run.dry && changed === 0 && <Notice tone="ok" title={t('Nothing to do')}>{t('Every file here already matches this recipe, or is being left alone for a reason shown below.')}</Notice>}
+      <Chips label={t('Show')}>
         {filters.map(([v, l]) => <Chip key={v} selected={state === v} onClick={() => { setState(v); setPage(0) }}>{l}</Chip>)}
       </Chips>
-      {failed && <LoadError what="This list" onRetry={load} />}
-      {files && files.length === 0 && <p className="ltc-muted">No files here.</p>}
+      {failed && <LoadError what={t('This list')} onRetry={load} />}
+      {files && files.length === 0 && <p className="ltc-muted">{t('No files here.')}</p>}
       <ul className="ltc-files">
         {files?.map((f) => (
           <li key={f.id}>
             <details className="ltc-more">
               <summary>
                 <span className="ltc-file-name">{f.path.split(/[\\/]/).pop()}</span>
-                <span className={'ltc-chip ' + f.state}>{f.state === 'pending' && run.state !== 'running' && run.state !== 'queued' ? 'Not done' : STATE_WORDS[f.state] ?? f.state}</span>
+                <span className={'ltc-chip ' + f.state}>{f.state === 'pending' && run.state !== 'running' && run.state !== 'queued' ? t('Not done') : tx(STATE_WORDS[f.state] ?? f.state)}</span>
               </summary>
               <p className="ltc-muted ltc-path">{f.path}</p>
-              {f.message && <p>{f.message}</p>}
-              {f.state === 'done' && f.sizeAfter > 0 && <p className="ltc-muted">{fmtBytes(f.sizeBefore)} became {fmtBytes(f.sizeAfter)}.</p>}
+              {f.message && <p>{tx(f.message)}</p>}
+              {f.state === 'done' && f.sizeAfter > 0 && <p className="ltc-muted">{t('{from} became {to}.', { from: fmtBytes(f.sizeBefore), to: fmtBytes(f.sizeAfter) })}</p>}
               {f.plan && <PlanView plan={f.plan} size={f.sizeBefore} />}
             </details>
           </li>
@@ -631,29 +632,29 @@ function RunResult({ run, heading }: { run: Run; heading?: string }) {
       </ul>
       {total > PAGE && (
         <p className="ltc-actions">
-          <Button size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Earlier</Button>
-          <span className="ltc-muted">{page * PAGE + 1} to {Math.min((page + 1) * PAGE, total)} of {total.toLocaleString()}</span>
-          <Button size="sm" disabled={(page + 1) * PAGE >= total} onClick={() => setPage(page + 1)}>Later</Button>
+          <Button size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>{t('Earlier')}</Button>
+          <span className="ltc-muted">{t('{from} to {to} of {total}', { from: num(page * PAGE + 1), to: num(Math.min((page + 1) * PAGE, total)), total: num(total) })}</span>
+          <Button size="sm" disabled={(page + 1) * PAGE >= total} onClick={() => setPage(page + 1)}>{t('Later')}</Button>
         </p>
       )}
     </div>
   )
 }
 
-const RUN_WORDS: Record<string, string> = { queued: 'Waiting', running: 'Going', done: 'Finished', failed: 'Failed', cancelled: 'Cancelled', interrupted: 'Stopped by a restart' }
+const RUN_WORDS: Record<string, string> = { queued: tk('Waiting'), running: tk('Going'), done: tk('Finished'), failed: tk('Failed'), cancelled: tk('Cancelled'), interrupted: tk('Stopped by a restart') }
 
 function Past({ runs }: { runs: Run[] }) {
   if (!runs.length) return null
   return (
     <details className="ltc-more big">
-      <summary>Earlier runs ({runs.length})</summary>
+      <summary>{t('Earlier runs ({count})', { count: runs.length })}</summary>
       <ul className="ltc-files">
         {runs.map((r) => (
           <li key={r.id}>
             <details className="ltc-more">
               <summary>
-                <span className="ltc-file-name">{r.dry ? 'Check' : r.auto ? 'Automatic conversion' : 'Conversion'}, {new Date(r.createdAt * 1000).toLocaleString()}</span>
-                <span className={'ltc-chip ' + r.state}>{RUN_WORDS[r.state] ?? r.state}</span>
+                <span className="ltc-file-name">{t('{what}, {when}', { what: r.dry ? t('Check') : r.auto ? t('Automatic conversion') : t('Conversion'), when: date(r.createdAt * 1000, { dateStyle: 'medium', timeStyle: 'short' }) })}</span>
+                <span className={'ltc-chip ' + r.state}>{tx(RUN_WORDS[r.state] ?? r.state)}</span>
               </summary>
               <RunResult run={r} />
             </details>
@@ -684,23 +685,23 @@ function Leftovers({ lib }: { lib: Library }) {
   }
   const remove = async (f: FileRow) => {
     const kept = !!f.keptPath
-    if (!await ask({ title: kept ? 'Delete the original for good?' : 'Delete the converted copy?', body: kept ? 'It can’t be put back after this.' : 'The original stays as it is, and in use.', confirm: 'Delete', danger: true })) return
+    if (!await ask({ title: kept ? t('Delete the original for good?') : t('Delete the converted copy?'), body: kept ? t('It can’t be put back after this.') : t('The original stays as it is, and in use.'), confirm: t('Delete'), danger: true })) return
     act(f, 'delete')
   }
   return (
-    <Section title="Originals and copies" desc="What’s waiting for a decision. Kept originals are in a hidden folder beside each film, and take up room until you delete them.">
+    <Section title={tk('Originals and copies')} desc={t('What’s waiting for a decision. Kept originals are in a hidden folder beside each film, and take up room until you delete them.')}>
       <ul className="ltc-files">
         {files.map((f) => (
           <li key={f.id} className="ltc-left">
             <div>
               <div className="ltc-file-name">{f.path.split(/[\\/]/).pop()}</div>
-              <div className="ltc-muted">{f.keptPath ? `Original kept: ${fmtBytes(f.sizeBefore)}. The new file is ${fmtBytes(f.sizeAfter)}.` : `A copy is waiting beside it: ${fmtBytes(f.sizeAfter)}, against ${fmtBytes(f.sizeBefore)}.`}</div>
+              <div className="ltc-muted">{f.keptPath ? t('Original kept: {before}. The new file is {after}.', { before: fmtBytes(f.sizeBefore), after: fmtBytes(f.sizeAfter) }) : t('A copy is waiting beside it: {after}, against {before}.', { before: fmtBytes(f.sizeBefore), after: fmtBytes(f.sizeAfter) })}</div>
             </div>
             <div className="ltc-actions">
               {f.keptPath
-                ? <Button size="sm" disabled={busy === f.id} onClick={() => act(f, 'undo')}>Put the original back</Button>
-                : <Button size="sm" disabled={busy === f.id} icon={<IconCheck size={16} />} onClick={() => act(f, 'use')}>Use the copy</Button>}
-              <Button size="sm" variant="ghost" disabled={busy === f.id} icon={<IconTrash size={16} />} onClick={() => remove(f)}>{f.keptPath ? 'Delete the original' : 'Delete the copy'}</Button>
+                ? <Button size="sm" disabled={busy === f.id} onClick={() => act(f, 'undo')}>{t('Put the original back')}</Button>
+                : <Button size="sm" disabled={busy === f.id} icon={<IconCheck size={16} />} onClick={() => act(f, 'use')}>{t('Use the copy')}</Button>}
+              <Button size="sm" variant="ghost" disabled={busy === f.id} icon={<IconTrash size={16} />} onClick={() => remove(f)}>{f.keptPath ? t('Delete the original') : t('Delete the copy')}</Button>
             </div>
           </li>
         ))}

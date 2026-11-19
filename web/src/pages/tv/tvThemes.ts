@@ -7,6 +7,9 @@
 // A shape is how the guide is built: its proportions, corners, rules and type. tv.css and
 // tvthemes.css draw each one. A theme is a shape with colours and a name; Custom is a shape and
 // colours someone chose.
+// Marks English to be translated where it's shown (tk in ../../i18n; this file imports nothing, so it's tested on its own).
+const tk = <S extends string>(english: S): S => english
+
 export type Shape = 'box' | 'modern' | 'receiver' | 'teletext' | 'listings' | 'cinema' | 'outline' | 'compact'
 export type ThemeId = 'modern' | 'classic' | 'satellite' | 'teletext' | 'listings' | 'bigpicture' | 'outline' | 'compact' | 'custom'
 export type Font = '' | 'system' | 'narrow' | 'mono' | 'serif'
@@ -15,12 +18,12 @@ export type Font = '' | 'system' | 'narrow' | 'mono' | 'serif'
 export type Slot = 'bg' | 'cell' | 'live' | 'hi' | 'accent' | 'text'
 export type Colours = Partial<Record<Slot, string>>
 export const SLOTS: { slot: Slot; name: string; hint: string }[] = [
-  { slot: 'bg', name: 'Background', hint: 'Behind everything, and the panels are worked out from it' },
-  { slot: 'cell', name: 'Programmes', hint: 'The cells in the grid' },
-  { slot: 'live', name: 'On now', hint: 'Cells for what is on at this moment' },
-  { slot: 'hi', name: 'Highlight', hint: 'What has the keyboard, and what is selected' },
-  { slot: 'accent', name: 'Accent', hint: 'Channel numbers, the line at the current time, progress' },
-  { slot: 'text', name: 'Text', hint: 'Words on the background' },
+  { slot: 'bg', name: tk('Background'), hint: tk('Behind everything, and the panels are worked out from it') },
+  { slot: 'cell', name: tk('Programmes'), hint: tk('The cells in the grid') },
+  { slot: 'live', name: tk('On now'), hint: tk('Cells for what is on at this moment') },
+  { slot: 'hi', name: tk('Highlight'), hint: tk('What has the keyboard, and what is selected') },
+  { slot: 'accent', name: tk('Accent'), hint: tk('Channel numbers, the line at the current time, progress') },
+  { slot: 'text', name: tk('Text'), hint: tk('Words on the background') },
 ]
 
 export type ShapeInfo = {
@@ -38,29 +41,29 @@ export type ShapeInfo = {
 }
 
 export const SHAPES: Record<Shape, ShapeInfo> = {
-  box: { name: 'Cable box', rows: [56, 64, 72], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
-  modern: { name: 'Modern', rows: [64, 76, 80], preview: 0.38, side: 'right', art: true, details: true, rowHighlight: true },
-  receiver: { name: 'Receiver', rows: [56, 58, 70], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
-  teletext: { name: 'Teletext', rows: [52, 50, 64], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
-  listings: { name: 'Newspaper', rows: [60, 62, 72], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
-  cinema: { name: 'Big picture', rows: [56, 54, 64], preview: 0.48, side: 'left', art: false, details: true, rowHighlight: true },
-  outline: { name: 'Outline', rows: [60, 66, 76], preview: 0.36, side: 'right', art: true, details: true, rowHighlight: false, noSlots: ['cell', 'live'] },
-  compact: { name: 'Compact', rows: [44, 40, 56], preview: 0.22, side: 'right', art: false, details: true, rowHighlight: false, noSlots: ['cell'] },
+  box: { name: tk('Cable box'), rows: [56, 64, 72], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  modern: { name: tk('Modern'), rows: [64, 76, 80], preview: 0.38, side: 'right', art: true, details: true, rowHighlight: true },
+  receiver: { name: tk('Receiver'), rows: [56, 58, 70], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  teletext: { name: tk('Teletext'), rows: [52, 50, 64], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  listings: { name: tk('Newspaper'), rows: [60, 62, 72], preview: 0.34, side: 'right', art: false, details: false, rowHighlight: false },
+  cinema: { name: tk('Big picture'), rows: [56, 54, 64], preview: 0.48, side: 'left', art: false, details: true, rowHighlight: true },
+  outline: { name: tk('Outline'), rows: [60, 66, 76], preview: 0.36, side: 'right', art: true, details: true, rowHighlight: false, noSlots: ['cell', 'live'] },
+  compact: { name: tk('Compact'), rows: [44, 40, 56], preview: 0.22, side: 'right', art: false, details: true, rowHighlight: false, noSlots: ['cell'] },
 }
 
 export type TvTheme = { id: ThemeId; name: string; blurb: string; shape: Shape; follows: boolean }
 
 // follows: its colours come from the app's theme, until someone overrides them here.
 export const THEMES: TvTheme[] = [
-  { id: 'modern', name: 'Modern', blurb: 'Clean and calm, with the programme\'s picture up top and a big preview.', shape: 'modern', follows: true },
-  { id: 'classic', name: 'Classic', blurb: 'The chunky blue box of the early 2000s, bevelled and square.', shape: 'box', follows: false },
-  { id: 'satellite', name: 'Satellite', blurb: 'A receiver\'s display: black and amber, thin rules, digits like an LED.', shape: 'receiver', follows: false },
-  { id: 'teletext', name: 'Teletext', blurb: 'Blocky letters and eight flat colours on black, page number and all.', shape: 'teletext', follows: false },
-  { id: 'listings', name: 'Newspaper', blurb: 'The listings page: ink on paper, serif type and hairline rules.', shape: 'listings', follows: false },
-  { id: 'bigpicture', name: 'Big picture', blurb: 'The preview comes first and takes half the width, over a short grid.', shape: 'cinema', follows: true },
-  { id: 'outline', name: 'Outline', blurb: 'Light and open: cells are outlines, and only the highlight is filled.', shape: 'outline', follows: true },
-  { id: 'compact', name: 'Compact', blurb: 'Small type and tight rows, for seeing the most channels at once.', shape: 'compact', follows: true },
-  { id: 'custom', name: 'Custom', blurb: 'Your own: choose the layout, type and colours, and it stays yours.', shape: 'modern', follows: true },
+  { id: 'modern', name: tk('Modern'), blurb: tk('Clean and calm, with the programme\'s picture up top and a big preview.'), shape: 'modern', follows: true },
+  { id: 'classic', name: tk('Classic'), blurb: tk('The chunky blue box of the early 2000s, bevelled and square.'), shape: 'box', follows: false },
+  { id: 'satellite', name: tk('Satellite'), blurb: tk('A receiver\'s display: black and amber, thin rules, digits like an LED.'), shape: 'receiver', follows: false },
+  { id: 'teletext', name: tk('Teletext'), blurb: tk('Blocky letters and eight flat colours on black, page number and all.'), shape: 'teletext', follows: false },
+  { id: 'listings', name: tk('Newspaper'), blurb: tk('The listings page: ink on paper, serif type and hairline rules.'), shape: 'listings', follows: false },
+  { id: 'bigpicture', name: tk('Big picture'), blurb: tk('The preview comes first and takes half the width, over a short grid.'), shape: 'cinema', follows: true },
+  { id: 'outline', name: tk('Outline'), blurb: tk('Light and open: cells are outlines, and only the highlight is filled.'), shape: 'outline', follows: true },
+  { id: 'compact', name: tk('Compact'), blurb: tk('Small type and tight rows, for seeing the most channels at once.'), shape: 'compact', follows: true },
+  { id: 'custom', name: tk('Custom'), blurb: tk('Your own: choose the layout, type and colours, and it stays yours.'), shape: 'modern', follows: true },
 ]
 
 export const themeById = (id: string | undefined) => THEMES.find((t) => t.id === id)
@@ -238,7 +241,7 @@ export const PAIRS: [string, string, number][] = [
 // ------------------------------------------------------------------ type
 
 export const FONTS: { v: Font; name: string }[] = [
-  { v: '', name: 'As the layout has it' }, { v: 'system', name: 'Plain' }, { v: 'narrow', name: 'Narrow' }, { v: 'mono', name: 'Typewriter' }, { v: 'serif', name: 'Newspaper' },
+  { v: '', name: tk('As the layout has it') }, { v: 'system', name: tk('Plain') }, { v: 'narrow', name: tk('Narrow') }, { v: 'mono', name: tk('Typewriter') }, { v: 'serif', name: tk('Newspaper') },
 ]
 export const FONT_STACKS: Record<Exclude<Font, ''>, string> = {
   system: 'var(--font)',

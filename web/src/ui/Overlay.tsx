@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { t } from '../i18n'
 import { IconClose } from '../icons'
 import { Button, IconButton } from './Button'
 import { openBackEntry } from './backEntry'
@@ -42,7 +43,7 @@ export function Dialog({ title, onClose, children, actions, size = 'md', classNa
         onKeyDown={alert ? (e) => { if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') { e.preventDefault(); onClose() } } : undefined}>
         <header className="ui-dialog-head">
           <h2 id={id + 't'}>{title}</h2>
-          {!hideClose && !alert && <IconButton label="Close" size="sm" hideTip onClick={onClose}><IconClose /></IconButton>}
+          {!hideClose && !alert && <IconButton label={t('Close')} size="sm" hideTip onClick={onClose}><IconClose /></IconButton>}
         </header>
         {description && <p className="ui-dialog-desc" id={id + 'd'}>{description}</p>}
         {children}
@@ -61,7 +62,7 @@ export function Sheet({ title, onClose, children, actions, className }: Pick<Dia
       <div className={'modal ui-sheet' + (className ? ' ' + className : '')} role="dialog" aria-modal="true" aria-labelledby={id}>
         <header className="ui-dialog-head">
           <h2 id={id}>{title}</h2>
-          <IconButton label="Close" size="sm" hideTip onClick={onClose}><IconClose /></IconButton>
+          <IconButton label={t('Close')} size="sm" hideTip onClick={onClose}><IconClose /></IconButton>
         </header>
         <div className="ui-sheet-body">{children}</div>
         {actions && <div className="actions">{actions}</div>}
@@ -105,8 +106,8 @@ export function AskHost() {
   return (
     <Dialog alert size="sm" title={cur.title} onClose={() => answer(false)} description={cur.body}
       actions={<>
-        <Button variant="ghost" autoFocus onClick={() => answer(false)}>{cur.cancel || 'Cancel'}</Button>
-        <Button variant={cur.danger ? 'danger' : 'primary'} onClick={() => answer(true)}>{cur.confirm || 'OK'}</Button>
+        <Button variant="ghost" autoFocus onClick={() => answer(false)}>{cur.cancel || t('Cancel')}</Button>
+        <Button variant={cur.danger ? 'danger' : 'primary'} onClick={() => answer(true)}>{cur.confirm || t('OK')}</Button>
       </>} />
   )
 }

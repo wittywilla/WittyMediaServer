@@ -1,0 +1,12 @@
+{
+  "Control bar": "Thanh điều khiển",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Chi tiết đặt mọi nút lên thanh. Đơn giản giữ cho hình ảnh thoáng: phát và tua ở giữa, còn lại (âm thanh, phụ đề, chất lượng, tốc độ, cảnh) nằm trong một menu Tùy chọn. Tự động là đơn giản trên điện thoại hoặc máy tính bảng và chi tiết trên màn hình rộng hơn.",
+  "Detailed": "Chi tiết",
+  "Back to options": "Quay lại tùy chọn",
+  "Mono": "Mono",
+  "Styled text": "Chữ có định dạng",
+  "Keep playing in a corner": "Tiếp tục phát ở góc màn hình",
+  "{count} watching": {
+    "other": "{count} người đang xem"
+  }
+}

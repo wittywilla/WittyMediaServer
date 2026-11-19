@@ -14,6 +14,7 @@ import { useApp } from '../state'
 import { avatarColor } from '../ui/avatarColor'
 import { AvatarShape, parseAvatar } from '../ui/avatars'
 import { useTvMode } from '../tvmode/mode'
+import { t } from '../i18n'
 
 type Profile = { id: number; name: string; displayName?: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; avatar?: string }
 
@@ -50,14 +51,14 @@ export default function AuthPage() {
   if (!style) return <div className="center"><div className="spinner" /></div>
   if (changing) return <ConnectServer onCancel={() => setChanging(false)} />
   if (pairing) return <div className="center"><PairDevice onBack={() => setPairing(false)} /></div>
-  const withPhone = <button type="button" className="btn ghost" onClick={() => setPairing(true)}>Sign in with your phone</button>
-  const changeServer = isNativeShell() && <button type="button" className="btn ghost sm" onClick={() => setChanging(true)}>Change server</button>
+  const withPhone = <button type="button" className="btn ghost" onClick={() => setPairing(true)}>{t('Sign in with your phone')}</button>
+  const changeServer = isNativeShell() && <button type="button" className="btn ghost sm" onClick={() => setChanging(true)}>{t('Change server')}</button>
 
   if (style === 'profiles' && !chosen && !other) {
     return (
       <div className="who">
         <div className="who-brand"><BrandMark /><Brand name={brandName} /></div>
-        <h1>Who's watching?</h1>
+        <h1>{t('Who’s watching?')}</h1>
         <ul className="who-grid" role="list">
           {profiles!.map((p, i) => (
             <li key={p.id}>
@@ -65,16 +66,16 @@ export default function AuthPage() {
                 <Avatar name={profileName(p)} avatar={p.avatar} big />
                 <span className="who-name">{profileName(p)}</span>
                 {tv && profileName(p) !== p.name && <span className="who-user">@{p.name}</span>}
-                {p.kind !== 'adult' && <span className={'who-kind kind-' + p.kind}>{p.kind === 'kids' ? 'Kids' : 'Guest'}</span>}
+                {p.kind !== 'adult' && <span className={'who-kind kind-' + p.kind}>{p.kind === 'kids' ? t('Kids') : t('Guest')}</span>}
               </button>
             </li>
           ))}
         </ul>
         {tapErr && <div className="error" role="alert">{tapErr}</div>}
-        <button type="button" className="btn ghost" onClick={() => setOther(true)}>Sign in with another account</button>
+        <button type="button" className="btn ghost" onClick={() => setOther(true)}>{t('Sign in with another account')}</button>
         {withPhone}
         {changeServer}
-        <div className="auth-version"><VersionTag version={version} /> · <Link to="/away">Connect from away</Link> · <Link to="/help">Help</Link> · <Link to="/legal">Legal</Link></div>
+        <div className="auth-version"><VersionTag version={version} /> · <Link to="/away">{t('Connect from away')}</Link> · <Link to="/help">{t('Help')}</Link> · <Link to="/legal">{t('Legal')}</Link></div>
       </div>
     )
   }
@@ -83,7 +84,7 @@ export default function AuthPage() {
       <PasswordForm profile={chosen} onBack={style === 'profiles' ? () => { setChosen(null); setOther(false) } : undefined} />
       {!chosen && withPhone}
       {changeServer}
-      <div className="auth-version"><VersionTag version={version} /> · <Link to="/away">Connect from away</Link> · <Link to="/help">Help</Link> · <Link to="/legal">Legal</Link></div>
+      <div className="auth-version"><VersionTag version={version} /> · <Link to="/away">{t('Connect from away')}</Link> · <Link to="/help">{t('Help')}</Link> · <Link to="/legal">{t('Legal')}</Link></div>
     </div>
   )
 }
@@ -112,7 +113,7 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
         setCode('')
         return
       }
-      setErr(e.message || 'Sign-in failed')
+      setErr(e.message || t('Sign-in failed'))
       setNeedCode(false)
       setCode('')
       setPassword('')

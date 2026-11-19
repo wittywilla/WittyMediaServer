@@ -10,6 +10,12 @@ import type { PlaybackOutput, QualityLimits, QualityPreset, QualityView, StreamW
 // profile's. Choosing in the player's menu changes this device's default for where it is now.
 // Plain logic and storage, no React, so the tests run it as it is.
 
+// Words: no i18n import, so the tests run this file as it is. t() fills in {names} in English until the app
+// hands over its own translator (QualityMenu.tsx does, on loading).
+type Words = (english: string, vars?: Record<string, string | number>) => string
+let t: Words = (s, vars) => (vars ? s.replace(/\{(\w+)\}/g, (w, n: string) => (vars[n] == null ? w : String(vars[n]))) : s)
+export const qualityWords = (f: Words) => { t = f }
+
 export type Choice = { maxHeight: number; maxKbps: number; videoCodec: string; audioKbps: number; audioChannels: number }
 export const EMPTY: Choice = { maxHeight: 0, maxKbps: 0, videoCodec: '', audioKbps: 0, audioChannels: 0 }
 
@@ -61,14 +67,14 @@ export function entryOf(choice: string, presets: QualityPreset[]): string {
 // Rough data use, as people say it.
 export function rate(kbps: number): string {
   if (!kbps) return ''
-  if (kbps < 1000) return `${Math.round(kbps)} kbps`
+  if (kbps < 1000) return t('{n} kbps', { n: Math.round(kbps) })
   const m = kbps / 1000
-  return `${m >= 10 || Number.isInteger(m) ? Math.round(m) : m.toFixed(1)} Mbps`
+  return t('{n} Mbps', { n: m >= 10 || Number.isInteger(m) ? Math.round(m) : Number(m.toFixed(1)) })
 }
 // Per hour of watching, for the notes: "about 3.6 GB an hour".
 export function perHour(kbps: number): string {
   const gb = (kbps * 3600) / 8 / 1e6
-  return gb >= 1 ? `${gb >= 10 ? Math.round(gb) : gb.toFixed(1)} GB an hour` : `${Math.round(gb * 1000)} MB an hour`
+  return gb >= 1 ? t('{n} GB an hour', { n: gb >= 10 ? Math.round(gb) : Number(gb.toFixed(1)) }) : t('{n} MB an hour', { n: Math.round(gb * 1000) })
 }
 
 // A picture's size as people name it: 4K, 1080p.
@@ -85,11 +91,11 @@ export function sizeName(height: number, width = 0): string {
 // A short description of a choice, for the chip and announcements.
 export function describe(choice: string, presets: QualityPreset[]): string {
   const e = entryOf(choice, presets)
-  if (e === 'auto') return 'Auto'
-  if (e === 'original') return 'Original'
+  if (e === 'auto') return t('Auto')
+  if (e === 'original') return t('Original')
   if (e !== 'custom') return e
   const c = parseChoice(choice)!
-  return [c.maxHeight ? sizeName(c.maxHeight) : '', c.maxKbps ? rate(c.maxKbps) : ''].filter(Boolean).join(' · ') || 'Custom'
+  return [c.maxHeight ? sizeName(c.maxHeight) : '', c.maxKbps ? rate(c.maxKbps) : ''].filter(Boolean).join(' · ') || t('Custom')
 }
 
 // The highest the menu may offer.
@@ -151,11 +157,11 @@ export function streamLines(decision: string | undefined, out: PlaybackOutput | 
   const w = seen?.width || out?.width || 0, h = seen?.height || out?.height || 0
   if (w && h) lines.push(`${w}×${h}${sizeName(h, w) ? ` (${sizeName(h, w)})` : ''}`)
   const kbps = seen?.kbps || out?.kbps || 0
-  if (kbps) lines.push(`${rate(kbps)}${decision === 'transcode' && !seen?.kbps ? ' at most' : ''}`)
+  if (kbps) lines.push(decision === 'transcode' && !seen?.kbps ? t('{rate} at most', { rate: rate(kbps) }) : rate(kbps))
   const v = out?.videoCodec ? codecName(out.videoCodec) : ''
   const a = out?.audioCodec ? [codecName(out.audioCodec), out.audioChannels ? channelName(out.audioChannels) : '', out.audioKbps ? rate(out.audioKbps) : ''].filter(Boolean).join(' ') : ''
   if (v || a) lines.push([v, a].filter(Boolean).join(' · '))
-  const mode = decision === 'direct' ? 'Direct play' : decision === 'remux' ? 'Direct stream (rewrapped)' : decision === 'transcode' ? 'Converting' : decision === 'live' ? 'Live' : ''
+  const mode = decision === 'direct' ? t('Direct play') : decision === 'remux' ? t('Direct stream (rewrapped)') : decision === 'transcode' ? t('Converting') : decision === 'live' ? t('Live') : ''
   if (mode) lines.push(mode)
   const work = workLine(out?.work)
   if (work && decision !== 'direct' && decision !== 'remux') lines.push(work)
@@ -166,15 +172,14 @@ export function streamLines(decision: string | undefined, out: PlaybackOutput | 
 export function workLine(w: StreamWork | undefined): string {
   if (!w?.encoder || w.encoder === 'copy') return ''
   const name = encoderName(w.encoder)
-  if (!w.gpuEncode) return `CPU: the processor converts it (${name})`
-  const steps = [w.gpuDecode ? 'decodes, resizes' : '', w.gpuToneMap ? 'maps HDR' : '', 'encodes'].filter(Boolean)
-  const and = steps.length > 1 ? steps.slice(0, -1).join(', ') + ' and ' + steps[steps.length - 1] : steps[0]
-  return `GPU: the graphics chip ${and} (${name})${w.gpuDecode ? '' : '; the processor decodes'}`
+  if (!w.gpuEncode) return t('CPU: the processor converts it ({name})', { name })
+  if (w.gpuDecode) return w.gpuToneMap ? t('GPU: the graphics chip decodes, resizes, maps HDR and encodes ({name})', { name }) : t('GPU: the graphics chip decodes, resizes and encodes ({name})', { name })
+  return w.gpuToneMap ? t('GPU: the graphics chip maps HDR and encodes ({name}); the processor decodes', { name }) : t('GPU: the graphics chip encodes ({name}); the processor decodes', { name })
 }
 
 const CODECS: Record<string, string> = { h264: 'H.264', hevc: 'HEVC', av1: 'AV1', vp9: 'VP9', vp8: 'VP8', mpeg2video: 'MPEG-2', aac: 'AAC', ac3: 'Dolby Digital', eac3: 'Dolby Digital Plus', mp3: 'MP3', opus: 'Opus', flac: 'FLAC', dts: 'DTS', truehd: 'Dolby TrueHD' }
 export const codecName = (c: string) => CODECS[c] || c.toUpperCase()
-export const channelName = (n: number) => (n === 1 ? 'mono' : n === 2 ? 'stereo' : n === 6 ? '5.1' : n === 8 ? '7.1' : `${n} ch`)
+export const channelName = (n: number) => (n === 1 ? t('mono') : n === 2 ? t('stereo') : n === 6 ? '5.1' : n === 8 ? '7.1' : t('{n} ch', { n }))
 const ENCODERS: Record<string, string> = { libx264: 'x264', libopenh264: 'OpenH264', h264_nvenc: 'NVIDIA NVENC', h264_qsv: 'Intel Quick Sync', h264_amf: 'AMD AMF', h264_vaapi: 'VA-API', h264_videotoolbox: 'VideoToolbox' }
 export const encoderName = (e: string) => ENCODERS[e] || e
 

@@ -158,7 +158,9 @@ export function Theme({ info, next, back }: StepProps) {
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   // Nothing is chosen until someone does: then the theme stays the look's own, whichever look is picked later.
   const [chosen, setChosen] = useState(false)
-  const [pick, setPick] = useState(serverTheme)
+  const chosenNow = useRef(false)
+  // Until someone chooses, the theme ticked is the one the look on the page before wears.
+  const [pick, setPick] = useState(currentLook()?.theme || serverTheme)
   const [own, setOwn] = useState(false)
   useEffect(() => { getLooks(false).then((l) => setOwn(!!l.experiences?.profileThemes)).catch(() => {}) }, [])
   const file = useRef<HTMLInputElement | null>(null)
@@ -167,13 +169,17 @@ export function Theme({ info, next, back }: StepProps) {
   useEffect(() => {
     api.get<{ experiences: Card[]; default: string }>('/sdui/experiences').then((r) => {
       const id = chosenLayout || currentLook()?.experience || r.default
-      setLayout(r.experiences.find((c) => c.id === id) || r.experiences[0] || null)
+      const c = r.experiences.find((x) => x.id === id) || r.experiences[0] || null
+      setLayout(c)
+      // The look's own theme, unless one was picked while this was on its way.
+      if (c?.theme && !chosenNow.current) { setPick(c.theme); applyTheme(c.theme) }
     }).catch(() => {})
   }, [])
   const load = () => api.get<{ themes: ThemeMeta[] }>('/themes').then((r) => setThemes(r.themes)).catch(() => {})
   useEffect(() => { void load() }, [])
-  const choose = (id: string) => { setChosen(true); setPick(id); applyTheme(id) }
-  const follow = () => { setChosen(false); const c = currentLook(); setPick(c?.theme || serverTheme); applyTheme(c?.theme || serverTheme) }
+  const mark = (v: boolean) => { chosenNow.current = v; setChosen(v) }
+  const choose = (id: string) => { mark(true); setPick(id); applyTheme(id) }
+  const follow = () => { mark(false); const t = layout?.theme || currentLook()?.theme || serverTheme; setPick(t); applyTheme(t) }
   const importZip = async (f: File) => {
     const headers: Record<string, string> = { 'Content-Type': 'application/zip' }
     const tok = getToken()
@@ -212,7 +218,7 @@ export function Theme({ info, next, back }: StepProps) {
       )}
       <h2 className="oobe-sub">{t('How people use it')}</h2>
       <div className="su-gap su-how">
-        <TickRow kind="switch" checked={!chosen} onChange={(v) => { if (v) follow(); else setChosen(true) }} title={t('Start with the look’s own theme')} text={t('Each look brings the theme it was made for. Choosing a theme above keeps that one for everyone, whichever look they use.')} />
+        <TickRow kind="switch" checked={!chosen} onChange={(v) => { if (v) follow(); else mark(true) }} title={t('Start with the look’s own theme')} text={t('Each look brings the theme it was made for. Choosing a theme above keeps that one for everyone, whichever look they use.')} />
         <TickRow kind="switch" checked={own} onChange={setOwn} title={t('Let people import their own themes')} text={t('Anyone can add a theme of their own from a ZIP. Requiring a look or a theme of someone is on the People step.')} />
       </div>
       <div className="su-gap">

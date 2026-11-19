@@ -1,0 +1,12 @@
+{
+  "Control bar": "컨트롤 바",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "자세히는 모든 버튼을 바에 놓습니다. 간단히는 화면을 깔끔하게 유지합니다. 재생과 건너뛰기는 가운데에, 나머지(소리, 자막, 화질, 속도, 장면)는 하나의 옵션 메뉴에 둡니다. 자동은 휴대폰이나 태블릿에서는 간단히, 더 넓은 화면에서는 자세히로 표시됩니다.",
+  "Detailed": "자세히",
+  "Back to options": "옵션으로 돌아가기",
+  "Mono": "모노",
+  "Styled text": "스타일 있는 텍스트",
+  "Keep playing in a corner": "구석에서 계속 재생",
+  "{count} watching": {
+    "other": "{count}명 시청 중"
+  }
+}

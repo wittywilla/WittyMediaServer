@@ -1,0 +1,14 @@
+{
+  "Control bar": "Barra de controlos",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "Detalhada coloca todos os botões na barra. Simples deixa a imagem livre: reproduzir e os saltos ao centro, e o resto (som, legendas, qualidade, velocidade, cenas) num só menu de Opções. Automática é simples num telemóvel ou tablet e detalhada num ecrã mais largo.",
+  "Detailed": "Detalhada",
+  "Back to options": "Voltar às opções",
+  "Mono": "Mono",
+  "Styled text": "Texto com estilo",
+  "Keep playing in a corner": "Continuar a reproduzir num canto",
+  "{count} watching": {
+    "one": "{count} a ver",
+    "many": "{count} a ver",
+    "other": "{count} a ver"
+  }
+}

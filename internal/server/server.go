@@ -123,10 +123,12 @@ type Server struct {
 	stream      streamTokens
 	radio       radioLive
 	pair        pairings
-	introJob    introJob    // finding intros by ear: one run at a time
-	convertJobs convertJobs // converting to and from .wittyinfo and .wittyaudio: one run of each at a time
-	mediaJobs   mediaJobs   // stems and canvases being made: one at a time
-	karaoke     karaokeAuto // the separator found, and who asked for what lately
+	introJob    introJob            // finding intros by ear: one run at a time
+	convertJobs convertJobs         // converting to and from .wittyinfo and .wittyaudio: one run of each at a time
+	mediaJobs   mediaJobs           // stems and canvases being made: one at a time
+	karaoke     karaokeAuto         // the separator found, and who asked for what lately
+	sepInstall  separatorInstall    // Demucs being installed with one press
+	kLib        karaokeLibraryState // the whole music library separated in the background, if asked
 	subtitles   subtitleFiles
 	idOnce      sync.Once
 	id          *identity.Identity
@@ -203,6 +205,7 @@ func tokenFrom(r *http.Request) string {
 func (s *Server) StartMetadata() {
 	s.applyTimeZone(context.Background())
 	logging.Go("statistics", func() { s.Metrics.Run(context.Background()) }, "cat", "server")
+	s.startKaraokeLibrary()
 	s.Scanner.OnScanned = func() {
 		s.logos().Kick()
 		s.Scanner.KickListings()
@@ -342,6 +345,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("GET /api/items/{id}/artwork", s.requireAdmin(s.handleArtwork))
 	m.Handle("GET /api/items/{id}/recommend", a(s.handleRecommend))
 	m.Handle("GET /api/items/{id}/disc/thumb/{ttn}/{n}", a(s.handleDiscThumb))
+	m.Handle("GET /api/items/{id}/scene/{sec}", a(s.handleSceneThumb))
 	m.Handle("GET /api/artwork/preview", s.requireAdmin(s.handleArtPreview))
 	m.Handle("GET /api/prefs", a(s.handlePrefs))
 	m.Handle("POST /api/themes", s.requireAdmin(s.handleThemeUpload))
@@ -618,6 +622,7 @@ func (s *Server) Handler() http.Handler {
 	s.wittyinfoConvertRoutes(m)
 	s.peopleRoutes(m)
 	s.karaokeRoutes(m)
+	s.separatorInstallRoutes(m)
 	s.remoteControlRoutes(m)
 	s.syncplayRoutes(m)
 	s.p2pRoutes(m)

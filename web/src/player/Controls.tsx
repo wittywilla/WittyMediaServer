@@ -5,7 +5,7 @@ import { fmtTime, getPrefs } from '../api'
 import { Thumb } from './ChapterThumb'
 import { announce } from '../a11y'
 import { SPEEDS, setSpeed } from './speed'
-import { IconAngle, IconAudio, IconChapters, IconClose, IconFull, IconMute, IconInfo, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
+import { IconAngle, IconAudio, IconBolt, IconChapters, IconCheck, IconTune, IconBack, IconClose, IconFull, IconMute, IconInfo, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
 import { t, tk, tn, tx } from '../i18n'
 
 export type TrackOpt = { id: number; label: string; active: boolean }
@@ -46,7 +46,14 @@ type Props = {
   // The quality menu (QualityMenu.tsx), opened from the chip; without it the chip opens onQuality.
   onQualityMenu?: () => void
   qualityMenuOpen?: boolean
+  // A phone (or a phone on its side): the picture first. Play and the skips sit big in the middle of the picture, the
+  // time, Options and Full screen along the bottom over the seek bar, and everything else in the Options sheet.
+  compact?: boolean
+  // More rows for the Options sheet from the player around these controls (watch party, mini player).
+  sheetItems?: SheetItem[]
 }
+
+export type SheetItem = { key: string; icon: React.ReactNode; label: string; value?: string; on?: boolean; onClick: () => void }
 
 export { SPEEDS, setSpeed }
 
@@ -77,9 +84,18 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, onEditInfo, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen }: Props) {
+  onFullscreen, onSettings, onEditInfo, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen, compact = false, sheetItems = [] }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | 'more' | null>(null)
+  const barRef = useRef<HTMLDivElement | null>(null)
+  const [sheet, setSheet] = useState<SheetPage | null>(null)
+  useEffect(() => { if (!compact) setSheet(null) }, [compact])
+  // A menu closed by Esc or Back hands focus back to the button that opened it, so the remote isn't lost.
+  const closePop = (refocus: boolean) => {
+    const opener = barRef.current?.querySelector<HTMLElement>('.ctl [aria-expanded="true"]')
+    setPop(null)
+    if (refocus) opener?.focus({ preventScroll: true })
+  }
   // Where the pointer is on the timeline, or being dragged to (0 to 1): the time and scene there are shown above it.
   const [aim, setAim] = useState<{ f: number; drag: boolean } | null>(null)
   const [maxSpeed, setMaxSpeed] = useState(4)
@@ -164,7 +180,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
   const curChapter = chapters.filter((c) => c <= now + 0.5).length
   const chapName = (i: number) => chapterNames?.[i] || t('Scene {n}', { n: i + 1 })
   return (
-    <div className="bottom" onClick={(e) => e.stopPropagation()}>
+    <div className="bottom" ref={barRef} onClick={(e) => e.stopPropagation()}>
       {showSeek && (
         <div className={'seek' + (aim?.drag ? ' scrubbing' : '')} ref={seekRef} onPointerDown={seekDown} onPointerMove={seekMove} onPointerUp={seekUp} onPointerLeave={() => setAim((a) => (a?.drag ? a : null))} onPointerCancel={() => setAim(null)} tabIndex={0} role="slider" aria-label={t('Position')} aria-valuemin={0}
           aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(now)} aria-valuetext={t('{time} of {total}', { time: fmtTime(now), total: fmtTime(duration) })} onKeyDown={seekKey}>
@@ -176,6 +192,21 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {aim && duration > 0 && <SeekTip f={aim.f} duration={duration} chapters={chapters} name={chapName} thumb={chapterThumb} />}
         </div>
       )}
+      {compact ? (
+        <div className="ctl compact">
+          <span className="time" aria-hidden="true">{fmtTime(now)}{showSeek ? ` / ${fmtTime(duration)}` : ''}</span>
+          <div className="ctl-mid" role="group" aria-label={t('Playback')}>
+            <button className="pbig step" onClick={() => onSeek(Math.max(0, now - 10))} aria-label={t('Back 10 seconds')}><span aria-hidden="true">−10</span></button>
+            <button className="ibtn big play" onClick={toggle} aria-label={st.playing ? t('Pause') : t('Play')}>{st.playing ? <IconPause /> : <IconPlay />}</button>
+            <button className="pbig step" onClick={() => onSeek(Math.min(duration || now + 30, now + 30))} aria-label={t('Forward 30 seconds')}><span aria-hidden="true">+30</span></button>
+          </div>
+          <div className="ctl-right">
+            {onRemote && <button className={'ibtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-label="WittyRemote" aria-pressed={!!remoteOn} title={t('Show or hide WittyRemote (R)')}><IconRemote /></button>}
+            <button className="ibtn" onClick={() => setSheet('main')} aria-label={t('Options')} title={t('Options')} aria-haspopup="dialog" aria-expanded={!!sheet}><IconSettings /></button>
+            <button className="ibtn" onClick={onFullscreen} aria-label={t('Full screen')} title={t('Full screen')}><IconFull /></button>
+          </div>
+        </div>
+      ) : (
       <div className="ctl">
         <div className="ctl-left">
           <span className="time" aria-hidden="true">
@@ -195,13 +226,13 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
         </div>
         <div className="ctl-right">
           {extra}
-          {audio && audio.length > 1 && <button className="cbtn" title={t('Audio & language')} aria-label={t('Audio and language')} onClick={() => (onPick ? onPick('audio') : setPop(pop === 'audio' ? null : 'audio'))}><IconAudio /><span className="lbl">{t('Audio')}</span></button>}
-          {subtitles && subtitles.length > 0 && <button className="cbtn" title={t('Subtitles')} aria-label={t('Subtitles')} onClick={() => (onPick ? onPick('subtitle') : setPop(pop === 'subs' ? null : 'subs'))}><IconSubs /><span className="lbl">{t('Subtitles')}</span></button>}
+          {audio && audio.length > 1 && <button className="cbtn" title={t('Audio & language')} aria-label={t('Audio and language')} aria-haspopup={onPick ? 'dialog' : 'menu'} aria-expanded={pop === 'audio'} onClick={() => (onPick ? onPick('audio') : setPop(pop === 'audio' ? null : 'audio'))}><IconAudio /><span className="lbl">{t('Audio')}</span></button>}
+          {subtitles && subtitles.length > 0 && <button className="cbtn" title={t('Subtitles')} aria-label={t('Subtitles')} aria-haspopup={onPick ? 'dialog' : 'menu'} aria-expanded={pop === 'subs'} onClick={() => (onPick ? onPick('subtitle') : setPop(pop === 'subs' ? null : 'subs'))}><IconSubs /><span className="lbl">{t('Subtitles')}</span></button>}
           {onPick && angles > 1 && <button className="cbtn" title={t('Video version (camera angle)')} aria-label={t('Video version')} onClick={() => onPick('angle')}><IconAngle /><span className="lbl">{t('Angle')}</span></button>}
           {quality && (onQualityMenu
             ? <button className={'cbtn chip-q' + (qualityMenuOpen ? ' on' : '')} title={t('Quality (Q)')} aria-label={t('Quality: {quality}', { quality })} aria-haspopup="dialog" aria-expanded={!!qualityMenuOpen} onClick={onQualityMenu}><span className="lbl always">{quality}</span></button>
             : <button className="cbtn chip-q" title={t('How this is playing (I)')} aria-label={t('Picture {quality}. How this is playing', { quality })} onClick={onQuality} disabled={!onQuality}><span className="lbl always">{quality}</span></button>)}
-          <button className="cbtn chip-s" title={t('Playback speed (< and >)')} aria-label={t('Playback speed {rate} times', { rate })} aria-expanded={pop === 'speed'} onClick={() => setPop(pop === 'speed' ? null : 'speed')}><span className="lbl always">{rate}×</span></button>
+          <button className="cbtn chip-s" title={t('Playback speed (< and >)')} aria-label={t('Playback speed {rate} times', { rate })} aria-haspopup="menu" aria-expanded={pop === 'speed'} onClick={() => setPop(pop === 'speed' ? null : 'speed')}><span className="lbl always">{rate}×</span></button>
           {chapters.length > 1 && <button className={'cbtn' + (pop === 'chapters' ? ' on' : '')} title={t('Scenes')} aria-label={t('Chapters')} aria-expanded={pop === 'chapters'} onClick={() => setPop(pop === 'chapters' ? null : 'chapters')}><IconChapters /><span className="lbl">{t('Chapters')}</span></button>}
           {onRemote && (
             <button className={'cbtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-pressed={remoteOn} title={t('Show or hide WittyRemote (R)')}>
@@ -212,33 +243,165 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           <button className="ibtn" title={t('Full screen (F)')} aria-label={t('Full screen')} onClick={onFullscreen}><IconFull /></button>
         </div>
       </div>
+      )}
+      {sheet && (() => {
+        const close = () => setSheet(null)
+        const then = (f?: () => void) => () => { setSheet(null); f?.() }
+        const activeAudio = audio?.find((a) => a.active)
+        const activeSub = subtitles?.find((x) => x.active)
+        const rows: SheetItem[] = [
+          ...(audio && audio.length > 1 ? [{ key: 'audio', icon: <IconAudio />, label: t('Audio'), value: activeAudio?.label, onClick: onPick ? then(() => onPick('audio')) : () => setSheet('audio') }] : []),
+          ...(subtitles && subtitles.length > 0 ? [{ key: 'subs', icon: <IconSubs />, label: t('Subtitles'), value: activeSub?.label || t('Off'), onClick: onPick ? then(() => onPick('subtitle')) : () => setSheet('subs') }] : []),
+          ...(onPick && angles > 1 ? [{ key: 'angle', icon: <IconAngle />, label: t('Video version'), onClick: then(() => onPick('angle')) }] : []),
+          ...(quality && (onQualityMenu || onQuality) ? [{ key: 'quality', icon: <IconTune />, label: t('Quality'), value: quality, onClick: then(onQualityMenu || onQuality) }] : []),
+          { key: 'speed', icon: <IconBolt />, label: t('Playback speed'), value: rate === 1 ? t('Normal') : `${rate}×`, onClick: () => setSheet('speed') },
+          ...(chapters.length > 1 ? [{ key: 'scenes', icon: <IconChapters />, label: t('Scenes'), value: chapName(Math.max(0, curChapter - 1)), onClick: then(() => setPop('chapters')) }] : []),
+          ...sheetItems.map((x) => ({ ...x, onClick: then(x.onClick) })),
+          ...(onSettings ? [{ key: 'view', icon: <IconSettings />, label: t('Viewing settings'), onClick: then(onSettings) }] : []),
+          ...(onQuality && onQualityMenu ? [{ key: 'info', icon: <IconInfo />, label: t('How this is playing'), onClick: then(onQuality) }] : []),
+          ...(onEditInfo ? [{ key: 'wittyinfo', icon: <IconChapters />, label: t('Edit scenes and skips'), onClick: then(onEditInfo) }] : []),
+        ]
+        return (
+          <OptionsSheet page={sheet} onPage={setSheet} onClose={close} rows={rows}
+            speeds={speeds.map((x) => ({ id: x, label: x === 1 ? t('Normal') : `${x}×`, on: x === rate, note: x > 4 ? t('may be muted') : undefined }))} onSpeed={(x) => { changeSpeed(x); close() }}
+            audio={audio?.map((a) => ({ id: a.id, label: a.label, on: a.active }))} onAudio={(id) => { onAudio?.(id); close() }}
+            subtitles={subtitles && [{ id: -1, label: t('Off'), on: !activeSub }, ...subtitles.map((x) => ({ id: x.id, label: x.label, on: x.active }))]} onSubtitle={(id) => { onSubtitle?.(id); close() }} />
+        )
+      })()}
       {pop === 'more' && (
-        <div className="popover more-pop" role="menu" aria-label={t('More')}>
+        <Menu label={t('More')} className="more-pop" onClose={closePop}>
           {onSettings && <button role="menuitem" onClick={() => { setPop(null); onSettings() }}><IconSettings /> {t('Viewing settings')}</button>}
           {onQuality && <button role="menuitem" onClick={() => { setPop(null); onQuality() }}><IconInfo /> {t('How this is playing')}</button>}
           {onEditInfo && <button role="menuitem" onClick={() => { setPop(null); onEditInfo() }}><IconChapters /> {t('Edit scenes and skips')}</button>}
           <button role="menuitem" onClick={() => { setPop(null); setHelp(true) }}><span className="kbd-help" aria-hidden="true">?</span> {t('Keyboard shortcuts')}</button>
-        </div>
+        </Menu>
       )}
       {pop === 'audio' && audio && (
-        <div className="popover"><h4>{t('Audio')}</h4>{audio.map((a) => <button key={a.id} className={a.active ? 'active' : ''} onClick={() => { onAudio?.(a.id); setPop(null) }}>{a.label}</button>)}</div>
+        <Menu label={t('Audio')} onClose={closePop}>
+          {audio.map((a) => <MenuChoice key={a.id} on={a.active} onPick={() => { onAudio?.(a.id); setPop(null) }}>{a.label}</MenuChoice>)}
+        </Menu>
       )}
       {pop === 'subs' && subtitles && (
-        <div className="popover"><h4>{t('Subtitles')}</h4>
-          <button className={!subtitles.some((s) => s.active) ? 'active' : ''} onClick={() => { onSubtitle?.(-1); setPop(null) }}>{t('Off')}</button>
-          {subtitles.map((s) => <button key={s.id} className={s.active ? 'active' : ''} onClick={() => { onSubtitle?.(s.id); setPop(null) }}>{s.label}</button>)}
-        </div>
+        <Menu label={t('Subtitles')} onClose={closePop}>
+          <MenuChoice on={!subtitles.some((s) => s.active)} onPick={() => { onSubtitle?.(-1); setPop(null) }}>{t('Off')}</MenuChoice>
+          {subtitles.map((s) => <MenuChoice key={s.id} on={s.active} onPick={() => { onSubtitle?.(s.id); setPop(null) }}>{s.label}</MenuChoice>)}
+        </Menu>
       )}
       {pop === 'speed' && (
-        <div className="popover speed-pop"><h4>{t('Playback speed')}</h4>
-          {speeds.map((s) => <button key={s} className={s === rate ? 'active' : ''} onClick={() => { changeSpeed(s); setPop(null) }}>{s === 1 ? t('Normal') : `${s}×`}{s > 4 && <span className="muted" style={{ marginLeft: 'auto', fontSize: 11 }}>{t('may be muted')}</span>}</button>)}
-        </div>
+        <Menu label={t('Playback speed')} className="speed-pop" onClose={closePop}>
+          {speeds.map((s) => <MenuChoice key={s} on={s === rate} onPick={() => { changeSpeed(s); setPop(null) }} note={s > 4 ? t('may be muted') : undefined}>{s === 1 ? t('Normal') : `${s}×`}</MenuChoice>)}
+        </Menu>
       )}
       {help && <ShortcutHelp disc={disc} copy={copy} onClose={() => setHelp(false)} />}
       {pop === 'chapters' && (
         <ScenePanel chapters={chapters} name={chapName} thumb={chapterThumb} current={curChapter - 1}
           onPick={(c) => { onSeek(c); setPop(null) }} onClose={() => setPop(null)} />
       )}
+    </div>
+  )
+}
+
+// Menu: one of the bar's small menus (speed, audio, subtitles, More). It opens with focus on the choice in use, so a
+// keyboard or a remote can confirm it or move on with the arrows; Esc or Back closes it, and so does a press anywhere
+// outside it (that press does nothing else: it doesn't pause the film). While it's open the bar doesn't hide (useIdle).
+function Menu({ label, className = '', onClose, children }: { label: string; className?: string; onClose: (refocus: boolean) => void; children: React.ReactNode }) {
+  const box = useRef<HTMLDivElement | null>(null)
+  const items = () => Array.from(box.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') || [])
+  useEffect(() => {
+    const all = items()
+    ;(all.find((b) => b.getAttribute('aria-checked') === 'true') || all[0])?.focus({ preventScroll: true })
+    // Esc and Back reach the menu before the player, which would otherwise shrink to the corner.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack' || e.key === 'Backspace') { e.preventDefault(); e.stopImmediatePropagation(); onClose(true) }
+    }
+    // A press outside the menu and the bar closes the menu and is swallowed, so it doesn't also pause or play.
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Element | null
+      if (!t || box.current?.contains(t) || t.closest('.ctl')) return
+      const swallow = (c: Event) => { c.stopPropagation(); c.preventDefault() }
+      window.addEventListener('click', swallow, { capture: true, once: true })
+      setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 600)
+      onClose(false)
+    }
+    window.addEventListener('keydown', onKey, true)
+    window.addEventListener('pointerdown', onDown, true)
+    return () => { window.removeEventListener('keydown', onKey, true); window.removeEventListener('pointerdown', onDown, true) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const all = items()
+    const i = all.indexOf(document.activeElement as HTMLElement)
+    const to = e.key === 'ArrowDown' ? (i + 1) % all.length : e.key === 'ArrowUp' ? (i - 1 + all.length) % all.length : e.key === 'Home' ? 0 : e.key === 'End' ? all.length - 1 : -1
+    if (to >= 0) { e.preventDefault(); e.stopPropagation(); all[to]?.focus() }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation() } // not a seek while choosing
+    else if (e.key === 'Tab') onClose(false)
+  }
+  return (
+    <div className={'popover ' + className} ref={box} role="menu" aria-label={label} onKeyDown={onKeyDown}>
+      {className !== 'more-pop' && <h4 aria-hidden="true">{label}</h4>}
+      {children}
+    </div>
+  )
+}
+
+// MenuChoice: one choice in a Menu. The one in use is ticked and bold, not marked by colour or a bar alone.
+function MenuChoice({ on, onPick, note, children }: { on: boolean; onPick: () => void; note?: string; children: React.ReactNode }) {
+  return (
+    <button role="menuitemradio" aria-checked={on} className={on ? 'active' : ''} onClick={onPick}>
+      <span className="pm-label">{children}</span>
+      {note && <span className="pm-note">{note}</span>}
+      <span className="pm-tick" aria-hidden="true">{on ? <IconCheck /> : null}</span>
+    </button>
+  )
+}
+
+// OptionsSheet: everything the phone's bar leaves out, as a sheet from the bottom edge. Each row says what it's set to
+// now; speed (and audio and subtitles where there's no big picker) choose on a page of the sheet itself. Esc, Back, a
+// press above the sheet or its close button put it away.
+type SheetPage = 'main' | 'speed' | 'audio' | 'subs'
+type Choice = { id: number; label: string; on: boolean; note?: string }
+function OptionsSheet({ page, onPage, onClose, rows, speeds, onSpeed, audio, onAudio, subtitles, onSubtitle }: {
+  page: SheetPage; onPage: (p: SheetPage) => void; onClose: () => void; rows: SheetItem[]
+  speeds: Choice[]; onSpeed: (x: number) => void; audio?: Choice[]; onAudio: (id: number) => void; subtitles?: Choice[]; onSubtitle: (id: number) => void
+}) {
+  const box = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const el = box.current?.querySelector<HTMLElement>('[aria-checked="true"]') || box.current?.querySelector<HTMLElement>('.psheet-row, [role="menuitemradio"]')
+    el?.focus({ preventScroll: true })
+  }, [page])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' && e.key !== 'GoBack' && e.key !== 'BrowserBack') return
+      e.preventDefault(); e.stopImmediatePropagation()
+      if (page === 'main') onClose(); else onPage('main')
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [page, onClose, onPage])
+  const list = page === 'speed' ? speeds : page === 'audio' ? audio : page === 'subs' ? subtitles : null
+  const pick = page === 'speed' ? onSpeed : page === 'audio' ? onAudio : onSubtitle
+  const title = page === 'speed' ? t('Playback speed') : page === 'audio' ? t('Audio') : page === 'subs' ? t('Subtitles') : t('Options')
+  return (
+    <div className="psheet-backdrop" onClick={onClose}>
+      <div className="psheet" ref={box} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        <div className="psheet-head">
+          {page !== 'main'
+            ? <button className="ibtn" onClick={() => onPage('main')} aria-label={t('Back to options')}><IconBack /></button>
+            : <span className="psheet-grip" aria-hidden="true" />}
+          <h3>{title}</h3>
+          <button className="ibtn" onClick={onClose} aria-label={t('Close')}><IconClose /></button>
+        </div>
+        {list ? (
+          <div role="menu" aria-label={title}>
+            {list.map((c) => <MenuChoice key={c.id} on={c.on} note={c.note} onPick={() => pick(c.id)}>{c.label}</MenuChoice>)}
+          </div>
+        ) : rows.map((r) => (
+          <button key={r.key} className={'psheet-row' + (r.on ? ' on' : '')} onClick={r.onClick}>
+            <span className="psheet-icon" aria-hidden="true">{r.icon}</span>
+            <span className="psheet-label">{r.label}</span>
+            {r.value && <span className="psheet-value">{r.value}</span>}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

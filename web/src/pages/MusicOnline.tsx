@@ -2,14 +2,14 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { HelpLink, PageHelp } from '../components/HelpLink'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { api } from '../api'
 import { IconCheck } from '../icons'
 import { toast } from '../state'
 import { Select } from '../ui'
 import { Row, Section, Switch } from './settings/ui'
 import { TickRow } from './setup/parts'
-import { num, t, tk, tn } from '../i18n'
+import { num, t, tk, tn, tx } from '../i18n'
 
 // Lyrics and artist information from online. Both are off until the owner agrees, here or in
 // first-time setup, and this is where it says exactly what goes where. What's beside the music
@@ -18,6 +18,15 @@ import { num, t, tk, tn } from '../i18n'
 type Draft = { s: Record<string, string>; set: (k: string, v: string) => void; on: (k: string, d?: string) => boolean }
 
 type KaraokeStatus = { separator: { available: boolean; usable: boolean; name: string; version: string; source: string }; approximate: boolean; machine: string; usedBytes: number; songs: number }
+
+type SeparatorState = {
+  supported: boolean; why: string; task: string; failed: string; phase: string; percent: number
+  packages: string[]; uv: string; python: string; model: string; downloadMB: number; cpuDownloadMB: number
+  accel: Accel
+  installed?: { version: string; model: string; at: string; sizeBytes: number; accel: Accel }
+}
+type Accel = { id: string; name: string; device: string; downloadMB: number; why?: string }
+const gb = (mb: number) => t('{size} GB', { size: num(mb / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })
 
 const megabytes = (n: number) => (n >= 1 << 30 ? t('{size} GB', { size: num(n / (1 << 30), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }) : t('{size} MB', { size: Math.round(n / (1 << 20)) }))
 
@@ -35,11 +44,91 @@ function karaokeFound(k: KaraokeStatus | null) {
   if (sep.available && !sep.usable) return t('{name} found, but this machine is too small to run it in a sensible time, so songs use the quick method.', { name: sep.name })
   if (sep.available) {
     const name = sep.name + (sep.version ? ` ${sep.version}` : '')
-    return (sep.source === 'config' ? t('{name} is set in the server’s configuration.', { name }) : t('{name} found on this machine.', { name }))
+    return (sep.source === 'config' ? t('{name} is set in the server’s configuration.', { name }) : sep.source === 'installed' ? t('{name} is installed.', { name }) : t('{name} found on this machine.', { name }))
       + ' ' + t('Songs are separated properly, one at a time, when nothing else needs the processor.')
   }
   if (k.approximate) return <>{t('Not installed. Songs use the quick method, which turns the singer down but can’t remove them.')} {how}</>
   return <>{t('Not installed, and FFmpeg is missing too, so karaoke versions can’t be made.')} {how}</>
+}
+
+// Demucs with one press: what will be downloaded and from where, said before it starts; progress while it
+// runs; and once it's in, how much room it takes and a way to take it out again. Its licenses are listed in
+// Settings, About.
+function SeparatorInstall({ onChange }: { onChange: () => void }) {
+  const [st, setSt] = useState<SeparatorState | null>(null)
+  const [sure, setSure] = useState(false)
+  const [busy, setBusy] = useState(false)
+  // The graphics card when there's one Demucs can use: on unless turned off here.
+  const [useCard, setUseCard] = useState(true)
+  const read = () => api.get<SeparatorState>('/karaoke/separator').then((s) => { setSt(s); return s }).catch(() => null)
+  useEffect(() => { void read() }, [])
+  // While it installs, look every couple of seconds; when it ends, the page's other lines catch up.
+  const running = !!st?.task
+  useEffect(() => {
+    if (!running) return
+    const timer = window.setInterval(() => { void read().then((s) => { if (s && !s.task) onChange() }) }, 2000)
+    return () => window.clearInterval(timer)
+  }, [running]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (!st) return null
+  const card = st.accel.id !== 'cpu'
+  const willUse = card && useCard
+  const download = willUse ? st.downloadMB : st.cpuDownloadMB
+  const install = () => { setBusy(true); api.post('/karaoke/separator/install' + (willUse ? '' : '?accel=cpu')).then(() => { setSure(false); return read() }).catch((e: Error) => toast(e.message)).finally(() => setBusy(false)) }
+  const remove = () => { setBusy(true); api.del('/karaoke/separator').then(() => { toast(running ? t('Install stopped') : t('Demucs removed')); onChange(); return read() }).catch((e: Error) => toast(e.message)).finally(() => setBusy(false)) }
+  if (st.installed) {
+    return (
+      <Row label={t('Demucs for karaoke')} badge={t('Installed')} desc={<>{linked(st.installed.accel.id !== 'cpu'
+        ? t('Demucs {version} with its {model} model, running on {device}, and on the processor for any song the card can’t manage, taking {size} in the server’s own folder. Its licenses, and those of everything installed with it, are in {about}.')
+        : t('Demucs {version} with its {model} model, running on {device}, taking {size} in the server’s own folder. Its licenses, and those of everything installed with it, are in {about}.'),
+        { version: st.installed.version, model: st.installed.model, device: st.installed.accel.name, size: megabytes(st.installed.sizeBytes), about: <Link to="/settings/about">{t('Settings, About')}</Link> })}</>}>
+        <button type="button" className="btn sm" disabled={busy} onClick={remove}>{t('Remove')}</button>
+      </Row>
+    )
+  }
+  if (!st.supported) return <Row label={t('Demucs for karaoke')} desc={tx(st.why)}><span className="muted">{t('Not available here')}</span></Row>
+  if (running) {
+    return (
+      <Row label={t('Demucs for karaoke')} stack desc={<>{st.phase ? tx(st.phase) : t('Starting')}… {t('This takes a while: up to {size} is downloaded. Songs use the quick version until it’s done.', { size: gb(st.downloadMB) })}</>}>
+        <div className="sep-progress">
+          <progress max={100} value={st.percent} aria-label={t('Installing Demucs')} />
+          <button type="button" className="btn sm" disabled={busy} onClick={remove}>{t('Stop')}</button>
+        </div>
+      </Row>
+    )
+  }
+  return (
+    <Row label={t('Demucs for karaoke')} stack desc={<>
+      {linked(t('Installs {Demucs} (MIT license), the best of the separators, so karaoke versions are properly separated: the voice taken out cleanly, and drums, bass and the rest as parts of their own.'), { Demucs: <a href="https://github.com/facebookresearch/demucs" target="_blank" rel="noreferrer">Demucs</a> })} {card ? t('This server has {device}, so songs are separated there, in well under a minute each, and on the processor if the card can’t manage one.', { device: st.accel.name }) : <>{st.accel.why ? tx(st.accel.why) : ''} {t('A song takes a few minutes there, one at a time, when nothing else needs it.')}</>}
+      {st.failed && <> <strong>{t('The last try failed:')}</strong> {st.failed}</>}
+    </>}>
+      {!sure ? <button type="button" className="btn sm primary" onClick={() => setSure(true)}>{t('Install Demucs…')}</button> : (
+        <div className="sep-confirm" role="group" aria-label={t('Install Demucs')}>
+          {card && (
+            <label className="sep-card">
+              <input type="checkbox" checked={useCard} onChange={(e) => setUseCard(e.target.checked)} />
+              <span>{t('Use {device}', { device: st.accel.name })} <small>{t('(on by default; off is a smaller download, {size}, and slower songs)', { size: gb(st.cpuDownloadMB) })}</small></span>
+            </label>
+          )}
+          <p>{t('Your server will download about {size} into its own folder, which backups leave out:', { size: gb(download) })}</p>
+          <ul>
+            <li>{linked(t('{uv} {version}, an installer (MIT or Apache-2.0), from GitHub, checked against a fingerprint the server carries'), { uv: <a href="https://github.com/astral-sh/uv" target="_blank" rel="noreferrer">uv</a>, version: st.uv })}</li>
+            <li>{t('Python {version} (PSF license), through uv, which checks it', { version: st.python })}</li>
+            <li>{willUse
+              ? (st.accel.id === 'cuda'
+                ? t('{packages}: Demucs and PyTorch (BSD license) built for {device}, from PyPI and pytorch.org, with the CUDA libraries it needs (NVIDIA’s license)', { packages: st.packages.join(', '), device: st.accel.name })
+                : t('{packages}: Demucs and PyTorch (BSD license) built for {device}, from PyPI and pytorch.org', { packages: st.packages.join(', '), device: st.accel.name }))
+              : t('{packages}: Demucs and PyTorch (BSD license) built for the processor, from PyPI and pytorch.org', { packages: st.packages.join(', ') })}</li>
+            <li>{t('The {model} model, from Demucs’s makers', { model: st.model })}</li>
+          </ul>
+          <p>{t('Nothing about you or your music is sent. Every license is listed in Settings, About once it’s in, and Remove takes it all out again.')}</p>
+          <div className="sep-buttons">
+            <button type="button" className="btn sm primary" disabled={busy} onClick={install}>{t('Download and install')}</button>
+            <button type="button" className="btn sm" onClick={() => setSure(false)}>{t('Cancel')}</button>
+          </div>
+        </div>
+      )}
+    </Row>
+  )
 }
 
 // In Settings, part of the page's draft and saved with it.
@@ -74,6 +163,7 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
         <Row label={t('Vocal separation')} badge={kar?.separator.available ? t('Nothing to set up') : undefined} desc={karaokeFound(kar)}>
           <button type="button" className="btn sm" onClick={() => look(true)}>{t('Look again')}</button>
         </Row>
+        <SeparatorInstall onChange={() => look(true)} />
         <Row label={t('Make karaoke versions automatically')} desc={t('When someone opens karaoke on a song, the server makes a version with the singer turned down: a quick one in a few seconds, and a properly separated one behind it if a separator is installed. Nothing is written beside your music.')}>
           <Select value={auto} aria-label={t('Make karaoke versions automatically')} onChange={(e) => set('karaokeAuto', e.target.value)} options={[
             { value: 'auto', label: t('Automatically') },
@@ -87,6 +177,14 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
             { value: '2048', label: t('{size} GB', { size: 2 }) },
             { value: '10240', label: t('{size} GB', { size: 10 }) },
             { value: '51200', label: t('{size} GB', { size: 50 }) },
+          ]} />
+        </Row>
+        <Row label={t('Separate the whole library ahead of time')} dim={auto === 'never' || !kar?.separator.available} desc={kar?.separator.available
+          ? t('Off unless you choose it. Songs are separated one at a time, only while nothing else is being made and nobody is watching or listening to something it would slow, and it stops when the space for karaoke versions is 80% full, so it never clears songs people sang to make room. Without it, a song is separated the first time someone opens karaoke on it.')
+          : t('Needs a separator: install Demucs above. Until then a song is made into a karaoke version the first time someone opens karaoke on it.')}>
+          <Select value={s.karaokeLibrary || 'off'} aria-label={t('Separate the whole library ahead of time')} disabled={auto === 'never' || !kar?.separator.available} onChange={(e) => set('karaokeLibrary', e.target.value)} options={[
+            { value: 'off', label: t('Off') },
+            { value: 'idle', label: t('When the server is idle') },
           ]} />
         </Row>
         <Row label={t('Lyrics kept from online')} desc={t('Forget everything fetched so far. Corrections made on this server are kept.')}>

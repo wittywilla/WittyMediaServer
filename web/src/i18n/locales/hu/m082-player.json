@@ -1,0 +1,13 @@
+{
+  "Control bar": "Vezérlősáv",
+  "Detailed puts every button on the bar. Simple keeps the picture clear: play and the skips in the middle, and the rest (sound, subtitles, quality, speed, scenes) in one Options menu. Automatic is simple on a phone or tablet and detailed on a wider screen.": "A Részletes minden gombot a sávra tesz. Az Egyszerű szabadon hagyja a képet: a lejátszás és az ugrások középen, a többi (hang, felirat, minőség, sebesség, jelenetek) egyetlen Beállítások menüben. Az Automatikus telefonon vagy táblagépen egyszerű, szélesebb képernyőn részletes.",
+  "Detailed": "Részletes",
+  "Back to options": "Vissza a beállításokhoz",
+  "Mono": "Mono",
+  "Styled text": "Formázott szöveg",
+  "Keep playing in a corner": "Lejátszás folytatása a sarokban",
+  "{count} watching": {
+    "one": "{count} néző",
+    "other": "{count} néző"
+  }
+}

@@ -21,9 +21,12 @@ export type ViewPrefs = {
   stereoOut: '2d' | 'anaglyph'    // how to show 3D video: one eye's view flat, or red/cyan for anaglyph glasses
   forcedSubs: boolean      // discs: show forced captions (signs, foreign-language lines) while subtitles are off
   discLocks: boolean       // discs: obey a disc's bans on seeking and skipping, as a disc player does
+  // The control bar: every button on it (detailed), the picture first with the rest in one Options sheet (simple), or
+  // whichever suits the screen (auto: simple on a phone or tablet, detailed wider than 900 px).
+  controls: 'auto' | 'detailed' | 'simple'
 }
 
-export const DEFAULT_VIEW: ViewPrefs = { seekBar: true, chapterMarks: true, hideAfter: 3.5, subtitleSize: 1, picture: 'fit', remote: false, remoteStyle: 'floating', stereo: 'off', stereoOut: '2d', forcedSubs: true, discLocks: true }
+export const DEFAULT_VIEW: ViewPrefs = { seekBar: true, chapterMarks: true, hideAfter: 3.5, subtitleSize: 1, picture: 'fit', remote: false, remoteStyle: 'floating', stereo: 'off', stereoOut: '2d', forcedSubs: true, discLocks: true, controls: 'auto' }
 
 const GLOBAL = 'wms.view'
 const itemKey = (id: number) => `wms.view.item.${id}`

@@ -26,7 +26,7 @@ type Counts = {
   songs: number; songsWithLyrics: number; songsWithInfo: number; albums: number; albumsWithArt: number; albumsWithInfo: number; readOnlyLibraries: number
 }
 type GameCounts = { games: number; withMetadata: number; withInfo: number }
-type TaskView = { id: string; state: string; percent: number; done: number; total: number; item?: string; result?: string; error?: string }
+type TaskView = { id: string; key?: string; state: string; percent: number; done: number; total: number; item?: string; result?: string; error?: string }
 type Row = { key: 'wittyinfo' | 'wittyaudio' | 'wittyplay'; ext: string; what: string; found: string; has: number; hasOwn: number; standard: string }
 
 export default function ConvertPanel({ onBusy, compact, beforeStart }: { onBusy?: (busy: boolean) => void; compact?: boolean; beforeStart?: () => Promise<unknown> }) {
@@ -78,7 +78,8 @@ export default function ConvertPanel({ onBusy, compact, beforeStart }: { onBusy?
         const r = await api.get<{ tasks: TaskView[]; recent: TaskView[] }>('/system/tasks')
         const all = [...(r.tasks || []), ...(r.recent || [])]
         const next: Record<string, TaskView> = {}
-        for (const [k, id] of Object.entries(started)) { const x = all.find((y) => y.id === id); if (x) next[k] = x }
+        // A module's task (WittyPlay's) is known by its key; the server's own by its id.
+        for (const [k, id] of Object.entries(started)) { const x = all.find((y) => y.id === id || y.key === id); if (x) next[k] = x }
         setTasks(next)
         if (Object.values(next).length === ids.length && Object.values(next).every((x) => x.state !== 'running' && x.state !== 'queued')) {
           if (poll.current) clearInterval(poll.current)

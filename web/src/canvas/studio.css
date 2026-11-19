@@ -1,0 +1,80 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* The Canvas studio (CanvasStudio.tsx) and its loop editor (LoopEditor.tsx), in the page theme's tokens. */
+.cs { display: grid; gap: var(--sp-5); }
+.cs h3 { margin: 0; font-size: var(--text-md); }
+.cs h4 { margin: 0; font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
+.cs p { margin: 0; }
+.cs-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.cs-now { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: var(--sp-4); align-items: center; }
+.cs-now video { inline-size: 100%; aspect-ratio: 9 / 16; max-block-size: 300px; object-fit: cover; border-radius: var(--r-lg); background: var(--bg-3); box-shadow: var(--e-2); }
+.cs-now-facts { display: grid; gap: var(--sp-2); }
+.cs-empty { grid-column: 1 / -1; padding: var(--sp-5); border-radius: var(--r-lg); background: var(--bg-3); color: var(--fg-2); text-align: center; }
+@media (max-width: 560px) { .cs-now { grid-template-columns: 1fr; } .cs-now video { max-block-size: 220px; inline-size: auto; justify-self: center; } }
+
+.cs-new { display: grid; gap: var(--sp-3); padding-block-start: var(--sp-4); border-block-start: 1px solid var(--border); }
+.cs-tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.cs-tabs button { display: inline-flex; align-items: center; gap: var(--sp-2); min-block-size: var(--control-h); padding: 0 var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-full); background: transparent; color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; }
+.cs-tabs button svg { fill: currentColor; }
+.cs-tabs button:hover { background: var(--hover); }
+.cs-tabs button.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.cs-drop { display: grid; justify-items: center; gap: var(--sp-3); padding: var(--sp-8) var(--sp-4); border: 2px dashed var(--border-strong); border-radius: var(--r-xl); text-align: center; transition: background var(--dur-2), border-color var(--dur-2); }
+.cs-drop.over { background: var(--accent-soft); border-color: var(--accent); }
+.cs-server { display: grid; gap: var(--sp-3); }
+.cs-search { display: flex; align-items: center; gap: var(--sp-2); padding: 0 var(--sp-3); border: 1px solid var(--border-strong); border-radius: var(--r-full); background: var(--bg-2); color: var(--fg-3); }
+.cs-search svg { fill: currentColor; flex: none; }
+.cs-search input { flex: 1; min-inline-size: 0; min-block-size: var(--control-h); border: 0; background: transparent; color: var(--fg); font: inherit; outline: none; }
+.cs-search:focus-within { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 30%, transparent); }
+.cs-vids { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-3); max-block-size: 340px; overflow-y: auto; }
+.cs-vid { display: grid; gap: var(--sp-2); inline-size: 100%; padding: 0; border: 0; background: none; color: var(--fg); text-align: left; font: inherit; cursor: pointer; }
+.cs-vid-pic { display: block; aspect-ratio: 16 / 9; border-radius: var(--r-md); background: var(--bg-3) center / cover; transition: transform var(--dur-2), box-shadow var(--dur-2); }
+.cs-vid:hover .cs-vid-pic, .cs-vid:focus-visible .cs-vid-pic { transform: translateY(-2px); box-shadow: var(--e-2), 0 0 0 2px var(--accent); }
+.cs-vid:focus-visible { outline: none; }
+.cs-vid-t { display: grid; gap: 2px; font-size: var(--text-sm); }
+.cs-vid-t b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-vid-t small { color: var(--fg-3); font-size: var(--text-xs); }
+.cs-edit { display: grid; gap: var(--sp-3); }
+.cs-fade { display: flex; align-items: center; gap: var(--sp-2); min-block-size: var(--control-h); font-size: var(--text-sm); }
+.cs-fade input { inline-size: 18px; block-size: 18px; accent-color: var(--accent); }
+.cs-sending { position: relative; overflow: hidden; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); background: var(--bg-3); font-size: var(--text-sm); font-weight: 600; isolation: isolate; }
+.cs-sending span { position: absolute; inset: 0 auto 0 0; z-index: -1; background: var(--accent-soft); transition: width .3s; }
+
+/* The loop editor. The picture sits on black like any video. */
+.le { display: grid; gap: var(--sp-3); }
+.le-view { position: relative; aspect-ratio: 16 / 9; max-block-size: 46vh; border-radius: var(--r-lg); overflow: hidden; background: #000; } /* design-ok: a video's frame */
+.le-view video, .le-view img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: contain; }
+.le-time { position: absolute; inset-block-end: var(--sp-2); inset-inline-end: var(--sp-2); padding: 2px 8px; border-radius: var(--r-sm); background: rgb(0 0 0 / .7); color: #fff; font: 600 var(--text-xs) / 1.6 ui-monospace, Consolas, monospace; } /* design-ok: on the picture */
+.le-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.le-play { display: inline-flex; align-items: center; gap: var(--sp-2); min-block-size: var(--control-h); padding: 0 var(--sp-4); border: 0; border-radius: var(--r-full); background: var(--accent); color: var(--accent-fg); font: inherit; font-weight: 700; cursor: pointer; }
+.le-play svg { fill: currentColor; }
+.le-facts { color: var(--fg-2); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.le-facts b { color: var(--fg); }
+.le-track { position: relative; block-size: 64px; border-radius: var(--r-md); background: var(--bg-3); touch-action: none; user-select: none; cursor: pointer; }
+.le-strip { position: absolute; inset: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: inherit; overflow: hidden; pointer-events: none; }
+.le-strip span { background: var(--bg-3) center / cover; border-inline-end: 1px solid rgb(0 0 0 / .25); } /* design-ok: a hairline between frames */
+.le-shade { position: absolute; inset-block: 0; background: rgb(0 0 0 / .62); pointer-events: none; } /* design-ok: dims what's left out */
+.le-shade:first-of-type { border-radius: var(--r-md) 0 0 var(--r-md); }
+.le-sel { position: absolute; inset-block: -3px; border: 3px solid var(--accent); border-radius: var(--r-md); cursor: grab; box-shadow: 0 0 0 1px rgb(0 0 0 / .4); } /* design-ok: an edge on any picture */
+.le-sel:active { cursor: grabbing; }
+.le-head { position: absolute; inset-block: -6px; inline-size: 2px; margin-inline-start: -1px; background: var(--fg); pointer-events: none; box-shadow: 0 0 0 1px rgb(0 0 0 / .5); } /* design-ok */
+.le-handle { position: absolute; inset-block: -8px; inline-size: 22px; margin-inline-start: -11px; border-radius: var(--r-sm); background: var(--accent); cursor: ew-resize; display: grid; place-items: center; box-shadow: var(--e-2); }
+.le-handle::before { content: ''; inline-size: 3px; block-size: 22px; border-radius: var(--r-xs); background: var(--accent-fg); opacity: .8; }
+.le-handle::after { content: ''; position: absolute; inset: -8px -10px; } /* a bigger target than it looks */
+.le-handle:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+@media (pointer: coarse) { .le-track { block-size: 72px; } .le-handle { inline-size: 28px; margin-inline-start: -14px; } }
+.le-seam { display: grid; grid-template-columns: auto minmax(0, 140px) auto minmax(0, 140px) minmax(0, 1fr); align-items: center; gap: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-lg); background: var(--bg-3); }
+.le-seam-l { font-size: var(--text-2xs); font-weight: 700; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--fg-3); }
+.le-seam figure { margin: 0; display: grid; gap: 4px; }
+.le-seam figure span { display: block; aspect-ratio: 16 / 9; border-radius: var(--r-sm); background: #000 center / cover; } /* design-ok: a video's frame */
+.le-seam figcaption { font-size: var(--text-2xs); color: var(--fg-3); text-align: center; }
+.le-join { font-size: var(--text-xl); color: var(--fg-2); }
+.le-join.fade { color: var(--accent-text); }
+.le-seam-note { font-size: var(--text-xs); color: var(--fg-2); }
+@media (max-width: 640px) { .le-seam { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); } .le-seam-l, .le-seam-note { grid-column: 1 / -1; } }
+/* A long video: the whole of it above, a minute around the loop below. */
+.le-overview { position: relative; block-size: 22px; border-radius: var(--r-sm); background: var(--bg-4); box-shadow: inset 0 0 0 1px var(--border); cursor: pointer; touch-action: none; }
+.le-ov-win { position: absolute; inset-block: 0; border-radius: var(--r-sm); background: color-mix(in srgb, var(--fg) 16%, transparent); box-shadow: inset 0 0 0 1px var(--border-strong); }
+.le-ov-sel { position: absolute; inset-block: 3px; border-radius: var(--r-xs); background: var(--accent); }
+.le-ov-t { position: absolute; inset-block: 0; inset-inline-start: var(--sp-2); display: grid; align-items: center; font-size: var(--text-2xs); color: var(--fg-3); pointer-events: none; font-variant-numeric: tabular-nums; }
+.le-ov-t.end { inset-inline: auto var(--sp-2); }
+.le-view { max-block-size: 30vh; }

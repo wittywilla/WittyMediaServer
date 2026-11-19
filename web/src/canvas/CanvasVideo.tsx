@@ -34,6 +34,23 @@ export function CanvasVideo({ info, blocked, paused, className }: { info: Canvas
   }, [])
 
   useEffect(() => { setShowing(false) }, [url, wanted])
+  // A loop chosen in the Canvas studio: only that part plays, round and round, to the frame.
+  const from = (info?.loopStartMs || 0) / 1000, to = (info?.loopEndMs || 0) / 1000
+  useEffect(() => {
+    const v = video.current
+    if (!v || !(to > from)) return
+    type FrameVideo = HTMLVideoElement & { requestVideoFrameCallback?: (f: () => void) => number; cancelVideoFrameCallback?: (n: number) => void }
+    const fv = v as FrameVideo
+    let id = 0
+    const check = () => { if (v.currentTime >= to || v.currentTime < from - 0.2) v.currentTime = from }
+    const frame = () => { check(); id = fv.requestVideoFrameCallback!(frame) }
+    const start = () => { if (v.currentTime < from || v.currentTime >= to) v.currentTime = from }
+    v.addEventListener('loadedmetadata', start)
+    start()
+    if (fv.requestVideoFrameCallback) id = fv.requestVideoFrameCallback(frame)
+    else v.addEventListener('timeupdate', check)
+    return () => { v.removeEventListener('loadedmetadata', start); v.removeEventListener('timeupdate', check); if (id) fv.cancelVideoFrameCallback?.(id) }
+  }, [from, to, wanted, url])
   useEffect(() => {
     const v = video.current
     if (!v) return

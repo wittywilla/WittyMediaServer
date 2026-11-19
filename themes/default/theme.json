@@ -3,14 +3,14 @@
   "name": "Witty",
   "description": "The house look: deep slate with a violet accent.",
   "author": "WittyMediaServer",
-  "version": "7",
+  "version": "8",
   "scheme": "dark",
   "builtin": true,
   "preview": {
     "bg": "#0f1115",
     "surface": "#1f232c",
     "text": "#e8eaf0",
-    "accent": "#7955ff"
+    "accent": "#6334ff"
   },
   "colors": {
     "bg": "#0f1115",
@@ -20,11 +20,11 @@
     "fg": "#e8eaf0",
     "fg2": "#a9afbd",
     "fg3": "#848b99",
-    "accent": "#7955ff",
+    "accent": "#6334ff",
     "accentHover": "#6a4df0",
     "accentFg": "#ffffff",
-    "accentText": "#9174ff",
-    "brandAccent": "#9174ff",
+    "accentText": "#9271ff",
+    "brandAccent": "#9271ff",
     "danger": "#ff5c6c",
     "ok": "#3ad29f",
     "warn": "#e0a030",
@@ -33,12 +33,12 @@
     "controlLine": "#6f7480",
     "hover": "#e8eaf012",
     "pressed": "#e8eaf01f",
-    "accentSoft": "#7955ff24",
-    "accentLine": "#7955ff73",
+    "accentSoft": "#6334ff24",
+    "accentLine": "#6334ff73",
     "okSoft": "#3ad29f21",
     "warnSoft": "#e0a03021",
     "dangerSoft": "#ff5c6c1c",
-    "focus": "#9174ff",
+    "focus": "#9271ff",
     "onImage": "#ffffff",
     "scrim": "#000000ad",
     "overlay": "#00000099"
@@ -101,7 +101,7 @@
   },
   "tv": {
     "ringColor": "#e8eaf0",
-    "heroScrim": 0.72,
+    "heroScrim": 0.8,
     "tvText": "#eaecf2"
   }
 }

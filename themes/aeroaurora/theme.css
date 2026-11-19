@@ -22,7 +22,7 @@
   /* Text */
   --fg: #eaf6ff;          /* main text */
   --fg-2: #a8cfe6;        /* secondary text */
-  --fg-3: #9bbacf;        /* hints, captions */
+  --fg-3: #b7cddc;        /* hints, captions */
 
   /* Accent: buttons, highlights, progress bars, selected items */
   --accent: #38c6f4;
@@ -50,5 +50,5 @@
   /* Ten feet away (docs/THEMES.md "The TV pass"): the focus ring, the scrim's strength behind hero text, body text a step stronger */
   --tv-ring-color: #eaf6ff;
   --tv-text: #ecf7ff;
-  --hero-scrim: .74;
+  --hero-scrim: 0.8;
 }

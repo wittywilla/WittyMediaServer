@@ -428,13 +428,15 @@
       "setting": "/settings/gaming"
     },
     {
-      "name": "Python and PyTorch downloads (karaoke)",
+      "name": "Python, PyTorch and Demucs model downloads (karaoke)",
       "hosts": [
         "www.python.org",
         "pypi.org",
-        "download.pytorch.org"
+        "files.pythonhosted.org",
+        "download.pytorch.org",
+        "dl.fbaipublicfiles.com"
       ],
-      "gets": "Which package and which system and graphics card the download is for. Nothing from your library.",
+      "gets": "Which package or model file and which system and graphics card the download is for. Nothing from your library.",
       "when": "Only when an administrator presses to install Demucs, for separating a song's voice from its music.",
       "control": "Music, Karaoke",
       "setting": "/settings/about"

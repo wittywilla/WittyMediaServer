@@ -134,6 +134,10 @@ func (s *Server) separator(ctx context.Context) (words []string, name, version, 
 	}
 	if f := s.foundSeparator(ctx, false); f != nil {
 		if f.Installed {
+			// Read again for each song: what it runs on can be changed in Settings at any time.
+			if g := s.installedSeparator(); g != nil {
+				f = g
+			}
 			return f.Words, f.Name, f.Version, "installed"
 		}
 		return f.Words, f.Name, f.Version, "found"

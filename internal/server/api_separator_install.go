@@ -39,14 +39,30 @@ type separatorInstall struct {
 	pct    int
 }
 
+func init() {
+	// karaokeDevice: what the installed Demucs runs on. "auto" is what the install chose (the
+	// fastest that passed its test); the others are separator.Choices' IDs.
+	settingKeys = append(settingKeys, "karaokeDevice")
+	settingDefaults["karaokeDevice"] = "auto"
+	settingChecks["karaokeDevice"] = oneOf("auto", "cuda", "rocm", "mps", "dml", "cpu")
+}
+
 func (s *Server) separatorDir() string { return filepath.Join(s.Cfg.DataDir, "separator") }
 
-// installedSeparator is Demucs as the server installed it, or nil.
+// separatorDevice is the administrator's choice of what Demucs runs on, "auto" unless set.
+func (s *Server) separatorDevice() string {
+	if s.DB == nil {
+		return "auto"
+	}
+	return s.DB.GetSetting(context.Background(), "karaokeDevice", settingDefaults["karaokeDevice"])
+}
+
+// installedSeparator is Demucs as the server installed it, running on what Settings chose, or nil.
 func (s *Server) installedSeparator() *separator.Found {
 	if s.Cfg == nil || s.Cfg.DataDir == "" {
 		return nil
 	}
-	return separator.InstalledAt(s.separatorDir())
+	return separator.InstalledWith(s.separatorDir(), s.separatorDevice())
 }
 
 // separatorEnv is the environment a separator runs in: the server's own, the installed one's
@@ -99,9 +115,18 @@ func (s *Server) handleSeparatorState(w http.ResponseWriter, r *http.Request) {
 		"task": task, "failed": failed, "phase": phase, "percent": pct,
 		"packages": separator.Packages(runtime.GOOS, runtime.GOARCH), "uv": separator.UVVersion, "python": separator.PythonVersion, "model": separator.Model,
 		"accel": acc, "downloadMB": acc.DownloadMB, "cpuDownloadMB": separator.AccelByID("cpu").DownloadMB,
+		// directml: ONNX Runtime's DirectML build comes with an install for a card here (64-bit Windows).
+		"directml": separator.DirectMLOn(runtime.GOOS, runtime.GOARCH), "directmlPackages": separator.DirectMLPackages,
 	}
 	if in := separator.ReadInfo(s.separatorDir()); in != nil {
-		out["installed"] = map[string]any{"version": in.Version, "model": in.Model, "at": in.Installed, "sizeBytes": separator.Size(s.separatorDir()), "accel": separator.AccelByID(in.Accel)}
+		// accel: what songs run on now (the choice in Settings, or what the install chose);
+		// auto: what the install chose; choices: what can be chosen.
+		using := separator.AccelByID(in.Accel)
+		if f := s.installedSeparator(); f != nil {
+			using = f.Accel
+		}
+		out["installed"] = map[string]any{"version": in.Version, "model": in.Model, "at": in.Installed, "sizeBytes": separator.Size(s.separatorDir()),
+			"accel": using, "auto": separator.AccelByID(in.Accel), "choices": separator.Choices(in), "device": s.separatorDevice()}
 	}
 	writeJSON(w, 200, out)
 }
@@ -119,11 +144,17 @@ func (s *Server) handleSeparatorInstall(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, 409, map[string]any{"error": "Demucs is already installed.", "reason": "installed"})
 		return
 	}
-	// The graphics card when there's one PyTorch can use, unless the administrator chose the
-	// processor only (?accel=cpu: a smaller download).
+	// The graphics card when there's one Demucs can use, unless the administrator chose the
+	// processor only (?accel=cpu: a smaller download), or DirectML on Windows (?accel=dml: for a
+	// card CUDA doesn't reach, and for measuring it on one it does).
 	acc := separator.DetectAccel()
-	if r.URL.Query().Get("accel") == "cpu" {
+	switch r.URL.Query().Get("accel") {
+	case "cpu":
 		acc = separator.AccelByID("cpu")
+	case "dml":
+		if separator.DirectMLOn(runtime.GOOS, runtime.GOARCH) {
+			acc = separator.AccelByID("dml")
+		}
 	}
 	j := &s.sepInstall
 	j.mu.Lock()

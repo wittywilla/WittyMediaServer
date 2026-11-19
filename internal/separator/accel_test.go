@@ -23,7 +23,11 @@ func TestPickAccel(t *testing.T) {
 		{"NVIDIA wins over ROCm", probe{goos: "linux", goarch: "amd64", nvidia: true, rocm: true}, "cuda"},
 		{"Apple silicon", probe{goos: "darwin", goarch: "arm64"}, "mps"},
 		{"Intel Mac", probe{goos: "darwin", goarch: "amd64"}, "cpu"},
-		{"Windows with Intel or AMD graphics", probe{goos: "windows", goarch: "amd64", otherGPU: true}, "cpu"},
+		{"Windows with AMD graphics", probe{goos: "windows", goarch: "amd64", otherGPU: "AMD"}, "dml"},
+		{"Windows with Intel graphics", probe{goos: "windows", goarch: "amd64", otherGPU: "Intel"}, "dml"},
+		{"NVIDIA wins over DirectML", probe{goos: "windows", goarch: "amd64", nvidia: true, otherGPU: "Intel"}, "cuda"},
+		{"Windows on ARM (no DirectML build)", probe{goos: "windows", goarch: "arm64", otherGPU: "Intel"}, "cpu"},
+		{"Linux with an Intel card", probe{goos: "linux", goarch: "amd64", otherGPU: "Intel"}, "cpu"},
 		{"Linux on ARM with NVIDIA (no CUDA build here)", probe{goos: "linux", goarch: "arm64", nvidia: true}, "cpu"},
 		{"no card", probe{goos: "linux", goarch: "amd64"}, "cpu"},
 	} {
@@ -37,6 +41,9 @@ func TestPickAccel(t *testing.T) {
 		if !strings.HasPrefix(a.Index, torchIndex) || a.Device == "" || a.DownloadMB <= 0 || a.Name == "" {
 			t.Errorf("%s: %+v", c.name, a)
 		}
+	}
+	if AccelByID("dml").Device != "cpu" || !strings.Contains(pickAccel(probe{goos: "windows", goarch: "amd64", otherGPU: "AMD"}).Name, "AMD") {
+		t.Error("DirectML: PyTorch on the processor, and the card named")
 	}
 	if AccelByID("rocm").Device != "cuda" || AccelByID("mps").Device != "mps" || AccelByID("nonsense").ID != "cpu" || AccelByID("").ID != "cpu" {
 		t.Error("AccelByID")
@@ -54,6 +61,52 @@ func TestOnProcessorFallback(t *testing.T) {
 	}
 	if OnProcessor([]string{"demucs", "-o", "{output}", "{input}"}) != nil {
 		t.Error("no -d: nothing to change")
+	}
+	dml := []string{"py", "demucs_onnx.py", "separate", "--onnx", "m.onnx", "--provider", "dml", "-o", "{output}", "{input}"}
+	back := OnProcessor(dml)
+	if strings.Join(back, " ") != "py -m demucs -n htdemucs -d cpu -o {output} {input}" {
+		t.Errorf("a song failing through DirectML is done by Demucs on the processor: %v", back)
+	}
+}
+
+func TestInstalledChoices(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "separator")
+	py := venvPython(dir)
+	os.MkdirAll(filepath.Dir(py), 0o755)
+	os.WriteFile(py, []byte("x"), 0o755)
+	write := func(js string) { os.WriteFile(filepath.Join(dir, infoFile), []byte(js), 0o644) }
+	ids := func(in *Info) (out []string) {
+		for _, a := range Choices(in) {
+			out = append(out, a.ID)
+		}
+		return
+	}
+	write(`{"version":"4.0.1","model":"htdemucs","accel":"cuda","directml":true}`)
+	if got := ids(ReadInfo(dir)); !slices.Equal(got, []string{"cuda", "dml", "cpu"}) {
+		t.Errorf("choices %v", got)
+	}
+	if f := InstalledWith(dir, "auto"); f.Accel.ID != "cuda" {
+		t.Errorf("auto: %v", f.Accel.ID)
+	}
+	if f := InstalledWith(dir, "cpu"); f.Accel.ID != "cpu" || f.Words[slices.Index(f.Words, "-d")+1] != "cpu" {
+		t.Errorf("cpu: %v", f.Words)
+	}
+	// DirectML chosen, but the converted model is missing: Demucs on the processor.
+	if f := InstalledWith(dir, "dml"); f.Accel.ID != "cpu" || slices.Contains(f.Words, "--provider") {
+		t.Errorf("dml without its model: %v", f.Words)
+	}
+	os.MkdirAll(filepath.Join(dir, "models"), 0o755)
+	os.WriteFile(filepath.Join(dir, "models", onnxModelFile), []byte("x"), 0o644)
+	if f := InstalledWith(dir, "dml"); f.Accel.ID != "dml" || !slices.Contains(f.Words, "--provider") || !slices.Contains(f.Words, "{input}") {
+		t.Errorf("dml: %v", f.Words)
+	}
+	// A choice the install can't run is the install's own.
+	write(`{"version":"4.0.1","model":"htdemucs","accel":"cpu"}`)
+	if got := ids(ReadInfo(dir)); !slices.Equal(got, []string{"cpu"}) {
+		t.Errorf("choices %v", got)
+	}
+	if f := InstalledWith(dir, "dml"); f.Accel.ID != "cpu" {
+		t.Errorf("dml not installed: %v", f.Accel.ID)
 	}
 }
 

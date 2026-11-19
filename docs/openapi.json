@@ -23142,7 +23142,7 @@
         "x-wms-auth": "admin"
       },
       "get": {
-        "description": "For Settings' one-press install. `supported` false with `why` on FreeBSD, Windows on ARM, musl Linux and tiny machines.",
+        "description": "For Settings' one-press install. `supported` false with `why` on FreeBSD, Windows on ARM, musl Linux and tiny machines. `accel.id` is what this machine would install for: `cuda`, `rocm`, `mps`, `dml` (DirectML: Intel or AMD graphics on Windows) or `cpu`.",
         "operationId": "getKaraokeSeparator",
         "parameters": [],
         "responses": {
@@ -23151,6 +23151,16 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "directml": {
+                      "type": "boolean",
+                      "description": "ONNX Runtime's DirectML build comes with an install for a graphics card here (64-bit Windows)."
+                    },
+                    "directmlPackages": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
                     "downloadMB": {
                       "type": "integer"
                     },
@@ -23172,6 +23182,67 @@
                         },
                         "version": {
                           "type": "string"
+                        },
+                        "accel": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "device": {
+                              "type": "string"
+                            },
+                            "downloadMB": {
+                              "type": "integer"
+                            }
+                          },
+                          "description": "What songs run on now: the choice in Settings (`karaokeDevice`), or what the install chose."
+                        },
+                        "auto": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "device": {
+                              "type": "string"
+                            },
+                            "downloadMB": {
+                              "type": "integer"
+                            }
+                          },
+                          "description": "What the install chose: the fastest that passed its test."
+                        },
+                        "choices": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "device": {
+                                "type": "string"
+                              },
+                              "downloadMB": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "description": "What `karaokeDevice` can be set to, besides `auto`."
+                        },
+                        "device": {
+                          "type": "string",
+                          "description": "The `karaokeDevice` setting: `auto`, or one of `choices`."
                         }
                       },
                       "type": "object"
@@ -23229,7 +23300,7 @@
     },
     "/karaoke/separator/install": {
       "post": {
-        "description": "Starts a task that downloads uv (checked against a pinned SHA-256), Python 3.11, Demucs and CPU-only PyTorch at pinned versions, and Demucs's model, into the server's data folder. 409 `reason` `unsupported`, `too-small` or `installed`.",
+        "description": "Starts a task that downloads uv (checked against a pinned SHA-256), Python 3.11, Demucs and PyTorch at pinned versions, and Demucs's model, into the server's data folder. On 64-bit Windows also ONNX Runtime's DirectML build and onnx (wheels checked against pinned SHA-256s); the model is converted to ONNX on the machine and checked. `?accel=cpu` for the processor only; `?accel=dml` for DirectML on Windows. 409 `reason` `unsupported`, `too-small` or `installed`.",
         "operationId": "installKaraokeSeparator",
         "parameters": [],
         "responses": {

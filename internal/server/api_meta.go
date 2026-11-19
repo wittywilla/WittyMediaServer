@@ -601,6 +601,20 @@ func (s *Server) handleMetaArtwork(w http.ResponseWriter, r *http.Request) {
 		out = append(out, cand{u, src, library.SourceLabel(src), u == cur})
 	}
 	add(cur, t.SourceOf(kind))
+	// The pictures the title's own .wittyinfo holds for the kind, the one it shows first.
+	if s.Scanner != nil {
+		it := library.InfoTarget{Kind: library.InfoShow}
+		if t.Show != nil {
+			it.ID = t.Show.ID
+		} else if t.Item != nil {
+			it = library.InfoTarget{Kind: library.InfoItem, ID: t.Item.ID}
+		}
+		if it.ID != 0 {
+			for _, ref := range s.Scanner.InfoPictures(ctx, it, kind) {
+				add(ref, "wittyinfo")
+			}
+		}
+	}
 	dir := filepath.Dir(t.Path())
 	if t.Show != nil {
 		dir = t.Show.Path

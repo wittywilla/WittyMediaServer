@@ -155,6 +155,17 @@ var metadataMigrations = []string{
 	// 14: consoles' and game studios' logos are WittyPlay's (module API 5, its brand logos).
 	`DELETE FROM title_brands WHERE kind IN ('console', 'gamestudio');
 	 DELETE FROM logos WHERE kind IN ('console', 'gamestudio');`,
+	// 15: .wittyinfo edits kept by the server when they can't be written beside the media
+	// (docs/formats/wittyinfo.md). target is item or show; season is -1 for a whole show or
+	// an item. body is the .wittyinfo itself; force uses it on a cut it wasn't made for.
+	`CREATE TABLE IF NOT EXISTS wittyinfo (
+	   target TEXT NOT NULL, target_id INTEGER NOT NULL, season INTEGER NOT NULL DEFAULT -1,
+	   body BLOB NOT NULL DEFAULT x'', force INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0,
+	   PRIMARY KEY(target, target_id, season)) WITHOUT ROWID;
+	 CREATE TRIGGER IF NOT EXISTS wittyinfo_item_gone AFTER DELETE ON items BEGIN
+	   DELETE FROM wittyinfo WHERE target = 'item' AND target_id = OLD.id; END;
+	 CREATE TRIGGER IF NOT EXISTS wittyinfo_show_gone AFTER DELETE ON shows BEGIN
+	   DELETE FROM wittyinfo WHERE target = 'show' AND target_id = OLD.id; END;`,
 }
 
 func (d *DB) migrateMetadata(ctx context.Context) error {

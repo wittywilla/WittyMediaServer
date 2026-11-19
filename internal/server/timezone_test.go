@@ -5,6 +5,8 @@ package server
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -13,9 +15,19 @@ import (
 
 // The saved zone is set before anything runs, and applying it again at start writes nothing:
 // a write there raced the log's goroutine reading the clock.
+//
+// It writes time.Local, which no test may do while another test's timers read the clock, so it
+// runs alone in a copy of the test binary.
 func TestTimeZoneIsSetBeforeAnythingRuns(t *testing.T) {
+	if os.Getenv("WMS_TEST_TIMEZONE_ALONE") != "1" {
+		cmd := exec.Command(os.Args[0], "-test.run=^TestTimeZoneIsSetBeforeAnythingRuns$", "-test.count=1")
+		cmd.Env = append(os.Environ(), "WMS_TEST_TIMEZONE_ALONE=1")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("%v\n%s", err, out)
+		}
+		return
+	}
 	was := time.Local
-	t.Cleanup(func() { time.Local = was })
 	dir := t.TempDir()
 	EarlyTimeZone(dir) // no database yet: nothing changes
 	if time.Local != was {

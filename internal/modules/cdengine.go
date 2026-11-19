@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -107,6 +108,9 @@ func cdError(err error) error {
 			return cd.ErrNoAudio
 		case "unsupported":
 			return cd.ErrUnsupported
+		case "missing":
+			// A file the sheet names isn't beside it (WittyCD 0.3.3 on): the words say which.
+			return fmt.Errorf("%s: %w", ce.Message, os.ErrNotExist)
 		}
 	}
 	return err

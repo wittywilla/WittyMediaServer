@@ -21,6 +21,7 @@ import (
 	wittycd "github.com/wittywilla/wittymediaserver/internal/cd"
 	"github.com/wittywilla/wittymediaserver/internal/cdlookup"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
 )
 
 // CD images. A disc is one item (kind cd-image), which is what a shelf shows and
@@ -245,6 +246,12 @@ func (s *Scanner) indexCD(ctx context.Context, lib *Library, c candidate) error 
 		// Not a CD at all, or a data disc: a sheet for a game, a stray .bin. Passed over.
 		if errors.Is(err, wittycd.ErrNotCD) || errors.Is(err, wittycd.ErrNoAudio) {
 			s.Log.Info("not an audio CD", "cat", "library", "path", c.path, "why", err)
+			return nil
+		}
+		// A rip's sheet beside the songs it was encoded to and renamed as: the songs are in the
+		// library one by one, so the sheet adds nothing, and nothing here is for the owner to fix.
+		if IsAudioLibrary(lib.Type) && errors.Is(err, os.ErrNotExist) && songsBeside(c.path) {
+			s.Log.Info("a CD sheet whose files were renamed; its songs are used instead", "cat", "library", "path", c.path, "why", err)
 			return nil
 		}
 		// A disc that can't be read yet stays on the shelf, where opening it says why.
@@ -698,3 +705,17 @@ func (s *Scanner) flacOfSheetAudio(path string) (string, error) {
 const maxSheetAudio = int64(8) << 30
 
 var sheetAudioMu sync.Mutex
+
+// songsBeside says whether a sheet's folder holds sound files of its own.
+func songsBeside(sheet string) bool {
+	entries, err := os.ReadDir(filepath.Dir(sheet))
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if !e.IsDir() && mediatypes.IsAudio(e.Name()) {
+			return true
+		}
+	}
+	return false
+}

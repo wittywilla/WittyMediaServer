@@ -288,3 +288,21 @@ func TestMetricsStreamSamplesOnlyWhileOpen(t *testing.T) {
 	res.Body.Close()
 	waitFor(t, func() bool { return ts.Metrics.Watchers() == 0 })
 }
+
+// A file opened without a playback being noted first (a book's PDF, a download) still shows
+// what it is in Playing now.
+func TestAStreamNobodyNotedIsNamedAfterItsItem(t *testing.T) {
+	ts := newTestServer(t)
+	u, tok := ts.user(t, "alex", "adult", true, "")
+	lib := ts.library(t, "books", t.TempDir())
+	it := ts.item(t, &library.Item{LibraryID: lib, Kind: "book", Path: filepath.Join(t.TempDir(), "a.pdf"), Title: "A Made Up Book"})
+	r := httptest.NewRequest("GET", "/api/items/1/file", nil)
+	r = r.WithContext(context.WithValue(context.WithValue(r.Context(), userKey, u), tokenKey, tok))
+	w, done := ts.streams.served(httptest.NewRecorder(), r, it.ID, "")
+	_, _ = w.Write(make([]byte, 10))
+	done()
+	views := ts.streams.streams(0)
+	if len(views) != 1 || views[0].Title != "A Made Up Book" || views[0].Decision != "direct" {
+		t.Fatalf("%+v", views)
+	}
+}

@@ -17,7 +17,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/nwaples/rardecode/v2 v2.4.5
 	github.com/ulikunitz/xz v0.5.17
-	github.com/wittywilla/wittydisc v0.2.0
+	github.com/wittywilla/wittydisc v0.3.3
 	github.com/wittywilla/wittymodule v0.5.3
 	golang.org/x/crypto v0.59.0
 	golang.org/x/image v0.48.0

@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { arrange, entries, fitCount, foldGames, groupOf, isActive, moved, frameFor } from './navModel.ts'
+import { arrange, entries, fitCount, foldGames, groupOf, inSectionRow, isActive, moved, frameFor, splitMore, splitSideMenu } from './navModel.ts'
 
 const items = [
   { id: 'home', label: 'Home', to: '/', end: true },
@@ -92,4 +92,26 @@ test('with WittyPlay Online in the menu it is Games, and the games libraries and
   assert.deepEqual(foldGames(items).map((i) => i.id + ':' + i.label), ['home:Home', 'lib-4:Films', 'wittyplay-online:Games'])
   const without = items.filter((i) => i.id !== 'wittyplay-online')
   assert.deepEqual(foldGames(without), without)
+})
+
+// #537: what a server's menu places under More (a module's Server folders) is never in the bar, whatever room it has.
+test('an entry placed under More is never in the bar', () => {
+  const menu = [
+    { id: 'home', label: 'Home', to: '/', placement: 'primary' },
+    { id: 'lib-1', label: 'Music', to: '/library/1', placement: 'more' },
+    { id: 'collections', label: 'Collections', to: '/collections', placement: 'more' },
+    { id: 'folders', label: 'Server folders', to: '/page/folders', placement: 'more' },
+    { id: 'stats', label: 'Statistics', to: '/page/stats', placement: 'primary' },
+  ]
+  const { bar, more } = splitMore(menu)
+  assert.deepEqual(ids(bar), ['home', 'stats'])
+  assert.deepEqual(ids(more), ['lib-1', 'collections', 'folders'])
+  // A phone's row of sections keeps the libraries and Collections it is there for, and leaves the rest in the menu.
+  assert.deepEqual(ids(menu.filter(inSectionRow)), ['home', 'lib-1', 'collections', 'stats'])
+  assert.deepEqual(ids(splitSideMenu(menu).more), ['folders'])
+  // With room for everything, a bar that has More anyway shows all of its own entries and the More button.
+  assert.equal(fitCount([50, 50], 2, 1000, 40, -1, 0, true), 2)
+  assert.equal(fitCount([50, 50], 2, 140, 40, -1, 0, true), 1)
+  // The page open is one placed under More: its name on the button needs room.
+  assert.equal(fitCount([50, 50], 2, 160, 40, 2, 100, true), 1)
 })

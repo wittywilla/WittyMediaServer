@@ -10,7 +10,7 @@ import { num, t, tn, tx, txc } from '../i18n'
 import { useApp } from '../state'
 import { isBackKey } from '../ui/spatial'
 import { Tooltip } from '../ui/Tooltip'
-import { arrange, entries, isLibrary, type NavItem } from './navModel'
+import { arrange, entries, isLibrary, splitSideMenu, type NavItem } from './navModel'
 import { navIcon, useNavItems, useNavPrefs } from './useNav'
 
 // The side menu. Three forms: beside the page, folded to a rail of icons, and on
@@ -29,7 +29,8 @@ export function Sidebar({ open, rail, drawer, onClose, withDrawer }: { open: boo
   const pin = (on: boolean) => { setKeep(on); try { localStorage.setItem(PIN, on ? '1' : '0') } catch { /* this visit only */ } }
   const items = useNavItems()
   const { prefs } = useNavPrefs()
-  const list = useMemo(() => entries(arrange(items, prefs), prefs), [items, prefs])
+  // What the menu places under More has a part of its own below the rest; the libraries keep theirs (splitSideMenu).
+  const { list, placed } = useMemo(() => { const s = splitSideMenu(arrange(items, prefs)); return { list: entries(s.main, prefs), placed: s.more } }, [items, prefs])
   const shown = open || rail
   const holding = drawer && open
   useEffect(() => {
@@ -45,7 +46,7 @@ export function Sidebar({ open, rail, drawer, onClose, withDrawer }: { open: boo
     window.addEventListener('keydown', keys, true)
     return () => window.removeEventListener('keydown', keys, true)
   }, [drawerOf])
-  const opened = list.flatMap((e) => ('group' in e ? e.items : [e.item])).find((it) => it.id === drawerOf)?.drawer
+  const opened = [...list.flatMap((e) => ('group' in e ? e.items : [e.item])), ...placed].find((it) => it.id === drawerOf)?.drawer
   const tip = (node: ReactElement<object>, text: string) => rail ? <Tooltip key={text} text={text} side="right" describes={false}>{node}</Tooltip> : node
   const link = (it: NavItem) => tip(
     <NavLink key={it.id} to={it.to} end={it.end} className={'nav-link' + (it.id === 'home' || it.id === 'tv' || it.id === 'livetv' ? ' nav-dup' : '')} aria-label={rail && !keep ? tx(it.label) : undefined}
@@ -70,6 +71,7 @@ export function Sidebar({ open, rail, drawer, onClose, withDrawer }: { open: boo
           return first ? <div key={e.key} className="nav-group"><div className="nav-section">{t('Libraries')}</div>{link(e.item)}</div> : link(e.item)
         })}
         {libraries.length === 0 && <div className="nav-empty">{t('No libraries yet')}</div>}
+        {placed.length > 0 && <div className="nav-group" role="group" aria-label={t('More')}><div className="nav-section" aria-hidden="true">{t('More')}</div>{placed.map(link)}</div>}
         <div className="nav-section nav-dup">{t('Manage')}</div>
         {tip(<NavLink to="/settings" className="nav-link nav-dup" aria-label={rail ? t('Settings') : undefined}><IconSettings /> <span className="nav-text">{t('Settings')}</span><UpdateDot /></NavLink>, t('Settings'))}
         {rail && <div className="rail-keep"><Switch label={t('Keep menu open')} checked={keep} onChange={pin} /><span className="nav-text">{t('Keep menu open')}</span></div>}

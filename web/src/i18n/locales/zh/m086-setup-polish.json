@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "更改 {name} 密钥",
+  "Keep the saved key": "保留已保存的密钥",
+  "Address copied": "地址已复制",
+  "Couldn’t copy it: select the address and copy it": "无法复制:请选中地址后复制",
+  "Right now this server only answers on this computer, at:": "目前这台服务器只在这台电脑上响应,地址为:",
+  "Copy the address {url}": "复制地址 {url}",
+  "It also answers at {url}.": "它也可以通过 {url} 访问。",
+  "QR code holding the address {url}": "包含地址 {url} 的二维码",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "要在电视或手机上使用,请在设置 {listen} 的地方(它的配置文件、{flag} 或 {env})把它设为 {port},然后重启。",
+  "Then other devices at home can open it at {url}.": "之后家里的其他设备就可以通过 {url} 打开它。",
+  "Write {standard} from {ext} files: there are none yet": "从 {ext} 文件写出 {standard}:目前还没有",
+  "{done} of {count} films and episodes converted": "已转换的电影和剧集:{done}/{count}",
+  "{done} of {count} shows": "节目:{done}/{count}",
+  "{done} of {count} albums converted": "已转换的专辑:{done}/{count}",
+  "lyrics for {done} of {count} songs": "歌词:{count} 首歌曲中的 {done} 首",
+  "{count} old files renamed to .bak": "已重命名为 .bak 的旧文件:{count}",
+  "{count} couldn’t be converted (see the log)": "无法转换(请查看日志):{count}",
+  "{done} of {count} films, episodes and shows": "电影、剧集和节目:{done}/{count}",
+  "{done} of {count} songs": "歌曲:{done}/{count}",
+  "{done} of {count} games": "游戏:{done}/{count}"
+}

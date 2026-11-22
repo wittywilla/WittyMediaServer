@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "Zmień klucz {name}",
+  "Keep the saved key": "Zachowaj zapisany klucz",
+  "Address copied": "Skopiowano adres",
+  "Couldn’t copy it: select the address and copy it": "Nie udało się skopiować: zaznacz adres i skopiuj go",
+  "Right now this server only answers on this computer, at:": "W tej chwili ten serwer odpowiada tylko na tym komputerze, pod adresem:",
+  "Copy the address {url}": "Kopiuj adres {url}",
+  "It also answers at {url}.": "Odpowiada też pod adresem {url}.",
+  "QR code holding the address {url}": "Kod QR z adresem {url}",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "Aby używać go z telewizora lub telefonu, ustaw {listen} na {port} tam, gdzie jest to ustawione (jego plik konfiguracyjny, {flag} lub {env}), i uruchom go ponownie.",
+  "Then other devices at home can open it at {url}.": "Potem inne urządzenia w domu otworzą go pod adresem {url}.",
+  "Write {standard} from {ext} files: there are none yet": "Zapisz {standard} z plików {ext}: jeszcze ich nie ma",
+  "{done} of {count} films and episodes converted": "Przekonwertowane filmy i odcinki: {done} z {count}",
+  "{done} of {count} shows": "Seriale: {done} z {count}",
+  "{done} of {count} albums converted": "Przekonwertowane albumy: {done} z {count}",
+  "lyrics for {done} of {count} songs": "Teksty: {done} z {count} utworów",
+  "{count} old files renamed to .bak": "Stare pliki przemianowane na .bak: {count}",
+  "{count} couldn’t be converted (see the log)": "Nie udało się przekonwertować (zobacz dziennik): {count}",
+  "{done} of {count} films, episodes and shows": "Filmy, odcinki i seriale: {done} z {count}",
+  "{done} of {count} songs": "Utwory: {done} z {count}",
+  "{done} of {count} games": "Gry: {done} z {count}"
+}

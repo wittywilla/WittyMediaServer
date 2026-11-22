@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "{name} のキーを変更",
+  "Keep the saved key": "保存済みのキーを使い続ける",
+  "Address copied": "アドレスをコピーしました",
+  "Couldn’t copy it: select the address and copy it": "コピーできませんでした。アドレスを選んでコピーしてください",
+  "Right now this server only answers on this computer, at:": "いまこのサーバーはこのコンピューターでだけ応答しています。アドレス:",
+  "Copy the address {url}": "アドレス {url} をコピー",
+  "It also answers at {url}.": "{url} でも応答します。",
+  "QR code holding the address {url}": "アドレス {url} の QR コード",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "テレビやスマートフォンから使うには、{listen} を設定している場所(設定ファイル、{flag} または {env})で {port} にして、再起動してください。",
+  "Then other devices at home can open it at {url}.": "その後、家のほかの機器から {url} で開けます。",
+  "Write {standard} from {ext} files: there are none yet": "{ext} ファイルから {standard} を書き出す: まだありません",
+  "{done} of {count} films and episodes converted": "変換した映画とエピソード: {count} 件中 {done} 件",
+  "{done} of {count} shows": "番組: {count} 件中 {done} 件",
+  "{done} of {count} albums converted": "変換したアルバム: {count} 件中 {done} 件",
+  "lyrics for {done} of {count} songs": "歌詞: {count} 曲中 {done} 曲",
+  "{count} old files renamed to .bak": ".bak に名前を変えた古いファイル: {count} 件",
+  "{count} couldn’t be converted (see the log)": "変換できなかったもの(ログを参照): {count} 件",
+  "{done} of {count} films, episodes and shows": "映画、エピソード、番組: {count} 件中 {done} 件",
+  "{done} of {count} songs": "曲: {count} 曲中 {done} 曲",
+  "{done} of {count} games": "ゲーム: {count} 本中 {done} 本"
+}

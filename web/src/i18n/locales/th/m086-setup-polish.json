@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "เปลี่ยนคีย์ {name}",
+  "Keep the saved key": "ใช้คีย์ที่บันทึกไว้ต่อ",
+  "Address copied": "คัดลอกที่อยู่แล้ว",
+  "Couldn’t copy it: select the address and copy it": "คัดลอกไม่ได้: เลือกที่อยู่แล้วคัดลอกเอง",
+  "Right now this server only answers on this computer, at:": "ตอนนี้เซิร์ฟเวอร์นี้ตอบเฉพาะบนคอมพิวเตอร์เครื่องนี้ ที่:",
+  "Copy the address {url}": "คัดลอกที่อยู่ {url}",
+  "It also answers at {url}.": "ยังตอบที่ {url} ด้วย",
+  "QR code holding the address {url}": "คิวอาร์โค้ดของที่อยู่ {url}",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "หากต้องการใช้จากทีวีหรือโทรศัพท์ ให้ตั้ง {listen} เป็น {port} ในที่ที่ตั้งค่าไว้ (ไฟล์การตั้งค่า, {flag} หรือ {env}) แล้วเริ่มใหม่",
+  "Then other devices at home can open it at {url}.": "จากนั้นอุปกรณ์อื่นในบ้านจะเปิดได้ที่ {url}",
+  "Write {standard} from {ext} files: there are none yet": "เขียน {standard} จากไฟล์ {ext}: ยังไม่มีเลย",
+  "{done} of {count} films and episodes converted": "ภาพยนตร์และตอนที่แปลงแล้ว: {done} จาก {count}",
+  "{done} of {count} shows": "รายการทีวี: {done} จาก {count}",
+  "{done} of {count} albums converted": "อัลบั้มที่แปลงแล้ว: {done} จาก {count}",
+  "lyrics for {done} of {count} songs": "เนื้อเพลง: {done} จาก {count} เพลง",
+  "{count} old files renamed to .bak": "ไฟล์เก่าที่เปลี่ยนชื่อเป็น .bak: {count}",
+  "{count} couldn’t be converted (see the log)": "แปลงไม่ได้ (ดูบันทึก): {count}",
+  "{done} of {count} films, episodes and shows": "ภาพยนตร์ ตอน และรายการทีวี: {done} จาก {count}",
+  "{done} of {count} songs": "เพลง: {done} จาก {count}",
+  "{done} of {count} games": "เกม: {done} จาก {count}"
+}

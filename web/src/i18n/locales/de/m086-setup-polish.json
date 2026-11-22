@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "Den {name}-Schlüssel ändern",
+  "Keep the saved key": "Gespeicherten Schlüssel behalten",
+  "Address copied": "Adresse kopiert",
+  "Couldn’t copy it: select the address and copy it": "Kopieren hat nicht geklappt: markiere die Adresse und kopiere sie",
+  "Right now this server only answers on this computer, at:": "Im Moment antwortet dieser Server nur auf diesem Computer, unter:",
+  "Copy the address {url}": "Die Adresse {url} kopieren",
+  "It also answers at {url}.": "Er antwortet auch unter {url}.",
+  "QR code holding the address {url}": "QR-Code mit der Adresse {url}",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "Um ihn vom Fernseher oder Handy aus zu nutzen, setze {listen} auf {port}, dort wo es eingestellt ist (seine Konfigurationsdatei, {flag} oder {env}), und starte ihn neu.",
+  "Then other devices at home can open it at {url}.": "Danach können andere Geräte zu Hause ihn unter {url} öffnen.",
+  "Write {standard} from {ext} files: there are none yet": "{standard} aus {ext}-Dateien schreiben: es gibt noch keine",
+  "{done} of {count} films and episodes converted": "Filme und Folgen umgewandelt: {done} von {count}",
+  "{done} of {count} shows": "Serien: {done} von {count}",
+  "{done} of {count} albums converted": "Alben umgewandelt: {done} von {count}",
+  "lyrics for {done} of {count} songs": "Songtexte: {done} von {count} Songs",
+  "{count} old files renamed to .bak": "Alte Dateien in .bak umbenannt: {count}",
+  "{count} couldn’t be converted (see the log)": "Nicht umwandelbar (siehe Protokoll): {count}",
+  "{done} of {count} films, episodes and shows": "Filme, Folgen und Serien: {done} von {count}",
+  "{done} of {count} songs": "Songs: {done} von {count}",
+  "{done} of {count} games": "Spiele: {done} von {count}"
+}

@@ -6,6 +6,7 @@ import { api } from '../../api'
 import LegalNote from '../../components/LegalNote'
 import { IconCheck } from '../../icons'
 import { Button } from '../../ui'
+import { keySaved, SavedKey } from '../../components/SavedKey'
 import { PartNote } from '../../tvmode/OnAComputer'
 import { useTvMode } from '../../tvmode/mode'
 import { Fill, LaterNote, StepActions, StepHead, type StepProps } from './parts'
@@ -52,7 +53,17 @@ export function Details({ info, facts, next, back }: StepProps) {
   const tv = useTvMode()
   // A conversion chosen and not finished holds Continue (ConvertPanel).
   const [converting, setConverting] = useState(false)
-  useEffect(() => { api.get<Record<string, string>>('/settings').then((s) => setBeside(s.saveMetadata !== '0')).catch(() => {}) }, [])
+  // Keys already on the server (given here before, or in Settings): shown as saved, never as an empty field to fill
+  // again (#534). The server never sends a key back, only that there is one.
+  const [saved, setSaved] = useState<Record<string, boolean>>({})
+  // The saved key being replaced, if any.
+  const [changing, setChanging] = useState<string | null>(null)
+  useEffect(() => {
+    api.get<Record<string, string>>('/settings').then((s) => {
+      setBeside(s.saveMetadata !== '0')
+      setSaved(Object.fromEntries(PROVIDERS.map((p) => [p.key, keySaved(s, p.key)])))
+    }).catch(() => {})
+  }, [])
   const test = async (p: (typeof PROVIDERS)[number]) => {
     setState((s) => ({ ...s, [p.id]: { busy: true } }))
     try {
@@ -64,7 +75,12 @@ export function Details({ info, facts, next, back }: StepProps) {
     setSaving(true)
     const body: Record<string, string> = {}
     for (const [k, v] of Object.entries(keys)) if (v.trim()) body[k] = v.trim()
-    try { if (Object.keys(body).length) await api.put('/settings', body) } catch { /* all of this can be changed later */ }
+    try {
+      if (Object.keys(body).length) {
+        await api.put('/settings', body)
+        setSaved((s) => ({ ...s, ...Object.fromEntries(PROVIDERS.filter((p) => body[p.key]).map((p) => [p.key, true])) }))
+      }
+    } catch { /* all of this can be changed later */ }
     setSaving(false)
     next()
   }
@@ -81,14 +97,20 @@ export function Details({ info, facts, next, back }: StepProps) {
       {tv ? <PartNote title={t('Adding keys')} path="/settings/metadata" /> : <div className="oobe-providers">
         {PROVIDERS.map((p) => {
           const st = state[p.id] || {}
-          const shown = open === p.id || !!keys[p.key]
+          const has = saved[p.key] && changing !== p.id
+          const shown = has || open === p.id || !!keys[p.key]
+          // Cancel goes back to the saved key: what was typed is dropped.
+          const keep = () => { setChanging(null); setKeys((k) => ({ ...k, [p.key]: '', ...('pinKey' in p ? { [p.pinKey]: '' } : {}) })); setState((s) => ({ ...s, [p.id]: {} })) }
           return (
-            <div key={p.id} className={'oobe-provider' + (st.ok ? ' ok' : '')}>
-              <button type="button" className="op-head" onClick={() => setOpen(open === p.id ? null : p.id)} aria-expanded={shown}>
-                <b>{p.name}</b><span className="pill">{t(p.for)}</span>
-                {st.ok ? <span className="op-ok"><IconCheck size={14} /> {t('Connected')}</span> : <span className="op-add">{shown ? t('Hide') : t('Add a key')}</span>}
-              </button>
-              {shown && (
+            <div key={p.id} className={'oobe-provider' + (st.ok || has ? ' ok' : '')}>
+              {has
+                ? <div className="op-head op-head-static"><b>{p.name}</b><span className="pill">{t(p.for)}</span></div>
+                : <button type="button" className="op-head" onClick={() => setOpen(open === p.id ? null : p.id)} aria-expanded={shown}>
+                  <b>{p.name}</b><span className="pill">{t(p.for)}</span>
+                  {st.ok ? <span className="op-ok"><IconCheck size={14} /> {t('Connected')}</span> : <span className="op-add">{shown ? t('Hide') : t('Add a key')}</span>}
+                </button>}
+              {has && <div className="op-saved"><SavedKey name={p.name} onChange={() => { setChanging(p.id); setOpen(p.id) }} /></div>}
+              {shown && !has && (
                 <>
                   <ol className="op-steps">{p.steps().map((s, i) => <li key={i}>{s}</li>)}</ol>
                   <div className="field-row">
@@ -96,6 +118,7 @@ export function Details({ info, facts, next, back }: StepProps) {
                       onChange={(e) => { setKeys((k) => ({ ...k, [p.key]: e.target.value })); setState((s) => ({ ...s, [p.id]: {} })) }} />
                     {'pinKey' in p && <input className="input pin" aria-label={t('Subscriber PIN')} placeholder={t('PIN (optional)')} value={keys[p.pinKey] || ''} onChange={(e) => setKeys((k) => ({ ...k, [p.pinKey]: e.target.value }))} />}
                     <button type="button" className="btn" aria-busy={st.busy || undefined} onClick={() => { if (keys[p.key]?.trim() && !st.busy) void test(p) }}>{st.busy ? t('Checking…') : t('Test')}</button>
+                    {saved[p.key] && <Button variant="ghost" onClick={keep}>{t('Keep the saved key')}</Button>}
                   </div>
                   {st.msg && !st.ok && <div className="error" role="alert">{st.msg}</div>}
                   {st.ok && <span className="sr-only" role="status">{t('Connected')}</span>}

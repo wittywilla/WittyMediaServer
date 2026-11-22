@@ -34,7 +34,7 @@ export function SavedKeyField({ name, saved, value, onChange, placeholder, label
   useEffect(() => { if (masked && !emptied.current) setChanging(false); emptied.current = false }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
   if (saved && !changing) return <SavedKey name={name} disabled={disabled} onChange={() => setChanging(true)} />
   return (
-    <div className="set-key">
+    <div className="saved-key-field">
       <input className="input" disabled={disabled} placeholder={placeholder} value={masked ? '' : value} spellCheck={false} autoComplete="off" aria-label={label} autoFocus={changing}
         onChange={(e) => { const v = e.target.value; if (!v && first.includes('•')) { emptied.current = true; onChange(first) } else onChange(v) }} />
       {saved && <Button size="sm" variant="ghost" onClick={() => { onChange(first); setChanging(false) }}>{t('Keep the saved key')}</Button>}

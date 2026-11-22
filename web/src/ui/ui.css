@@ -202,3 +202,5 @@
 .saved-key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
 .saved-key-mark { display: inline-flex; align-items: center; gap: var(--sp-1); font-weight: 600; color: var(--fg); }
 .saved-key-mark svg { color: var(--accent-text); flex: none; }
+.saved-key-field { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.saved-key-field .input { flex: 1 1 260px; min-width: 0; font-family: var(--font-mono); font-size: var(--text-sm); }

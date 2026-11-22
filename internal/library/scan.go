@@ -99,6 +99,12 @@ type ScanProgress struct {
 	Mode ScanMode `json:"mode"`
 	// Resumed: a restart cut this scan short and it's carrying on.
 	Resumed bool `json:"resumed,omitempty"`
+	// Total is how much the phase has to get through, when it isn't the files found (grouping and
+	// describing count their own), and Done is of it.
+	Total int `json:"total,omitempty"`
+	// Detail is the module's word on what it's working on now: a short name, such as the console
+	// a games library's scan is sorting. "" when it says nothing.
+	Detail string `json:"detail,omitempty"`
 }
 
 func NewScanner(store *Store, tools *ffmpeg.Tools, cacheDir string, tmdbKey func() string, log *slog.Logger) *Scanner {
@@ -412,6 +418,28 @@ func (s *Scanner) Running(id int64) bool {
 	defer s.mu.Unlock()
 	_, ok := s.running[id]
 	return ok
+}
+
+// ScanningFor says whether a library whose scan this module answers is being scanned now. What
+// the module's pages show (the consoles a games scan has sorted so far) changes meanwhile, so
+// they're drawn again until it ends.
+func (s *Scanner) ScanningFor(ctx context.Context, module string) bool {
+	s.mu.Lock()
+	ids := make([]int64, 0, len(s.running))
+	for id := range s.running {
+		ids = append(ids, id)
+	}
+	s.mu.Unlock()
+	for _, id := range ids {
+		lib, err := s.Store.Library(ctx, id)
+		if err != nil {
+			continue
+		}
+		if m, ok := s.scanModule(lib.Type); ok && m.On && m.ID == module {
+			return true
+		}
+	}
+	return false
 }
 
 // Snapshot returns a copy of the progress for a library, or nil when idle.

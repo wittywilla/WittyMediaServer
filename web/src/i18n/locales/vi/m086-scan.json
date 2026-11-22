@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "Đang sắp xếp những gì tìm thấy…",
+  "Sorting {detail}: {done} of {total}": "Đang sắp xếp {detail}: {done}/{total}",
+  "Sorting what was found: {done} of {total}": "Đang sắp xếp những gì tìm thấy: {done}/{total}",
+  "Listing what was found…": "Đang thêm những gì tìm thấy vào danh sách…",
+  "Finding out about what’s new: {done} of {total}": "Đang tìm thông tin về mục mới: {done}/{total}",
+  "Finding out about what’s new…": "Đang tìm thông tin về mục mới…",
+  "Full rescan, {detail}: {done} of {found} files": "Quét lại toàn bộ, {detail}: {done}/{found} tệp",
+  "Scanning {detail}: {done} of {found} files": "Đang quét {detail}: {done}/{found} tệp"
+}

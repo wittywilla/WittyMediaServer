@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "Sorterer det fundne…",
+  "Sorting {detail}: {done} of {total}": "Sorterer {detail}: {done} af {total}",
+  "Sorting what was found: {done} of {total}": "Sorterer det fundne: {done} af {total}",
+  "Listing what was found…": "Opretter det fundne…",
+  "Finding out about what’s new: {done} of {total}": "Finder ud af det nye: {done} af {total}",
+  "Finding out about what’s new…": "Finder ud af det nye…",
+  "Full rescan, {detail}: {done} of {found} files": "Fuld genscanning, {detail}: {done} af {found} filer",
+  "Scanning {detail}: {done} of {found} files": "Scanner {detail}: {done} af {found} filer"
+}

@@ -477,12 +477,23 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   )
 }
 
-// What's behind the artwork: the player's own light styles, or one of the plugin's shaders.
+// What's behind the artwork: the player's own light styles, or one of the plugin's shaders. A shader's stage starts on
+// whatever effect it last had (or its first), and blends from there to the one chosen: seen, that was Bars or another
+// style first, then the chosen one (#524). So a shader is drawn unseen until the chosen effect is all that's on it, the
+// style that was showing carries on under it until then, and it fades in.
 function NpBackground({ style, slow, rgb, playing, media, trackMedia, onDecline }: { style: string; slow: boolean; rgb: string; playing: boolean; media: () => HTMLAudioElement | null; trackMedia: () => HTMLMediaElement | null; onDecline: () => void }) {
   const native = isNative(style)
-  return native
-    ? <NativeBackground style={style} slow={slow} rgb={rgb} playing={playing} media={media} />
-    : <ShaderBackground id={style} slow={slow} media={trackMedia} onDecline={onDecline} />
+  // The player's own style last shown, kept drawing under a shader that isn't ready yet.
+  const [under, setUnder] = useState<NativeStyle | ''>(native ? style : '')
+  const [ready, setReady] = useState(false)
+  useEffect(() => { if (native) { setUnder(style); setReady(false) } }, [native, style])
+  if (native) return <NativeBackground style={style} slow={slow} rgb={rgb} playing={playing} media={media} />
+  return (
+    <>
+      {!ready && under && <NativeBackground style={under} slow={slow} rgb={rgb} playing={playing} media={media} />}
+      <ShaderBackground id={style} slow={slow} media={trackMedia} onDecline={onDecline} onReady={() => { setReady(true); setUnder('') }} />
+    </>
+  )
 }
 
 function NativeBackground({ style, slow, rgb, playing, media }: { style: NativeStyle; slow: boolean; rgb: string; playing: boolean; media: () => HTMLAudioElement | null }) {
@@ -505,19 +516,34 @@ function NativeBackground({ style, slow, rgb, playing, media }: { style: NativeS
   return <canvas className="np-canvas" ref={canvas} aria-hidden="true" />
 }
 
-function ShaderBackground({ id, slow, media, onDecline }: { id: string; slow: boolean; media: () => HTMLMediaElement | null; onDecline: () => void }) {
-  // It may still be arriving, or waiting on the flashing notice: choose once it's ready.
+function ShaderBackground({ id, slow, media, onDecline, onReady }: { id: string; slow: boolean; media: () => HTMLMediaElement | null; onDecline: () => void; onReady?: () => void }) {
+  const [shown, setShown] = useState(false)
+  const ready = useRef(onReady)
+  ready.current = onReady
+  // It may still be arriving, or waiting on the flashing notice: choose once it's ready, and show it once the chosen
+  // effect is the only one on the stage (the plugin's session says what it is blending into; one that doesn't say is
+  // given its blend's length).
   useEffect(() => {
+    let chosenAt = 0
     const t = setInterval(() => {
       const s = shaderSession()
       if (!s?.loaded || !s.settings.notice) return
+      if (!chosenAt) {
+        s.update({ calm: slow ? true : null })
+        s.select(id)
+        chosenAt = performance.now()
+      }
+      const blending = (s as unknown as { toId?: string | null }).toId
+      const settled = s.status.effect === id && (blending === undefined ? performance.now() - chosenAt > (slow ? 4200 : 2600) : blending === null)
+      if (!settled) return
       clearInterval(t)
-      s.update({ calm: slow ? true : null })
-      s.select(id)
+      setShown(true)
+      ready.current?.()
     }, 120)
     return () => clearInterval(t)
   }, [id, slow])
-  return <div className="np-shader"><VisualizerView media={media} place="panel" onClose={onDecline} /></div>
+  // Once shown it stays shown: a later change of effect is the plugin's own blend from one chosen effect to another.
+  return <div className={'np-shader' + (shown ? ' shown' : '')}><VisualizerView media={media} place="panel" onClose={onDecline} /></div>
 }
 
 // All the effects at once, as the board draws them (Effects: all 18 kept, the classics and Aurora Rings), with the

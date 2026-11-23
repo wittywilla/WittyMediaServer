@@ -86,6 +86,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   // A phone or tablet, upright or on its side (or a narrow window): the picture first, the rest in the Options sheet
   // (Controls' compact bar). The full bar needs about 900 px for one row.
   const narrow = useMedia('(max-width: 900px), (max-height: 500px) and (pointer: coarse)')
+  // A phone, a tablet or a TV: the scenes panel covers the picture there, so the film waits while it's open.
+  const touchOrTv = useMedia('(pointer: coarse)') || getTvMode()
   const compact = prefs.controls === 'simple' || (prefs.controls !== 'detailed' && narrow && !getTvMode())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [picker, setPicker] = useState<'audio' | 'subtitle' | null>(null)
@@ -682,7 +684,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             audio={info?.audio.map((a) => ({ id: a.index, label: [trackLang(a.language), ownName(a), a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker((p) => (p === k ? null : k)) }}
-            compact={compact} sheetItems={[
+            compact={compact} pauseForScenes={prefs.scenesPause === 'always' || touchOrTv} sheetItems={[
               ...((may.party || party.room) ? [{ key: 'party', icon: <IconUsers />, label: t('Watch party'), value: party.room ? tn('{count} watching', '{count} watching', party.room.members.length) : undefined, on: party.active, onClick: () => setPartyOpen(true) }] : []),
               { key: 'mini', icon: <IconMini />, label: t('Keep playing in a corner'), onClick: chrome.minimize },
             ]}

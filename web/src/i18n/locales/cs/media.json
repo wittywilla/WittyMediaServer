@@ -934,5 +934,9 @@
     "few": "a ještě {count} pozvánky",
     "many": "a ještě {count} pozvánky",
     "other": "a ještě {count} pozvánek"
-  }
+  },
+  "Pause for scenes": "Pozastavit u scén",
+  "Pause the film while the scenes are open": "Pozastavit film, když jsou otevřené scény",
+  "Phones and TVs": "Telefony a televizory",
+  "Every screen": "Všechny obrazovky"
 }

@@ -919,5 +919,9 @@
     "one": "ועוד הזמנה אחת",
     "two": "ועוד שתי הזמנות",
     "other": "ועוד {count} הזמנות"
-  }
+  },
+  "Pause for scenes": "השהיה בסצנות",
+  "Pause the film while the scenes are open": "השהיית הסרט כשהסצנות פתוחות",
+  "Phones and TVs": "טלפונים וטלוויזיות",
+  "Every screen": "כל המסכים"
 }

@@ -904,5 +904,9 @@
   "and {count} more invitations": {
     "one": "और {count} आमंत्रण",
     "other": "और {count} आमंत्रण"
-  }
+  },
+  "Pause for scenes": "दृश्यों के लिए रोकें",
+  "Pause the film while the scenes are open": "दृश्य खुले रहने तक फ़िल्म रोकें",
+  "Phones and TVs": "फ़ोन और टीवी",
+  "Every screen": "हर स्क्रीन"
 }

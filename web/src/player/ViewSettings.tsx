@@ -57,6 +57,7 @@ export default function ViewSettings({ prefs, scope, onChange, onScope, onClose,
       <Row label={t('Chapter marks')}><Toggle k="chapterMarks" label={t('Chapter marks')} {...p} /></Row>
       <Row label={isDisc ? t('Disc remote') : t('Remote')}><Toggle k="remote" label={t('Remote')} {...p} /></Row>
       <Row label={t('Remote style')}><Seg k="remoteStyle" label={t('Remote style')} opts={[['floating', t('Floating')], ['bar', t('Above the timeline')], ['barBelow', t('Below the timeline')]]} {...p} /></Row>
+      <Row label={t('Pause for scenes')}><Seg k="scenesPause" label={t('Pause the film while the scenes are open')} opts={[['touch', t('Phones and TVs')], ['always', t('Every screen')]]} {...p} /></Row>
       <Row label={t('Hide controls after')}><Seg k="hideAfter" label={t('Hide controls after')} opts={[[2, t('{n} s', { n: num(2) })], [3.5, t('{n} s', { n: num(3.5) })], [6, t('{n} s', { n: num(6) })], [0, t('Never')]]} {...p} /></Row>
       <h5 className="vs-sub">{t('Picture')}</h5>
       <Row label={t('Picture')}><Seg k="picture" label={t('Picture')} opts={[['fit', t('Fit')], ['fill', t('Fill screen')]]} {...p} /></Row>

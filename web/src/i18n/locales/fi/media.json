@@ -904,5 +904,9 @@
   "and {count} more invitations": {
     "one": "ja {count} kutsu lisää",
     "other": "ja {count} kutsua lisää"
-  }
+  },
+  "Pause for scenes": "Tauko kohtauksille",
+  "Pause the film while the scenes are open": "Keskeytä elokuva, kun kohtaukset ovat auki",
+  "Phones and TVs": "Puhelimet ja televisiot",
+  "Every screen": "Kaikki näytöt"
 }

@@ -7,6 +7,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 Released 2026-11-24.
 
+**Player (#632)**
+
+- **The film waits while you choose a scene** on a phone, a tablet or a TV, and plays on when the scenes close. On a
+  computer it keeps playing; **Viewing settings → Pause for scenes → Every screen** makes it wait there too.
+
 **Connecting another device (#605)**
 
 - **Your own WittyRelay shows its health.** Under **Your own WittyRelay** (in **Technical details and other ways in**),

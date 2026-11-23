@@ -889,5 +889,9 @@
   },
   "and {count} more invitations": {
     "other": "以及另外 {count} 份邀请"
-  }
+  },
+  "Pause for scenes": "选择场景时暂停",
+  "Pause the film while the scenes are open": "场景列表打开时暂停影片",
+  "Phones and TVs": "手机和电视",
+  "Every screen": "所有屏幕"
 }

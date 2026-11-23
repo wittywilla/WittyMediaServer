@@ -1205,6 +1205,13 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string, 
 	if sp.Growing {
 		if sp.StartSec > 0 {
 			args = append(args, "-ss", strconv.FormatFloat(sp.StartSec, 'f', 3, 64))
+			// A copied picture starts at the keyframe before the place, while sound that is
+			// converted would start at the place itself: the first seconds would be picture alone,
+			// and a player that sets up its buffers from the first segment has no room for the
+			// sound when it comes (hls.js: bufferAppendError, #501). Both start at the keyframe.
+			if sp.CopyVideo && !sp.NoVideo {
+				args = append(args, "-noaccurate_seek")
+			}
 		}
 		// A copy runs as fast as the disk reads; a few times real time leaves
 		// plenty ahead of the viewer without filling the disk for nothing.

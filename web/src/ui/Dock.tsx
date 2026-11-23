@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { KeyLegend } from './KeyLegend'
 import { Menu, type MenuEntry } from './Menu'
 import { useInput } from './useInput'
+import { useTvMode } from '../tvmode/mode'
 
 // One button of a Dock: it runs something (onClick), goes somewhere (to), or opens a menu (items).
 export type DockAction = { id: string; label: string; icon?: ReactNode; onClick?: () => void; to?: string; items?: MenuEntry[]; primary?: boolean; pressed?: boolean; hint?: string; disabled?: boolean; detail?: ReactNode }
@@ -16,8 +17,11 @@ export type DockAction = { id: string; label: string; icon?: ReactNode; onClick?
 export function Dock({ label, actions, legend = true, scope, className, sticky, btn }: { label: string; actions: DockAction[]; legend?: boolean; scope?: 'screen' | 'list'; className?: string; sticky?: boolean; btn?: string }) {
   const row = useRef<HTMLDivElement | null>(null)
   const { kind } = useInput()
+  const tv = useTvMode()
   // Nothing to press and no input to show a legend for: nothing to draw.
   if (!actions.length && (!legend || kind === 'touch')) return null
+  // A TV with nothing in the Dock but the keys: the Keys button alone at the page's foot, not a bar over the page.
+  if (tv && !actions.length) return <div className="dock-keys-only"><KeyLegend scope={scope} /></div>
   const wrap = (e: KeyboardEvent) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
     const btns = Array.from(row.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href]') || [])
@@ -29,7 +33,7 @@ export function Dock({ label, actions, legend = true, scope, className, sticky, 
     btns[at].focus()
   }
   const cls = (a: DockAction) => 'dock-btn' + (btn ? ' ' + btn : '') + (a.primary ? ' primary' : '') + (a.pressed ? ' on' : '')
-  const inner = (a: DockAction) => <>{a.icon}<span>{a.label}</span>{a.detail ? <small>{a.detail}</small> : null}{a.hint ? <kbd aria-hidden="true">{a.hint}</kbd> : null}</>
+  const inner = (a: DockAction) => <>{a.icon}<span>{a.label}</span>{a.detail ? <small>{a.detail}</small> : null}{a.hint && !tv ? <kbd aria-hidden="true">{a.hint}</kbd> : null}</>
   return (
     <div className={'dock' + (sticky ? ' sticky' : '') + (className ? ' ' + className : '')} data-nav-zone="dock" role="toolbar" aria-label={label}>
       <div className="dock-row" ref={row} onKeyDown={wrap} data-nav-group>

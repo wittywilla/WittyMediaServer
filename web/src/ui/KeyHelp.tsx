@@ -5,6 +5,7 @@ import { Dialog } from './Overlay'
 import { HELP_EVENT } from './KeyHelp.event'
 import { legend, type InputKind } from './inputModel'
 import { useInput } from './useInput'
+import { useTvMode } from '../tvmode/mode'
 import { t, tk, tx } from '../i18n'
 
 // The help for the keys, asked for with ? (or Back and Start together on a pad). It lists the one input model for
@@ -18,13 +19,15 @@ const KEYBOARD_EXTRA: [string, string][] = [
 export function KeyHelp() {
   const [open, setOpen] = useState(false)
   const { kind, family } = useInput()
+  const tv = useTvMode()
   useEffect(() => {
     const on = () => setOpen((o) => !o)
     window.addEventListener(HELP_EVENT, on)
     return () => window.removeEventListener(HELP_EVENT, on)
   }, [])
   if (!open) return null
-  const shown: InputKind = kind === 'touch' ? 'keys' : kind
+  // On a TV the remote's keys stand in for a keyboard's (which a TV doesn't show, though its keys still work).
+  const shown: InputKind = tv ? (kind === 'pad' ? 'pad' : 'remote') : kind === 'touch' ? 'keys' : kind
   const items = legend(shown, family, { scope: 'list' })
   return (
     <Dialog title={t('Keys')} size="sm" onClose={() => setOpen(false)} className="key-help">

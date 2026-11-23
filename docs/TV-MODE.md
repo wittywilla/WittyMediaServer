@@ -69,6 +69,15 @@ note and the read-only wrapper). In the Android app: `net/TvLevels.kt` and `Nav.
 device's card (QR code, Back focused, Back leaves) and the computer's (no QR code, Leave TV mode focused, the same
 page in the normal layout, Back to TV mode).
 
+## Keys on a television
+
+A television never shows a computer's keys. The legend of keys a page's Dock carries elsewhere is one **Keys** button
+in TV mode (`KeyInfoButton` in `web/src/ui/KeyLegend.tsx`), which opens the Keys dialog with the remote's keys, or the
+controller's when a pad is in use; Back closes it. Keycaps on buttons, the now-playing and karaoke footers and More
+info's "I" are left out, and the player's Keyboard shortcuts is Keys. The keys all still work. A screen that can't be
+used without knowing a key shows that one hint itself, in the remote's words. `npm run test:tv-keys` in `web/` checks
+every TV page on a running test server at 1920x1080 and 1280x720, before and after a key is pressed, and the dialog.
+
 ## Adding a feature
 
 Every new screen or editor decides its TV level when it is made:

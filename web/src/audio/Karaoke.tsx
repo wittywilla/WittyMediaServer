@@ -278,9 +278,9 @@ export default function Karaoke({ p, ly, onClose, behind, choice, styles, cover 
       )}
       {panel === 'fx' && <VoiceFxPanel fx={stems.fx} onFx={stems.setFx} ready={stems.active} quick={stems.answer?.mix === 'blend'} voiceOut={stems.sing || (!!stems.answer && levelOf(stems.answer, stems.levels, 'vocals') === 0)} onVoice={hearVoice} onClose={closePanel} />}
       {/* The keys karaoke answers, said as the player says its own (they were there, but nowhere to be seen). */}
-      <p className="np-hints kar-hints" aria-hidden="true">
+      {!tv && <p className="np-hints kar-hints" aria-hidden="true">
         <kbd>Esc</kbd> {t('back')} · <kbd>{t('Space')}</kbd> {t('play or pause')} · <kbd>←</kbd> <kbd>→</kbd> {t('previous or next line')} · <kbd>V</kbd> {t('guide voice')} · <kbd>M</kbd> {t('mix')} · <kbd>−</kbd> <kbd>+</kbd> {t('key')} · <kbd>[</kbd> <kbd>]</kbd> {t('words sooner or later')} · <kbd>F</kbd> {t('full screen')}
-      </p>
+      </p>}
     </div>
   )
 }

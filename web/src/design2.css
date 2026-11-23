@@ -49,6 +49,12 @@ html.tv-mode .dock { padding-block: 24px; }
 .key-legend li { display: inline-flex; align-items: center; gap: var(--space-s); }
 html.tv-mode .key-legend { font-size: var(--text-xl); }
 html.tv-mode .key-legend kbd { font-size: var(--text-lg); }
+/* TV mode: the keys are in a dialog, opened by one button (ui/KeyLegend.tsx KeyInfoButton), never a bar of keycaps. */
+.key-info-btn { display: inline-flex; align-items: center; gap: var(--space-s); min-height: 44px; padding: var(--space-xs) var(--space-m); border: 1px solid var(--border-strong); border-radius: var(--r-full); background: transparent; color: var(--fg-2); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.key-info-btn:hover, .key-info-btn:focus-visible { color: var(--fg); border-color: var(--fg-2); }
+html.tv-mode .key-info-btn { font-size: var(--text-lg); }
+.dock .key-info-btn { margin-inline-start: auto; }
+.dock-keys-only { display: flex; justify-content: flex-end; padding: var(--space-s) 0; }
 html[data-input="pad"] .key-legend kbd, html[data-input="remote"] .key-legend kbd { border-radius: var(--r-full); padding-inline: var(--space-s); }
 
 /* ---- the key help ---- */

@@ -3,6 +3,25 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+**First-time setup (#610, #550, #494)**
+
+- **Six plain steps instead of twelve:** Welcome, Your account, Modules, Your media, Look, Finish. Each page has a short
+  title, one sentence and one main button, with the usual answer already chosen. The language is on Welcome, the
+  server's name is on the account page, and Live TV and Games follow Your media when they're installed.
+- **Customize:** every other choice (time zone, two-step sign-in, module updates, details beside your files, colours,
+  the TV guide, the home network, posters and keys, logos, lyrics, karaoke voices, streaming lists) waits behind the
+  step's Customize button, already answered.
+- **Advanced setup**, on Welcome, goes through every choice a page at a time, next to the step it belongs with.
+- **Finish** offers Connect a device (the same code and QR code as Settings → Remote Access), adding a profile, and
+  this screen as a TV, with the server's address and Copy.
+- Fixed: picking a kind of library brings its form into view; the Games page counts a games library made anywhere;
+  closing the modules dialog no longer stops installs; the browser tab follows the page; no module requests or warnings
+  before the account exists.
+- **Sign in:** the server is named once, the page is one centred column, and a wrong password on a chosen profile says
+  so ("That password isn't right").
+
 ## 0.8.3-alpha
 
 Released 2026-11-23.

@@ -3,9 +3,15 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
-## Unreleased
+## 0.8.3-alpha
+
+Released 2026-11-23.
 
 **Connecting another device (#605)**
+
+- **Your own WittyRelay shows its health.** Under **Your own WittyRelay** (in **Technical details and other ways in**),
+  a dot and a line say whether the relay is good, busy, full or starting, and how much of it is in use. It's renewed
+  with every registration. Older relays don't say, and no line is shown.
 
 - **One way to connect a device, at the top of Settings → Remote Access** (and on the From away page): it says
   whether devices away from home can connect, then **Show a code** gives a short code and a QR code. Type the code on
@@ -20,6 +26,41 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **The QR code for joining from away is drawn again.** The link it held had grown too long for one, so none appeared.
 - **The code a TV shows for joining from away is no longer offered on the server**: it depended on the public address
   book finding the server, which too often it didn't. A TV signs in at home with **Sign in a TV**, as before.
+
+**Games on a phone**
+
+- **Games start on a phone away from home again.** With WittyPlay 0.7.13 and later, a game reached from away no
+  longer stops at "Waiting for the first picture" or a raw "the first message must be the hello" message, and the
+  Android app no longer shows "This address is for the WittyMediaServer app on this device only".
+
+**Fixed**
+
+- **Setup's fixes from 0.8.1 are back (#623).** A later change had quietly undone them: setup's last page again shows
+  no address on a server that only this computer can reach (#536), setup and Settings again ask for a saved
+  TheTVDB, TMDB or Musixmatch key with an empty field (#534), and the converter again counts every format (#535).
+- **A library waiting for its first scan says so (#617):** "Waiting to be scanned", then "Scanning…", not an empty
+  page. Search lists titles that start with the word first, and finds songs by their artist. Settings' **Channels &
+  tuners** is now **Library channels & WittyTV**, and What's new is plain text.
+- **Pages, headings and side-by-side groups are centred the same way everywhere (#611),** with no empty band on the
+  right of Settings on a smaller window.
+- **A module's helper that stops is started properly again (#596),** and why it stopped reaches the log.
+- **A 4K screen's backdrop is the 2560-wide copy, not the original (#598),** so it loads faster.
+
+**Modules in this release:** WittyPlay 0.7.14, WittyStats 0.3.1, and updated dependencies in WittyPhotos 0.5.4,
+WittyPDF 0.4.4, WittyCD 0.3.4, WittyRigs 0.4.3, WittyCouch 0.4.4, WittyBluray 0.5.3, WittyDVD 0.5.3,
+WittyIntegratedFileBrowser 0.4.3 and WittyDisc 0.3.6.
+
+**WittyMediaClient 0.6.1** goes with this release: its **Enter a code** uses the new Connect a device, and its
+Android app is now signed with one permanent key, so later versions install over it. Uninstall 0.6.0 once first.
+
+### Developer notes for 0.8.3-alpha
+
+- New routes `POST /api/connect/hello` and `/api/connect/answer` for Enter a code (#608); `RelayOffer.Health` (#620).
+- docs/GAMING-STREAM.md: nothing is sent before a game stream's hello (#607).
+- CI: jobs side by side, caches from master only, known.json checked, flaky tests fixed (#616).
+- Updated dependencies from dependabot (#625).
+- `scripts/set-tag-rules.sh` covers WittyRelay (#626); docs/PUBLISHING.md lists every repository that needs
+  `SITE_BUILD_TOKEN` (#619).
 
 ## 0.8.2-alpha
 

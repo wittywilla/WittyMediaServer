@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "Vaihda {name}-avain",
+  "Keep the saved key": "Pidä tallennettu avain",
+  "Address copied": "Osoite kopioitu",
+  "Couldn’t copy it: select the address and copy it": "Kopiointi ei onnistunut: valitse osoite ja kopioi se",
+  "Right now this server only answers on this computer, at:": "Tällä hetkellä palvelin vastaa vain tällä tietokoneella, osoitteessa:",
+  "Copy the address {url}": "Kopioi osoite {url}",
+  "It also answers at {url}.": "Se vastaa myös osoitteessa {url}.",
+  "QR code holding the address {url}": "QR-koodi, jossa on osoite {url}",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "Jos haluat käyttää sitä televisiosta tai puhelimesta, aseta {listen} arvoon {port} siellä, missä se on asetettu (asetustiedostossa, {flag} tai {env}), ja käynnistä se uudelleen.",
+  "Then other devices at home can open it at {url}.": "Sen jälkeen muut kodin laitteet voivat avata sen osoitteessa {url}.",
+  "Write {standard} from {ext} files: there are none yet": "Kirjoita {standard} {ext}-tiedostoista: niitä ei ole vielä",
+  "{done} of {count} films and episodes converted": "Elokuvia ja jaksoja muunnettu: {done}/{count}",
+  "{done} of {count} shows": "Sarjoja: {done}/{count}",
+  "{done} of {count} albums converted": "Albumeita muunnettu: {done}/{count}",
+  "lyrics for {done} of {count} songs": "Sanoituksia: {done}/{count} kappaletta",
+  "{count} old files renamed to .bak": "Vanhoja tiedostoja nimetty .bak-päätteisiksi: {count}",
+  "{count} couldn’t be converted (see the log)": "Ei voitu muuntaa (katso loki): {count}",
+  "{done} of {count} films, episodes and shows": "Elokuvat, jaksot ja sarjat: {done}/{count}",
+  "{done} of {count} songs": "Kappaleet: {done}/{count}",
+  "{done} of {count} games": "Pelit: {done}/{count}"
+}

@@ -8,12 +8,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"image"
 	"image/png"
 	"math"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/wittywilla/wittymediaserver/internal/brandart/fonts"
@@ -113,9 +115,19 @@ func TestEveryTargetInEveryConcept(t *testing.T) {
 		"images/brand/social.png":         {1200, 630},
 		"pkg-background.png":              {1240, 836},
 	}
+	// Each concept and target is drawn in a subtest of its own, side by side: drawn one after
+	// another they took a quarter of an hour under the race detector (#395).
+	var mu sync.Mutex
+	seen := map[string]bool{}
+	t.Cleanup(func() {
+		for p := range sizes {
+			if !seen[p] {
+				t.Errorf("%s: no target wrote %s", DefaultConcept, p)
+			}
+		}
+	})
 	for _, c := range Concepts {
 		k := NewKit(c)
-		seen := map[string]bool{}
 		targets := Targets
 		if c != DefaultConcept {
 			targets = []string{"server", "player", "website"}
@@ -124,43 +136,46 @@ func TestEveryTargetInEveryConcept(t *testing.T) {
 			if target == "kit" {
 				continue // the same drawings as the other targets; docs/brand is checked by -check
 			}
-			files, err := k.Build(target, modules)
-			if err != nil {
-				t.Fatalf("%s %s: %v", c, target, err)
-			}
-			for _, p := range files.Paths() {
-				data := files[p]
-				switch {
-				case strings.HasSuffix(p, ".png"):
-					img := decode(t, p, data)
-					if want, ok := sizes[p]; ok {
-						seen[p] = true
-						if b := img.Bounds(); b.Dx() != want[0] || b.Dy() != want[1] {
-							t.Errorf("%s %s is %dx%d, want %dx%d", c, p, b.Dx(), b.Dy(), want[0], want[1])
+			t.Run(fmt.Sprintf("%s/%s", c, target), func(t *testing.T) {
+				t.Parallel()
+				files, err := k.Build(target, modules)
+				if err != nil {
+					t.Fatalf("%s %s: %v", c, target, err)
+				}
+				for _, p := range files.Paths() {
+					data := files[p]
+					switch {
+					case strings.HasSuffix(p, ".png"):
+						img := decode(t, p, data)
+						if want, ok := sizes[p]; ok {
+							if c == DefaultConcept {
+								mu.Lock()
+								seen[p] = true
+								mu.Unlock()
+							}
+							if b := img.Bounds(); b.Dx() != want[0] || b.Dy() != want[1] {
+								t.Errorf("%s %s is %dx%d, want %dx%d", c, p, b.Dx(), b.Dy(), want[0], want[1])
+							}
+						}
+					case strings.HasSuffix(p, ".json"):
+						var v map[string]any
+						if err := json.Unmarshal(data, &v); err != nil {
+							t.Errorf("%s: %v", p, err)
+						}
+					case strings.HasSuffix(p, ".svg"), strings.HasSuffix(p, ".xml"):
+						if err := xml.Unmarshal(data, new(struct{})); err != nil {
+							t.Errorf("%s: not well-formed XML: %v", p, err)
 						}
 					}
-				case strings.HasSuffix(p, ".json"):
-					var v map[string]any
-					if err := json.Unmarshal(data, &v); err != nil {
-						t.Errorf("%s: %v", p, err)
-					}
-				case strings.HasSuffix(p, ".svg"), strings.HasSuffix(p, ".xml"):
-					if err := xml.Unmarshal(data, new(struct{})); err != nil {
-						t.Errorf("%s: not well-formed XML: %v", p, err)
-					}
 				}
-			}
-		}
-		for p := range sizes {
-			if c == DefaultConcept && !seen[p] {
-				t.Errorf("%s: no target wrote %s", c, p)
-			}
+			})
 		}
 	}
 }
 
 // Store and home-screen icons may not be transparent; launcher layers above the back must be.
 func TestOpacity(t *testing.T) {
+	t.Parallel()
 	k := NewKit(DefaultConcept)
 	files, _ := k.Build("client", nil)
 	opaque := func(p string) bool {

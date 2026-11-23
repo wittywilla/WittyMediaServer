@@ -30,6 +30,9 @@ type storedTitles struct {
 }
 
 // altTitlesLike matches an item's other names with one LIKE argument, for searches.
+// searchNames: who made it and what it's part of (an artist, an album or a book's series), for search.
+const searchNames = "(IFNULL(i.artist, '') || char(10) || IFNULL(i.album_artist, '') || char(10) || IFNULL(i.album, ''))"
+
 const altTitlesLike = "(IFNULL(json_extract(i.alt_titles, '$.native'), '') || char(10) || IFNULL(json_extract(i.alt_titles, '$.english'), '')) LIKE ?"
 
 // readItemTitles reads what alt_titles holds. Nothing known: nil.

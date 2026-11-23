@@ -6,6 +6,16 @@
 
 import type { Document, Node } from './types.ts'
 
+// A section whose items didn't come (a module's source that failed) is asked for again by itself
+// after these waits, then every 15 s: never in a tight loop, while its error shows once. Retry asks
+// at once.
+export const SECTION_RETRY_MS = [1000, 2000, 5000, 15000]
+
+// sectionRetryDelay: how long to wait before asking again after a section has failed n times (1 on).
+export function sectionRetryDelay(n: number): number {
+  return SECTION_RETRY_MS[Math.min(Math.max(n, 1), SECTION_RETRY_MS.length) - 1]
+}
+
 // The server never asks for more than MAX; a client never asks sooner than MIN, whatever it says.
 export const MIN_REFRESH_SEC = 1
 export const MAX_REFRESH_SEC = 300

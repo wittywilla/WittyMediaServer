@@ -279,8 +279,8 @@ body:has(.audio-bar:not(.full)) .ctv-page, body:has(.audio-bar:not(.full)) .tvm-
 
 /* ---- From away (peer to peer): three plain ways in ---- */
 .away { max-inline-size: 46rem; margin-inline: auto; padding-block: var(--space-l); display: grid; gap: var(--space-l); }
-.away h1 { margin: 0; font-size: var(--role-page-title-size); }
-.away-lead { color: var(--fg-2); margin: 0; }
+.away h1 { margin: 0; font-size: var(--role-page-title-size); text-align: center; }
+.away-lead { color: var(--fg-2); margin: 0; text-align: center; }
 .away-card { padding: var(--space-l); border: 1px solid var(--elev-1-line); border-radius: var(--r-lg); background: var(--elev-1-fill); display: grid; gap: var(--space-m); }
 .away-card h2 { margin: 0; font-size: var(--role-heading-size); }
 .away-card p { margin: 0; }

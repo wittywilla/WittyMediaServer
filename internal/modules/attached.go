@@ -63,8 +63,8 @@ func (a *Attached) Call(method string, params, out any) ([]byte, error) {
 	}
 	blob, err := a.p.Call(method, params, out)
 	var ce *wittymodule.CallError
-	if err == nil || errors.As(err, &ce) {
-		return blob, err
+	if err == nil || errors.As(err, &ce) || errors.Is(err, errHelperGone) {
+		return blob, err // a helper already gone was counted as it went
 	}
 	a.m.failed(a.id, a.e, a.version, err)
 	return nil, err

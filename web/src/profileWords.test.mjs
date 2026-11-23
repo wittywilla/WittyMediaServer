@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { emptyHomeWords, emptyLibraryWords, isGone, lookedAfter, settingsPageHidden } from './profileWords.ts'
+import { emptyHomeWords, emptyLibraryState, emptyLibraryWords, isGone, lookedAfter, settingsPageHidden } from './profileWords.ts'
 
 const owner = { isAdmin: true, kind: 'adult' }, adult = { isAdmin: false, kind: 'adult' }, kid = { isAdmin: false, kind: 'kids' }, guest = { isAdmin: false, kind: 'guest' }
 const ADMIN_WORDS = /settings|folder|scan again|organi[sz]e/i
@@ -17,6 +17,23 @@ test('only the owner is told how to fill a library', () => {
   assert.match(emptyLibraryWords(kid, advice), /grown-up/)
   assert.match(emptyLibraryWords(guest, advice), /grown-up/)
   assert.doesNotMatch(emptyLibraryWords(adult, advice), /grown-up/)
+})
+
+test('a library waiting for or in its scan is not "Nothing here yet" (#553)', () => {
+  const advice = 'Add music to this library’s folders and scan it.'
+  assert.equal(emptyLibraryState(owner, { scanning: true, lastScanAt: null }, 'waiting', advice).title, 'Waiting to be scanned')
+  assert.equal(emptyLibraryState(owner, { scanning: true, lastScanAt: null }, undefined, advice).title, 'Scanning…')
+  assert.equal(emptyLibraryState(owner, { scanning: true, lastScanAt: 5 }, 'grouping', advice).state, 'scanning')
+  assert.equal(emptyLibraryState(owner, { scanning: false, lastScanAt: null }, undefined, advice).state, 'unscanned')
+  const done = emptyLibraryState(owner, { scanning: false, lastScanAt: 5 }, undefined, advice)
+  assert.equal(done.title, 'Nothing here yet')
+  assert.equal(done.text, advice)
+  for (const who of [adult, kid, guest, null]) {
+    for (const [lib, phase] of [[{ scanning: true, lastScanAt: null }, 'waiting'], [{ scanning: true }, ''], [{ lastScanAt: null }, ''], [{ lastScanAt: 5 }, '']]) {
+      const w = emptyLibraryState(who, lib, phase, advice)
+      assert.doesNotMatch(w.title + ' ' + w.text, /settings|folder|organi[sz]e/i)
+    }
+  }
 })
 
 test('an empty home page sends only the owner to Settings', () => {

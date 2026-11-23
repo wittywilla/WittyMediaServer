@@ -1,7 +1,7 @@
 {
   "name": "wittymediaserver-web",
   "private": true,
-  "version": "0.8.2-alpha",
+  "version": "0.8.3-alpha",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {

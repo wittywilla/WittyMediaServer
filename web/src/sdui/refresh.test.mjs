@@ -28,3 +28,9 @@ test('changedRows names the rows whose words changed, in page order', () => {
   // The libraries' list: the row keeps its name, its end changes.
   assert.deepEqual(changedRows(page([['all:lib-1', 'TV', '1,681 of 12,708 files']]), page([['all:lib-1', 'TV', 'Scan']])), ['TV, Scan'])
 })
+
+test('a section that failed is asked again after 1, 2, 5, then every 15 seconds, never in a tight loop', async () => {
+  const { sectionRetryDelay } = await import('./refresh.ts')
+  assert.deepEqual([1, 2, 3, 4, 5, 9, 100].map(sectionRetryDelay), [1000, 2000, 5000, 15000, 15000, 15000, 15000])
+  assert.equal(sectionRetryDelay(0), 1000)
+})

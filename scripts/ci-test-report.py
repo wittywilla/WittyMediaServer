@@ -73,6 +73,13 @@ def main(path, no_skip=None):
         print('::error title=%s::skipped: %s' % (escape('%s %s' % (pkg.rsplit('/', 1)[-1], test), True), escape(no_skip)))
     if bad:
         print('%d tests skipped saying "%s", which this job must not.' % (len(bad), no_skip))
+    # Said on the run's page, not only in the log: a skip is not a pass.
+    modules = [k for k in skipped if 'this needs real modules' in ''.join(output.get(k, []))]
+    if modules and not no_skip:
+        print('::notice title=Skipped here::%d tests need real modules and skipped in this job; '
+              'the with-modules job runs them with a catalogue, and fails if any skips there.' % len(modules))
+    if skipped:
+        print('%d tests skipped.' % len(skipped))
     return 1 if bad else 0
 
 

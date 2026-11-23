@@ -27,7 +27,8 @@ type P2PSettings = {
 type Step = { name: string; state: 'ok' | 'warn' | 'fail' | 'off' | 'wait'; detail: string }
 type Device = { id: string; user?: string; name: string; platform: string; how: string; created: number; lastSeen: number; connected: boolean; path?: string }
 type Verdict = { state: 'ok' | 'warn' | 'fail' | 'wait'; title: string; detail: string; todo: string[] }
-type Offer = { name?: string; note?: string; software?: string; access: 'open' | 'key'; kbps?: number; maxHeight?: number }
+type RelayHealth = { state: 'ok' | 'busy' | 'full' | 'starting'; load: number }
+type Offer = { name?: string; note?: string; software?: string; access: 'open' | 'key'; kbps?: number; maxHeight?: number; health?: RelayHealth }
 type OwnRelayStatus = { addr: string; id: string; state: 'ok' | 'refused' | 'unreachable' | 'wait'; error?: string; offer?: Offer; allows?: string }
 type RelayStatus = { id: string; community: boolean; allows?: string; offer?: Offer }
 type View = {
@@ -49,6 +50,18 @@ function VerdictCard({ v }: { v: Verdict }) {
 }
 
 const RELAY_STATE: Record<OwnRelayStatus['state'], string> = { ok: tk('Working'), refused: tk('Refused'), unreachable: tk('Can’t be reached'), wait: tk('Connecting…') }
+
+// What a WittyRelay says about how full it is (WittyRelay 0.2 and later), renewed with every registration.
+const RELAY_HEALTH: Record<RelayHealth['state'], string> = {
+  ok: tk('Relay health: good ({load}% in use)'),
+  busy: tk('Relay health: busy ({load}% in use). Streams through it may be slower.'),
+  full: tk('Relay health: full. It takes no new servers; this one keeps its place.'),
+  starting: tk('Relay health: starting'),
+}
+
+function HealthLine({ h }: { h: RelayHealth }) {
+  return <small className="muted p2p-allows p2p-health" data-health={h.state}>{t(RELAY_HEALTH[h.state], { load: String(h.load) })}</small>
+}
 
 // Your own WittyRelay: an address and a key, checked first so the owner reads
 // what the relay allows before this server uses it.
@@ -84,6 +97,7 @@ function OwnRelays({ s, status, busy, save }: { s: P2PSettings; status: OwnRelay
               <span>
                 <code>{r.addr}</code>
                 <small className="muted p2p-allows"> {st ? t(RELAY_STATE[st.state]) : t('Starting…')}{st?.error ? `: ${st.error}` : ''}</small>
+                {st?.state === 'ok' && st.offer?.health && <HealthLine h={st.offer.health} />}
                 {st?.allows && <small className="muted p2p-allows"> {t('It allows: {limits}', { limits: st.allows })}</small>}
               </span>
               <button type="button" className="btn sm ghost" disabled={busy} onClick={() => void drop(r)}>{t('Remove')}</button>

@@ -257,6 +257,18 @@ func TestRelayOffers(t *testing.T) {
 	if w := o.Words(); w != "Up to 4 Mbit/s per connection, 100 kbit/s for everyone together, pictures up to 4320p, 2 GiB and 2 hours per connection before it starts a new one." {
 		t.Fatalf("%q", w)
 	}
+	for in, want := range map[RelayHealth]*RelayHealth{
+		{State: "busy", Load: 87}:   {State: "busy", Load: 90},
+		{State: "ok", Load: -4}:     {State: "ok", Load: 0},
+		{State: "full", Load: 400}:  {State: "full", Load: 100},
+		{State: "on fire", Load: 0}: nil,
+	} {
+		h := in
+		got := RelayOffer{Health: &h}.Clean().Health
+		if (got == nil) != (want == nil) || (got != nil && *got != *want) {
+			t.Fatalf("health %+v cleaned to %+v", in, got)
+		}
+	}
 	if w := (RelayOffer{}).Words(); w != "No speed limit per connection." {
 		t.Fatalf("%q", w)
 	}

@@ -113,7 +113,9 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
         setCode('')
         return
       }
-      setErr(e.message || t('Sign-in failed'))
+      // A profile was picked, so only its password was asked for: the server's "name or password" would point at a name
+      // nobody typed (#550).
+      setErr(profile && e instanceof ApiError && e.status === 401 ? t('That password isn’t right. Try again.') : e.message || t('Sign-in failed'))
       setNeedCode(false)
       setCode('')
       setPassword('')

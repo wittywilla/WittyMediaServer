@@ -12,7 +12,7 @@ import { ThemePicture } from '../tv/LookPanel'
 import { appColours } from '../tv/look'
 import { Brand } from '../../components/common'
 import { contrastRatio } from '../../themeColours'
-import { Button, Segmented } from '../../ui'
+import { Button, Segmented, Spinner } from '../../ui'
 import { TvPart } from '../../tvmode/OnAComputer'
 import { LayoutThumb } from '../../ui/LayoutThumb'
 import { useDevice } from '../../sdui/useSdui'
@@ -151,6 +151,7 @@ export function Look({ facts, next, back }: StepProps) {
   return (
     <section>
       <StepHead title={t('Choose a look')} lead={t('This is how everyone’s Home starts out. Each person can pick their own later.')} />
+      {cards.length === 0 && <Spinner />}
       {cards.length > 0 && (
         <div className="su-look su-look-first-view">
           <ChoiceCards label={t('Layout')} value={pick} onChange={choose} small cards={cards.map((c) => ({ value: c.id, title: c.name, text: c.tagline ? tx(c.tagline) : undefined, pic: <LayoutThumb wire={c.wire} formFactor={here} colours={c.preview} /> }))} />

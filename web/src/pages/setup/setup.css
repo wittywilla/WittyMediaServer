@@ -326,3 +326,8 @@ html.ten-foot .su-option > summary, html.using-controller .su-option > summary {
 html.tv-mode .su-address .qr { inline-size: 11rem; block-size: 11rem; }
 /* Short names in a sentence (listen, -listen, WMS_LISTEN) break between words, not inside them. */
 .oobe-next-card span code { overflow-wrap: normal; white-space: nowrap; }
+/* #550: the step's words wrap within their own space, so Help with setup stays at the end of the line on every page;
+   and the fields of a form have room between them, a tick box included. */
+.su-progress-line .su-progress-words { flex: 1 1 18rem; min-width: 0; }
+.su-progress-line > :last-child { flex: none; }
+.oobe-card .oobe-form.su-form { gap: var(--sp-3); }

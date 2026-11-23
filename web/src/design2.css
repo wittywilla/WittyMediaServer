@@ -375,5 +375,5 @@ html[data-scene] .hero .shade { background: linear-gradient(90deg, rgb(var(--bg-
 .sdui > :not(.hero, .sr-only) ~ .hero, .sdui > :not(.sdui-detail, .hero, .sr-only) ~ .sdui-detail .detail-hero { --hero-top: var(--hero-top-in); }
 /* An upright frame (a phone, a tablet) is sized by its height, so it doesn't grow taller than the card beside it. */
 .look-opts .layout-opt .layout-thumb:is(.lt-phone, .lt-tablet), .su-card .layout-thumb:is(.lt-phone, .lt-tablet) { inline-size: auto; width: auto; block-size: 9rem; height: 9rem; max-inline-size: 100%; margin-inline: auto; }
-.look-colours-big .layout-thumb:is(.lt-phone, .lt-tablet), .su-colours-big .layout-thumb:is(.lt-phone, .lt-tablet) { inline-size: auto; width: auto; block-size: min(22rem, 60vh); height: min(22rem, 60vh); }
-.look-colours-big .layout-thumb:is(.lt-desktop, .lt-tv), .su-colours-big .layout-thumb:is(.lt-desktop, .lt-tv) { inline-size: min(100%, 26rem); width: min(100%, 26rem); }
+.look-colours-big .layout-thumb:is(.lt-phone, .lt-tablet) { inline-size: auto; width: auto; block-size: min(22rem, 60vh); height: min(22rem, 60vh); }
+.look-colours-big .layout-thumb:is(.lt-desktop, .lt-tv) { inline-size: min(100%, 26rem); width: min(100%, 26rem); }

@@ -74,7 +74,7 @@ export function Account({ back, onDone, advanced }: { back: () => void; onDone: 
   const more = (
     <>
       <Field label={t('Name people see')} hint={t('Optional. Shown around the app instead of the name you sign in with.')}><Input value={shown} onChange={(e) => setShown(e.target.value)} maxLength={40} autoComplete="nickname" /></Field>
-      <TickRow checked={two} onChange={setTwo} title={t('Two-step sign-in (recommended)')} text={t('Signing in also asks for a code from an app on your phone. You set it up right after the account is made.')} />
+      <TickRow checked={two} onChange={setTwo} title={t('Two-step sign-in')} text={t('Signing in also asks for a code from an app on your phone, so a stolen password isn’t enough. You set it up right after the account is made.')} />
     </>
   )
   return (

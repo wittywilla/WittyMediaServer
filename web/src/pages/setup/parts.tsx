@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { Fragment, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { applyPageTitle } from '../../theme'
 import { t, tx } from '../../i18n'
 import { IconCheck, IconDown } from '../../icons'
 import { Button, Dialog } from '../../ui'
@@ -23,6 +24,8 @@ export type StepProps = {
 }
 
 export function StepHead({ title, lead }: { title: string; lead?: ReactNode }) {
+  // The browser's tab says what the page says, as it changes (installing, then ready), not a title from before (#550).
+  useEffect(() => { applyPageTitle(title) }, [title])
   return (
     <>
       <h1>{title}</h1>

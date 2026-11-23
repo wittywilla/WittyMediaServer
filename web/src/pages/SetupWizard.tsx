@@ -68,6 +68,9 @@ export default function SetupWizard() {
   // Show the address of the step that's showing, without a stop in the history for the old one.
   useEffect(() => { if (step && wanted !== step.id) navigate(pathOf(step.id) + loc.search, { replace: true }) }, [step, wanted, navigate, loc.search])
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step?.id])
+  // A module's own page (Games, Live TV) is told what libraries there are: read again as it opens, so one made a moment
+  // ago, or somewhere else, counts (#550: "You haven't added a games folder yet" with a Games library made).
+  useEffect(() => { if (signedIn && (step?.id === 'games' || step?.id === 'tv')) api.get<Library[]>('/libraries').then(setAdded).catch(() => {}) }, [signedIn, step?.id])
   // The server keeps where first run was left, so a reload or another browser carries on from there.
   const stepId = step?.id
   useEffect(() => { if (signedIn && stepId) api.put('/setup/state', { step: drawnId(stepId), done: doneBefore(stepId) }).catch(() => { /* it is only a bookmark */ }) }, [signedIn, stepId])

@@ -7,6 +7,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 **Connecting another device (#605)**
 
+- **Your own WittyRelay shows its health.** Under **Your own WittyRelay** (in **Technical details and other ways in**),
+  a dot and a line say whether the relay is good, busy, full or starting, and how much of it is in use. It's renewed
+  with every registration. Older relays don't say, and no line is shown.
+
 - **One way to connect a device, at the top of Settings → Remote Access** (and on the From away page): it says
   whether devices away from home can connect, then **Show a code** gives a short code and a QR code. Type the code on
   a device on your home network (**Add a server → Enter a code** in WittyMediaClient), or scan the QR code or paste the

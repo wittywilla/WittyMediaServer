@@ -122,7 +122,7 @@ html.tv-mode .ui-dialog:has(.tvl-dialog) { width: min(calc(var(--tvu) * 760), ca
 .tvl-title-ic svg { width: .85em; height: .85em; }
 .tvl-stage .tvl-note { color: var(--fg-2); }
 .tvl-qr-big { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); }
-.tvl-qr-big .rem-qr { padding: var(--sp-5); border-radius: var(--r-xl); background: #fff; }
+.tvl-qr-big .rem-qr { padding: var(--sp-5); border-radius: var(--r-xl); background: #fff; } /* design-ok: a QR code needs a white tile to be scanned, in every theme */
 .tvl-qr-big figcaption { display: flex; flex-direction: column; gap: var(--sp-1); color: var(--fg-2); max-width: 100%; }
 .tvl-qr-big .tvl-addr { font-size: var(--text-lg); font-weight: 700; font-family: inherit; }
 .tvl-now-line { margin: 0; }

@@ -337,9 +337,11 @@ button.card { display: block; }
 .card.sdui-block .sub { display: none; }
 .card.sdui-logo .poster { background: var(--bg-3); aspect-ratio: 16 / 9; display: grid; place-items: center; }
 .card.sdui-logo .poster img { object-fit: contain; padding: var(--space-m); inline-size: 100%; block-size: 100%; }
-/* A crossbar's categories scroll sideways inside their own bar on a narrow window instead of widening the page. */
-.sdui-crossbar [data-sdui-tabs] { max-inline-size: 100%; overflow-x: auto; scrollbar-width: none; }
-.sdui-crossbar [role=tablist] { flex-wrap: nowrap; min-inline-size: max-content; }
+/* A crossbar's categories scroll sideways inside their own bar on a narrow window instead of widening the page.
+   Centred by auto margins, not justify-content: a centred row wider than its bar would hang off the start, where
+   it can't be scrolled to, and the bar would open with the first category (Featured) out of sight (#397). */
+.sdui-crossbar [data-sdui-tabs] { max-inline-size: 100%; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
+.sdui-crossbar [role=tablist] { flex-wrap: nowrap; min-inline-size: max-content; margin-inline: auto; }
 .sdui-crossbar { max-inline-size: 100%; overflow-x: clip; }
 /* ---- Dashboard polish: a greeting, tiles with a picture for what they are, depth, and room to breathe ---- */
 .sdui-greet { margin: 0 0 var(--space-m); font-size: var(--role-heading-size); font-weight: var(--weight-heading); letter-spacing: var(--tracking-heading); color: var(--fg); }

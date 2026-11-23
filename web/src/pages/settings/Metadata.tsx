@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import ConvertPanel from '../../wittyinfo/ConvertPanel'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
 import { IconDown, IconEdit, IconPlug, IconPlus, IconTrash, IconUp } from '../../icons'
 import { toast } from '../../state'
@@ -12,6 +12,7 @@ import LegalNote from '../../components/LegalNote'
 import { Link } from 'react-router-dom'
 import { ListingSettings, LogoSettings } from './MetadataOptional'
 import { ask, Dialog } from '../../ui/Overlay'
+import { keySaved, SavedKey } from '../../components/SavedKey'
 import { t, tk, tx } from '../../i18n'
 
 // Where titles, posters, plots and ratings come from: the built-in agents
@@ -53,9 +54,9 @@ export default function MetadataSettings() {
           <span className="set-pill">{t('Always on')}</span>
         </Row>
         <KeyRow provider="tmdb" label={t('The Movie Database (TMDB)')} desc={<>{t('Posters, plots and ratings for movies and TV. Get a free key at')} <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">themoviedb.org</a>. {t('This product uses the TMDB API but is not endorsed or certified by TMDB.')}</>}
-          value={s.tmdbKey || ''} onChange={(v) => set('tmdbKey', v)} placeholder={t('API key (v3)')} />
+          saved={keySaved(s, 'tmdbKey')} value={s.tmdbKey || ''} onChange={(v) => set('tmdbKey', v)} placeholder={t('API key (v3)')} />
         <KeyRow provider="tvdb" label="TheTVDB" desc={<>{t('Detailed TV episode information. Get a key at')} <a href="https://thetvdb.com/api-information" target="_blank" rel="noreferrer">thetvdb.com</a>. {t('Metadata provided by')} <a href="https://thetvdb.com" target="_blank" rel="noreferrer">TheTVDB</a>.</>}
-          value={s.tvdbKey || ''} onChange={(v) => set('tvdbKey', v)} placeholder={t('API key (v4)')} pin={s.tvdbPin || ''} onPin={(v) => set('tvdbPin', v)} />
+          saved={keySaved(s, 'tvdbKey')} value={s.tvdbKey || ''} onChange={(v) => set('tvdbKey', v)} placeholder={t('API key (v4)')} pin={s.tvdbPin || ''} onPin={(v) => set('tvdbPin', v)} />
       </Section>
 
       <MusicOnlineSettings s={s} set={set} on={on} />
@@ -108,25 +109,41 @@ export default function MetadataSettings() {
   )
 }
 
-// A key for a built-in agent, with a test that checks it with the service.
-function KeyRow({ provider, label, desc, value, onChange, placeholder, pin, onPin }: {
-  provider: 'tmdb' | 'tvdb'; label: string; desc: React.ReactNode; value: string; onChange: (v: string) => void; placeholder: string; pin?: string; onPin?: (v: string) => void
+// A key for a built-in agent, with a test that checks it with the service. A saved key is never sent back (it comes as
+// dots, with <name>Set), so it shows as saved with Change, not as a field to fill again (#534). Change opens an empty
+// field; while it's empty the saved key stays, and Save changes keeps what was typed.
+function KeyRow({ provider, label, desc, saved, value, onChange, placeholder, pin, onPin }: {
+  provider: 'tmdb' | 'tvdb'; label: string; desc: React.ReactNode; saved: boolean; value: string; onChange: (v: string) => void; placeholder: string; pin?: string; onPin?: (v: string) => void
 }) {
   const [state, setState] = useState<'' | 'testing' | 'ok' | 'bad'>('')
   const [msg, setMsg] = useState('')
+  const [changing, setChanging] = useState(false)
+  // What was there when the page opened (dots for a saved key), to go back to.
+  const [first] = useState({ value, pin })
   const masked = value.includes('•')
+  // Saved or discarded: a saved key is dots again, so back to saying it's saved. Not when the field was emptied here,
+  // which puts the dots back so that saving leaves the key as it is.
+  const emptied = useRef(false)
+  useEffect(() => { if (masked && !emptied.current) setChanging(false); emptied.current = false }, [value]) // eslint-disable-line react-hooks/exhaustive-deps
+  const typed = (v: string) => { if (!v && first.value.includes('•')) { emptied.current = true; onChange(first.value) } else onChange(v); setState('') }
+  const typedPin = (v: string) => onPin?.(!v && first.pin?.includes('•') ? first.pin : v)
   const test = async () => {
     setState('testing')
-    try { await api.post('/metadata/test', { provider, key: value, pin }); setState('ok'); setMsg(t('Key accepted')) } catch (e: any) { setState('bad'); setMsg(e.message) }
+    try { await api.post('/metadata/test', { provider, key: value, pin: pin?.includes('•') ? '' : pin }); setState('ok'); setMsg(t('Key accepted')) } catch (e: any) { setState('bad'); setMsg(e.message) }
   }
+  const keep = () => { onChange(first.value); onPin?.(first.pin || ''); setState(''); setChanging(false) }
+  const asking = !saved || changing
   return (
-    <Row label={label} desc={desc} badge={value ? (masked ? t('Key saved') : undefined) : undefined} stack>
-      <div className="set-key">
-        <input className="input" value={value} onChange={(e) => { onChange(e.target.value); setState('') }} placeholder={placeholder} aria-label={t('{name} API key', { name: label })} spellCheck={false} autoComplete="off" />
-        {onPin && <input className="input pin" value={pin} onChange={(e) => onPin(e.target.value)} placeholder={t('PIN (if your key has one)')} aria-label={t('TheTVDB subscriber PIN')} autoComplete="off" />}
-        <button className="btn sm" onClick={test} disabled={!value || masked || state === 'testing'} title={masked ? t('Saved keys are hidden; paste the key again to test it') : t('Check the key with the service')}>{state === 'testing' ? t('Testing…') : t('Test')}</button>
-      </div>
-      {state && state !== 'testing' && <div className={'set-note ' + state}>{msg}</div>}
+    <Row label={label} desc={desc} stack>
+      {!asking ? <SavedKey name={label} onChange={() => setChanging(true)} /> : (
+        <div className="set-key">
+          <input className="input" value={masked ? '' : value} onChange={(e) => typed(e.target.value)} placeholder={placeholder} aria-label={t('{name} API key', { name: label })} spellCheck={false} autoComplete="off" autoFocus={changing} />
+          {onPin && <input className="input pin" value={pin?.includes('•') ? '' : pin} onChange={(e) => typedPin(e.target.value)} placeholder={t('PIN (if your key has one)')} aria-label={t('TheTVDB subscriber PIN')} autoComplete="off" />}
+          <button className="btn sm" onClick={test} disabled={!value || masked || state === 'testing'} title={t('Check the key with the service')}>{state === 'testing' ? t('Testing…') : t('Test')}</button>
+          {saved && <button className="btn ghost sm" onClick={keep}>{t('Keep the saved key')}</button>}
+        </div>
+      )}
+      {asking && state && state !== 'testing' && <div className={'set-note ' + state}>{msg}</div>}
     </Row>
   )
 }

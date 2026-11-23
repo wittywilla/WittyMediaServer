@@ -338,8 +338,11 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 			encoders = append(encoders, e)
 		}
 	}
+	lanUrls, lanGuess, localOnly := s.homeAddresses(r)
 	writeJSON(w, 200, map[string]any{
-		"lanUrls":     s.lanURLs(r),
+		"lanUrls":     lanUrls,
+		"lanGuess":    lanGuess,  // the home-network address, even while it only listens on this computer
+		"localOnly":   localOnly, // listens on this computer only
 		"version":     s.Version,
 		"go":          runtime.Version(),
 		"os":          runtime.GOOS,
@@ -480,38 +483,86 @@ func acceptsGzip(header string) bool {
 	return false
 }
 
-// lanURLs are the addresses other devices on the home network can open
-// (this machine's private IPv4 addresses, on the port this request used);
-// none when the server only listens on this machine.
+// lanURLs are the addresses other devices on the home network can open (this machine's private IPv4 addresses, on the
+// port this request used), the one its network traffic goes out through first; none when the server only listens on
+// this machine.
 func (s *Server) lanURLs(r *http.Request) []string {
-	if h, _, err := net.SplitHostPort(s.Cfg.Listen); err == nil && h != "" && h != "0.0.0.0" && h != "::" {
-		if ip := net.ParseIP(h); ip == nil || ip.IsLoopback() {
-			return []string{}
-		}
-	}
-	_, port, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		port = ""
-	}
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return nil
-	}
+	urls, _, _ := s.homeAddresses(r)
+	return urls
+}
+
+// homeAddresses is lanURLs, with guess, the address the server has on the home network (its main one), which is
+// there even when it only listens on this computer, so first-run setup can say where it will be once it's opened up;
+// and localOnly, true when it listens on loopback only.
+func (s *Server) homeAddresses(r *http.Request) (urls []string, guess string, localOnly bool) {
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
 	}
-	out := []string{}
-	for _, a := range addrs {
-		ipn, ok := a.(*net.IPNet)
-		if !ok || ipn.IP.To4() == nil || !ipn.IP.IsPrivate() {
-			continue
+	_, port, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		_, port, _ = net.SplitHostPort(s.Cfg.Listen)
+	}
+	var ips []net.IP
+	if addrs, err := net.InterfaceAddrs(); err == nil {
+		for _, a := range addrs {
+			if ipn, ok := a.(*net.IPNet); ok {
+				ips = append(ips, ipn.IP)
+			}
 		}
-		host := ipn.IP.String()
+	}
+	return homeURLs(s.Cfg.Listen, scheme, port, ips, mainLANIP())
+}
+
+// homeURLs works out homeAddresses from the listen address, the machine's addresses and its main one.
+func homeURLs(listen, scheme, port string, ips []net.IP, main net.IP) (urls []string, guess string, localOnly bool) {
+	url := func(ip net.IP) string {
+		host := ip.String()
 		if port != "" {
 			host = net.JoinHostPort(host, port)
 		}
-		out = append(out, scheme+"://"+host)
+		return scheme + "://" + host
 	}
-	return out
+	var home []net.IP // private IPv4 addresses, the main one first
+	if main != nil && main.To4() != nil && main.IsPrivate() {
+		home = append(home, main)
+	}
+	for _, ip := range ips {
+		if ip.To4() != nil && ip.IsPrivate() && !slices.ContainsFunc(home, ip.Equal) {
+			home = append(home, ip)
+		}
+	}
+	if len(home) > 0 {
+		guess = url(home[0])
+	}
+	urls = []string{}
+	if h, _, err := net.SplitHostPort(listen); err == nil && h != "" && h != "0.0.0.0" && h != "::" {
+		ip := net.ParseIP(h)
+		if ip == nil || ip.IsLoopback() {
+			return urls, guess, true
+		}
+		// One address of this machine: only that one answers.
+		if ip.To4() != nil && ip.IsPrivate() {
+			return []string{url(ip)}, url(ip), false
+		}
+		return urls, guess, false
+	}
+	for _, ip := range home {
+		urls = append(urls, url(ip))
+	}
+	return urls, guess, false
+}
+
+// mainLANIP is the address this computer's traffic to the rest of the network goes out from: what its default route
+// uses. A UDP socket is pointed at a documentation address (TEST-NET-1) to ask the system which; nothing is sent.
+func mainLANIP() net.IP {
+	c, err := net.Dial("udp4", "192.0.2.1:9")
+	if err != nil {
+		return nil
+	}
+	defer c.Close()
+	if a, ok := c.LocalAddr().(*net.UDPAddr); ok && a.IP.IsPrivate() {
+		return a.IP
+	}
+	return nil
 }

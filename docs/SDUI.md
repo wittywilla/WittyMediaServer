@@ -1998,7 +1998,8 @@ Focus: takes none. Accessibility: Role: none (hidden). The keys are announced as
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `layout` | enum: backdrop, poster, compact | `backdrop` | Layout. Backdrop behind the text, poster beside it, or a compact strip. |
-| `actions` | enumList: play, restart, watchLater, watched, download, share, playOn, watchParty | `play, restart, watchLater, watched, download, share` | Buttons. The buttons offered, in order. One the title or the profile can't use is left out. |
+| `actions` | enumList: play, restart, shuffle, queue, artist, watchLater, watched, download, share, playOn, watchParty | `play, restart, watchLater, watched, download, share` | Buttons. The buttons offered, in order. One the title or the profile can't use is left out. |
+| `menuAfter` | int |  | Buttons before More. The first this many buttons stand on their own and the rest go in a More menu (on a TV and a phone; a wide window may show them all). 0: every button stands on its own. |
 | `facts` | enumList: year, runtime, contentRating, rating, genres, studio, artist, count, season, knownFor, born, died | `year, runtime, contentRating, rating, genres` | Facts. The line of facts under the title, in order. |
 | `showOverview` | bool | `true` | Show the synopsis |
 | `showTagline` | bool | `true` | Show the tagline |
@@ -2075,10 +2076,11 @@ Sources: `tracks` only.
 | `showNumbers` | bool | `true` | Show track numbers |
 | `showArtist` | bool | `false` | Show each track's artist. For compilations. |
 | `showDuration` | bool | `true` | Show lengths |
+| `discs` | int |  | Discs. Made by the server: how many discs the songs are on, when more than one. Head each disc's songs with "Disc <n>" (its tracks' disc prop); numbers start at 1 on each. |
 
 How it is drawn:
 
-- **Television.** A list down the right two thirds of the screen, one row per track: number, title, length; the playing track in token accent.
+- **Television.** Under the header, the full width of the safe area, one row per track: number, title (and its credit under it), length; the playing track in token accent with a playing mark in place of its number. With discs, a "Disc <n>" heading before each disc's rows. Every row is a focus stop and the page scrolls to keep the focused row in view.
 - **Phone.** Full-width rows 56 points tall: number, title over artist, length; swipe actions are the app's own.
 - **Desktop and web.** A table: #, Title, Artist (when shown), Length; double-click plays.
 
@@ -2154,10 +2156,12 @@ Focus: its children take focus, and it is their group. Accessibility: Role: regi
 |---|---|---|---|
 | `title` | string |  | Title |
 | `artist` | string |  | Artist |
-| `number` | int |  | Number |
+| `number` | int |  | Number. Its place on its disc. |
 | `durationSec` | int |  | Length in seconds |
 | `itemId` | string |  | Item |
 | `progress` | number |  | Progress. 0 to 1. |
+| `disc` | int |  | Disc. Which disc it is on, sent only when the list holds more than one. |
+| `credit` | string |  | Credit. The song's own artist when it isn't the album's (a guest, a compilation): shown under the title whatever showArtist says. |
 
 Focus: the node takes focus when it can be acted on. Accessibility: Role: button. Label as TrackList says.
 

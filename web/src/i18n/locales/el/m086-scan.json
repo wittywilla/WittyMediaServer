@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "Ταξινόμηση όσων βρέθηκαν…",
+  "Sorting {detail}: {done} of {total}": "Ταξινόμηση {detail}: {done} από {total}",
+  "Sorting what was found: {done} of {total}": "Ταξινόμηση όσων βρέθηκαν: {done} από {total}",
+  "Listing what was found…": "Καταχώριση όσων βρέθηκαν…",
+  "Finding out about what’s new: {done} of {total}": "Αναζήτηση πληροφοριών για τα νέα: {done} από {total}",
+  "Finding out about what’s new…": "Αναζήτηση πληροφοριών για τα νέα…",
+  "Full rescan, {detail}: {done} of {found} files": "Πλήρης επανασάρωση, {detail}: {done} από {found} αρχεία",
+  "Scanning {detail}: {done} of {found} files": "Σάρωση {detail}: {done} από {found} αρχεία"
+}

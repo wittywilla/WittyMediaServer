@@ -1106,7 +1106,8 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 	if hs := propStr(p, "headingStyle", "plain"); hs != "plain" {
 		n.Props["headingStyle"] = hs
 	}
-	if !listLike(s.Component) {
+	// The card's measures, and a grid's columns, for a style.
+	cardProps := func(style string) {
 		m := r.l.Cards[style]
 		n.Props["cardStyle"], n.Props["cardSize"] = style, size
 		card := map[string]any{"width": m.Width[size], "shape": m.Shape}
@@ -1114,11 +1115,14 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 			card["height"], card["aspect"] = aspectHeight(m.Width[size], m.Aspect), m.Aspect
 		}
 		n.Props["card"] = card
-		if !propBool(p, "showTitles", true) {
-			n.Props["showTitles"] = false
-		}
 		if s.Component == "Grid" {
 			n.Props["columns"] = r.l.GridColumns(style, size)
+		}
+	}
+	if !listLike(s.Component) {
+		cardProps(style)
+		if !propBool(p, "showTitles", true) {
+			n.Props["showTitles"] = false
 		}
 		if propBool(p, "numbered", false) {
 			n.Props["numbered"] = true
@@ -1155,6 +1159,14 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 		dropCount(n)
 		n.Props["more"] = map[string]any{"url": r.moreURL(n.ID, offset)}
 		return true
+	}
+	// A playlist of songs (a collection that holds only songs) in square covers, as an album's, not
+	// cropped into upright posters, unless the page chose a style.
+	if style == "poster" && propStr(p, "cardStyle", "auto") == "auto" && !listLike(s.Component) && len(res.Items) > 0 && allKind(res.Items, "track") {
+		if _, ok := r.l.Cards["album"]; ok {
+			style = "album"
+			cardProps(style)
+		}
 	}
 	if len(res.Items) == 0 && offset == 0 {
 		dropCount(n)
@@ -1481,10 +1493,36 @@ func (r *renderer) tracks(n *Node, in instance) bool {
 	}
 	r.eager++
 	copyProps(n.Props, p, "showNumbers", "showArtist", "showDuration")
+	// A release on more than one disc: each song says its disc, and the list how many there are, so an
+	// app heads each disc's songs ("Disc 2") and numbers them from 1 again.
+	discs := map[int]bool{}
+	artists := map[string]int{}
+	for i := range res.Items {
+		discs[max(res.Items[i].Disc, 1)] = true
+		artists[res.Items[i].Artist]++
+	}
+	// The album's own artist is the one most of its songs have; a song by someone else, or with a
+	// guest ("Lady Gaga Feat. Beyoncé"), says so under its title.
+	main, most := "", 0
+	for a, k := range artists {
+		if k > most || (k == most && a < main) {
+			main, most = a, k
+		}
+	}
 	var total float64
 	for i := range res.Items {
-		n.Children = append(n.Children, r.track(n.ID, &res.Items[i], i))
+		t := r.track(n.ID, &res.Items[i], i)
+		if len(discs) > 1 {
+			t.Props["disc"] = max(res.Items[i].Disc, 1)
+		}
+		if a := res.Items[i].Artist; a != "" && a != main && len(artists) > 1 {
+			t.Props["credit"] = Truncate(a, r.l.TextLimits.Subtitle)
+		}
+		n.Children = append(n.Children, t)
 		total += res.Items[i].RuntimeSec
+	}
+	if len(discs) > 1 {
+		n.Props["discs"] = len(discs)
 	}
 	n.Props["count"] = len(res.Items)
 	if total > 0 {
@@ -1609,6 +1647,10 @@ func (r *renderer) header(n *Node, in instance) bool {
 	}
 	if acts := headerActions(it, propList(p, "actions", defaultList("DetailHeader", "actions"))); len(acts) > 0 {
 		n.Props["actions"] = acts
+		// The first few buttons stand on their own; the rest go in a More menu (a TV, a phone).
+		if k := propInt(p, "menuAfter", 0); k > 0 && k < len(acts) {
+			n.Props["menuAfter"] = k
+		}
 	}
 	return true
 }
@@ -1640,7 +1682,9 @@ func headerActions(it *Item, want []string) []any {
 		out = append(out, button(id, label, icon, false, &Action{Type: ActNative, To: screen, Params: map[string]any{"item": it.ID}}))
 	}
 	for _, a := range want {
-		if !contains(it.Can, a) && !(a == "restart" && contains(it.Can, "play")) {
+		// Shuffle and Add to queue are kinds of playing; Go to artist needs only an artist.
+		byPlay := a == "restart" || a == "shuffle" || a == "queue"
+		if !contains(it.Can, a) && !(byPlay && contains(it.Can, "play")) && a != "artist" {
 			continue
 		}
 		switch a {
@@ -1657,6 +1701,18 @@ func headerActions(it *Item, want []string) []any {
 					label = "Read from the start"
 				}
 				out = append(out, button("restart", label, "play", false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": false}}))
+			}
+		case "shuffle":
+			if play != "" {
+				out = append(out, button("shuffle", "Shuffle", "shuffle", false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": false, "shuffle": true}}))
+			}
+		case "queue":
+			if play != "" {
+				out = append(out, button("queue", "Add to queue", "plus", false, &Action{Type: ActCommand, Op: "queue.add", Item: play}))
+			}
+		case "artist":
+			if it.ArtistRoute != "" {
+				out = append(out, button("artist", "Go to artist", "artist", false, &Action{Type: ActNavigate, To: it.ArtistRoute}))
 			}
 		case "watchLater":
 			out = append(out, watchLaterButton(it))
@@ -2484,4 +2540,14 @@ func (r *renderer) emptyAction(p map[string]any, in instance) map[string]any {
 		a.As = PresentLayer
 	}
 	return map[string]any{"label": label, "action": a}
+}
+
+// allKind says every item is of one kind.
+func allKind(items []Item, kind string) bool {
+	for i := range items {
+		if items[i].Kind != kind {
+			return false
+		}
+	}
+	return true
 }

@@ -601,10 +601,11 @@ func (s *Server) hostTask(w http.ResponseWriter, r *http.Request, module string)
 	}
 	// scan-<library>: how far a scan call the module is answering has got. It's the scan's own
 	// progress (it keeps the scan from being stopped as stuck), never a task of its own; when
-	// the module isn't scanning that library now it's dropped.
+	// the module isn't scanning that library now it's dropped. Its title is what it's working on
+	// now, in a few words (a games library's console being sorted).
 	if rest, ok := strings.CutPrefix(name, "scan-"); ok {
 		if id, err := strconv.ParseInt(rest, 10, 64); err == nil && id > 0 && s.Scanner != nil {
-			s.Scanner.ModuleReport(module, id, in.Done, in.Total)
+			s.Scanner.ModuleReport(module, id, in.Done, in.Total, in.Title)
 		}
 		w.WriteHeader(204)
 		return

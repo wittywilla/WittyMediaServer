@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { fxNodes, isOff, type Fx } from './voiceFx'
+import { fxNodes, type Fx } from './voiceFx.ts'
 
 // The voice settings as audio nodes. A song in separate parts sends its voice into `voice` and
 // everything else into `music`; both come out of `out`. Nothing here runs unless there are
@@ -36,8 +36,23 @@ export class FxChain {
   private mBass: BiquadFilterNode
   private mTreble: BiquadFilterNode
   private pocket: BiquadFilterNode
+  // Everything the chain sends out goes through here, with an analyser on it to see that it's still sound.
+  private tail: GainNode
+  private tap: AnalyserNode
+  private tapBuf: Float32Array<ArrayBuffer> | null = null
+  private roomTimer: ReturnType<typeof setTimeout> | undefined
+  private closed = false
 
-  constructor(private ctx: AudioContext, out: AudioNode) {
+  private ctx: AudioContext
+
+  constructor(ctx: AudioContext, dest: AudioNode) {
+    this.ctx = ctx
+    this.tail = ctx.createGain()
+    this.tail.connect(dest)
+    this.tap = ctx.createAnalyser()
+    this.tap.fftSize = 256
+    this.tail.connect(this.tap)
+    const out = this.tail
     const f = (type: BiquadFilterType, freq: number, q = 0.8) => { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = freq; b.Q.value = q; return b }
     this.voice = ctx.createGain()
     this.lowCut = f('highpass', 20, 0.7)
@@ -48,6 +63,11 @@ export class FxChain {
     this.comp.attack.value = 0.005
     this.comp.release.value = 0.15
     this.comp.knee.value = 8
+    // Neutral from the start, before any settings arrive: the nodes' own defaults compress hard (a 12:1 ratio from -24 dB)
+    // and, worst of all, send the echo back into itself at full level. That loop has no way to die away: it builds on
+    // the voice until it runs out of numbers, and from then on every sound after it is NaN, which is silence (#517).
+    this.comp.threshold.value = 0
+    this.comp.ratio.value = 1
     this.makeUp = ctx.createGain()
     this.pan = ctx.createStereoPanner()
     this.voice.connect(this.lowCut).connect(this.bass).connect(this.presence).connect(this.air).connect(this.comp).connect(this.makeUp).connect(this.pan).connect(out)
@@ -62,6 +82,7 @@ export class FxChain {
     // Echo: a delay that feeds back into itself, a little darker each time round.
     this.echoDelay = ctx.createDelay(1.5)
     this.echoBack = ctx.createGain()
+    this.echoBack.gain.value = 0
     const dark = f('lowpass', 4500, 0.5)
     this.echoLevel = ctx.createGain()
     this.echoLevel.gain.value = 0
@@ -83,25 +104,55 @@ export class FxChain {
   set(fx: Fx) {
     const n = fxNodes(fx)
     const now = this.ctx.currentTime
-    const to = (p: AudioParam, v: number) => p.setTargetAtTime(v, now, TC)
-    to(this.lowCut.frequency, n.lowCutHz)
-    to(this.bass.gain, n.bassDb)
-    to(this.presence.gain, n.presenceDb)
-    to(this.air.gain, n.airDb)
-    to(this.comp.threshold, n.threshold)
-    to(this.comp.ratio, n.ratio)
-    to(this.makeUp.gain, n.makeUp)
-    to(this.pan.pan, n.pan)
-    to(this.doubleLevel.gain, n.double)
-    to(this.echoLevel.gain, n.echo)
-    to(this.echoDelay.delayTime, n.echoTime)
-    to(this.echoBack.gain, n.echo > 0 ? n.echoFeedback : 0)
-    to(this.mBass.gain, n.musicBassDb)
-    to(this.mTreble.gain, n.musicTrebleDb)
-    to(this.pocket.gain, n.pocketDb)
-    if (n.reverb > 0 && (!this.reverb || Math.abs(this.roomMade - n.room) > 0.05)) this.makeRoom(n.room)
-    to(this.reverbLevel.gain, n.reverb)
-    if (isOff(fx) && this.reverb) { this.reverb.disconnect(); this.pan.disconnect(this.reverb); this.reverb = null; this.roomMade = 0 }
+    // Every value checked again here, as this is the last stop before the sound: only a finite number, inside both
+    // the control's sense and the node's own limits, ever reaches an AudioParam (a NaN in a filter or the echo's loop
+    // silences everything after it for good).
+    const to = (p: AudioParam, v: number, lo: number, hi: number) => {
+      const safe = safeValue(v, Math.max(lo, p.minValue), Math.min(hi, p.maxValue))
+      if (safe !== null) p.setTargetAtTime(safe, now, TC)
+    }
+    const nyquist = this.ctx.sampleRate / 2
+    to(this.lowCut.frequency, n.lowCutHz, 10, Math.min(2000, nyquist))
+    to(this.bass.gain, n.bassDb, -24, 24)
+    to(this.presence.gain, n.presenceDb, -24, 24)
+    to(this.air.gain, n.airDb, -24, 24)
+    to(this.comp.threshold, n.threshold, -60, 0)
+    to(this.comp.ratio, n.ratio, 1, 20)
+    to(this.makeUp.gain, n.makeUp, 0, 4)
+    to(this.pan.pan, n.pan, -1, 1)
+    to(this.doubleLevel.gain, n.double, 0, 1)
+    to(this.echoLevel.gain, n.echo, 0, 1)
+    to(this.echoDelay.delayTime, n.echoTime, 0.02, 1.4)
+    to(this.echoBack.gain, n.echo > 0 ? n.echoFeedback : 0, 0, 0.85)
+    to(this.mBass.gain, n.musicBassDb, -24, 24)
+    to(this.mTreble.gain, n.musicTrebleDb, -24, 24)
+    to(this.pocket.gain, n.pocketDb, -24, 24)
+    to(this.reverbLevel.gain, n.reverb, 0, 1)
+    // The room is made a moment after the last change, not on every step of a slider being dragged (each one is
+    // seconds of sound to work out), and is let go when reverb is off.
+    clearTimeout(this.roomTimer)
+    if (n.reverb > 0 && (!this.reverb || Math.abs(this.roomMade - n.room) > 0.05)) {
+      const room = n.room
+      this.roomTimer = setTimeout(() => { if (!this.closed) this.makeRoom(room) }, this.reverb ? 150 : 0)
+    } else if (n.reverb <= 0 && this.reverb) this.dropRoom()
+  }
+
+  // Whether anything not a number has got into the chain (the analyser on its way out reads it): the player then
+  // makes a new chain, so the sound comes back by itself.
+  broken(): boolean {
+    this.tapBuf ??= new Float32Array(this.tap.fftSize)
+    this.tap.getFloatTimeDomainData(this.tapBuf)
+    for (const v of this.tapBuf) if (!Number.isFinite(v)) return true
+    return false
+  }
+
+  private dropRoom() {
+    const r = this.reverb
+    if (!r) return
+    try { this.pan.disconnect(r) } catch { /* not connected */ }
+    try { r.disconnect() } catch { /* not connected */ }
+    this.reverb = null
+    this.roomMade = 0
   }
 
   // A room: noise that dies away over its length, different in each ear, made once per size.
@@ -115,7 +166,7 @@ export class FxChain {
     }
     const next = this.ctx.createConvolver()
     next.buffer = buf
-    if (this.reverb) { this.pan.disconnect(this.reverb); this.reverb.disconnect() }
+    this.dropRoom()
     this.pan.connect(next)
     next.connect(this.reverbLevel)
     this.reverb = next
@@ -123,7 +174,15 @@ export class FxChain {
   }
 
   close() {
-    for (const n of [this.voice, this.music, this.pan, this.echoDelay, this.echoLevel, this.doubleLevel, this.reverbLevel, this.pocket, this.makeUp]) { try { n.disconnect() } catch { /* already */ } }
-    this.reverb?.disconnect()
+    this.closed = true
+    clearTimeout(this.roomTimer)
+    for (const n of [this.voice, this.music, this.pan, this.echoDelay, this.echoLevel, this.doubleLevel, this.reverbLevel, this.pocket, this.makeUp, this.tail]) { try { n.disconnect() } catch { /* already */ } }
+    this.dropRoom()
   }
+}
+
+// A value an AudioParam can take: clamped to lo..hi, or null (left as it is) when it isn't a number at all.
+export function safeValue(v: number, lo: number, hi: number): number | null {
+  if (typeof v !== 'number' || !Number.isFinite(v) || !(lo <= hi)) return null
+  return Math.min(hi, Math.max(lo, v))
 }

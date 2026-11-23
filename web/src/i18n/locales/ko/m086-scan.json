@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "찾은 항목 정리 중…",
+  "Sorting {detail}: {done} of {total}": "{detail} 정리 중: {total}개 중 {done}개",
+  "Sorting what was found: {done} of {total}": "찾은 항목 정리 중: {total}개 중 {done}개",
+  "Listing what was found…": "찾은 항목을 목록에 추가하는 중…",
+  "Finding out about what’s new: {done} of {total}": "새 항목 정보 찾는 중: {total}개 중 {done}개",
+  "Finding out about what’s new…": "새 항목 정보 찾는 중…",
+  "Full rescan, {detail}: {done} of {found} files": "전체 재검색, {detail}: 파일 {found}개 중 {done}개",
+  "Scanning {detail}: {done} of {found} files": "{detail} 검색 중: 파일 {found}개 중 {done}개"
+}

@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import {
   addAll, edgeLanding, windowStepSlots, canCatchup, catchupKey, channelOf, chooseSet, dialOutcome, filterChannels, moveItem, pageCount, pageLabel, pageStartOf,
   parseCatchupKey, prefsKey, readGuidePrefs, readPageSize, removeAll, rowsOnPage, sectionsOf, stepPage, stepSet, toggleIn, widerLookup, editableSets,
+  tvRows,
 } from './guideLogic.ts'
 
 const SETS = [
@@ -152,4 +153,19 @@ test('the highlight lands just past the edge it left, inside the paged window', 
   // Left: the moment just before the window, inside the window that moved back.
   const left = edgeLanding(-1, from, to)
   assert.ok(left >= from - step && left < to - step)
+})
+
+test('a TV guide shows whole rows, at least five', () => {
+  // 1080p: 405 px of room at 80 px a row is five rows of 81, none cut.
+  assert.deepEqual(tvRows(405, 80), { n: 5, rowH: 81 })
+  // 720p: 215 px of room is five rows of 43, smaller than the look's 64 so that five fit.
+  assert.deepEqual(tvRows(215, 64), { n: 5, rowH: 43 })
+  // Room for more: as many whole rows as fit at the look's height, sharing what is left.
+  assert.deepEqual(tvRows(700, 80), { n: 8, rowH: 87 })
+  // Never under 40 px: a tiny room scrolls instead.
+  assert.equal(tvRows(150, 80).rowH, 40)
+  for (const [room, base] of [[405, 80], [215, 64], [700, 80], [333, 72]]) {
+    const { n, rowH } = tvRows(room, base)
+    assert.ok(n * rowH <= room, `${n} rows of ${rowH} fit ${room}`)
+  }
 })

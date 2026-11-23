@@ -35,6 +35,11 @@ page remembers it on that device (`wms.tvclient`). With neither, a browser whose
 a Fire TV, a BRAVIA, a Google TV and others) is a TV device, and everything else is a computer. The apps' own TV
 screens (Android TV, tvOS) are always the TV device's card.
 
+The card is one centred column, as the sign-in screens are ("Who's watching?"): the server's name under a soft
+glow, the screen's name, one short line ("Change this from a computer or phone."), the QR code large on a white tile
+with "or open" and the address under it, what is set now, the buttons, and on a TV device the note above at its foot.
+The Android TV and Apple TV apps draw the same card (`OnAComputerCard`). No keyboard keys are shown on a television.
+
 Navigation never dead-ends. A button has focus, Back (or Escape, or B on a controller) leaves the screen the way it
 came, and there are no controls a remote can't reach. Settings in TV mode opens on its menu, with each such row saying
 so, instead of jumping into its first page.
@@ -69,6 +74,15 @@ note and the read-only wrapper). In the Android app: `net/TvLevels.kt` and `Nav.
 device's card (QR code, Back focused, Back leaves) and the computer's (no QR code, Leave TV mode focused, the same
 page in the normal layout, Back to TV mode).
 
+## Keys on a television
+
+A television never shows a computer's keys. The legend of keys a page's Dock carries elsewhere is one **Keys** button
+in TV mode (`KeyInfoButton` in `web/src/ui/KeyLegend.tsx`), which opens the Keys dialog with the remote's keys, or the
+controller's when a pad is in use; Back closes it. Keycaps on buttons, the now-playing and karaoke footers and More
+info's "I" are left out, and the player's Keyboard shortcuts is Keys. The keys all still work. A screen that can't be
+used without knowing a key shows that one hint itself, in the remote's words. `npm run test:tv-keys` in `web/` checks
+every TV page on a running test server at 1920x1080 and 1280x720, before and after a key is pressed, and the dialog.
+
 ## Adding a feature
 
 Every new screen or editor decides its TV level when it is made:
@@ -81,7 +95,8 @@ Every new screen or editor decides its TV level when it is made:
    `internal/server/api_tv_levels.go`.
 3. A button that opens an editor stays on a television and opens `OnAComputerDialog` instead (Customise this page,
    Edit layout). The walls for advanced settings on phones (`web/src/ui/advanced.tsx`, `UseAComputer`: the Canvas
-   studio, karaoke's voice settings, Advanced quality) show the same dialog in TV mode.
+   studio, Advanced quality) show the same dialog in TV mode. Karaoke's Voice settings open everywhere on their
+   simple presets (`full`); only their Advanced pane is walled, as the part `karaoke.voice-advanced`.
 4. Whatever it sets is kept on the server, per person or per server, never only in the browser, so that a change
    made on a computer reaches the television.
 
@@ -142,7 +157,7 @@ friends, WittyPlay options, cores and emulators, console photos.
 
 Parts, desktop only: making a theme, importing a theme, editing the layout (the shell editor and the menu
 editor), name and logo, the server's colours, your colours, Customise this page, the `.wittyinfo` scenes and skips
-editor, the advanced quality menu's fields, the Canvas studio, WittyPlay's custom cores and importing game
+editor, the advanced quality menu's fields, the Canvas studio, karaoke's advanced voice settings, WittyPlay's custom cores and importing game
 pictures; in the apps, their own layout editor, name and logo editor, and making a canvas.
 
 ## Settings apply everywhere

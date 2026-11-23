@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { api, fmtTime } from '../api'
 import { IconClose, IconEdit, IconRefresh } from '../icons'
 import { toast } from '../state'
 import { ownTiming, useLineIndex, type LyricLine, type useLyrics } from './lyrics'
 import type { PlayerView } from './types'
 import { WebLink } from '../components/WebLink'
-import { Segmented } from '../ui/Choice'
 import { num, t } from '../i18n'
 
 // Lyrics that follow the music: the line being sung stays in the middle, and pressing any
@@ -17,7 +16,9 @@ import { num, t } from '../i18n'
 
 const NO_LINES: LyricLine[] = []
 
-export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void }) {
+// switcher: Now playing's one choice between these words in time and Read (ReadPanel, with the album's booklet), shown
+// at the top of both, so there's one control for it (#520).
+export function LyricsPanel({ p, ly, onClose, switcher }: { p: PlayerView; ly: ReturnType<typeof useLyrics>; onClose: () => void; switcher?: ReactNode }) {
   const { lyrics, loading, failed, reload, setOffset } = ly
   const lines = lyrics?.synced ? lyrics.lines : NO_LINES
   const offset = lyrics?.offsetMs || 0
@@ -25,10 +26,10 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
   const box = useRef<HTMLOListElement>(null)
   const heldUntil = useRef(0)
   const [fixing, setFixing] = useState(false)
-  // Follow along: timed, the sung line in the middle. Read: the same words as plain text.
-  const [mode, setMode] = useState<'follow' | 'read'>('follow')
+  // Timed words follow along, the sung line in the middle; words without times read as text. Reading at your own pace
+  // is Read, beside this (switcher).
   const timed = lines.length > 0
-  const reading = mode === 'read' || !timed
+  const reading = !timed
   const readText = lyrics?.plain || lines.map((x) => x.text).join('\n')
   useEffect(() => {
     const list = box.current
@@ -48,10 +49,10 @@ export function LyricsPanel({ p, ly, onClose }: { p: PlayerView; ly: ReturnType<
         {lyrics?.sourceName && <span className="np-side-meta">{lyrics.creditUrl ? <WebLink href={lyrics.creditUrl}>{lyrics.sourceName}</WebLink> : lyrics.sourceName}</span>}
         <button type="button" className="mp-ibtn" onClick={onClose} aria-label={t('Close the lyrics')}><IconClose /></button>
       </div>
-      {lyrics && !loading && !lyrics.instrumental && (lyrics.plain || timed) && (
+      {(switcher || (lyrics && !loading && !lyrics.instrumental && lyrics.plain && !timed)) && (
         <div className="np-modes">
-          <Segmented label={t('Lyrics mode')} value={reading ? 'read' : 'follow'} onChange={setMode} options={[{ value: 'follow', label: t('Follow along'), disabled: !timed }, { value: 'read', label: t('Read') }]} />
-          {!timed && <span className="np-hint">{t('These words have no times, so they read as text.')}</span>}
+          {switcher}
+          {lyrics && !loading && !lyrics.instrumental && lyrics.plain && !timed && <span className="np-hint">{t('These words have no times, so they read as text.')}</span>}
         </div>
       )}
       {loading && <p className="np-hint">{t('Looking for the words…')}</p>}

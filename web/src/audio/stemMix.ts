@@ -171,3 +171,22 @@ export function streamStep(rate: number, ahead: number): { seek: boolean; rate: 
   const nudge = Math.max(-0.05, Math.min(0.05, ahead * 0.5))
   return { seek: false, rate: rate * (1 + nudge) }
 }
+
+// Who is holding the song's own sound down while their parts play (SoundGraph.hushDecks). Each player of parts holds it
+// from the moment it takes over until it closes. Taking over from another set means the new one holds it before the old
+// one lets go, so the song must stay hushed until the last holder has gone: an on/off switch let the old set's close
+// turn the song back on under the new parts, and both played at once (#517).
+export class Hush {
+  private holders = new Set<object>()
+  hold(by: object) { this.holders.add(by); return this.on }
+  release(by: object) { this.holders.delete(by); return this.on }
+  get on() { return this.holders.size > 0 }
+}
+
+// A set of parts taking over plays at the levels and with the voice settings in use now, from its first sound. Each is
+// otherwise told only when something changes, and a set replacing another (the quick version making way for the
+// separated one) changes nothing: it was left at no level and with its voice chain unset (#517).
+export function takeOver<F>(s: { setRoutes(r: Record<string, Route>, volume: number): void; setFx(fx: F): void }, a: Pick<KaraokeAnswer, 'mix' | 'stems'>, now: { levels: Levels; sing: boolean; fx: F; volume: number }) {
+  s.setRoutes(routesFor(a, now.levels, now.sing), now.volume)
+  s.setFx(now.fx)
+}

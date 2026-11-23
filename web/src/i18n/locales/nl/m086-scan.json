@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "Gevonden items sorteren…",
+  "Sorting {detail}: {done} of {total}": "{detail} sorteren: {done} van {total}",
+  "Sorting what was found: {done} of {total}": "Gevonden items sorteren: {done} van {total}",
+  "Listing what was found…": "Gevonden items in de lijst zetten…",
+  "Finding out about what’s new: {done} of {total}": "Info over nieuwe items zoeken: {done} van {total}",
+  "Finding out about what’s new…": "Info over nieuwe items zoeken…",
+  "Full rescan, {detail}: {done} of {found} files": "Volledige herscan, {detail}: {done} van {found} bestanden",
+  "Scanning {detail}: {done} of {found} files": "{detail} scannen: {done} van {found} bestanden"
+}

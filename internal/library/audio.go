@@ -4,14 +4,18 @@
 package library
 
 import (
+	"cmp"
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
+	"image"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -125,14 +129,34 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 		if k.missing {
 			return s.Store.restore(ctx, k.id)
 		}
-		return nil // unchanged
+		if k.hasPoster && (k.hasDiscNo || !mayHaveDisc(c.path)) {
+			return nil // unchanged
+		}
 	}
 	existing, err := s.Store.itemByPath(ctx, lib.ID, c.path)
 	if err == nil && c.same(existing, c.mtime) {
 		if existing.Missing {
 			return s.Store.restore(ctx, existing.ID)
 		}
-		return nil // unchanged
+		// Unchanged, but scanned before a disc number was read from names or a release's
+		// picture was taken as its album's cover (0.8.1-alpha): those, without reading the file.
+		if existing.DiscNo == nil {
+			s.fillDiscNo(ctx, existing)
+		}
+		if existing.Poster == "" {
+			key := filepath.Dir(c.path) + "|" + existing.Album
+			cover, seen := covers[key]
+			if !seen {
+				cover = albumCover(filepath.Dir(c.path))
+				covers[key] = cover
+			}
+			if cover != "" {
+				if err := s.Store.setPoster(ctx, existing.ID, cover); err != nil {
+					s.Log.WarnContext(ctx, "could not save a poster", "file", c.path, "err", err)
+				}
+			}
+		}
+		return nil
 	}
 	it := &Item{LibraryID: lib.ID, Kind: "audio", Path: c.path, SizeBytes: c.size, MTime: c.mtime}
 	if existing != nil {
@@ -209,6 +233,9 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 			}
 		}
 	}
+	if it.DiscNo == nil {
+		it.DiscNo, it.Track = discFromName(base, dir, it.Track)
+	}
 	if it.Album == "" && !samePath(dir, lib.Paths...) {
 		it.Album = filepath.Base(dir)
 	}
@@ -277,6 +304,95 @@ func samePath(p string, roots ...string) bool {
 
 var coverNameRe = regexp.MustCompile(`(?i)^(cover|folder|front|album|albumart.*|poster|artwork)\.(jpe?g|jfif|png|webp|gif|avif|bmp|tbn)$`)
 
+// Release groups name an album's picture after the release, with a leading run of zeros
+// that sorts it first ("000-artist-album-2cd-flac-2009.jpg", "00-artist-album.jpg"), or with
+// "cover" or "front" in a longer name ("Album (Front).jpg"). Taken when no usual name is there,
+// never a picture of the back, the disc or the booklet.
+var (
+	looseCoverRe = regexp.MustCompile(`(?i)^(0+ .*|.*\b(cover|front)\b.*)$`)
+	notCoverRe   = regexp.MustCompile(`(?i)\b(back|rear|cd\d*|dis[ck]\d*|inlay|inside|inner|tray|booklet|label|matrix|obi|spine)\b`)
+	pictureExtRe = regexp.MustCompile(`(?i)\.(jpe?g|jfif|png|webp)$`)
+	nameWords    = strings.NewReplacer("_", " ", ".", " ", "-", " ", "(", " ", ")", " ", "[", " ", "]", " ")
+)
+
+type looseFile struct {
+	path string
+	size int64
+}
+
+// pictureWhole reads a picture to its end: a JPEG or PNG that decodes, a GIF, or one too large to
+// decode here (taken on trust, as a cover by its usual name is). WebP and the rest aren't read.
+func pictureWhole(path string) bool {
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	cfg, kind, err := image.DecodeConfig(f)
+	if err != nil {
+		return strings.EqualFold(filepath.Ext(path), ".webp") // not one Go reads: as it is
+	}
+	if cfg.Width*cfg.Height > maxThumbPixels {
+		return true
+	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return false
+	}
+	_, k, err := image.Decode(f)
+	return err == nil && k == kind
+}
+
+func looseCover(name string) bool {
+	if strings.HasPrefix(name, "._") || !pictureExtRe.MatchString(name) {
+		return false
+	}
+	words := nameWords.Replace(strings.TrimSuffix(name, filepath.Ext(name)))
+	return looseCoverRe.MatchString(words) && !notCoverRe.MatchString(words)
+}
+
+// A release's songs on more than one disc, when their tags don't say which: "201-artist-title.flac"
+// (disc 2, track 1, its track tag 1 or none) or "2-01 Title.flac", or the folder they're in ("CD2",
+// "Disc 2"). Without a disc number the album's songs sort 1, 1, 2, 2… across its discs.
+var discTrackRe = regexp.MustCompile(`^([1-9])(?:(\d{2})|[-.](\d{2}))(?:[ ._-]|$)`)
+
+// mayHaveDisc says a song's name or folder could give its disc, so an unchanged song with no
+// disc number is looked at once more (fillDiscNo) instead of passed over.
+func mayHaveDisc(path string) bool {
+	base := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	return discTrackRe.MatchString(base) || discPartRe.MatchString(" "+filepath.Base(filepath.Dir(path))+" ")
+}
+
+// fillDiscNo gives a song scanned before its disc was read from names (0.8.1-alpha) its disc
+// and its place on it, without reading the file again.
+func (s *Scanner) fillDiscNo(ctx context.Context, it *Item) {
+	base := strings.TrimSuffix(filepath.Base(it.Path), filepath.Ext(it.Path))
+	d, t := discFromName(base, filepath.Dir(it.Path), it.Track)
+	if d == nil {
+		return
+	}
+	if _, err := s.Store.DB.ExecContext(ctx, `UPDATE items SET disc_no = ?, track = ? WHERE id = ?`, *d, t, it.ID); err != nil {
+		s.Log.WarnContext(ctx, "could not save a song's disc", "file", it.Path, "err", err)
+	}
+}
+
+func discFromName(base, dir string, track *int) (*int, *int) {
+	if m := discTrackRe.FindStringSubmatch(base); m != nil {
+		d, _ := strconv.Atoi(m[1])
+		t, _ := strconv.Atoi(m[2] + m[3])
+		// "1-01" always is a disc and a track; "201" only when the track tag agrees (1, or 201), so a
+		// song called "101 Dalmatians" or a long album's track 101 stays as it is.
+		if t > 0 && (m[3] != "" || (track != nil && (*track == t || *track == d*100+t))) {
+			return &d, &t
+		}
+	}
+	if m := discPartRe.FindStringSubmatch(" " + filepath.Base(dir) + " "); m != nil {
+		if d, _ := strconv.Atoi(m[1]); d > 0 {
+			return &d, track
+		}
+	}
+	return nil, track
+}
+
 // albumCover picks the largest cover image in an album folder: some players
 // leave a 200 px Folder.jpg next to a bigger
 // AlbumArt_..._Large.jpg.
@@ -286,15 +402,38 @@ func albumCover(dir string) string {
 		return ""
 	}
 	best, size := "", int64(0)
+	var loose []looseFile
 	for _, e := range entries {
-		if e.IsDir() || !coverNameRe.MatchString(e.Name()) {
+		if e.IsDir() {
 			continue
 		}
-		if info, err := e.Info(); err == nil && info.Size() > size {
-			best, size = filepath.Join(dir, e.Name()), info.Size()
+		name := e.Name()
+		usual := coverNameRe.MatchString(name)
+		if !usual && !looseCover(name) {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		if usual && info.Size() > size {
+			best, size = filepath.Join(dir, name), info.Size()
+		} else if !usual {
+			loose = append(loose, looseFile{filepath.Join(dir, name), info.Size()})
 		}
 	}
-	return best
+	if best != "" {
+		return best
+	}
+	// A release's picture is taken only when it is whole: some are cut short (a broken download), and
+	// the art inside the songs, which the scan falls back on, is better than half a picture.
+	slices.SortFunc(loose, func(a, b looseFile) int { return cmp.Compare(b.size, a.size) })
+	for _, l := range loose {
+		if pictureWhole(l.path) {
+			return l.path
+		}
+	}
+	return ""
 }
 
 // MIDIAudio makes the sound of a MIDI file, once, and keeps it as FLAC in the cache:

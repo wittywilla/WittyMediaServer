@@ -18,6 +18,7 @@ type knownFile struct {
 	missing         bool
 	hasPoster       bool
 	hasDisc         bool
+	hasDiscNo       bool // a song's disc number is known
 	provider        string
 	title           string // only where a scan looks at it: see loadKnown
 	updated         int64  // when the row was last written
@@ -50,7 +51,7 @@ func (s *Store) loadKnown(ctx context.Context, libraryID int64, all []candidate,
 		titles = "title"
 	}
 	rows, err := s.DB.QueryContext(ctx, `SELECT id, path, `+titles+`, IFNULL(provider, ''), IFNULL(poster, '') <> '', IFNULL(mtime, 0), IFNULL(size_bytes, 0), missing,
-		IFNULL(show_id, 0), IFNULL(season, -1), IFNULL(episode, -1), disc_json IS NOT NULL, IFNULL(updated_at, 0) FROM items WHERE library_id = ?`, libraryID)
+		IFNULL(show_id, 0), IFNULL(season, -1), IFNULL(episode, -1), disc_json IS NOT NULL, IFNULL(updated_at, 0), disc_no IS NOT NULL FROM items WHERE library_id = ?`, libraryID)
 	if err != nil {
 		return err
 	}
@@ -58,7 +59,7 @@ func (s *Store) loadKnown(ctx context.Context, libraryID int64, all []candidate,
 	var path sql.RawBytes
 	for rows.Next() {
 		var k knownFile
-		if err := rows.Scan(&k.id, &path, &k.title, &k.provider, &k.hasPoster, &k.mtime, &k.size, &k.missing, &k.showID, &k.season, &k.episode, &k.hasDisc, &k.updated); err != nil {
+		if err := rows.Scan(&k.id, &path, &k.title, &k.provider, &k.hasPoster, &k.mtime, &k.size, &k.missing, &k.showID, &k.season, &k.episode, &k.hasDisc, &k.updated, &k.hasDiscNo); err != nil {
 			return err
 		}
 		if i, ok := byPath[string(path)]; ok {

@@ -345,7 +345,7 @@ On a new server with WittyTuner, first-time setup has a **Live TV** step that op
 | **Demo tuner (built in)**: pretend channels and a guide made on this server | All | Tested with real FFmpeg |
 | **IPTV playlist (M3U)** | All | Tested with real FFmpeg against local streams and public test streams |
 | **IPTV single stream**: HTTP, HLS, RTSP, RTP or UDP | All | Tested with real FFmpeg against local streams |
-| **Network tuner (HDHomeRun-style)** | All | Tried on stand-ins, not real hardware. The scan call isn't in the maker's guide |
+| **Network tuner (HDHomeRun-style)** | All | Tried on an emulated HDHR5-4K, FLEX 4K and CONNECT DUO, not real hardware. The scan call isn't in the maker's guide. See [HDHomeRun](#hdhomerun) |
 | **SAT>IP** | All | Not tried on hardware |
 | **Linux DVB**: DVB-T/T2/C/S/S2, ATSC, ISDB-T | Linux | Not tried on hardware. Dish switches (DiSEqC) aren't done |
 | **Analogue and capture cards (V4L2)** | Linux | Not tried on hardware |
@@ -359,6 +359,23 @@ The page labels each one **Tested**, **Tried on stand-ins**, **Not yet tried** o
 The custom command runs a program on the server, so a web session alone can't set one up. It stays off until the server is started with `WMS_TUNER_COMMANDS=1`.
 
 On FreeBSD and macOS, WittyTuner's helper program runs without a sandbox.
+
+### HDHomeRun
+
+An HDHomeRun is found by a search of the home network: **Settings → Live TV & tuners → Add live TV → A tuner box on your network → Search for it**. The search asks on UDP port 65001, as the maker's own apps do, and asks for `hdhomerun.local`. It finds a device on the same network as the server, not one behind another router or on a guest Wi-Fi.
+
+If the search finds nothing, add it by its address instead, such as `192.168.1.50` or `hdhomerun.local`. The HDHomeRun app shows the address, and so does your router's list of devices. Adding by address works whatever the firewall says about the search.
+
+On Windows, the first search can make Windows Firewall ask whether **wittytuner-module** may use the network. Choose **Allow** for private networks. If it was told no, or the server runs as the background service (which can't show the question), the search may hear no answer: add the device by its address, or allow `wittytuner-module.exe` in Windows Security → Firewall & network protection → Allow an app through firewall. Its folder is `modules\wittytuner\versions\<version>` in the [data folder](DATA-FOLDER.md).
+
+What works: the channel list (`lineup.json`), a scan for Antenna channels, watching, recording, and as many channels at once as the device has tuners. One more is refused with "all of this device's tuners are in use". ATSC 3.0 channels play when they aren't encrypted. A channel the device marks DRM is listed as encrypted and never tuned. Older models the maker calls legacy, without HTTP streaming, aren't supported yet and say so. The device's own guide is an online service of its maker's, so the guide comes from a guide source you add (see [Guide data](#guide-data)).
+
+**If it doesn't work,** send the person helping you:
+
+1. The model and firmware: on the device's label, in the HDHomeRun app, or at `http://<its address>/discover.json` (`ModelNumber` and `FirmwareVersion`).
+2. Whether **Search for it** finds it, or only adding it by its address works.
+3. What the page says, word for word, at the step where it stops: adding it, reading its channels, scanning, or **Try a channel**.
+4. The log: **Settings → WittyLog → Download logs as ZIP**, with **Sanitize for sharing** on. Or copy the lines with `module=wittytuner` from `wms-<date>.log` in the `logs` folder of the data folder, from the time you tried. The lines that matter say `network tuner` (the model and firmware that answered), `network tuner found`, and `the network tuner refused a channel` (the device's own error, such as `805 All Tuners In Use`).
 
 ## Live TV playlists
 

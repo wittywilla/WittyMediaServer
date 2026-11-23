@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "QR โค้ดที่เปิดหน้านี้บนโทรศัพท์หรือคอมพิวเตอร์",
   "A Canvas video": "วิดีโอ Canvas",
   "Advanced quality settings": "การตั้งค่าคุณภาพขั้นสูง",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "เปิดในแอป WittyMediaClient บนคอมพิวเตอร์ หรือในเว็บเบราว์เซอร์ เพื่อทำการเปลี่ยนแปลง สิ่งที่คุณเลือกที่นั่นจะแสดงที่นี่ด้วย"
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "เปิดในแอป WittyMediaClient บนคอมพิวเตอร์ หรือในเว็บเบราว์เซอร์ เพื่อทำการเปลี่ยนแปลง สิ่งที่คุณเลือกที่นั่นจะแสดงที่นี่ด้วย",
+  "Change this from a computer or phone.": "เปลี่ยนค่านี้จากคอมพิวเตอร์หรือโทรศัพท์",
+  "or open": "หรือเปิด"
 }

@@ -95,6 +95,9 @@ func (s *Scanner) SmallCopyOf(ctx context.Context, f *os.File, src string, width
 		return src
 	}
 	if err := makeGameThumb(f, out, width); err != nil {
+		// Whoever serves the original reads it from its start: a picture Go can't decode
+		// (some JPEGs from release groups) is sent whole, not refused as "no artwork".
+		_, _ = f.Seek(0, io.SeekStart)
 		return src
 	}
 	return "cache:" + name

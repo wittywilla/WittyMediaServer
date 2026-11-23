@@ -62,6 +62,18 @@ export function arrange(items: NavItem[], prefs: NavPrefs, includeHidden = false
     .filter((it) => includeHidden || !hidden.has(it.id))
 }
 
+// A server's menu places some entries under More on this device (a module's admin page, say): they are never in the
+// bar itself, only in its More menu and in the side menu's More part, whatever room the bar has. The owner moves one
+// back to the bar in the Pages & menu editor, and the server sends the new placement.
+export const inMore = (it: NavItem) => it.placement === 'more'
+export const splitMore = (items: NavItem[]) => ({ bar: items.filter((it) => !inMore(it)), more: items.filter(inMore) })
+
+// inSectionRow: what a phone's row of sections lists. The libraries and Collections are under More on a phone's
+// bar at the bottom, and this row is where they are reached; anything else placed under More stays in the menu.
+// The side menu keeps them in their usual places the same way, and lists the rest under its own More heading.
+export const inSectionRow = (it: NavItem) => !inMore(it) || isLibrary(it.id) || it.id === 'collections'
+export const splitSideMenu = (items: NavItem[]) => ({ main: items.filter(inSectionRow), more: items.filter((it) => !inSectionRow(it)) })
+
 export type NavEntry = { key: string; item: NavItem } | { key: string; group: string; items: NavItem[] }
 
 // entries: what the bar shows. A group sits where its first member is, and a group
@@ -90,11 +102,12 @@ export const entryActive = (e: NavEntry, path: string) => 'item' in e ? isActive
 
 // fitCount: how many entries fit along the bar with room left for "More". While the
 // page you're on is under More, its name is on that button, which then needs the room
-// `activeWidth` asks for.
-export function fitCount(widths: number[], gap: number, room: number, moreWidth: number, activeIndex = -1, activeWidth = 0): number {
+// `activeWidth` asks for (an activeIndex past the end: a page the menu places under More).
+// withMore: the bar has a More button anyway, for the entries the menu places there.
+export function fitCount(widths: number[], gap: number, room: number, moreWidth: number, activeIndex = -1, activeWidth = 0, withMore = false): number {
   const used = (n: number) => { let w = 0; for (let i = 0; i < n; i++) w += widths[i] + gap; return w }
-  if (used(widths.length) - gap <= room) return widths.length
-  const fit = (more: number) => { let n = widths.length - 1; while (n > 0 && used(n) + more > room) n--; return n }
+  if (!withMore && used(widths.length) - gap <= room) return widths.length
+  const fit = (more: number) => { let n = withMore ? widths.length : widths.length - 1; while (n > 0 && used(n) + more > room) n--; return n }
   const n = fit(moreWidth)
   return activeIndex >= n && activeWidth > moreWidth ? fit(activeWidth) : n
 }

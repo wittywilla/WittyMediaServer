@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { getTvMode } from '../../tvmode/mode'
 import MoreInfo from './MoreInfo'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../api'
@@ -75,7 +76,7 @@ export default function MiniGuide({ channel, onTune, onClose, onFull }: { channe
   return (
     <div className="ctv-mini" role="region" aria-label={t('Mini guide')} onClick={(e) => e.stopPropagation()} onKeyDown={onKey}>
       {more && <MoreInfo channelKey={more.key} at={more.at} onClose={() => setMore(null)} />}
-      <div className="ctv-mini-head"><b>{t('Now and next')}</b><button type="button" className="ctv-btn sm" onClick={() => { if (cur) { const on = cur.programmes.find((p) => p.start <= now && p.end > now); setMore({ key: cur.key, at: on ? now : cur.programmes[0]?.start ?? now }) } }} disabled={!cur}>{t('More info')} <kbd aria-hidden="true">I</kbd></button><button type="button" className="ctv-btn sm" onClick={onFull}>{t('Full guide')}</button><button type="button" className="ctv-btn sm" onClick={onClose}>{t('Close')}</button></div>
+      <div className="ctv-mini-head"><b>{t('Now and next')}</b><button type="button" className="ctv-btn sm" onClick={() => { if (cur) { const on = cur.programmes.find((p) => p.start <= now && p.end > now); setMore({ key: cur.key, at: on ? now : cur.programmes[0]?.start ?? now }) } }} disabled={!cur}>{t('More info')}{!getTvMode() && <> <kbd aria-hidden="true">I</kbd></>}</button><button type="button" className="ctv-btn sm" onClick={onFull}>{t('Full guide')}</button><button type="button" className="ctv-btn sm" onClick={onClose}>{t('Close')}</button></div>
       {err && <div className="ctv-err" role="alert">{err}</div>}
       {!rows && !err && <div className="ctv-mini-wait">{t('Loading…')}</div>}
       <ul ref={list}>

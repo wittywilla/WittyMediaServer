@@ -14,7 +14,8 @@ import { QrCode } from '../../components/QrCode'
 import { countWords } from '../../libraryNouns'
 import { useApp } from '../../state'
 import { useAudio } from '../../audio/player'
-import { IconCheck, IconDown, IconLeft, IconPause, IconPlay, IconRight, IconSearch, IconStar } from '../../icons'
+import { IconCheck, IconDown, IconLeft, IconMore, IconPause, IconPlay, IconRight, IconSearch, IconStar } from '../../icons'
+import { Pop } from '../../audio/controls'
 import { tokenVar } from '../../themeOverrides'
 import { Segmented, Tabs as TabStrip } from '../../ui/Choice'
 import { Select } from '../../ui/Field'
@@ -657,6 +658,10 @@ function DetailHeaderView({ view }: { view: View }) {
   const logo = picture(obj(images, 'logo'))
   const buttons = buttonsOf(p)
   const primary = buttons.find((b) => b.primary)
+  // The first menuAfter buttons stand on their own; the rest are in a More menu (an album's Add to queue, Go to artist, Share).
+  const menuAfter = typeof p.menuAfter === 'number' && p.menuAfter > 0 && p.menuAfter < buttons.length ? p.menuAfter : 0
+  const standing = menuAfter ? buttons.slice(0, menuAfter) : buttons
+  const inMenu = menuAfter ? buttons.slice(menuAfter) : []
   const overview = view.text?.overview
   const button = (b: (typeof buttons)[number]) => {
     const step = plan(b.action, { externalLinks: page.layout.externalLinks })
@@ -693,8 +698,27 @@ function DetailHeaderView({ view }: { view: View }) {
           {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as icons with their names, lined up
               under the title on a wide screen and centred under a full-width Play on a phone (sdui.css). */}
           <div className="actions sdui-detail-actions" data-nav-group>
-            {buttons.filter((b) => b.primary).map(button)}
-            {buttons.some((b) => !b.primary) && <div className="sdui-detail-more">{buttons.filter((b) => !b.primary).map(button)}</div>}
+            {standing.filter((b) => b.primary).map(button)}
+            {(standing.some((b) => !b.primary) || inMenu.length > 0) && (
+              <div className="sdui-detail-more">
+                {standing.filter((b) => !b.primary).map(button)}
+                {inMenu.length > 0 && (
+                  <Pop label={t('More for {title}', { title: view.text?.title || '' })} icon={<><span className="sdui-action-icon"><IconMore /></span><span className="sdui-action-label">{t('More')}</span></>} className="sdui-action">
+                    {(close) => (
+                      <div className="mp-menu" role="menu">
+                        {inMenu.map((b) => {
+                          const step = plan(b.action, { externalLinks: page.layout.externalLinks })
+                          if (step.do === 'nothing') return null
+                          const icon = sduiIcon(b.icon)
+                          if (step.do === 'go' && !page.inert) return <Link key={b.id} role="menuitem" className="mh-menu-link" to={step.to} onClick={close}>{icon} {b.label}</Link>
+                          return <button key={b.id} type="button" role="menuitem" onClick={() => { close(); if (!page.inert) page.act(b.action, view) }}>{icon} {b.label}</button>
+                        })}
+                      </div>
+                    )}
+                  </Pop>
+                )}
+              </div>
+            )}
             {!page.inert && <Suspense fallback={null}><DetailExtras place="tools" header={view.node} doc={page.doc} /></Suspense>}
           </div>
           {overview && (
@@ -965,15 +989,20 @@ function TrackListView({ view }: { view: View }) {
   const { current, playing } = useAudio()
   const waiting = loading(view, page.busy(view.id))
   const showNumbers = view.node.props?.showNumbers !== false
+  // A release on more than one disc: a heading before each disc's songs, numbered from 1 again (the server's numbers).
+  const discs = typeof view.node.props?.discs === 'number' && view.node.props.discs > 1
+  const discLabel = (n: number) => t('Disc {n}', { n })
   return (
     <section className="sdui-tracks" style={scopeStyle(view.node)} data-sdui-section={view.id}>
       <StateLine view={view} />
       <ol className="track-list" aria-label={view.label} data-nav-group>
-        {waiting ? Array.from({ length: 6 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((t) => {
+        {waiting ? Array.from({ length: 6 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((t, i) => {
           const p = t.node.props || {}
           const on = current != null && String(current.id) === str(p, 'itemId')
+          const disc = discs ? num(p, 'disc') || 1 : 0
+          const newDisc = discs && (i === 0 || (num(view.children[i - 1].node.props || {}, 'disc') || 1) !== disc)
           return (
-            <li key={t.id} className={on ? 'on' : ''}>
+            <li key={t.id} className={(on ? 'on' : '') + (newDisc ? ' new-disc' : '')} data-disc={newDisc ? discLabel(disc) : undefined}>
               <button type="button" aria-label={t.label} aria-current={on ? 'true' : undefined} data-sdui-focus={t.node.focus ? t.id : undefined} data-tv-first={t.node.focus?.default || undefined} onClick={() => !page.inert && page.act(t.node.action, t)}>
                 <span className="tl-n">{on && playing ? <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i> : showNumbers && num(p, 'number') ? num(p, 'number') : ''}</span>
                 <span className="tl-t"><b>{t.text?.title}</b>{t.text?.subtitle && <span className="muted">{t.text.subtitle}</span>}

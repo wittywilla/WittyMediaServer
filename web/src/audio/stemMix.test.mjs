@@ -3,7 +3,7 @@
 // The karaoke mixing and sync rules, with made-up answers and clocks.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { decodeLevels, defaultLevel, drifted, DRIFT, encodeLevels, gainsFor, LEAD, levelsKey, partsAt, playable, pollDelay, qualityName, routesFor, sliders, startPlan, statusLine, streamedParts, streamStep, MAX_SECONDS } from './stemMix.ts'
+import { Hush, takeOver, decodeLevels, defaultLevel, drifted, DRIFT, encodeLevels, gainsFor, LEAD, levelsKey, partsAt, playable, pollDelay, qualityName, routesFor, sliders, startPlan, statusLine, streamedParts, streamStep, MAX_SECONDS } from './stemMix.ts'
 
 const stem = (id, role, defaultGain = 1) => ({ id, role, label: id[0].toUpperCase() + id.slice(1), url: '/api/media/1/stems/' + id, defaultGain })
 const parts = { state: 'ready', quality: 'stems', mix: 'parts', version: 'a', improving: false, progress: -1, pollSec: 0, stems: [stem('vocals', 'vocals'), stem('drums', 'music'), stem('bass', 'music', 0.8), stem('other', 'music')] }
@@ -126,4 +126,42 @@ test('a streamed part is kept with the song by small changes of speed, and a jum
   assert.ok(slower.rate < 1 && slower.rate >= 0.95)
   assert.equal(streamStep(1, 0.5).seek, true)
   assert.equal(streamStep(1, NaN).seek, true)
+})
+
+test('a set taking over plays at the current levels and voice settings from its first sound (#517)', () => {
+  const calls = []
+  const player = { setRoutes: (r, v) => calls.push(['routes', r, v]), setFx: (fx) => calls.push(['fx', fx]) }
+  const a = { mix: 'parts', stems: [{ id: 'vocals', role: 'vocals' }, { id: 'drums', role: 'music' }] }
+  const fx = { echo: 30 }
+  takeOver(player, a, { levels: { vocals: 0.4 }, sing: false, fx, volume: 0.8 })
+  assert.deepEqual(calls.map((c) => c[0]), ['routes', 'fx'])
+  assert.equal(calls[0][1].vocals.voice, 0.4)
+  assert.equal(calls[0][2], 0.8)
+  assert.equal(calls[1][1], fx)
+  // The singer out, as karaoke starts: the new set starts without them too.
+  calls.length = 0
+  takeOver(player, a, { levels: {}, sing: true, fx, volume: 1 })
+  assert.equal(calls[0][1].vocals.voice, 0)
+})
+
+test('the song stays hushed while one set of parts hands over to the next (#517)', () => {
+  const h = new Hush()
+  const quick = {}, separated = {}
+  assert.equal(h.hold(quick), true)
+  // The separated set takes over before the quick one lets go: the song must not come back in between, or after.
+  assert.equal(h.hold(separated), true)
+  assert.equal(h.release(quick), true)
+  assert.equal(h.release(quick), true) // letting go twice changes nothing
+  assert.equal(h.release(separated), false)
+})
+
+test('while the separated version loads, the quick one playing keeps its levels: they come from its own parts (#517)', () => {
+  const quick = { mix: 'blend', stems: [stem('full', 'full'), stem('instrumental', 'music')] }
+  const separated = { mix: 'parts', stems: [stem('vocals', 'vocals'), stem('drums', 'music'), stem('bass', 'music'), stem('other', 'music')] }
+  // Routes from the newer answer name none of the playing set's parts: a set playing at those is silent.
+  const wrong = routesFor(separated, {}, false)
+  for (const s of quick.stems) assert.equal(wrong[s.id], undefined)
+  // From the answer it was opened with, its music is heard.
+  const right = routesFor(quick, {}, true)
+  assert.ok(right.instrumental.music > 0)
 })

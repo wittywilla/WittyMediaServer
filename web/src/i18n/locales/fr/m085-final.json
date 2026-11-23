@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "Code QR qui ouvre cette page sur un téléphone ou un ordinateur",
   "A Canvas video": "Une vidéo Canvas",
   "Advanced quality settings": "Réglages de qualité avancés",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Ouvrez-la dans l’app WittyMediaClient sur un ordinateur, ou dans un navigateur web, pour faire des modifications. Ce que vous y choisissez s’affiche aussi ici."
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Ouvrez-la dans l’app WittyMediaClient sur un ordinateur, ou dans un navigateur web, pour faire des modifications. Ce que vous y choisissez s’affiche aussi ici.",
+  "Change this from a computer or phone.": "Modifiez-le depuis un ordinateur ou un téléphone.",
+  "or open": "ou ouvrez"
 }

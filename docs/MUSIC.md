@@ -41,7 +41,9 @@ Audiobooks/
 | From | Used for |
 |---|---|
 | Tags (ID3, Vorbis comments, MP4) | Title, artist, album, album artist, track and disc number, year, genre, comment |
+| The file's name or folder, when the tags give no disc | The disc: `201-artist-title.flac` (with track tag 1 or 201) is disc 2, track 1, as is `2-01 Title.flac`; songs in a folder named `CD2` or `Disc 2` are on disc 2. An album on more than one disc is listed disc by disc, under **Disc 1**, **Disc 2** |
 | A picture named `cover`, `folder`, `front`, `album`, `poster`, `artwork` or `albumart…` in the folder | The album cover. The largest one wins |
+| Otherwise, a release's own picture: a name starting with zeros (`000-artist-album.jpg`) or with *cover* or *front* in it | The album cover, the largest one that is whole (never a back, a disc, an inlay or a booklet scan) |
 | A picture inside the file | The cover, when the folder has none |
 | File and folder names | Title, track number, album and artist, when tags are missing |
 | `<song>.lrc` or `<song>.txt` beside a song, and lyrics in its tags | Its [lyrics](LYRICS-KARAOKE.md) |
@@ -121,7 +123,7 @@ Press the artwork or title in the bar, or **Full screen**. **F** then fills the 
 
 **Below the controls:** what's behind the player (**Album art**, **Canvas video** or **Visualizer**, and the visualizer's styles), **Look**, **Lyrics** and **Karaoke**.
 
-**Lyrics** opens the words with a switch at the top: **In time** follows the song, and **Read** shows them at your own pace, and whatever came with the album: text files open in the panel, and a PDF booklet opens in a new tab. A text file named after one song counts as that song's lyrics instead.
+**Lyrics** opens the words with one switch at the top: **Follow along** follows the song, and **Read** shows them at your own pace, and whatever came with the album: text files open in the panel, and a PDF booklet opens in a new tab. A text file named after one song counts as that song's lyrics instead.
 
 **The sleep timer** stops playing in 15, 30, 45, 60 or 90 minutes, or **After this song**.
 

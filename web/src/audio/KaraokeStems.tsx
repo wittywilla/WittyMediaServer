@@ -3,16 +3,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { useApp } from '../state'
-import { decodeLevels, defaultLevel, encodeLevels, levelOf, routesFor, levelsKey, MIX, playable, pollDelay, qualityName, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
+import { decodeLevels, defaultLevel, takeOver, encodeLevels, levelOf, routesFor, levelsKey, MIX, playable, pollDelay, qualityName, statusLine, type KaraokeAnswer, type Levels } from './stemMix'
 import { StemSet, type StemPlayer } from './stems'
 import { decodeFx, encodeFx, FX_OFF, fxKey, type Fx } from './voiceFx'
 import type { PlayerView } from './types'
+import { klog } from './klog'
 import { t, tx } from '../i18n'
 
 // Karaoke from a song's separate parts. Opening karaoke asks the server once; it makes a
 // quick version if the song has none, and a properly separated one behind it if it can.
 // Whatever it has is played in place of the song, with a slider for the voice, and swapped
 // for the better one when that's ready. Nobody has to set anything up or press anything.
+
+// How loud the guide voice is: the singer, quietly, to follow.
+const GUIDE_LEVEL = 0.2
+// Which of the player's two decks, for the log (klog.ts).
+const deckIds = new WeakMap<object, number>()
+let decksSeen = 0
+const deckId = (el: object) => { if (!deckIds.has(el)) deckIds.set(el, ++decksSeen); return deckIds.get(el) }
 
 const readLevels = (key: string): Levels => { try { return decodeLevels(localStorage.getItem(key)) } catch { return {} } }
 const readFx = (key: string): Fx => { try { return decodeFx(localStorage.getItem(key)) } catch { return { ...FX_OFF } } }
@@ -25,11 +33,17 @@ export function useKaraokeStems(p: PlayerView) {
   const [levels, setLevels] = useState<Levels>(() => readLevels(key))
   const fxStore = fxKey(user?.id)
   const [fx, setFxState] = useState<Fx>(() => readFx(fxStore))
-  const [sing, setSing] = useState(false)
+  // Karaoke starts with the singer taken out, every time, in the quick version and the separated one, whatever the
+  // Voice slider was left at: the guide voice, or the slider, put them back.
+  const [sing, setSing] = useState(true)
   const [active, setActive] = useState(false)
   const [lost, setLost] = useState('')
   const set = useRef<StemPlayer | null>(null)
-  const drop = useCallback(() => { set.current?.close(); set.current = null; setActive(false) }, [])
+  // The answer the playing set was made from. The levels are worked out from its parts: a newer answer (the separated
+  // version, while it's still being loaded) names other parts, and set on the playing quick version it silenced every
+  // one of them until the new set took over (#517).
+  const opened = useRef<KaraokeAnswer | null>(null)
+  const drop = useCallback(() => { set.current?.close(); set.current = null; opened.current = null; setActive(false) }, [])
 
   // Ask once for this song, then as often as the server says while something is being made.
   useEffect(() => {
@@ -60,16 +74,28 @@ export function useKaraokeStems(p: PlayerView) {
   // Load the parts whenever there's a new set of them, and take over from the song.
   const version = playable(answer) ? answer.version : ''
   const normalSpeed = p.rate === 1
+  // The song's own player, which the parts follow. The player has two and moves between them (gapless, crossfade):
+  // parts left following the one that has finished would go quiet with it, so they follow whichever is playing.
+  const deck = p.media()
+  // What a set of parts is told the moment it takes over (below): the effects further down tell it only when something
+  // changes, and a set that replaces another (the quick version making way for the separated one) changes nothing they
+  // watch, so it was left silent and with no voice settings at all (#517).
+  const now = useRef({ levels, sing, fx, volume: p.sound.muted ? 0 : p.sound.volume })
+  now.current = { levels, sing, fx, volume: p.sound.muted ? 0 : p.sound.volume }
   useEffect(() => {
-    const el = p.media()
+    const el = deck
+    klog('parts effect: version', version || '-', 'song', id, 'normal speed', normalSpeed, 'deck', el ? deckId(el) : '-')
     if (!version || !playable(answer) || !el) { drop(); return }
     setLost('')
     const stop = new AbortController()
     // The parts playing now carry on until the new ones are ready.
     StemSet.open(el, answer.stems, stop.signal).then((s) => {
       if (stop.signal.aborted) { s.close(); return }
-      set.current?.close()
+      const was = set.current
+      takeOver(s, answer, now.current)
       set.current = s
+      opened.current = answer
+      was?.close()
       setActive(true)
     }).catch((e: unknown) => {
       if (stop.signal.aborted) return
@@ -77,17 +103,19 @@ export function useKaraokeStems(p: PlayerView) {
       setLost(e instanceof Error && !/^stem \d+$/.test(e.message) && e.name === 'Error' ? e.message : t('The song’s separate parts couldn’t be played here, so this is the normal track.'))
     })
     return () => stop.abort()
-  }, [version, id, normalSpeed]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [version, id, normalSpeed, deck]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { set.current?.close(); set.current = null }, [])
 
   useEffect(() => {
-    if (active && playable(answer)) set.current?.setRoutes(routesFor(answer, levels, sing), p.sound.muted ? 0 : p.sound.volume)
+    const a = opened.current
+    if (active && a) set.current?.setRoutes(routesFor(a, levels, sing), p.sound.muted ? 0 : p.sound.volume)
   }, [active, answer, levels, sing, p.sound.volume, p.sound.muted])
   useEffect(() => { if (active) set.current?.setFx(fx) }, [active, fx])
-  const setFx = (next: Fx) => {
+  // The same function every time, so Voice settings doesn't draw itself again as the words move along.
+  const setFx = useCallback((next: Fx) => {
     setFxState(next)
     try { localStorage.setItem(fxStore, encodeFx(next)) } catch { /* a private window */ }
-  }
+  }, [fxStore])
 
   const setLevel = (stem: string, v: number) => {
     if (stem === 'vocals') setSing(false)
@@ -97,8 +125,9 @@ export function useKaraokeStems(p: PlayerView) {
       return next
     })
   }
+  // Back to how karaoke starts: the voice out, the music and the track full.
   const reset = () => {
-    setSing(false)
+    setSing(true)
     setLevels({})
     try { localStorage.removeItem(key) } catch { /* a private window */ }
   }
@@ -108,7 +137,10 @@ export function useKaraokeStems(p: PlayerView) {
   const installable = answer?.separator === 'installable'
   const admin = !!user?.isAdmin
   const toSettings = () => p.goTowards('/settings/metadata#lyrics')
-  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, fx, setFx, installable, admin, toSettings, note: statusLine(answer, lost, t) }
+  // The guide voice, one press from the first screen: the singer quietly back, or out again.
+  const guide = !sing && !!answer && levelOf(answer, levels, 'vocals') > 0
+  const toggleGuide = () => { if (guide) setSing(true); else setLevel('vocals', GUIDE_LEVEL) }
+  return { answer, active, waiting, levels, sing, setSing, setLevel, reset, fx, setFx, installable, admin, toSettings, guide, toggleGuide, note: statusLine(answer, lost, t) }
 }
 
 export type KaraokeStemsState = ReturnType<typeof useKaraokeStems>
@@ -148,7 +180,7 @@ export function KaraokeStemsControl({ k, hide = [] }: { k: KaraokeStemsState; hi
       </div>
     )
   }
-  const pristine = !k.sing && MIX.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))
+  const pristine = k.sing && MIX.every((r) => levelOf(a, k.levels, r.id) === defaultLevel(a, r.id))
   return (
     <div className="kar-stems kar-mix" role="group" aria-label={t('Mix')}>
       {rows.length > 0 && <div className="kar-mix-rows">
@@ -156,7 +188,7 @@ export function KaraokeStemsControl({ k, hide = [] }: { k: KaraokeStemsState; hi
       </div>}
       <div className="kar-mix-pills">
         {voice && <button type="button" className={'kar-chip' + (k.sing ? ' on' : '')} aria-pressed={k.sing} onClick={() => k.setSing(!k.sing)} title={t('Take the singer out, or put them back (V)')}>{t('Voice off')}</button>}
-        {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', 0.2)} title={t('Keep the singer quietly, as a guide')}>{t('Guide voice')}</button>}
+        {voice && <button type="button" className="kar-chip" onClick={() => k.setLevel('vocals', GUIDE_LEVEL)} title={t('Keep the singer quietly, as a guide')}>{t('Guide voice')}</button>}
         <button type="button" className="kar-chip" onClick={k.reset} disabled={pristine}>{t('Reset')}</button>
       </div>
       <p className="kar-mix-note">

@@ -171,6 +171,8 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .oobe-step.now i { background: var(--accent); color: var(--accent-fg); }
 .oobe-col { min-width: 0; display: grid; gap: var(--sp-3); }
 .oobe-skip { margin: 0; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; font-size: var(--text-sm); }
+/* While modules are installing or installed, the step has its own Continue: no second way out under it. */
+main:has(.su-going) ~ .oobe-skip { display: none; }
 @media (max-width: 900px) { .oobe-body { grid-template-columns: 1fr; } .oobe-steps { display: none; } }
 .su-req { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr); gap: var(--sp-3); align-items: center; margin-top: var(--sp-3); }
 @media (max-width: 700px) { .su-req { grid-template-columns: 1fr; } }
@@ -241,7 +243,8 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .lp-widgets { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
 .lp-widgets i { min-block-size: 3.2rem; border-radius: var(--r-md); background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); }
 .lp-widgets i.wide { grid-column: span 2; }
-.oobe-step.missing > span { opacity: .6; } .oobe-step small { font-size: var(--text-2xs); color: var(--fg-3); }
+/* A step that isn't there yet is quieter, in --fg-3, which every theme keeps readable (not faded, which wasn't). */
+.oobe-step.missing > span { color: var(--fg-3); } .oobe-step small { font-size: var(--text-2xs); color: var(--fg-3); }
 .su-twostep { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
 .su-twostep .ui-field { grid-column: 1 / -1; max-inline-size: 16rem; }
 .su-twostep ol { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-2); font-size: var(--text-md); }
@@ -285,5 +288,8 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 /* Welcome's foot: Back to the language and time zone screen, and what it chose. */
 .su-chosen-locale { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-5); font-size: var(--text-sm); }
 
-/* The Demucs row from Settings, on the Karaoke voices page. */
-.su-separator { padding: var(--sp-2) var(--sp-4); }
+/* The Demucs row from Settings, on the Karaoke voices page, padded like the other rounded setup panels. Two classes,
+   because settings.css loads after this file and its .set-card has no padding (#513). The rows keep their own
+   top and bottom space, so the card adds the sides, and the first row has no line above it. */
+.set-card.su-separator { padding: var(--sp-1) var(--sp-4); }
+.su-separator > .set-row:first-child { border-top: 0; }

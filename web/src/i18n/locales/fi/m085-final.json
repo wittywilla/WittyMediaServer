@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "QR-koodi, joka avaa tämän sivun puhelimella tai tietokoneella",
   "A Canvas video": "Canvas-video",
   "Advanced quality settings": "Laadun lisäasetukset",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Avaa se WittyMediaClient-sovelluksessa tietokoneella tai verkkoselaimessa tehdäksesi muutoksia. Siellä tekemäsi valinnat näkyvät myös täällä."
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Avaa se WittyMediaClient-sovelluksessa tietokoneella tai verkkoselaimessa tehdäksesi muutoksia. Siellä tekemäsi valinnat näkyvät myös täällä.",
+  "Change this from a computer or phone.": "Muuta tämä tietokoneella tai puhelimella.",
+  "or open": "tai avaa"
 }

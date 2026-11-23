@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "スマートフォンやパソコンでこのページを開く QRコード",
   "A Canvas video": "Canvas 動画",
   "Advanced quality settings": "詳細な画質設定",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "変更するには、パソコンの WittyMediaClient アプリかウェブブラウザーで開いてください。そこで選んだ内容はここにも反映されます。"
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "変更するには、パソコンの WittyMediaClient アプリかウェブブラウザーで開いてください。そこで選んだ内容はここにも反映されます。",
+  "Change this from a computer or phone.": "パソコンかスマートフォンで変更してください。",
+  "or open": "または開く"
 }

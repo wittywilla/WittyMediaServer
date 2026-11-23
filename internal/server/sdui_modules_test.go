@@ -255,3 +255,53 @@ func TestStockPagesDeferToAModulesOwn(t *testing.T) {
 		t.Errorf("with the module, a book: %s", p.ID)
 	}
 }
+
+// A module's menu entry sits where its placement says on every kind of device (#537): one placed in More
+// is never in the bar, however much room the bar has, and the server's own entries keep their places. An
+// administrator who moved it in the Pages & menu editor wins.
+func TestModuleEntryPlacedInMoreStaysInMore(t *testing.T) {
+	everywhere := map[string]string{"desktop": "more", "phone": "more", "tablet": "more", "tv": "more", "web": "more"}
+	set := sdui.NewModuleSet([]sdui.ModuleUI{
+		{Module: "wittyfolders", Navigation: []sdui.NavItem{{ID: "folders", Type: "route", Route: "/page/folders", Label: "Server folders", Placement: everywhere}}},
+		{Module: "wittystats", Navigation: []sdui.NavItem{{ID: "stats", Type: "route", Route: "/page/stats", Label: "Statistics", Placement: map[string]string{"phone": "more", "tv": "more"}}}},
+	})
+	libs := []sdui.NavLibrary{{ID: 1, Name: "Music", Kind: "music"}, {ID: 2, Name: "Movies", Kind: "movies"}}
+	pages := func(id string) (sdui.Page, bool) { return sdui.StockPage(id) }
+	render := func(nav sdui.Navigation, ff string) map[string]string {
+		ctx := &sdui.RenderContext{Profile: sdui.ProfileFor(ff, ""), ProfileKind: "adult", Flags: map[string]bool{}, Vars: map[string]string{}}
+		doc := sdui.RenderNavigation(moduleNavigation(nav, set), pages, libs, ctx)
+		doc.Items, _ = gamesBecomeWittyPlay(doc.Items, nil, libs)
+		doc.Items, _ = dropModuleEntriesLibrariesCover(doc.Items, nil, set)
+		out := map[string]string{}
+		for _, e := range doc.Items {
+			out[e.ID] = e.Placement
+		}
+		return out
+	}
+	stockHome := map[string]string{sdui.FormWeb: "primary", sdui.FormDesktop: "primary", sdui.FormPhone: "primary", sdui.FormTablet: "primary", sdui.FormTV: "primary"}
+	for _, ff := range []string{sdui.FormWeb, sdui.FormDesktop, sdui.FormPhone, sdui.FormTablet, sdui.FormTV} {
+		got := render(sdui.StockNavigation(), ff)
+		if got["folders"] != "more" {
+			t.Errorf("%s: Server folders is %q, want more", ff, got["folders"])
+		}
+		if got["home"] != stockHome[ff] {
+			t.Errorf("%s: Home is %q, want %q", ff, got["home"], stockHome[ff])
+		}
+		want := "primary"
+		if ff == sdui.FormPhone || ff == sdui.FormTV {
+			want = "more"
+		}
+		if got["stats"] != want {
+			t.Errorf("%s: Statistics is %q, want %q as its module places it", ff, got["stats"], want)
+		}
+		if ff != sdui.FormTV && ff != sdui.FormPhone && got["lib-1"] != "primary" {
+			t.Errorf("%s: the Music library is %q, want primary", ff, got["lib-1"])
+		}
+	}
+	// The owner put it in the bar on the web.
+	moved := sdui.StockNavigation()
+	moved.Items = append(moved.Items[:len(moved.Items)-1:len(moved.Items)-1], sdui.NavItem{ID: "folders", Type: "route", Route: "/page/folders", Label: "Server folders", Placement: map[string]string{"web": "primary"}}, moved.Items[len(moved.Items)-1])
+	if got := render(moved, sdui.FormWeb); got["folders"] != "primary" {
+		t.Errorf("the owner's placement: %q, want primary", got["folders"])
+	}
+}

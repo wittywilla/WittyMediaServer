@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "กำลังจัดเรียงสิ่งที่พบ…",
+  "Sorting {detail}: {done} of {total}": "กำลังจัดเรียง {detail}: {done} จาก {total}",
+  "Sorting what was found: {done} of {total}": "กำลังจัดเรียงสิ่งที่พบ: {done} จาก {total}",
+  "Listing what was found…": "กำลังใส่สิ่งที่พบลงในรายการ…",
+  "Finding out about what’s new: {done} of {total}": "กำลังหาข้อมูลของรายการใหม่: {done} จาก {total}",
+  "Finding out about what’s new…": "กำลังหาข้อมูลของรายการใหม่…",
+  "Full rescan, {detail}: {done} of {found} files": "สแกนใหม่ทั้งหมด, {detail}: {done} จาก {found} ไฟล์",
+  "Scanning {detail}: {done} of {found} files": "กำลังสแกน {detail}: {done} จาก {found} ไฟล์"
+}

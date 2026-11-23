@@ -143,7 +143,7 @@ func buildStockPages() []Page {
 		}}
 	detailAlbum := Page{ID: "detail-album", Kind: "detail", Title: "{title}", Icon: "album", Match: &Match{MediaKind: "album"}, Scope: "wittymusic",
 		Sections: []Section{
-			sec("header", "DetailHeader", props{"layout": "poster", "facts": []string{"artist", "year", "count", "runtime", "genres"}, "actions": []string{"play", "share"}}, nil),
+			sec("header", "DetailHeader", props{"layout": "poster", "facts": []string{"artist", "year", "count", "runtime", "genres"}, "actions": []string{"play", "shuffle", "queue", "artist", "share"}, "menuAfter": 2}, nil),
 			sec("tracks", "TrackList", nil, Source{"type": "tracks", "library": "$library", "artist": "$artist", "album": "$album"}),
 			sec("more", "Shelf", props{"title": "More by this artist"}, Source{"type": "albums", "library": "$library", "artist": "$artist", "sort": "year"}),
 		}}

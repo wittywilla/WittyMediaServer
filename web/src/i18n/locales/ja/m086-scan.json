@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "見つかったものを整理中…",
+  "Sorting {detail}: {done} of {total}": "{detail}を整理中：{total}件中{done}件",
+  "Sorting what was found: {done} of {total}": "見つかったものを整理中：{total}件中{done}件",
+  "Listing what was found…": "見つかったものを一覧に追加中…",
+  "Finding out about what’s new: {done} of {total}": "新しいものの情報を取得中：{total}件中{done}件",
+  "Finding out about what’s new…": "新しいものの情報を取得中…",
+  "Full rescan, {detail}: {done} of {found} files": "完全な再スキャン、{detail}：{found}ファイル中{done}件",
+  "Scanning {detail}: {done} of {found} files": "{detail}をスキャン中：{found}ファイル中{done}件"
+}

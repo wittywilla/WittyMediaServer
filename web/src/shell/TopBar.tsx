@@ -9,7 +9,7 @@ import { IconDown, IconLeft, IconMenu, IconMore, IconSearch, IconSettings, IconS
 import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'
 import { ProfileMenu } from './Account'
-import { arrange, entries, entryActive, fitCount, isActive, type NavEntry, type NavItem } from './navModel'
+import { arrange, entries, entryActive, fitCount, inSectionRow, isActive, splitMore, type NavEntry, type NavItem } from './navModel'
 import { navIcon, useNavItems, useNavPrefs } from './useNav'
 
 const GAP = 2
@@ -34,29 +34,34 @@ function BarEntry({ entry, path }: { entry: NavEntry; path: string }) {
 }
 
 // The links along the top. When they don't all fit, the rest go under More, and the
-// open page's name moves onto that button so you can always see where you are. The
-// widths are read once and kept: resizing only does sums, and touches the page only
-// when the answer changes.
+// open page's name moves onto that button so you can always see where you are. What the
+// menu places under More (inMore) is only ever there. The widths are read once and kept:
+// resizing only does sums, and touches the page only when the answer changes.
 function TopNav() {
   const items = useNavItems()
   const { prefs } = useNavPrefs()
   const { pathname: path } = useLocation()
-  const list = useMemo(() => entries(arrange(items, prefs), prefs), [items, prefs])
+  const { list, placed } = useMemo(() => { const s = splitMore(arrange(items, prefs)); return { list: entries(s.bar, prefs), placed: s.more } }, [items, prefs])
   const scroll = prefs.overflow === 'scroll'
   const bar = useRef<HTMLElement | null>(null)
   const widths = useRef<number[] | null>(null)
+  const placedWidths = useRef<number[]>([])
   const moreWidth = useRef(0)
   const [count, setCount] = useState<number | null>(null)
-  const sig = list.map((e) => e.key + ('item' in e ? e.item.label : '')).join('|') + (scroll ? '!' : '')
+  const sig = [...list.map((e) => e.key + ('item' in e ? e.item.label : '')), ...placed.map((it) => 'more:' + it.id + it.label)].join('|') + (scroll ? '!' : '')
   const activeIndex = list.findIndex((e) => entryActive(e, path))
-  const activeRef = useRef(activeIndex)
-  activeRef.current = activeIndex
+  const activePlaced = placed.findIndex((it) => isActive(it, path))
+  const activeRef = useRef([activeIndex, activePlaced])
+  activeRef.current = [activeIndex, activePlaced]
 
   const work = () => {
     const w = widths.current, el = bar.current
     if (!w || !el) return
-    const a = activeRef.current
-    setCount(fitCount(w, GAP, el.clientWidth, moreWidth.current, a, a >= 0 ? w[a] + 28 : 0))
+    const [a, ap] = activeRef.current
+    // A page placed under More puts its name on the More button, as one that didn't fit does.
+    const index = a >= 0 ? a : ap >= 0 ? w.length : -1
+    const width = a >= 0 ? w[a] + 28 : ap >= 0 ? (placedWidths.current[ap] || 0) + 28 : 0
+    setCount(fitCount(w, GAP, el.clientWidth, moreWidth.current, index, width, placed.length > 0))
   }
 
   // Something changed what's in the bar: show everything for a moment to measure it.
@@ -65,10 +70,11 @@ function TopNav() {
     if (scroll || count !== null || !bar.current) return
     const kids = [...bar.current.children] as HTMLElement[]
     moreWidth.current = kids[kids.length - 1]?.offsetWidth || 0
-    widths.current = kids.slice(0, -1).map((k) => k.offsetWidth)
+    widths.current = kids.slice(0, list.length).map((k) => k.offsetWidth)
+    placedWidths.current = kids.slice(list.length, -1).map((k) => k.offsetWidth)
     work()
   })
-  useLayoutEffect(work, [activeIndex])
+  useLayoutEffect(work, [activeIndex, activePlaced])
   useEffect(() => {
     if (scroll || !bar.current || !window.ResizeObserver) return
     const ro = new ResizeObserver(work)
@@ -80,8 +86,8 @@ function TopNav() {
   }, [scroll])
 
   const shown = scroll || count === null ? list : list.slice(0, count)
-  const rest = scroll || count === null ? [] : list.slice(count)
   const measuring = !scroll && count === null
+  const rest = [...(scroll || count === null ? [] : list.slice(count)), ...(measuring ? [] : placed.map((item): NavEntry => ({ key: item.id, item })))]
   const restHere = rest.find((e) => entryActive(e, path))
   const hereItem = restHere && ('item' in restHere ? restHere.item : restHere.items.find((it) => isActive(it, path)))
   const restMenu: MenuEntry[] = rest.flatMap((e): MenuEntry[] => 'item' in e
@@ -92,6 +98,7 @@ function TopNav() {
   return (
     <nav className={'topnav' + (scroll ? ' scrolls' : '')} aria-label={t('Libraries')} ref={bar}>
       {shown.map((e) => <BarEntry key={e.key} entry={e} path={path} />)}
+      {measuring && placed.map((it) => <span key={'m:' + it.id} className="topnav-link topnav-measure" aria-hidden="true">{navIcon(it)} <span>{tx(it.label)}</span></span>)}
       {measuring && <span className="topnav-link topnav-measure" aria-hidden="true"><IconMore /><span>{t('More')}</span><IconDown className="topnav-caret" /></span>}
       {rest.length > 0 && (
         <Menu label={t('More places')} align="end" items={restMenu} trigger={(props) => (
@@ -196,7 +203,7 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { 
   const { brandName } = useApp()
   const items = useNavItems()
   const { prefs } = useNavPrefs()
-  const list = useMemo(() => arrange(items, prefs).filter((it) => allTabs || (it.id !== 'home' && it.id !== 'tv' && it.id !== 'livetv')), [items, prefs, allTabs])
+  const list = useMemo(() => arrange(items, prefs).filter((it) => inSectionRow(it) && (allTabs || (it.id !== 'home' && it.id !== 'tv' && it.id !== 'livetv'))), [items, prefs, allTabs])
   const bar = useRef<HTMLElement | null>(null)
   useUnder(bar)
   useBarSpace(bar)

@@ -3,7 +3,7 @@
 // Karaoke's voice settings: ranges, presets, what's kept, and what the nodes are given.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cleanFx, decodeFx, encodeFx, FX_CONTROLS, FX_OFF, FX_PRESETS, fxKey, fxNodes, fxValue, isOff, presetFx, whichPreset } from './voiceFx.ts'
+import { cleanFx, decodeFx, encodeFx, FX_CONTROLS, FX_OFF, FX_PRESETS, fxKey, fxNodes, fxValue, isOff, presetFx, VOICE_LEVELS, VOICE_PRESETS, VOICE_RANGES, whichPreset } from './voiceFx.ts'
 
 test('off is every control at rest, and inside its range', () => {
   assert.ok(isOff(FX_OFF))
@@ -34,7 +34,7 @@ test('presets are themselves until something moves', () => {
     assert.deepEqual(cleanFx(f), f, p.id) // every preset value is in range
     assert.equal(whichPreset(f), p.id)
   }
-  assert.equal(whichPreset({ ...presetFx('hall'), bass: 5 }), '')
+  assert.equal(whichPreset({ ...presetFx('mid-medium'), bass: 5 }), '')
   assert.equal(whichPreset(FX_OFF), 'off')
 })
 
@@ -54,4 +54,39 @@ test('values read as people say them', () => {
   assert.equal(fxValue(byId.bass, 3), '+3 dB')
   assert.equal(fxValue(byId.room, 1.6), '1.6 s')
   assert.equal(fxValue(byId.echo, 35), '35%')
+})
+
+test('nine voice presets: each voice range at each height, each one its own', () => {
+  assert.equal(VOICE_PRESETS.length, 9)
+  for (const r of VOICE_RANGES) for (const l of VOICE_LEVELS) {
+    const p = VOICE_PRESETS.find((x) => x.range === r.id && x.level === l.id)
+    assert.ok(p, `${r.id} ${l.id}`)
+    assert.equal(p.id, `${r.id}-${l.id}`)
+  }
+  const shapes = new Set(VOICE_PRESETS.map((p) => encodeFx(presetFx(p.id))))
+  assert.equal(shapes.size, 9, 'no two presets the same')
+  assert.ok(!shapes.has(encodeFx(FX_OFF)))
+  assert.deepEqual(FX_PRESETS.map((p) => p.id), ['off', ...VOICE_PRESETS.map((p) => p.id)])
+})
+
+test('voice presets follow the voice: the low cut and warmth go down with it, presence and compression up', () => {
+  const at = (id) => presetFx(id)
+  for (const r of VOICE_RANGES) {
+    const [hi, mid, lo] = VOICE_LEVELS.map((l) => at(`${r.id}-${l.id}`))
+    assert.ok(hi.lowCut > mid.lowCut && mid.lowCut > lo.lowCut, r.id + ' low cut')
+    assert.ok(hi.bass <= mid.bass && mid.bass <= lo.bass, r.id + ' warmth')
+    assert.ok(hi.presence <= mid.presence && mid.presence <= lo.presence, r.id + ' presence')
+    assert.ok(hi.compress <= mid.compress && mid.compress <= lo.compress, r.id + ' compression')
+  }
+  // From the highest voice to the lowest, the low cut never goes up.
+  const order = VOICE_RANGES.flatMap((r) => VOICE_LEVELS.map((l) => at(`${r.id}-${l.id}`).lowCut))
+  for (let i = 1; i < order.length; i++) assert.ok(order[i] <= order[i - 1], 'low cut in order ' + i)
+  // Nothing in a voice preset echoes: they're shaping, not effects.
+  for (const p of VOICE_PRESETS) assert.equal(presetFx(p.id).echo, 0, p.id)
+})
+
+test('the nodes are never given anything but numbers, even from settings that are incomplete', () => {
+  for (const fx of [{}, { compress: NaN }, { echoTime: Infinity, echo: 50 }, { ...FX_OFF, room: -4 }]) {
+    for (const [k, v] of Object.entries(fxNodes(fx))) assert.ok(Number.isFinite(v), `${k} = ${v}`)
+  }
 })

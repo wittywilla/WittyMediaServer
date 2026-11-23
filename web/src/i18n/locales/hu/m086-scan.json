@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "A találatok rendezése…",
+  "Sorting {detail}: {done} of {total}": "{detail} rendezése: {done} / {total}",
+  "Sorting what was found: {done} of {total}": "A találatok rendezése: {done} / {total}",
+  "Listing what was found…": "A találatok listázása…",
+  "Finding out about what’s new: {done} of {total}": "Adatok keresése az újakról: {done} / {total}",
+  "Finding out about what’s new…": "Adatok keresése az újakról…",
+  "Full rescan, {detail}: {done} of {found} files": "Teljes újraolvasás, {detail}: {done} / {found} fájl",
+  "Scanning {detail}: {done} of {found} files": "{detail} beolvasása: {done} / {found} fájl"
+}

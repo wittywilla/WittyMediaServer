@@ -26,12 +26,14 @@ import { Dock, type DockAction } from '../../ui/Dock'
 import type { MenuEntry } from '../../ui/Menu'
 import { liveNow, noteBackgroundDefault } from './live'
 import { useGuidePrefs } from './guidePrefs'
-import { ALL_SET, catchupKey, channelOf, chooseSet, dialOutcome, edgeLanding, pageStartOf, PAGE_SIZES, rowsOnPage, stepPage, stepSet, widerLookup, windowStepSlots, type PageSize } from './guideLogic'
+import { ALL_SET, tvRows, catchupKey, channelOf, chooseSet, dialOutcome, edgeLanding, pageStartOf, PAGE_SIZES, rowsOnPage, stepPage, stepSet, widerLookup, windowStepSlots, type PageSize } from './guideLogic'
 import { canOfferRecord, dayWord, fmtClock, fmtDay, fmtSpan, getLineup, getSets, forgetLineup, setFavourite, type GuideChannel, type GuidePage as Page, type Programme, type SetList } from './tvApi'
 import './tv.css'
 import './tvthemes.css'
 import './tvsets.css'
 import LegalNote from '../../components/LegalNote'
+import { Dialog } from '../../ui/Overlay'
+import { useTvMode } from '../../tvmode/mode'
 import { date, t, tn, tx } from '../../i18n'
 
 // The programme guide. A real ARIA grid under any of WittyTV's themes (tvThemes.ts). At the
@@ -176,7 +178,25 @@ export default function GuidePage() {
   }
   const loaded = useRef(new Set<string>())
   const slots = look.hours ? look.hours * 2 : slotsForWidth(width)
-  const rowH = rowHeight(look.shape, width, look.density)
+  const tvMode = useTvMode()
+  // On a television the guide shows whole channels, at least five: the rows share the room the grid has, each no
+  // taller than the look's own height, so none is cut in half and moving down moves a whole row.
+  const baseRowH = rowHeight(look.shape, width, look.density)
+  // The room from the top of the rows to the foot of the screen, less the legal line (and the Shortcuts bar when open).
+  const [tvAvail, setTvAvail] = useState(0)
+  const tvFit = tvMode && tvAvail > 0 ? tvRows(tvAvail, baseRowH) : null
+  const rowH = tvFit ? tvFit.rowH : baseRowH
+  // TV mode: the Dock's shortcuts are behind a Shortcuts button (closed at first, remembered on this device), and the
+  // keys and the legal words are in Help.
+  const [shortcuts, setShortcutsState] = useState(() => { try { return localStorage.getItem(SHORTCUTS_KEY) === '1' } catch { return false } })
+  const setShortcuts = (on: boolean) => { setShortcutsState(on); try { localStorage.setItem(SHORTCUTS_KEY, on ? '1' : '0') } catch { /* this visit only */ } }
+  const [helpOpen, setHelpOpen] = useState(false)
+  const shortcutsBtn = useRef<HTMLButtonElement | null>(null)
+  const openShortcuts = () => {
+    setShortcuts(true)
+    requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector<HTMLElement>('.ctv-dock .dock-btn:not([disabled])')?.focus()))
+  }
+  const closeShortcuts = () => { setShortcuts(false); requestAnimationFrame(() => shortcutsBtn.current?.focus()) }
   const to = from + slots * SLOT
   const fetchFrom = Math.floor(from / FETCH_SPAN) * FETCH_SPAN
   const pxPerSec = trackW ? trackW / (to - from) : 0
@@ -245,6 +265,23 @@ export default function GuidePage() {
     setGutter(el.offsetWidth - el.clientWidth)
     const track = el.querySelector<HTMLElement>('.ctv-track')
     if (track) setTrackW(track.clientWidth)
+  })
+
+  useLayoutEffect(() => {
+    if (!tvMode) return
+    const el = scroller.current
+    if (!el) return
+    const foot = (sel: string) => page.current?.querySelector(sel)?.getBoundingClientRect().height || 0
+    const top = el.getBoundingClientRect().top + window.scrollY
+    // A bar held at the foot of the screen (the page's Dock, the music bar) covers what is under it: stop above it.
+    let bottom = window.innerHeight
+    for (const bar of document.querySelectorAll<HTMLElement>('.dock.sticky, .audio-bar')) {
+      if (page.current?.contains(bar)) continue
+      const r = bar.getBoundingClientRect()
+      if (r.height > 0 && r.top > top - window.scrollY) bottom = Math.min(bottom, r.top + window.scrollY)
+    }
+    const avail = Math.floor(bottom - top - foot('.ctv-legals') - foot('#ctv-shortcuts') - 12)
+    if (Math.abs(avail - tvAvail) > 2) setTvAvail(avail)
   })
 
   const refreshLineup = () => getLineup().then(setLineup).catch(() => {})
@@ -577,11 +614,13 @@ export default function GuidePage() {
   }, [previewKey, cur, lineup])
   // The most the preview may take, and what it starts at until someone chooses a size.
   const narrow = pageSizeBox.w < 760
+  // On a TV the preview starts at most 440 of 1920 across, so the guide below it keeps five whole rows; a size someone
+  // chooses with + still stays, up to what the page can spare.
   const previewMax = previewLimit(pageSizeBox.w, pageSizeBox.h, narrow)
-  const previewStart = previewAuto(look.shape, pageSizeBox.w, pageSizeBox.h, narrow)
+  const previewStart = tvMode ? Math.min(previewAuto(look.shape, pageSizeBox.w, pageSizeBox.h, narrow), Math.round(pageSizeBox.w * TV_PREVIEW)) : previewAuto(look.shape, pageSizeBox.w, pageSizeBox.h, narrow)
 
   const shell = (children: React.ReactNode) => (
-    <div ref={page} className={'ctv ctv-page' + (narrow ? ' narrow' : '')} {...themeRoot(look)}>{children}</div>
+    <div ref={page} className={'ctv ctv-page' + (narrow ? ' narrow' : '') + (tvMode ? ' tvm' : '')} {...themeRoot(look)}>{children}</div>
   )
   if (total === 0 && noFilter) {
     // Nothing to show yet, so the guide's own colours have nothing to dress up.
@@ -656,6 +695,8 @@ export default function GuidePage() {
         <div className="ctv-bar-group">
           <h2 className="ctv-bar-title">{t('Guide')}</h2>
           {sets && <SetButton set={curSet} onOpen={openPicker} />}
+          {tvMode && <button ref={shortcutsBtn} type="button" data-dock-toggle className={'ctv-btn sm' + (shortcuts ? ' on' : '')} aria-expanded={shortcuts} aria-controls="ctv-shortcuts" onClick={() => (shortcuts ? closeShortcuts() : openShortcuts())}>{t('Shortcuts')}</button>}
+          {tvMode && <button type="button" className="ctv-btn sm" aria-haspopup="dialog" onClick={() => setHelpOpen(true)}>{t('Help')}</button>}
           <label className="ctv-field ctv-find"><span className="sr-only">{t('Find a channel')}</span>
               <input type="search" value={find} placeholder={t('Find a channel')} aria-label={t('Find a channel, by number or name')} onChange={(e) => setFind(e.target.value)}
                 onKeyDown={(e) => {
@@ -676,7 +717,7 @@ export default function GuidePage() {
       {err && <div className="ctv-err" role="alert">{err}</div>}
       {dial && <div className="ctv-dial" role="status">{t('CH {number}', { number: dial })}<span className="ctv-blink">_</span></div>}
 
-      <div className="ctv-grid" ref={grid} role="grid" aria-label={curSet ? t('TV guide, {day}, {set}', { day: fmtDay(from), set: curSet.name }) : t('TV guide, {day}', { day: fmtDay(from) })} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
+      <div className={'ctv-grid' + (tvFit && tvFit.rowH < 64 ? ' tight' : '')} ref={grid} role="grid" aria-label={curSet ? t('TV guide, {day}, {set}', { day: fmtDay(from), set: curSet.name }) : t('TV guide, {day}', { day: fmtDay(from) })} aria-rowcount={totalRows + 1} aria-colcount={slots + 1} onKeyDown={onKey}
         onFocus={() => { gridHadFocus.current = true }} onBlur={(e) => { if (e.relatedTarget) gridHadFocus.current = false }}
         style={{ '--ctv-row': rowH + 'px', '--ctv-gutter': gutter + 'px' } as React.CSSProperties}>
         <div className="ctv-times" role="row" aria-rowindex={1}>
@@ -686,7 +727,7 @@ export default function GuidePage() {
           </div>
         </div>
         {look.nowLine && <NowLine from={from} to={to} />}
-        <div className="ctv-rows" ref={scroller} onScroll={(e) => setScrollTop((e.target as HTMLElement).scrollTop)} role="presentation">
+        <div className="ctv-rows" ref={scroller} style={tvFit ? { flex: 'none', height: tvFit.n * tvFit.rowH } : undefined} onScroll={(e) => setScrollTop((e.target as HTMLElement).scrollTop)} role="presentation">
           <div style={{ height: pageRows * rowH, position: 'relative' }} role="presentation">
             {drawnRows.map((r) => (
               <GuideRow key={r} r={r} ch={rowsRef.current.get(r)} top={(r - pageStart) * rowH} rowH={rowH} from={from} to={to} pxPerSec={pxPerSec} now={now} focusAt={r === focus.row ? focus.at : null} look={look}
@@ -704,11 +745,28 @@ export default function GuidePage() {
         </div>
       )}
 
-      <Dock label={t('Guide controls')} className="ctv-dock" btn="ctv-btn sm" scope="list" actions={dockActions} />
-      <div className="ctv-legals">
+      {!tvMode && <Dock label={t('Guide controls')} className="ctv-dock" btn="ctv-btn sm" scope="list" actions={dockActions} />}
+      {tvMode && shortcuts && (
+        // The shortcuts on a TV: no key letters on them and no keyboard legend (the keys still work); Back closes them.
+        <div id="ctv-shortcuts" data-dock-close onKeyDown={(e) => { if (e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack') { e.preventDefault(); e.stopPropagation(); closeShortcuts() } }}>
+          <Dock label={t('Shortcuts')} className="ctv-dock" btn="ctv-btn sm" scope="list" legend={false} actions={dockActions.map((a) => ({ ...a, hint: undefined }))} />
+        </div>
+      )}
+      <div className={'ctv-legals' + (tvMode ? ' one-line' : '')}>
         <LegalNote kind="tv" className="ctv-legal" />
         {logosShown && <LegalNote kind="logos" className="ctv-legal" />}
       </div>
+      {helpOpen && (
+        <Dialog title={t('Help')} size="md" onClose={() => setHelpOpen(false)} className="ctv-help">
+          <dl className="ctv-help-keys">
+            {guideRemoteHints().map(([id, k, v]) => <div key={id}><dt>{k}</dt><dd>{v}</dd></div>)}
+          </dl>
+          <div className="ctv-help-legal">
+            <LegalNote kind="tv" />
+            {logosShown && <LegalNote kind="logos" />}
+          </div>
+        </Dialog>
+      )}
 
       {moreInfo && <MoreInfo channelKey={moreInfo.key} at={moreInfo.at} onClose={() => { setMoreInfo(null); wantFocus.current = true }} />}
       {details && <DetailsDialog ch={details.ch} p={details.p} now={now} startDay={details.day} look={look} onClose={() => setDetails(null)} onWatch={() => watch(details.ch.key)}
@@ -819,3 +877,17 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
     </div>
   )
 })
+
+// TV mode's guide: whole rows, the preview's starting share of the width, and where Shortcuts' state is kept.
+const TV_PREVIEW = 440 / 1920
+const SHORTCUTS_KEY = 'wms.tvguide.shortcuts'
+
+// What the remote does on the guide, for Help: the keys' own names on a remote, never a keyboard's.
+function guideRemoteHints(): [string, React.ReactNode, string][] {
+  const dot = (c: string) => <span className={'ctv-key-dot ' + c} aria-hidden="true" />
+  return [
+    ['ud', '▲ ▼', t('Channels')], ['lr', '◀ ▶', t('Time')], ['num', '0–9', t('Go to a channel')], ['ok', 'OK', t('Watch')],
+    ['ch', 'CH + / CH −', t('Page')], ['menu', 'Menu', t('Shortcuts')], ['back', t('Back'), t('Back')],
+    ['red', dot('red'), t('Previous day')], ['green', dot('green'), t('Next day')], ['yellow', dot('yellow'), t('Next set of channels')], ['blue', dot('blue'), t('Choose channels…')],
+  ]
+}

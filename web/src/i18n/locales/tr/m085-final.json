@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "Bu sayfayı telefonda ya da bilgisayarda açan QR kodu",
   "A Canvas video": "Bir Tuval videosu",
   "Advanced quality settings": "Gelişmiş kalite ayarları",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Değişiklik yapmak için bunu bir bilgisayarda WittyMediaClient uygulamasında ya da bir web tarayıcısında açın. Orada seçtikleriniz burada da görünür."
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Değişiklik yapmak için bunu bir bilgisayarda WittyMediaClient uygulamasında ya da bir web tarayıcısında açın. Orada seçtikleriniz burada da görünür.",
+  "Change this from a computer or phone.": "Bunu bir bilgisayardan veya telefondan değiştirin.",
+  "or open": "veya açın"
 }

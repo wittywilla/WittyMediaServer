@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CanvasVideo } from '../canvas/CanvasVideo'
 import type { CanvasInfo } from '../canvas/rules'
 import type { Look } from './look'
@@ -22,13 +22,15 @@ export default function ArtView({ look, src, alt = '', caption, canvas, playing 
   fallback?: React.ReactNode // drawn when there's no cover
 }) {
   const box = useRef<HTMLDivElement>(null)
+  // A cover that won't load (gone from the server, a 404) shows the fallback, not the browser's broken picture.
+  const [broken, setBroken] = useState('')
   const style = look.art
   const video = !!canvas?.info?.available && !canvas.blocked
   usePulse(box, look.pulse && playing && size !== 'tile' && !!media, media)
   useTilt(box, style === 'tilt' && size === 'full')
   const face = video
     ? <CanvasVideo info={canvas!.info} blocked={canvas!.blocked} paused={!playing && size !== 'tile'} className="av-video" />
-    : src ? <img src={src} alt={alt} draggable={false} decoding="async" /> : fallback
+    : src && broken !== src ? <img src={src} alt={alt} draggable={false} decoding="async" onError={() => setBroken(src)} /> : fallback
   return (
     <div ref={box} className={`art-view s-${style} z-${size}` + (playing ? ' playing' : '') + (video ? ' has-video' : '')}>
       <div className="av-body">

@@ -115,6 +115,26 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
 .ctv-time-track { position: relative; flex: 1; margin-right: var(--ctv-gutter, 0); overflow: hidden; }
 .ctv-time { position: absolute; top: 0; bottom: 0; padding: 5px 7px; border-left: 1px solid var(--ctv-line); font-size: var(--text-md); white-space: nowrap; }
 .ctv-rows { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--ctv-line) var(--ctv-bg); }
+/* TV mode (GuidePage tvRowHeight): rows are sized to fit whole, so the list moves a row at a time, with no smooth glide
+   between. The hero is tighter, so five whole channels fit at 1080p and 720p. */
+html .ctv-page.tvm, html.ten-foot .ctv-page.tvm, html.using-controller .ctv-page.tvm { --ctv-top: max(12px, 1.6vh); --ctv-foot: max(8px, 1.2vh); }
+.ctv-page.tvm .ctv-hero { padding-bottom: var(--sp-2); }
+.ctv-page.tvm .ctv-hero-title { -webkit-line-clamp: 1; line-clamp: 1; }
+.ctv-page.tvm .ctv-hero-title { font-size: var(--text-xl); }
+@media (max-height: 800px) { .ctv-page.tvm .ctv-hero-next { display: none; } }
+/* Rows shorter than two lines of text: the programme's name on one line, its details left to the hero. */
+.ctv-grid.tight .ctv-cell small { display: none; }
+.ctv-grid.tight .ctv-cell-text b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.ctv-page.tvm .ctv-rows { scroll-behavior: auto; overflow-anchor: none; }
+.ctv-page.tvm .ctv-grid { flex: none; min-height: 0; }
+.ctv-legals.one-line .ctv-legal { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctv-help-keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2) var(--sp-5); margin: 0; }
+.ctv-help-keys > div { display: flex; align-items: baseline; gap: var(--sp-3); }
+.ctv-help-keys dt { min-width: 7ch; font-weight: 700; }
+.ctv-help-keys dd { margin: 0; color: var(--fg-2); }
+.ctv-key-dot { display: inline-block; width: 1em; height: 1em; border-radius: var(--r-full); vertical-align: middle; }
+.ctv-key-dot.red { background: var(--danger); } .ctv-key-dot.green { background: var(--ok); } .ctv-key-dot.yellow { background: var(--warn); } .ctv-key-dot.blue { background: var(--info, var(--accent)); }
+.ctv-help-legal { margin-top: var(--sp-5); color: var(--fg-2); font-size: var(--text-sm); }
 .ctv-row { position: absolute; left: 0; right: 0; display: flex; }
 .ctv-ch { display: flex; align-items: center; gap: 7px; flex: none; width: var(--ctv-chw); padding: 0 8px; background: var(--ctv-ch); border: 1px solid var(--ctv-bg); border-right: 2px solid var(--ctv-line); box-shadow: var(--ctv-bevel); }
 .ctv-row[style*="--ctv-channel"] .ctv-ch { box-shadow: var(--ctv-bevel), inset 4px 0 0 var(--ctv-channel); }

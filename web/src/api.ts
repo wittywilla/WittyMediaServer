@@ -211,6 +211,11 @@ let missing: { id: string; at: number } | null = null
 export const recentMissingModule = () => (missing && Date.now() - missing.at < 20000 ? missing.id : null)
 export const forgetMissingModule = () => { missing = null }
 
+// A module whose route the server expects answered 404: usually a module older than this server. A page that then can't
+// load says so, rather than that the server didn't answer.
+let outdated: { id: string; at: number } | null = null
+export const recentOutdatedModule = () => (outdated && Date.now() - outdated.at < 20000 ? outdated.id : null)
+
 const parse = (text: string): any => { try { return text ? JSON.parse(text) : null } catch { return { error: text } } }
 
 // The viewer's quality choice for requests that start a stream (player/quality.ts). Only on
@@ -247,6 +252,10 @@ async function send(method: string, path: string, body?: unknown, signal?: Abort
   }
   // First run isn't over: the web is the only place it happens, so go there (the setup routes still answer).
   if (res.status === 503 && data?.error === 'setup_required' && !location.pathname.startsWith('/setup')) location.assign('/setup')
+  if (res.status === 404) {
+    const m = /^\/modules\/([a-z0-9-]+)\//.exec(path)
+    if (m && m[1] !== 'web') outdated = { id: m[1], at: Date.now() }
+  }
   if (!res.ok) {
     reportRequestFailure(method, path, res.status, data?.error || res.statusText, res.headers.get('X-Request-Id'))
     throw new ApiError(res.status, data?.error || res.statusText, data)

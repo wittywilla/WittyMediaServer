@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { getTvMode } from '../../tvmode/mode'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Hls from 'hls.js'
@@ -28,6 +29,9 @@ import { useTvRemote } from '../../remote/tvTarget'
 import './tv.css'
 import './tvthemes.css'
 import { t, tx } from '../../i18n'
+
+// How long the channel banner stays up after a channel is chosen.
+const BANNER_MS = 3000
 
 haveHls(Hls)
 
@@ -93,10 +97,11 @@ export default function TvPlayer() {
   const bannerTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const look = useLook()
 
+  // The channel banner shows for three seconds after a channel is chosen, then gets out of the way.
   const showBanner = useCallback(() => {
     setBanner(true)
     clearTimeout(bannerTimer.current)
-    bannerTimer.current = setTimeout(() => setBanner(false), 7000)
+    bannerTimer.current = setTimeout(() => setBanner(false), BANNER_MS)
   }, [])
   useEffect(() => () => clearTimeout(bannerTimer.current), [])
 
@@ -398,7 +403,7 @@ function Banner({ info, look, fromStart, onMore }: { info: TuneInfo; look: Look;
         {info.playing && <div className="ctv-banner-next">{t('Playing now: {title}', { title: info.playing.title })}</div>}
         {info.notices?.map((n) => <div key={n} className="ctv-banner-notice">{tx(n)}{info.alternative ? ' ' + t('Channel {number} has the same station with sound.', { number: info.alternative.number }) : ''}</div>)}
         <BannerRights ch={info} look={look} />
-        {p && <button type="button" className="ctv-btn sm ctv-banner-more" onClick={() => onMore()} aria-label={t('More info')}>{t('More info')} <kbd aria-hidden="true">I</kbd></button>}
+        {p && <button type="button" className="ctv-btn sm ctv-banner-more" onClick={() => onMore()} aria-label={t('More info')}>{t('More info')}{!getTvMode() && <> <kbd aria-hidden="true">I</kbd></>}</button>}
       </div>
       <div className="ctv-banner-clock">{fmtClock(now)}</div>
     </div>

@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "मिली चीज़ें छाँटी जा रही हैं…",
+  "Sorting {detail}: {done} of {total}": "{detail} छाँटा जा रहा है: {total} में से {done}",
+  "Sorting what was found: {done} of {total}": "मिली चीज़ें छाँटी जा रही हैं: {total} में से {done}",
+  "Listing what was found…": "मिली चीज़ें सूची में जोड़ी जा रही हैं…",
+  "Finding out about what’s new: {done} of {total}": "नई चीज़ों की जानकारी ढूँढी जा रही है: {total} में से {done}",
+  "Finding out about what’s new…": "नई चीज़ों की जानकारी ढूँढी जा रही है…",
+  "Full rescan, {detail}: {done} of {found} files": "पूरा रीस्कैन, {detail}: {found} में से {done} फ़ाइलें",
+  "Scanning {detail}: {done} of {found} files": "{detail} स्कैन हो रहा है: {found} में से {done} फ़ाइलें"
+}

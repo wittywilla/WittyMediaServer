@@ -53,7 +53,8 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
   padding: 8px 8px 12px; border-radius: var(--r-xl); background: var(--bg-2); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out); }
 @keyframes toast-bar-in { from { opacity: 0; } }
 /* While the account menu is open, it comes first. */
-.ab-art { position: relative; width: 52px; height: 52px; border-radius: var(--r-md); overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); cursor: pointer; transition: transform var(--dur-2) var(--ease-out); box-shadow: var(--e-1); }
+/* Always a square that keeps its size: the bar squeezes its words, never the art (#522). One size, --ab-art, set per layout. */
+.ab-art { --ab-art: 52px; position: relative; flex: none; width: var(--ab-art); height: var(--ab-art); aspect-ratio: 1; border-radius: var(--r-md); overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); cursor: pointer; transition: transform var(--dur-2) var(--ease-out); box-shadow: var(--e-1); }
 .ab-art svg { width: 22px; height: 22px; }
 .ab-art:hover { transform: scale(1.04); }
 .ab-art img { width: 100%; height: 100%; object-fit: cover; }
@@ -87,21 +88,17 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 .select.sm { min-height: var(--control-h-sm); padding: 0 var(--sp-2); font-size: var(--text-sm); }
 /* Easy to see: a word beside the icon. */
 /* The words in the page's own colour: accent text on the accent's tint falls under 4.5:1 in some themes. */
-.ab-viz-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; margin: 0 2px; border: 1.5px solid var(--accent-line); border-radius: var(--r-full); background: var(--accent-soft); color: var(--fg); font: inherit; font-size: var(--text-sm); font-weight: 600; cursor: pointer; white-space: nowrap; }
-.ab-viz-pill svg { width: 18px; height: 18px; color: var(--accent-text); }
-.ab-viz-pill:hover { background: var(--accent); color: var(--accent-fg); }
-.ab-viz-pill:hover svg { color: inherit; }
 
 /* Phones: art, words, play, next, above the tab bar. All the rest is in the full player. */
 @media (max-width: 899px) {
   .audio-bar { bottom: calc(var(--tabbar-space) + var(--sp-2)); padding: 8px 8px 12px; }
-  .ab-art { width: 48px; height: 48px; }
+  .ab-art { --ab-art: 48px; }
   .app:has(~ .audio-bar) .content, .app:has(~ .np) .content { padding-bottom: 200px; }
 }
 @media (min-width: 900px) {
   /* Three parts: what's playing, the buttons over the place in the song, the rest. */
   .audio-bar { left: 50%; right: auto; transform: translateX(-50%); width: min(1320px, calc(100% - 48px)); padding: 8px 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 1.3fr) minmax(0, 1fr); gap: var(--sp-4); border-radius: var(--r-lg); }
-  .ab-art { width: 56px; height: 56px; }
+  .ab-art { --ab-art: 56px; }
   .ab-centre { flex-direction: column; gap: 2px; min-width: 0; }
   .ab-progress { position: static; width: 100%; max-width: 640px; flex-wrap: nowrap; }
   .ab-progress .range { flex: 1 1 0; min-width: 0; width: auto; }
@@ -115,13 +112,9 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
   /* Room under the page for the bar, so the last row is never hidden. */
   .app:has(~ .audio-bar) .content, .app:has(~ .np) .content { padding-bottom: 128px; }
 }
-@media (min-width: 900px) and (max-width: 1240px) {
-  .ab-viz-pill span { display: none; }
-  .ab-viz-pill { padding: 0 10px; }
-}
 /* Collapsed: a small round button in the corner, keeping the play button to hand. */
 .audio-bar.collapsed { left: auto; right: 16px; transform: none; width: auto; display: flex; gap: 6px; padding: 5px 8px 5px 5px; border-radius: var(--r-full); grid-template-columns: none; }
-.audio-bar.collapsed .ab-art { width: 48px; height: 48px; margin: 0; border-radius: 50%; }
+.audio-bar.collapsed .ab-art { --ab-art: 48px; margin: 0; border-radius: 50%; }
 .ab-ring { position: absolute; left: 2px; top: 2px; width: 54px; height: 54px; border-radius: 50%; background: conic-gradient(var(--accent-text) var(--pct), transparent var(--pct)); -webkit-mask-image: radial-gradient(closest-side, transparent 92%, var(--fg) 93%); mask-image: radial-gradient(closest-side, transparent 92%, var(--fg) 93%); pointer-events: none; z-index: 1; }
 .ab-mini-play { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--accent); color: var(--accent-fg); cursor: pointer; }
 .app:has(~ .audio-bar.collapsed) .content { padding-bottom: 88px; }

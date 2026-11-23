@@ -6,7 +6,7 @@
 /* Three panes need more room than a settings page's column: while a page is being edited,
    and only then, the page takes the width there is. */
 @media (min-width: 1281px) {
-  .set-shell:has(.pe-wide) { grid-template-columns: 232px minmax(0, 1fr); max-width: 1760px; justify-content: stretch; }
+  .set-shell:has(.pe-wide) { grid-template-columns: var(--set-nav-w) minmax(0, 1fr); max-width: 1760px; justify-content: stretch; }
 }
 
 /* ---------------------------------------------------------------- the draft */
@@ -167,7 +167,7 @@
 .pe-preview-empty { margin: 0; padding: var(--sp-5); border: 1px dashed var(--border-strong); border-radius: var(--r-md); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
 .pe-frame { position: relative; overflow: hidden; margin: 0 auto; border: 1px solid var(--border-strong); border-radius: var(--r-md); background: var(--bg); transition: opacity var(--dur-2); }
 .pe-frame.stale { opacity: .6; }
-.pe-frame-page { position: absolute; top: 0; left: 0; box-sizing: border-box; transform-origin: top left; color: var(--fg); }
+.pe-frame-page { position: absolute; top: 0; left: 0; box-sizing: border-box; transform-origin: top left; color: var(--fg); container-type: inline-size; } /* stands in for the page area (.content): a title's picture runs out to its edges */
 @media (prefers-reduced-motion: reduce) { .pe-frame { transition: none; } }
 
 /* ---------------------------------------------------------------- adding a section */

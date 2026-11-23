@@ -346,6 +346,23 @@ func albumData() Data {
 
 var albumVars = map[string]string{"library": "3", "libraryKind": "music", "libraryName": "Music", "artist": "The Examples", "album": "Album 2"}
 
+// twoDiscData is an album on two discs with guests on some songs: each disc numbered from 1,
+// in disc order, as the tracks source answers (sort by disc, then track).
+func twoDiscData() Data {
+	a := album(2)
+	a.RuntimeSec, a.Genres, a.PlayID, a.Can = 2040, []string{"Pop"}, "6000", []string{"play", "share"}
+	a.ArtistRoute = "/artist/3?name=The+Examples"
+	list := tracks(10)
+	for i := range list {
+		list[i].Disc, list[i].Track = 1+i/6, 1+i%6
+	}
+	list[1].Artist, list[6].Artist = "The Examples Feat. A Guest", "The Examples & Someone Else"
+	return Data{Subject: &a, Sources: []CannedSource{
+		src(map[string]any{"type": "tracks", "album": "Album 2"}, list, 0),
+		src(map[string]any{"type": "albums", "artist": "The Examples"}, albums(4), 0),
+	}}
+}
+
 // artistData is the page an artist card opens (/artist/3?name=The+Examples): the artist,
 // their albums and every song of theirs, more than one page of it.
 func artistData() Data {
@@ -566,6 +583,10 @@ func cases() []kase {
 		{id: "detail-show-tv", title: "A show's page on a television", in: detail("detail-show", "tv", map[string]string{"show": "1"}, showData(), nil), checks: []string{"thirty episodes in the first page, the rest by cursor"}},
 		{id: "detail-album", title: "An album's page", in: detail("detail-album", "desktop", albumVars, albumData(), nil),
 			checks: []string{"the header uses the square cover", "tracks numbered, with lengths", "a track's label: Track 1, Song 1, 3 minutes"}},
+		{id: "detail-album-two-discs-tv", title: "An album on two discs, on a television", in: detail("detail-album", "tv", albumVars, twoDiscData(), nil),
+			checks: []string{"the TrackList says discs 2 and each track its disc: head each disc's tracks Disc 1, Disc 2", "numbers start at 1 on each disc",
+				"a guest's song has a credit, shown under its title", "Play and Shuffle stand on their own; Add to queue, Go to artist and Share go in a More menu (menuAfter 2)",
+				"Shuffle is a play action with shuffle true; Add to queue the command queue.add; Go to artist navigates to the artist"}},
 		{id: "detail-artist", title: "An artist's page", in: detail("detail-artist", "phone", artistVars, artistData(), nil),
 			checks: []string{"the route is /artist/3?name=The+Examples", "a poster header with the square picture, the album count and Play", "the artist's albums as album cards", "every song as a TrackList without track numbers"}},
 		{id: "detail-artist-tv", title: "An artist's page on a television", in: detail("detail-artist", "tv", artistVars, artistData(), nil),
@@ -573,6 +594,10 @@ func cases() []kase {
 		{id: "detail-collection", title: "A collection's page", in: detail("detail-collection", "tablet", map[string]string{"collection": "12"},
 			Data{Subject: subject(sdui.Item{ID: "collection-12", Kind: "collection", Title: "Family film night", Overview: "Picked by everyone, vetoed by no one.", Count: 4, Can: []string{"share"}}),
 				Sources: []CannedSource{src(map[string]any{"type": "collection", "collection": "12"}, films(4), 0)}}, nil), checks: []string{"a compact header with a count", "the grid of what it holds"}},
+		{id: "detail-collection-songs-tv", title: "A playlist of songs on a television", in: detail("detail-collection", "tv", map[string]string{"collection": "13"},
+			Data{Subject: subject(sdui.Item{ID: "collection-13", Kind: "collection", Title: "Road trip", Count: 4, Can: []string{"share"}}),
+				Sources: []CannedSource{src(map[string]any{"type": "collection", "collection": "13"}, tracks(4), 0)}}, nil),
+			checks: []string{"a collection that holds only songs draws them in square album cards, not upright posters"}},
 		{id: "detail-film-credits", title: "A film's cast and crew, more than fit at first", in: detail("detail", "desktop", map[string]string{"item": "103"}, func() Data {
 			d := movieData()
 			d.Sources[1] = src(map[string]any{"type": "credits", "item": "103"}, filmCredits(26, 2), 0)

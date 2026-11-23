@@ -10,6 +10,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { api, codecName, discName, getPrefs, isBluray, isDisc, langName, type Item, type Show } from '../../api'
 import { toast, useApp } from '../../state'
+import { fileSizeText } from '../../sizeText'
 import { onEpisodeViewChosen, setEpisodeView, useEpisodeView, type EpisodeView } from './episodeView'
 import TitleArtPicker, { appliedOnPage } from '../../components/edit/TitleArtPicker'
 import LegalNote from '../../components/LegalNote'
@@ -115,7 +116,7 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
   }
   const disc = item ? isDisc(item) : false
   const main = item?.disc?.titles.find((x) => x.number === item.disc?.mainTitle)
-  const sizeGB = item?.sizeBytes ? (item.sizeBytes / 1e9).toFixed(2) + ' GB' : ''
+  const sizeGB = item?.sizeBytes ? fileSizeText(item.sizeBytes) : ''
   return (
     <AtPageEnd>
     <div className="sdui-extras">

@@ -24150,6 +24150,9 @@
                         "current": {
                           "type": "string"
                         },
+                        "detail": {
+                          "type": "string"
+                        },
                         "done": {
                           "type": "integer"
                         },
@@ -24173,6 +24176,9 @@
                           "type": "boolean"
                         },
                         "startedAt": {
+                          "type": "integer"
+                        },
+                        "total": {
                           "type": "integer"
                         }
                       },

@@ -7,8 +7,35 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 Released 2026-11-19.
 
+- **Live TV's channel banner shows for 3 seconds (#556).** Choosing a channel shows its name and what's on for three seconds instead of seven, then gets out of the way.
+- **Albums on more than one disc, in order, with their covers (#558).** A 2-CD album whose files have no disc tag listed
+  its songs 1, 1, 2, 2, 3, 3… across both discs, and a TV showed only the first two. The disc is now read from the name
+  when the tags don't say (`201-artist-title.flac` is disc 2, track 1; so is `2-01 Title.flac` or a song in a `CD2`
+  folder), and every app heads each disc's songs **Disc 1**, **Disc 2**, numbered from 1 again. A release's own picture
+  (`000-artist-album.jpg`, `Album (Front).jpg`) is now the album's cover when there's no `cover.jpg` or `folder.jpg`,
+  as long as the picture is whole (a cut-short one leaves the art inside the songs). Both apply with an ordinary
+  **Scan for changes**: the files aren't read again. A picture the server can't make smaller (some release groups'
+  JPEGs) is sent whole instead of "no artwork".
+- **A TV's album page, rebuilt (#558).** The cover (or a tile with the album's name when there's none) with the title,
+  artist, year, songs, length and genre beside it; **Play**, **Shuffle** and **More** (Add to queue, Go to artist,
+  Share); the songs right under them, a guest's name under its song ("Lady Gaga Feat. Beyoncé"), a playing mark in
+  place of the playing song's number, and the remote scrolling the list. The keys along the bottom are one short line.
+  For the apps: a DetailHeader's `menuAfter`, the `shuffle`, `queue` and `artist` actions, a TrackList's `discs` and a
+  Track's `disc` and `credit` (docs/SDUI.md). A playlist of songs shows square covers, not posters cut to a portrait.
+- **TV mode shows no keyboard keys (#558).** The bar of keys along the foot of every TV page ("Enter Select · Esc Back
+  · Ctrl+[ …", then the remote's after a key was pressed) is one **Keys** button now, which opens the remote's or the
+  controller's keys in a dialog (Back closes it). Now playing and karaoke drop their keyboard footers on a TV, More
+  info drops its "I", and the player's **Keyboard shortcuts** is **Keys**. Every key still works; a computer out of TV
+  mode shows them as before. `npm run test:tv-keys` checks every TV page at 1920×1080 and 1280×720.
+- **TV mode's guide fits a TV.** At 1080p and 720p the guide shows at least five whole channels, never one cut in
+  half, and moves a whole row at a time; the preview starts smaller and the programme's details take less room. The
+  bar of guide buttons and keys along the foot is behind a **Shortcuts** button beside the channel set (closed at
+  first, remembered on the device; the remote's Menu opens it and Back closes it; letters and colour buttons work
+  either way), and a **Help** button lists what the remote does and the full legal words, which otherwise sit on one
+  line. As in the Android TV app (WittyMediaClient #84).
 - **Readable titles and text on every theme (#444).** Words over a picture (Home's billboard, a title's page) now sit on a scrim in the theme's own page colour, so a light theme puts dark words on a light wash and a dark one the reverse, and a test checks the drawn page's contrast on every bundled theme. The web app's icons (favicon, home-screen and install icons) are redrawn in the themes' new colours, so a browser or phone that kept the old icon shows the new one once it fetches it again.
 - **TV mode keeps to what a remote does well (#469).** Editors with many fields, typing, files or drag handles (libraries, pages and menu, channels and bumpers, transcoding, network, remote access, logs, modules, backups, the theme maker, the layout editor and more) show a card in TV mode instead, with what is set now. On a TV device (the TV apps, Plasma Bigscreen, a TV's own browser) it says to use the WittyMediaClient app on a Windows or Mac computer, or a web browser, with the page's address and a QR code; on a computer in TV mode it says to leave TV mode, and its Leave TV mode button opens the same page in the normal layout, with Back to TV mode there. Playback, profiles, security and sharing show their values without changing them. Browsing, playing, Live TV, WittyTV, karaoke, music and every console and controller setting stay as they were. One table (`pkg/sdui/data/tvlevels.json`, in the SDUI catalogue as `tvLevels`) decides it for the web app and the TV apps; pages, module settings pages and their rows can say `tv` themselves. `GET /api/sdui/tv-summary/{id}` gives the card its lines. Settings on a television opens on its menu. See docs/TV-MODE.md.
+- **The card for a computer's settings is centred** in TV mode, as the sign-in screens are: the screen's name, one line, the QR code large with the address under it, what is set now, and Back focused. The Android TV and Apple TV apps draw the same card.
 - **Live TV check-up** (#472, with WittyTuner 0.5.0):
   - **Recording an IPTV channel survives a dropped stream.** A stream that ended early ended the recording, sometimes marked done with half a programme. It's now opened again and added to the same file until the programme's end, and the finished recording says how many times it dropped. HLS channels with WebVTT subtitles or data tracks no longer fail to record.
   - **Watching survives a blip.** When a channel's stream stops and the first try to open it again fails (a provider's brief refusal), the server tries again after 1, 2, 4 and 8 seconds before telling viewers it stopped.
@@ -44,6 +71,7 @@ Released 2026-11-19.
 - Added: **Demucs for karaoke**, installed with one press in Settings → Lyrics and music information, so karaoke's properly separated version is there by default. uv (checked against a pinned SHA-256), Python 3.11, Demucs 4.0.1 and CPU-only PyTorch at pinned versions, and the htdemucs model go into the data folder's `separator/` (about 1.1 GB, left out of backups); **Remove** takes it out. Everything installed is credited with its license text in Settings → About. `GET`/`DELETE /api/karaoke/separator`, `POST /api/karaoke/separator/install`. It runs on the graphics card by default (CUDA on NVIDIA, ROCm on AMD under Linux, Metal on Apple silicon), and any song that fails there is separated again on the processor; `?accel=cpu` installs for the processor only. **Separate the whole library ahead of time** (`karaokeLibrary`: `off` by default, or `idle`) does every song in the background, one at a time and only while the server is idle, stopping at 80% of the karaoke space. Without a separator, `GET /media/{id}/karaoke` says `separator: "installable"` so the player can say a cleaner version is an optional install. Machines with under about 4 GB of memory aren't offered it. Not offered on FreeBSD, Windows on ARM, musl Linux or tiny machines.
 - Added: **Demucs on Intel and AMD graphics cards under Windows**, through DirectML (#430). On 64-bit Windows the one-press install also brings ONNX Runtime's DirectML build and onnx (pinned wheels, each checked against a SHA-256 the server carries), converts the htdemucs model to ONNX on the machine (never downloaded converted, from us or anyone), checks it against Demucs on the processor and runs a short test on the card. The order is CUDA, ROCm or Metal first, then DirectML, then the processor; a song that fails on a card is redone on the processor. **Runs on** in Settings → Lyrics and music information changes it (`karaokeDevice`: `auto`, or `cuda`, `rocm`, `mps`, `dml`, `cpu` where installed). The Licenses list now names the model's weights, where they came from and their license. A 3:48 song on an RTX 3070: CUDA 10 s, DirectML 9 s, the processor 65 s.
 - **Fixed:** the Demucs install no longer puts a `python3.11` in the user's own programs folder or registers Python in the Windows registry; Python stays in the server's `separator/` folder.
+- **Fixed:** a scan never sits at "12,709 of 12,709 files" while it goes on (WittyPlay #88). The scan line names what a module is working on ("Scanning Super Nintendo: 11,776 of 12,709 files"), then each later step in its own words ("Finding out about what’s new: 100 of 2,293"), and a module’s pages are drawn again while a library it scans is being scanned, so WittyPlay’s consoles show as the scan sorts them.
 
 ## 0.8.0-alpha
 

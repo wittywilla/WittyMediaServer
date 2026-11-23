@@ -1,0 +1,10 @@
+{
+  "Sorting what was found…": "正在整理找到的内容…",
+  "Sorting {detail}: {done} of {total}": "正在整理 {detail}：{done}/{total}",
+  "Sorting what was found: {done} of {total}": "正在整理找到的内容：{done}/{total}",
+  "Listing what was found…": "正在将找到的内容加入列表…",
+  "Finding out about what’s new: {done} of {total}": "正在查找新内容的信息：{done}/{total}",
+  "Finding out about what’s new…": "正在查找新内容的信息…",
+  "Full rescan, {detail}: {done} of {found} files": "完整重新扫描，{detail}：{done}/{found} 个文件",
+  "Scanning {detail}: {done} of {found} files": "正在扫描 {detail}：{done}/{found} 个文件"
+}

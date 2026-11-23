@@ -42,7 +42,7 @@ Released 2026-11-23.
 - **A module's helper that stops is started properly again (#596),** and why it stopped reaches the log.
 - **A 4K screen's backdrop is the 2560-wide copy, not the original (#598),** so it loads faster.
 
-**Modules in this release:** WittyPlay 0.7.14, WittyStats 0.3.1, and updated dependencies in WittyPhotos 0.5.4,
+**Modules in this release:** WittyPlay 0.7.14, WittyStats 0.3.1, and updated dependencies in WittyPhotos 0.5.5,
 WittyPDF 0.4.4, WittyCD 0.3.4, WittyRigs 0.4.3, WittyCouch 0.4.4, WittyBluray 0.5.3, WittyDVD 0.5.3,
 WittyIntegratedFileBrowser 0.4.3 and WittyDisc 0.3.6.
 

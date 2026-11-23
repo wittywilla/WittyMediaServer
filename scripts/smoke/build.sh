@@ -26,6 +26,13 @@ clone() {
   local b=$ref
   if [ -n "$b" ] && ! git ls-remote --exit-code --heads "https://github.com/wittywilla/$r" "$b" >/dev/null 2>&1; then b=; fi
   git clone -q --depth 1 ${b:+--branch "$b"} "https://github.com/wittywilla/$r" "$repos/$r"
+  # SMOKE_REF_WITTYPLAY=<tag or commit> (any module, by its name in capitals): that version instead,
+  # to show what a test makes of an older one.
+  local pin
+  pin=$(printenv "SMOKE_REF_$(tr 'a-z' 'A-Z' <<<"$r")" || true)
+  if [ -n "$pin" ]; then
+    git -C "$repos/$r" fetch -q --depth 1 origin "$pin" && git -C "$repos/$r" checkout -q FETCH_HEAD
+  fi
   echo "$r: $(git -C "$repos/$r" log --oneline -1)"
 }
 for r in WittyModule WittyPlay WittyTuner WittyRelay; do clone "$r"; done

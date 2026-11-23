@@ -7,7 +7,11 @@ on:
     branches: ['v0.*']
   push:
     branches: ['v0.*']
+  # By hand, to show what the tests make of an older module (empty: as for a pull request).
   workflow_dispatch:
+    inputs:
+      wittyplay_ref:
+        description: WittyPlay tag or commit for the catalogue
 
 permissions:
   contents: read
@@ -36,6 +40,8 @@ jobs:
         with:
           node-version: 24
       - name: Build the server, Wittyconnect, WittyRelay and a catalogue with WittyPlay and WittyTuner
+        env:
+          SMOKE_REF_WITTYPLAY: ${{ inputs.wittyplay_ref }}
         run: bash scripts/smoke/build.sh "$RUNNER_TEMP/smoke-build"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
@@ -81,7 +87,10 @@ jobs:
           WV_BROWSER: /usr/bin/google-chrome
         run: |
           set -a; . "$SMOKE_OUT/server.env"; set +a
-          node scripts/smoke/web.mjs "$SMOKE_OUT"
+          code=0
+          node scripts/smoke/web.mjs "$SMOKE_OUT" || code=1
+          node scripts/smoke/game-stream.mjs "$SMOKE_OUT" || code=1
+          exit $code
       - name: Stop the server
         if: always()
         env:

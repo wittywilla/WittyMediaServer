@@ -282,8 +282,12 @@ func TestDocumentedSignInMatchesTheCode(t *testing.T) {
 }
 
 // ...and the running server must refuse what the docs say it refuses.
+// It runs on every build: without a test catalogue the module's routes are still checked, as
+// the server answers them with no module; with one, they're checked with WittyPlay installed.
 func TestSignInIsEnforced(t *testing.T) {
-	modtest.Need(t, "wittyplay")
+	if os.Getenv(modtest.EnvCatalog) != "" {
+		modtest.Need(t, "wittyplay")
+	}
 	ts := newContractServer(t)
 	_, adult := ts.account(t, "Alex", "adult", false)
 	id := ts.item(t, "video", tempMedia(t, "a.mp4", "AAAA"))

@@ -260,7 +260,11 @@ jobs:
             git clone -q --depth 1 "https://github.com/wittywilla/$r" "$RUNNER_TEMP/repos/$r"
           done
           scripts/make-test-catalog.sh "$RUNNER_TEMP/catalog" "$RUNNER_TEMP/repos"
+      # A test that needs modules skips without the catalogue; here it must never skip.
       - name: Tests, with them
         env:
           WMS_TEST_CATALOG: ${{ runner.temp }}/catalog
-        run: go test ./... -count=1 -timeout 30m
+        run: |
+          go test ./... -count=1 -timeout 30m -json > "$RUNNER_TEMP/go-test.json" || failed=1
+          python3 scripts/ci-test-report.py "$RUNNER_TEMP/go-test.json" --no-skip "this needs real modules" || failed=1
+          exit ${failed:-0}

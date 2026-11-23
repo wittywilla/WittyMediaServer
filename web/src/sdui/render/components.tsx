@@ -258,7 +258,7 @@ function StateLine({ view }: { view: View }) {
     )
   }
   if (view.state === 'error' || page.failed(view.id)) {
-    return <p className="sdui-error" role="alert"><span>{t('Couldn’t load this')}</span> <button type="button" className="btn sm" onClick={() => page.more(view.id)} disabled={page.busy(view.id)}>{t('Retry')}</button></p>
+    return <p className="sdui-error" role="alert"><span>{t('Couldn’t load this')}</span> <button type="button" className="btn sm" onClick={() => page.more(view.id, undefined, false, true)} disabled={page.busy(view.id)}>{t('Retry')}</button></p>
   }
   return null
 }
@@ -1245,7 +1245,7 @@ function ListView({ view, depth }: { view: View; depth: number }) {
   return (
     <section className={'sdui-list-section' + (view.node.props?.dense === true ? ' dense' : '')} data-sdui-section={depth === 1 ? view.id : undefined} style={scopeStyle(view.node)}>
       <Heading view={view} id={id} />
-      {view.state === 'deferred' && <Near onNear={() => page.more(view.id)} />}
+      {view.state === 'deferred' && !page.failed(view.id) && <Near onNear={() => page.more(view.id)} />}
       <StateLine view={view} />
       {view.state !== 'empty' && (
         <ul className="sdui-list" aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined} data-nav-group>

@@ -142,6 +142,23 @@ func (s *Server) loadP2P(ctx context.Context) p2pSettings {
 	return c
 }
 
+// scrubP2PSetting is the saved settings without the WittyRelays' access keys,
+// for a backup with no password. Unreadable, nothing of it is kept.
+func scrubP2PSetting(raw string) string {
+	var c p2pSettings
+	if err := json.Unmarshal([]byte(raw), &c); err != nil {
+		return ""
+	}
+	for i := range c.OwnRelays {
+		c.OwnRelays[i].Key, c.OwnRelays[i].HasKey = "", false
+	}
+	out, err := json.Marshal(c)
+	if err != nil {
+		return ""
+	}
+	return string(out)
+}
+
 func (c *p2pSettings) validate() error {
 	if c.Port != 0 && (c.Port < 1024 || c.Port > 65535) {
 		return errors.New("the port should be a number from 1024 to 65535")

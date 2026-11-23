@@ -265,7 +265,7 @@ func backupCreate(ctx context.Context, f backup.Folders, a backupArgs) int {
 			return 2
 		}
 	}
-	out, man, err := backup.Create(ctx, backup.Options{Folders: f, Parts: parts, Password: password, SecretSettings: server.BackupSecretSettings(), ServerVersion: version,
+	out, man, err := backup.Create(ctx, backup.Options{Folders: f, Parts: parts, Password: password, SecretSettings: server.BackupSecretSettings(), ScrubSettings: server.BackupScrubSettings(), ServerVersion: version,
 		Output: a.output, Progress: progressLine(), Problem: func(file, why string) { fmt.Fprintf(os.Stderr, "\nLeft out %s: %s\n", file, why) }})
 	fmt.Fprintln(os.Stderr)
 	if err != nil {

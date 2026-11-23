@@ -127,6 +127,7 @@ friends, WittyPlay options, cores and emulators, console photos.
 | Live transcoding | `/settings/transcoding` | graphics chip, largest picture |
 | Library transcoding | `/settings/library-transcoding` | |
 | Network | `/settings/network` | the address it listens on |
+| Data folder (where the data is, moving it) | `/settings/data-folder` | |
 | Remote Access | `/settings/remote` | |
 | WittyLog | `/settings/logs` | |
 | WittyDiagnoser | `/settings/diagnoser` | |

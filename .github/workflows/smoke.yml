@@ -1,0 +1,133 @@
+name: smoke
+# End-to-end smoke tests: a real server built from this change, used the way people use it. What
+# each covers, and how to run them on your own machine: scripts/smoke/README.md. The client apps'
+# repository runs its own (Android phone and TV, the desktop app) against this branch's server.
+on:
+  pull_request:
+    branches: ['v0.*']
+  push:
+    branches: ['v0.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Modules come from their release branch of the same name as this one (v0.8.3-alpha), else main.
+  SMOKE_MODULE_REF: ${{ github.base_ref || github.ref_name }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - name: Build the server, Wittyconnect, WittyRelay and a catalogue with WittyPlay and WittyTuner
+        run: bash scripts/smoke/build.sh "$RUNNER_TEMP/smoke-build"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: smoke-build
+          path: |
+            ${{ runner.temp }}/smoke-build/bin
+            ${{ runner.temp }}/smoke-build/catalog
+          retention-days: 3
+
+  web:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: smoke-build
+          path: ${{ runner.temp }}/smoke-build
+      - name: FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+      # The Game Boy core, downloaded once a week rather than on every run.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/smoke-cache
+          key: smoke-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: smoke-cache-${{ runner.os }}-
+      - name: Tiny media
+        run: bash scripts/smoke/media.sh "$RUNNER_TEMP/smoke-media"
+      - name: Start and set up the server
+        env:
+          SMOKE_OUT: ${{ runner.temp }}/smoke-out
+          SMOKE_CORES: ${{ runner.temp }}/smoke-cache/cores
+        run: chmod +x "$RUNNER_TEMP"/smoke-build/bin/* && bash scripts/smoke/server.sh "$RUNNER_TEMP/smoke-build" "$RUNNER_TEMP/smoke-media"
+      - name: The web app, in a browser
+        env:
+          SMOKE_OUT: ${{ runner.temp }}/smoke-out
+          WV_BROWSER: /usr/bin/google-chrome
+        run: |
+          set -a; . "$SMOKE_OUT/server.env"; set +a
+          node scripts/smoke/web.mjs "$SMOKE_OUT"
+      - name: Stop the server
+        if: always()
+        env:
+          SMOKE_OUT: ${{ runner.temp }}/smoke-out
+        run: bash scripts/smoke/stop.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: smoke-web
+          path: |
+            ${{ runner.temp }}/smoke-out/*.log
+            ${{ runner.temp }}/smoke-out/*.png
+            ${{ runner.temp }}/smoke-out/*.txt
+            ${{ runner.temp }}/smoke-out/data/logs
+          retention-days: 14
+
+  remote:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: smoke-build
+          path: ${{ runner.temp }}/smoke-build
+      - name: Two networks, a WittyRelay between them, and an invite link
+        env:
+          SMOKE_OUT: ${{ runner.temp }}/smoke-out
+        run: |
+          chmod +x "$RUNNER_TEMP"/smoke-build/bin/*
+          go build -o "$RUNNER_TEMP/smoke-build/bin/p2p-netsim" ./scripts/p2p-netsim
+          sudo -E env "PATH=$PATH" bash scripts/smoke/remote.sh "$RUNNER_TEMP/smoke-build"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: smoke-remote
+          path: |
+            ${{ runner.temp }}/smoke-out/*.log
+            ${{ runner.temp }}/smoke-out/*.txt
+            ${{ runner.temp }}/smoke-out/connect.*
+            ${{ runner.temp }}/smoke-out/data/logs
+          retention-days: 14

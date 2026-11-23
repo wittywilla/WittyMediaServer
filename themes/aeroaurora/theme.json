@@ -3,7 +3,7 @@
   "name": "Aero Aurora",
   "description": "Night glass: deep blue to teal, with a cyan glow.",
   "author": "WittyMediaServer",
-  "version": "3",
+  "version": "6",
   "scheme": "dark",
   "builtin": true,
   "preview": {
@@ -24,11 +24,11 @@
           },
           {
             "at": 55,
-            "color": "#0d3b66"
+            "color": "#0d3458"
           },
           {
             "at": 100,
-            "color": "#0e4558"
+            "color": "#0e3548"
           }
         ]
       },
@@ -90,11 +90,11 @@
         "stops": [
           {
             "at": 0,
-            "color": "#114646"
+            "color": "#0d3636"
           },
           {
             "at": 100,
-            "color": "#0d4454"
+            "color": "#0d3646"
           }
         ]
       }
@@ -121,16 +121,16 @@
     "bg3": "#194a74",
     "bg4": "#2e5b82",
     "fg": "#eaf6ff",
-    "fg2": "#a8cfe6",
+    "fg2": "#b0d3e8",
     "fg3": "#b7cddc",
     "accent": "#38c6f4",
     "accentHover": "#31aed7",
     "accentFg": "#00243a",
     "accentText": "#7fdcff",
     "brandAccent": "#7fdcff",
-    "danger": "#ff99a2",
-    "ok": "#3ad29f",
-    "warn": "#e8ae3f",
+    "danger": "#ffb5bc",
+    "ok": "#7fe2c0",
+    "warn": "#efc576",
     "border": "#eaf6ff1a",
     "borderStrong": "#eaf6ff33",
     "controlLine": "#4f9ad9",
@@ -138,9 +138,9 @@
     "pressed": "#eaf6ff1f",
     "accentSoft": "#38c6f424",
     "accentLine": "#38c6f473",
-    "okSoft": "#3ad29f21",
-    "warnSoft": "#e8ae3f21",
-    "dangerSoft": "#ff99a21c",
+    "okSoft": "#7fe2c021",
+    "warnSoft": "#efc57621",
+    "dangerSoft": "#ffb5bc1c",
     "focus": "#7fdcff",
     "onImage": "#ffffff",
     "scrim": "#000000ad",

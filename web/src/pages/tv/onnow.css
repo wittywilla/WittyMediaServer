@@ -9,5 +9,5 @@
 .onnow-num { position: absolute; left: 6px; top: 6px; padding: 1px 7px; border-radius: var(--r-sm); background: var(--scrim); color: var(--on-image); font-weight: 700; font-size: var(--text-xs); }
 .onnow-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--scrim); }
 .onnow-bar u { display: block; height: 100%; background: var(--accent); }
-.onnow-card:hover .onnow-art, .onnow-card:focus-visible .onnow-art { outline: 2px solid var(--accent); outline-offset: 2px; }
+.onnow-card:hover .onnow-art, .onnow-card:focus-visible .onnow-art { outline: 2px solid var(--focus); outline-offset: 2px; }
 .onnow-card:focus-visible { outline: none; }

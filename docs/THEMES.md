@@ -273,7 +273,7 @@ Set these in `:root`. Hover, selected and tinted shades are worked out from them
 | `--accent` | `#7955ff` | Primary buttons, progress bars, selected items |
 | `--accent-2` | `#6a4df0` | Hover and pressed state of accent buttons |
 | `--accent-fg` | `#fff` | Text and icons on the accent |
-| `--accent-text` | `--accent` | The accent as text. Keep it readable on `--bg`, `--bg-2` and `--bg-3` |
+| `--accent-text` | `--accent` | The accent as text. Keep it readable on `--bg`, `--bg-2` and `--bg-3`, and on `--accent-soft` over them (the accent at 14%: a selected row, the chosen page in a menu) |
 | `--accent-rgb` | `121 85 255` | `--accent` as R G B for glows: `rgb(var(--accent-rgb) / .25)`. Keep it in step with `--accent` |
 | `--brand-accent` | `--accent-text` | The highlighted "Media" in the default name |
 | `--danger` | `#ff5c6c` | Errors, delete buttons |
@@ -287,6 +287,8 @@ Set these in `:root`. Hover, selected and tinted shades are worked out from them
 | `--card-w` | `148px` | Poster card width |
 | `--font` | `"Inter", "Segoe UI Variable Text", system-ui, …` | Every piece of text |
 | `--tv-theme` | not set | See [WittyTV themes](#wittytv-themes) |
+
+The three status colours are also text on their own soft fills (`--ok-soft`, `--warn-soft`: the colour at 13% over a surface; `--danger-soft` at 11%), in badges and notices, so they must read at 4.5:1 there as well as on `--bg`, `--bg-2` and `--bg-3`. `scripts/theme-contrast.py` checks both.
 
 `color-scheme` (`dark` or `light`) in `:root` tells the browser how to draw its own controls.
 
@@ -339,7 +341,7 @@ A theme sets a handful of colours and works the rest out from them (`web/src/sty
 |---|---|
 | `accentHover` | the accent, 12% towards black |
 | `accentFg` | white when it reads on the accent (4.5:1), else the dark ink `#0E1013`, else whichever reads better |
-| `accentText` | the accent, lightened (dark themes) or darkened (light themes), keeping its hue, until it reads on `bg`, `bg2` and `bg3`: as `theme-contrast.py` does it |
+| `accentText` | the accent, lightened (dark themes) or darkened (light themes), keeping its hue, until it reads on `bg`, `bg2` and `bg3`, and on `accentSoft` over each of them (a selected row): as `theme-contrast.py` does it |
 | `focus`, `brandAccent` | `accentText` (also when a layer sets `accentText` itself) |
 | `accentSoft`, `accentLine` | the accent at 14% and 45% |
 | `border`, `borderStrong`, `hover`, `pressed` | from `fg`, at 10%, 20%, 7% and 12%, or as see-through as the theme makes them (the high contrast theme's hairlines are stronger) |

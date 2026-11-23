@@ -12,7 +12,7 @@
 .gal-grid.small .gal-tile { height: 130px; }
 .gal-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .gal-tile:hover img { filter: brightness(1.06); }
-.gal-tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.gal-tile:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .gal-tile.on { outline: 3px solid var(--accent); outline-offset: -3px; }
 .gal-tile.on img { opacity: .75; }
 .gal-badge { position: absolute; left: 6px; bottom: 6px; display: inline-flex; align-items: center; padding: 2px 6px; font-size: var(--text-2xs); font-weight: 700; color: var(--on-image); background: var(--scrim); border-radius: var(--r-xs); }
@@ -65,7 +65,7 @@
 .radio-list li:hover, .radio-list li.on { background: var(--bg-2); }
 .radio-play { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--bg-3); color: var(--fg); cursor: pointer; }
 .radio-list li.on .radio-play { background: var(--accent); color: var(--accent-fg); }
-.radio-play:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.radio-play:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .radio-play svg { fill: currentColor; }
 .radio-name { flex: 1; min-width: 0; display: grid; }
 .radio-name b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }

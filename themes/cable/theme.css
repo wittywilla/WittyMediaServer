@@ -33,8 +33,8 @@
   --brand-accent: var(--accent-text); /* the highlighted word of the name in the corner */
 
   /* Status */
-  --danger: #ff8a94;
-  --ok: #3ad29f;
+  --danger: #ff9ca4;
+  --ok: #40d3a2;
   --warn: #e8ae3f;
 
   /* Shape and depth */

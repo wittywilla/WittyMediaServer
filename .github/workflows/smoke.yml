@@ -114,6 +114,8 @@ jobs:
         with:
           name: smoke-build
           path: ${{ runner.temp }}/smoke-build
+      - name: FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
       - name: Two networks, a WittyRelay between them, and an invite link
         env:
           SMOKE_OUT: ${{ runner.temp }}/smoke-out

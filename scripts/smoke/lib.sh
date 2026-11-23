@@ -52,10 +52,12 @@ run() { "$@" >>"$LOG" 2>&1 || fail "$(basename "$1") exited $?"; }
 until_ok() {
   local secs=$1 what=$2 i
   shift 2
+  local last=
   for ((i = 0; i < secs; i++)); do
-    "$@" >>"$LOG" 2>&1 && return 0
+    last=$("$@" 2>&1) && { [ -n "$last" ] && echo "$last" >>"$LOG"; return 0; }
     sleep 1
   done
+  echo "$last" >>"$LOG"
   fail "$what: not after ${secs}s"
   return 1
 }

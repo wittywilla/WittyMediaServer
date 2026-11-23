@@ -135,7 +135,7 @@ export function Modules({ facts, refresh, next, back }: StepProps) {
       <ChoiceCards small label={t('When a module has a new version')} value={updates} onChange={saveUpdates} cards={[
         { value: 'ask', title: t('Tell me, and I’ll choose'), text: t('Checks twice a day. Nothing changes until you say so.') },
         { value: 'auto', title: t('Install them by themselves'), text: t('A version that doesn’t work is taken back out by itself.') },
-        { value: 'never', title: t('Only when I check'), text: t('Nothing is looked up until you press Check now in Settings, Modules.') },
+        { value: 'never', title: t('Only when I check'), text: t('Nothing is looked up until you press Check now in Settings, Module store.') },
       ]} />
       <p className="muted oobe-hint su-gap">{t('Modules come signed from the official list on GitHub, which sees only your internet address.')}</p>
     </>
@@ -147,7 +147,7 @@ export function Modules({ facts, refresh, next, back }: StepProps) {
     return (
       <section>
         <StepHead title={allDone ? (bad.length ? t('Some modules didn’t install') : t('Your modules are ready')) : t('Installing your modules')}
-          lead={allDone ? (bad.length ? t('Everything else works. Try again, or add them later in Settings, Modules.') : t('Each one was checked before it was put to use.')) : t('It takes as long as your connection does.')} />
+          lead={allDone ? (bad.length ? t('Everything else works. Try again, or add them later in Settings, Module store.') : t('Each one was checked before it was put to use.')) : t('It takes as long as your connection does.')} />
         <ul className="su-going" aria-label={t('Modules being installed')}>
           {going.map((g) => {
             const item = live?.items.find((i) => i.id === g.id)
@@ -184,7 +184,7 @@ export function Modules({ facts, refresh, next, back }: StepProps) {
       {checkErr && (
         <Notice tone="warn" title={t('The list of modules couldn’t be read')}>
           <p className="su-para">{checkErr}</p>
-          <p className="su-para">{t('Check this computer’s internet connection and try again. You can also carry on without them: movies, TV shows and music still work, and you can add modules later in Settings, Modules.')}</p>
+          <p className="su-para">{t('Check this computer’s internet connection and try again. You can also carry on without them: movies, TV shows and music still work, and you can add modules later in Settings, Module store.')}</p>
         </Notice>
       )}
       <div className="oobe-mod-groups">

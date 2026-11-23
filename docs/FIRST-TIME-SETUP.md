@@ -71,7 +71,7 @@ Movies, TV shows and music work already. Modules add the rest: discs, games, liv
 ![Modules being installed, one at a time](images/setup-05-modules-installing.webp)
 *Each module downloads, and is checked before it's used.*
 
-**Customize** holds **when a module has a new version**: tell me and I'll choose (to begin with), install them by themselves, or only when I check. You can add modules any time in **Settings → Modules**, and **Your media** offers the module a kind of library needs, right where you'd want it.
+**Customize** holds **when a module has a new version**: tell me and I'll choose (to begin with), install them by themselves, or only when I check. You can add modules any time in **Settings → Module store**, and **Your media** offers the module a kind of library needs, right where you'd want it.
 
 ## 4. Your media
 
@@ -139,7 +139,7 @@ Advanced setup asks everything quick setup leaves in **Customize**, on pages of 
 | Your account | Your account | As in quick setup, with the name people see and two-step sign-in on the page | Settings → Security |
 | | Your server's name | The name, its colours and the mark for small spaces | Settings → Appearance → Name and logo |
 | | Who else watches? | Profiles, and a look or theme to lock for everyone, for Kids profiles or for one person | Settings → Profiles |
-| Modules | Choose your modules | As in quick setup, with when a module has a new version on the page | Settings → Modules |
+| Modules | Choose your modules | As in quick setup, with when a module has a new version on the page | Settings → Module store |
 | Your media | Add your media | As in quick setup, with both media choices on the page | Settings → Libraries |
 | | DVDs and Blu-rays | With WittyDVD or WittyBluray: show the menu or play the movie, and the disc animation | Settings → DVDs and Blu-rays |
 | | Posters and details | The free sources, two optional keys, and details already beside your media | Settings → Metadata agents |

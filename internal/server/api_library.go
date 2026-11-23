@@ -720,12 +720,24 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 		writeErr(w, 404, "item not found")
 		return
 	}
+	// A picture beside the media that has gone (renamed, deleted, fetched again under another
+	// name) gives way to the next best one beside it, or the poster, or a frame, and the item
+	// is pointed at what was found: no broken picture.
+	hadPoster := it.Poster != ""
+	s.Store.StaleArt(r.Context(), it, false)
+	if backdrop {
+		s.Store.StaleArt(r.Context(), it, true)
+	}
+	lostPoster := hadPoster && it.Poster == ""
 	src := it.Poster
 	if backdrop {
 		src = it.Backdrop
 		if src == "" {
 			src = it.Poster
 		}
+	}
+	if src == "" && lostPoster && (it.Kind == "video" || it.Kind == "photo") {
+		src = library.LazyPoster // a frame of it, until the next scan finds or makes a poster
 	}
 	if src == library.LazyPoster {
 		width := qInt(r, "w", 480)

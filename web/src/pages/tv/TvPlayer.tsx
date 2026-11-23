@@ -29,6 +29,9 @@ import './tv.css'
 import './tvthemes.css'
 import { t, tx } from '../../i18n'
 
+// How long the channel banner stays up after a channel is chosen.
+const BANNER_MS = 3000
+
 haveHls(Hls)
 
 // Watching a channel: the app's player and on-screen remote, with channel keys
@@ -93,10 +96,11 @@ export default function TvPlayer() {
   const bannerTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const look = useLook()
 
+  // The channel banner shows for three seconds after a channel is chosen, then gets out of the way.
   const showBanner = useCallback(() => {
     setBanner(true)
     clearTimeout(bannerTimer.current)
-    bannerTimer.current = setTimeout(() => setBanner(false), 7000)
+    bannerTimer.current = setTimeout(() => setBanner(false), BANNER_MS)
   }, [])
   useEffect(() => () => clearTimeout(bannerTimer.current), [])
 

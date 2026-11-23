@@ -16,24 +16,23 @@ import (
 	"github.com/wittywilla/wittymediaserver/pkg/sdui"
 )
 
-// First run (docs/FIRST-TIME-SETUP.md, docs/SETUP-FLOW.md): five steps in a web browser. Until the last is
+// First run (docs/FIRST-TIME-SETUP.md, docs/SETUP-FLOW.md): six steps in a web browser. Until the last is
 // done the server answers every route an app uses with 503 and the code setup_required and
 // the address to finish at; only /setup, the status route, the setup routes and the web
 // app's own files answer, and the administrator's browser session for the setup's own
 // calls. The apps say "This server isn't set up yet" with that address and a QR code.
 
 // SetupSteps are the first run's steps, in order (docs/SETUP-FLOW.md).
-var SetupSteps = []string{"welcome", "account", "media", "look", "ready"}
+var SetupSteps = []string{"welcome", "account", "modules", "media", "look", "ready"}
 
 // oldSetupSteps are the names 0.8.0 to 0.8.2 kept (twelve steps, and the pages in them), still accepted so a
-// setup left half-way carries on: each goes to the step that now holds it, or to the next one where it moved
-// into a Customize dialog.
+// setup left half-way carries on: each goes to the step that now holds it, in quick setup or advanced.
 var oldSetupSteps = map[string]string{
-	"language": "welcome",
-	"server":   "account", "name": "account", "storage": "account",
-	"network": "media", "modules": "media", "libraries": "media", "modulesetup": "media", "livetv": "media", "tv": "media", "games": "media", "discs": "media",
-	"looks": "look", "theme": "look", "wittytv": "look",
-	"people": "ready", "remote": "ready", "extras": "ready", "details": "ready", "logos": "ready", "music": "ready", "karaoke": "ready", "listings": "ready", "done": "ready",
+	"language": "welcome", "locale": "welcome",
+	"server": "account", "name": "account", "storage": "account", "people": "account",
+	"libraries": "media", "modulesetup": "media", "livetv": "media", "tv": "media", "games": "media", "discs": "media",
+	"looks": "look", "theme": "look", "colours": "look", "wittytv": "look", "tvguide": "look",
+	"network": "ready", "remote": "ready", "extras": "ready", "details": "ready", "logos": "ready", "music": "ready", "karaoke": "ready", "listings": "ready", "done": "ready",
 }
 
 // setupStepName is a step's name now, the old ones mapped; "" if it isn't one.

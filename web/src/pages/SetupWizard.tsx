@@ -8,13 +8,19 @@ import { Brand, BrandMark, Spinner, VersionTag } from '../components/common'
 import { HelpLink } from '../components/HelpLink'
 import type { LibraryKind, ModuleReport } from '../moduleStore'
 import { toast, useApp } from '../state'
-import { saveLocale } from './setup/Locale'
+import { advancedSetup, saveLocale, setAdvancedSetup } from './setup/Locale'
 import { t, tx } from '../i18n'
 import { Button, Progress } from '../ui'
 import { Account } from './setup/Account'
 import { Done } from './setup/Done'
-import { Look } from './setup/Look'
+import { Colours, Look, TvGuide } from './setup/Look'
 import { Media } from './setup/Media'
+import { Modules } from './setup/Modules'
+import { People } from './setup/People'
+import { Discs } from './setup/Discs'
+import { ServerName } from './setup/ServerName'
+import { DetailsPage, KaraokePage, ListingsPage, LocalePage, LogosPage, MusicPage, NetworkPage, RemotePage } from './setup/Advanced'
+import type { StyledPart } from '../brandStyle.ts'
 import { StepHead, type StepProps } from './setup/parts'
 import { currentStep, DRAWN, drawnId, drawnNumber, neighbours, pathOf, planSteps, stepFromPath, type Facts, type StepId, type StepInfo } from './setup/plan'
 import { Storage } from './setup/Storage'
@@ -33,7 +39,9 @@ export default function SetupWizard() {
   const loc = useLocation()
   const navigate = useNavigate()
   const signedIn = !!user
-  const [facts, setFacts] = useState<Facts | null>(signedIn ? null : { signedIn: false, store: true, modules: [], kinds: null })
+  const [facts, setFacts] = useState<Facts | null>(signedIn ? null : { signedIn: false, store: true, modules: [], kinds: null, advanced: advancedSetup() })
+  // The name being tried on the server name page (advanced setup), drawn in the corner as it is typed.
+  const [tryName, setTryName] = useState<{ name: string; parts: StyledPart[] } | null>(null)
   const [added, setAdded] = useState<Library[]>([])
   // The modules that draw a step of their own (Live TV, Games), if any is in use.
   const owners: Partial<Record<StepId, string>> = { tv: useSetupStepOwner('tv'), games: useSetupStepOwner('games') }
@@ -49,7 +57,7 @@ export default function SetupWizard() {
       refreshModuleWeb(),
       api.get<{ ask: boolean }>('/data-location').catch(() => null),
     ])
-    setFacts({ signedIn: true, store: !!report, modules: (report?.modules || []).filter((m) => m.installed).map((m) => m.id), kinds, askData: !!place?.ask })
+    setFacts({ signedIn: true, store: !!report, modules: (report?.modules || []).filter((m) => m.installed).map((m) => m.id), kinds, askData: !!place?.ask, advanced: advancedSetup() })
     setAdded(libs)
   }, [])
   useEffect(() => { if (signedIn) void refresh() }, [signedIn, refresh])
@@ -75,11 +83,13 @@ export default function SetupWizard() {
   // A module's own step is remembered on the server when someone moves on from it, done or put off,
   // so "Finish setting up" isn't left on Home for a step that was gone through here. The module's
   // page may say so too; twice is still once.
-  // WittyTV's look is chosen on the Look step: once it's passed, the server's own question about it (wittytv-look) is answered.
+  // WittyTV's look is chosen on the Look step (or its own page, in advanced setup): once that's passed, the server's own
+  // question about it (wittytv-look) is answered.
   const passed = (id: StepId, done: boolean) => {
     const module = owners[id]
     if (module) api.post('/setup/module-steps/skip', { module, step: id, done }).catch(() => { /* Home offers it again, which is all */ })
-    if (id === 'look' && facts.modules.includes('wittytuner')) api.post('/setup/module-steps/skip', { module: 'wittytuner', step: 'wittytv-look', done }).catch(() => {})
+    const guide = facts.advanced ? 'tvguide' : 'look'
+    if (id === guide && facts.modules.includes('wittytuner')) api.post('/setup/module-steps/skip', { module: 'wittytuner', step: 'wittytv-look', done }).catch(() => {})
   }
   const moduleProps = (id: StepId) => ({ ...props, next: () => { passed(id, true); props.next() } })
   const finish = async (to = '/') => {
@@ -87,6 +97,7 @@ export default function SetupWizard() {
     try { await api.post('/setup/complete', {}) } catch { /* an administrator only; the settings below still say so */ }
     try { await api.put('/settings', { setupDone: '1' }) } catch { /* it asks again next time */ }
     await refreshLibraries()
+    setAdvancedSetup(false)
     navigate(to, { replace: true })
     setOnboarding(false)
   }
@@ -96,7 +107,7 @@ export default function SetupWizard() {
       <div className="oobe-glow" aria-hidden="true" />
       <div className="oobe-shell">
         <header className="oobe-head">
-          <div className="brand"><BrandMark /><Brand name={brandName} /></div>
+          <div className="brand"><BrandMark /><Brand name={tryName?.name ?? brandName} parts={tryName?.parts} /></div>
           <div className="su-progress">
             <div className="su-progress-line">
               <p className="su-progress-words" id="su-where">{t('Step {at} of {of}', { at: number.at, of: number.of })}<span className="su-where-name"> · {tx(DRAWN.find((x) => x.id === drawnId(step.id))?.label || step.label)}</span>{number.page && <span className="su-where-page"> · {t('part {at} of {of}: {name}', { at: number.page.at, of: number.page.of, name: tx(step.label) })}</span>}</p>
@@ -125,8 +136,9 @@ export default function SetupWizard() {
 
           <div className="oobe-col">
             <main id="main" tabIndex={-1} className="oobe-card su-card-main" key={step.id} aria-describedby="su-where">
-              {step.id === 'welcome' && <Welcome onStart={() => go('account')} />}
-              {step.id === 'account' && <Account back={() => go('welcome')} onDone={(u, tok) => {
+              {step.id === 'welcome' && <Welcome onStart={(advanced) => { setAdvancedSetup(advanced); setFacts((f) => f && { ...f, advanced }); go(advanced ? 'locale' : 'account') }} />}
+              {step.id === 'locale' && <LocalePage back={() => go('welcome')} next={() => go('account')} />}
+              {step.id === 'account' && <Account advanced={facts.advanced} back={() => go(facts.advanced ? 'locale' : 'welcome')} onDone={(u, tok) => {
                 setToken(tok)
                 setOnboarding(true) // keep setup open after signing in
                 setFacts(null)
@@ -135,15 +147,28 @@ export default function SetupWizard() {
                 api.put('/settings', { setupDone: '0' }).catch(() => {})
                 // The language and time zone chosen on Welcome are saved now there's an account.
                 void saveLocale().catch(() => toast(t('The language and time zone couldn’t be saved. You can choose them in Settings, Appearance.'), { tone: 'danger' }))
-                  // The first step after the account: where data is kept, on a desktop that asks, else Your media (the
-                  // address falls back to the first step this server has).
+                  // The first page after the account: where data is kept, on a desktop that asks, else the next one this
+                  // server has (an address it doesn't have falls back to its first).
                   .finally(() => navigate(pathOf('storage'), { replace: true }))
               }} />}
               {step.id === 'storage' && <Storage {...props} />}
+              {step.id === 'name' && <ServerName {...props} onTry={setTryName} />}
+              {step.id === 'people' && <People {...props} />}
+              {step.id === 'modules' && <Modules {...props} />}
               {step.id === 'media' && <Media {...props} added={added} onAdded={(l) => setAdded((a) => a.some((x) => x.id === l.id) ? a.map((x) => (x.id === l.id ? l : x)) : [...a, l])} />}
               {step.id === 'games' && <ModuleStep id="games" module={owners.games} props={{ ...moduleProps('games'), added, goTo: go }} own={<NotLoaded info={step} skip={next ? () => { passed('games', false); props.next() } : undefined} />} />}
               {step.id === 'tv' && <ModuleStep id="tv" module={owners.tv} props={moduleProps('tv')} own={<NotLoaded info={step} skip={next ? () => { passed('tv', false); props.next() } : undefined} />} />}
+              {step.id === 'discs' && <Discs {...props} />}
+              {step.id === 'details' && <DetailsPage {...props} />}
+              {step.id === 'logos' && <LogosPage {...props} />}
+              {step.id === 'music' && <MusicPage {...props} />}
+              {step.id === 'karaoke' && <KaraokePage {...props} />}
+              {step.id === 'listings' && <ListingsPage {...props} />}
               {step.id === 'look' && <Look {...moduleProps('look')} />}
+              {step.id === 'colours' && <Colours {...props} />}
+              {step.id === 'tvguide' && <TvGuide {...moduleProps('tvguide')} />}
+              {step.id === 'network' && <NetworkPage {...props} />}
+              {step.id === 'remote' && <RemotePage {...props} />}
               {step.id === 'done' && <Done facts={facts} onFinish={finish} />}
             </main>
           </div>

@@ -10,14 +10,14 @@ import { CATEGORIES, checkAll, isBusy, mb, PHASE, storeView, type Failure, type 
 import { installAndWait } from './install'
 import { notInstalledWords, olderFromStore, series } from '../settings/store/olderServer'
 import { useOlderAsk } from '../settings/store/OlderServerDialog'
-import { ChoiceCards, TickRow } from './parts'
+import { ChoiceCards, Customize, StepActions, StepHead, TickRow, type StepProps } from './parts'
 import { ADVANCED, offerable, PLAIN_WORDS, RECOMMENDED, updateChoiceFrom, updateSettings, type UpdateChoice } from './plan'
 import { list, t, tn, tx } from '../../i18n'
 
-// Add-ons, in the Customize dialog of Your media: what the server does beyond movies, shows and music. Modules aren't part
-// of the server: choosing one downloads it, signed, from the official catalogue, through the store's own install. Nothing's
-// fetched until someone presses the button that says so, and nothing depends on it working. A kind of library that needs
-// one offers it right on the step, so most people never open this.
+// Step 3: Modules, before the media and the look, so both are about what this server has. Modules aren't part of the
+// server: choosing one downloads it, signed, from the official catalogue, through the store's own install. Nothing's
+// fetched until someone presses the button that says so, and nothing depends on it working. When a module has a new
+// version is under Customize, or on the page itself in advanced setup.
 
 const kindName = (k: string) => tx(LIB_TYPES.find((x) => x.type === k)?.name) || k
 const glyph = (m: StoreItem) => m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />
@@ -34,7 +34,7 @@ const ready = (m: StoreItem) => !!m.status?.installed
 // skipped: its only version was made for an older server, and Install anyway wasn't chosen.
 type Going = { id: string; name: string; state: 'waiting' | 'working' | 'done' | 'failed' | 'skipped'; failure?: Failure }
 
-export function Modules({ refresh }: { refresh: () => Promise<void> }) {
+export function Modules({ facts, refresh, next, back }: StepProps) {
   const [view, setView] = useState<StoreView | null>(null)
   const [failed, setFailed] = useState(false)
   const [chosen, setChosen] = useState<Set<string>>(new Set())
@@ -43,13 +43,11 @@ export function Modules({ refresh }: { refresh: () => Promise<void> }) {
   const [running, setRunning] = useState(false)
   const [live, setLive] = useState<Run | null>(null)
   const [checkErr, setCheckErr] = useState('')
-  const stopped = useRef(false)
   const older = useOlderAsk()
   const load = () => { setFailed(false); return storeView().then((v) => { setView(v); return v }).catch(() => { setFailed(true); return null }) }
   useEffect(() => {
     void load()
     api.get<Record<string, string>>('/settings').then((s) => setUpdates(updateChoiceFrom(s))).catch(() => {})
-    return () => { stopped.current = true }
   }, [])
 
   const offered = useMemo(() => offerable(view?.items || []), [view])
@@ -105,7 +103,6 @@ export function Modules({ refresh }: { refresh: () => Promise<void> }) {
     const olderOnes = olderFromStore(seen.items, list.map((m) => m.id), seen.server)
     const yes = olderOnes.length ? await older.ask(olderOnes) : []
     for (const m of list) {
-      if (stopped.current) return
       const it = seen.items.find((i) => i.id === m.id && i.official)
       const o = olderOnes.find((x) => x.module === m.id)
       const anyway = !!o && yes.includes(m.id)
@@ -124,22 +121,33 @@ export function Modules({ refresh }: { refresh: () => Promise<void> }) {
       setGoing((g) => g!.map((x) => x.id === m.id ? { ...x, state: r.ok ? 'done' : r.declined ? 'skipped' : 'failed', failure: r.failure } : x))
       announce(r.ok ? t('{name} is ready', { name: m.name }) : t('{name} didn’t install', { name: m.name }))
     }
-    if (stopped.current) return
     await refresh()
     await load()
     setRunning(false); setLive(null)
     setChosen(new Set())
   }
 
-  if (failed) return <LoadError what={t('The list of add-ons')} onRetry={load} />
-  if (!view) return <Spinner />
+  const head = <StepHead title={t('Choose your modules')} lead={t('Movies, TV shows and music work already. Modules add everything else.')} />
+  if (failed) return <section>{head}<LoadError what={t('The list of modules')} onRetry={load} /><StepActions back={back}><Button variant="primary" size="big" onClick={next}>{t('Continue without modules')}</Button></StepActions></section>
+  if (!view) return <section>{head}<Spinner /></section>
+  const whenNew = (
+    <>
+      <ChoiceCards small label={t('When a module has a new version')} value={updates} onChange={saveUpdates} cards={[
+        { value: 'ask', title: t('Tell me, and I’ll choose'), text: t('Checks twice a day. Nothing changes until you say so.') },
+        { value: 'auto', title: t('Install them by themselves'), text: t('A version that doesn’t work is taken back out by itself.') },
+        { value: 'never', title: t('Only when I check'), text: t('Nothing is looked up until you press Check now in Settings, Modules.') },
+      ]} />
+      <p className="muted oobe-hint su-gap">{t('Modules come signed from the official list on GitHub, which sees only your internet address.')}</p>
+    </>
+  )
 
   if (going) {
     const bad = going.filter((g) => g.state === 'failed' || g.state === 'skipped')
     const allDone = !running
     return (
       <section>
-        <p className="oobe-sub" role="status">{allDone ? (bad.length ? t('Some add-ons didn’t install. Everything else works.') : t('Your add-ons are ready.')) : t('Installing. It takes as long as your connection does.')}</p>
+        <StepHead title={allDone ? (bad.length ? t('Some modules didn’t install') : t('Your modules are ready')) : t('Installing your modules')}
+          lead={allDone ? (bad.length ? t('Everything else works. Try again, or add them later in Settings, Modules.') : t('Each one was checked before it was put to use.')) : t('It takes as long as your connection does.')} />
         <ul className="su-going" aria-label={t('Modules being installed')}>
           {going.map((g) => {
             const item = live?.items.find((i) => i.id === g.id)
@@ -159,10 +167,11 @@ export function Modules({ refresh }: { refresh: () => Promise<void> }) {
           })}
         </ul>
         {allDone && (
-          <div className="su-gap su-row">
-            {bad.length > 0 && <Button onClick={() => install(bad)}>{t('Try again')}</Button>}
+          <StepActions>
             <Button onClick={() => setGoing(null)}>{t('Add more')}</Button>
-          </div>
+            {bad.length > 0 && <Button onClick={() => install(bad)}>{t('Try again')}</Button>}
+            <Button variant="primary" size="big" autoFocus onClick={next}>{t('Continue')}</Button>
+          </StepActions>
         )}
         {older.dialog}
       </section>
@@ -171,6 +180,7 @@ export function Modules({ refresh }: { refresh: () => Promise<void> }) {
 
   return (
     <section>
+      {head}
       {checkErr && (
         <Notice tone="warn" title={t('The list of modules couldn’t be read')}>
           <p className="su-para">{checkErr}</p>
@@ -180,7 +190,7 @@ export function Modules({ refresh }: { refresh: () => Promise<void> }) {
       <div className="oobe-mod-groups">
         {shelves.map((g) => (
           <section key={g.id} aria-label={g.title} data-nav-group>
-            <h3 className="oobe-type-head">{g.title}</h3>
+            <h2 className="oobe-type-head">{g.title}</h2>
             <div className="su-mods">
               {g.modules.map(row)}
             </div>
@@ -193,14 +203,13 @@ export function Modules({ refresh }: { refresh: () => Promise<void> }) {
           <div className="su-mods">{advanced.map(row)}</div>
         </details>
       )}
-      <h3 className="oobe-sub">{t('When an add-on has a new version')}</h3>
-      <ChoiceCards small label={t('When an add-on has a new version')} value={updates} onChange={saveUpdates} cards={[
-        { value: 'ask', title: t('Tell me, and I’ll choose'), text: t('Looks online twice a day and shows what’s new. Nothing changes until you say so.') },
-        { value: 'auto', title: t('Install them by themselves'), text: t('Keeps your modules up to date without asking. A version that doesn’t work is taken back out by itself.') },
-        { value: 'never', title: t('Only when I check'), text: t('Doesn’t look online until you press Check now in Settings, Modules.') },
-      ]} />
-      <p className="muted oobe-hint su-gap">{t('Add-ons come signed from the official list on GitHub, which sees only your internet address.')}</p>
-      {picks.length > 0 && <div className="su-gap"><Button variant="primary" onClick={() => install(picks.map((m) => ({ id: m.id, name: m.name })))}>{tn('Install {count} add-on', 'Install {count} add-ons', picks.length)}</Button></div>}
+      {facts.advanced && <><h2 className="oobe-sub">{t('When a module has a new version')}</h2>{whenNew}</>}
+      <StepActions back={back}>
+        {!facts.advanced && <Customize title={t('When a module has a new version')}>{whenNew}</Customize>}
+        {picks.length > 0
+          ? <Button variant="primary" size="big" onClick={() => install(picks.map((m) => ({ id: m.id, name: m.name })))}>{tn('Install {count} module', 'Install {count} modules', picks.length)}</Button>
+          : <Button variant="primary" size="big" onClick={next}>{offered.some(ready) ? t('Continue') : t('Continue without modules')}</Button>}
+      </StepActions>
     </section>
   )
 }

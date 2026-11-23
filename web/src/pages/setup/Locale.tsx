@@ -82,3 +82,10 @@ export function LocaleMore({ c }: { c: LocaleState }) {
     </div>
   )
 }
+
+// Quick or advanced setup, chosen on Welcome and kept in this browser until setup is over.
+const MODE = 'wms.setupAdvanced'
+export const advancedSetup = () => { try { return localStorage.getItem(MODE) === '1' } catch { return false } }
+export function setAdvancedSetup(on: boolean) {
+  try { if (on) localStorage.setItem(MODE, '1'); else localStorage.removeItem(MODE) } catch { /* it goes back to quick setup on a reload */ }
+}

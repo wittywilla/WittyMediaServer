@@ -9,7 +9,7 @@ import { TickRow } from './parts'
 
 // The home network, in the Ready step's Customize: whether apps at home find this server by themselves (on unless
 // someone says otherwise), its address, and the number at the end of it (the port). Each is saved as it changes.
-export function Network() {
+export function HomeNetwork() {
   const net = useNetwork()
   const [find, setFind] = useState(true)
   const [lan, setLan] = useState<string[]>([])

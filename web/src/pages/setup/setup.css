@@ -305,3 +305,6 @@ html.ten-foot .su-option > summary, html.using-controller .su-option > summary {
 .su-welcome-locale > .ui-field { flex: 1 1 16rem; margin: 0; }
 /* Buttons side by side that wrap on a phone. */
 .su-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+/* Connect a device, in a dialog of its own: the dialog has the title, so the card's own heading and frame go. */
+.su-connect .cd { border: 0; background: none; box-shadow: none; padding: 0; }
+.su-connect .cd > h2:first-child { display: none; }

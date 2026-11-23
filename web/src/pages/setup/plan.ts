@@ -6,13 +6,15 @@
 // they're shown; describeOutcome is given the app's own words by the page.
 import { ENGLISH, tk, type Words } from './words.ts'
 
-export type StepId = 'welcome' | 'account' | 'storage' | 'media' | 'tv' | 'games' | 'look' | 'done'
+export type StepId = 'welcome' | 'locale' | 'account' | 'storage' | 'name' | 'modules' | 'media' | 'tv' | 'games' | 'discs'
+  | 'details' | 'logos' | 'music' | 'karaoke' | 'listings' | 'look' | 'colours' | 'tvguide' | 'people' | 'network' | 'remote' | 'done'
 
-// The five numbered steps (docs/SETUP-FLOW.md). Their ids are the server's names for them (GET /api/setup/state).
-export type DrawnId = 'welcome' | 'account' | 'media' | 'look' | 'ready'
+// The six numbered steps (docs/SETUP-FLOW.md). Their ids are the server's names for them (GET /api/setup/state).
+export type DrawnId = 'welcome' | 'account' | 'modules' | 'media' | 'look' | 'ready'
 export const DRAWN: { id: DrawnId; label: string }[] = [
   { id: 'welcome', label: tk('Welcome') },
   { id: 'account', label: tk('Your account') },
+  { id: 'modules', label: tk('Modules') },
   { id: 'media', label: tk('Your media') },
   { id: 'look', label: tk('Look') },
   { id: 'ready', label: tk('Ready') },
@@ -27,6 +29,8 @@ export type Facts = {
   kinds: { type: string; available: boolean }[] | null
   // A desktop install that hasn't been told where to keep its data (GET /api/data-location, ask).
   askData?: boolean
+  // Advanced setup, chosen on Welcome: every choice gets a page of its own, instead of waiting under Customize.
+  advanced?: boolean
 }
 
 export type StepInfo = {
@@ -40,26 +44,46 @@ export type StepInfo = {
   later?: { where: string; to: string }
   // Asked only if this is true, on top of the modules it needs.
   when?: (f: Facts) => boolean
+  // A page of advanced setup only. In the quick one, the same choice is under that step's Customize, already answered.
+  advanced?: boolean
 }
 
 export const canMake = (f: Facts, kind: string) => !f.kinds?.some((k) => k.type === kind && !k.available)
+const music = (f: Facts) => canMake(f, 'music')
+const films = (f: Facts) => canMake(f, 'movies') || canMake(f, 'shows')
 
-// Every page, in order, each with the numbered step it belongs to (docs/SETUP-FLOW.md). Each asks only what's needed to
-// start watching, with the usual answer already chosen; everything else is behind the page's Customize button. A module's
-// own page (Live TV, Games) comes with Your media, only where that module is.
+// Every page, in order, each with the numbered step it belongs to (docs/SETUP-FLOW.md). Quick setup asks only what's needed
+// to start watching, with the usual answer already chosen. Advanced setup adds a page for each of the rest, next to the
+// step it belongs with: the server's name and the people at home with the account; what's looked up for the media with
+// the media; colours and the TV guide with the look; the network and away from home last. A module's own page (Live TV,
+// Games) comes with Your media, only where that module is.
 export const STEPS: StepInfo[] = [
   { id: 'welcome', drawn: 'welcome', label: tk('Welcome'), needs: 'server', when: (f) => !f.signedIn },
+  { id: 'locale', drawn: 'welcome', label: tk('Language and time zone'), needs: 'server', when: (f) => !f.signedIn, advanced: true },
   { id: 'account', drawn: 'account', label: tk('Your account'), needs: 'server', when: (f) => !f.signedIn },
   { id: 'storage', drawn: 'account', label: tk('Where data is kept'), needs: 'server', when: (f) => !!f.askData, later: { where: tk('Settings, Data folder'), to: '/settings/data-folder' } },
+  { id: 'name', drawn: 'account', label: tk('Server name'), needs: 'server', advanced: true },
+  { id: 'people', drawn: 'account', label: tk('People'), needs: 'server', advanced: true },
+  { id: 'modules', drawn: 'modules', label: tk('Modules'), needs: 'server', when: (f) => f.store },
   { id: 'media', drawn: 'media', label: tk('Your media'), needs: 'server', later: { where: tk('Settings, Libraries'), to: '/settings/libraries' } },
   { id: 'tv', drawn: 'media', label: tk('Live TV'), needs: ['wittytuner'], later: { where: tk('Settings, Live TV & tuners'), to: '/settings/tuners' } },
   { id: 'games', drawn: 'media', label: tk('Games'), needs: ['wittyplay'], later: { where: tk('Settings, Game metadata'), to: '/settings/game-metadata' } },
+  { id: 'discs', drawn: 'media', label: tk('Discs'), needs: ['wittydvd', 'wittybluray'], advanced: true },
+  { id: 'details', drawn: 'media', label: tk('Posters and details'), needs: 'server', advanced: true },
+  { id: 'logos', drawn: 'media', label: tk('Logos'), needs: 'server', advanced: true },
+  { id: 'music', drawn: 'media', label: tk('Lyrics and artists'), needs: 'server', when: music, advanced: true },
+  { id: 'karaoke', drawn: 'media', label: tk('Karaoke voices'), needs: 'server', when: music, advanced: true },
+  { id: 'listings', drawn: 'media', label: tk('Streaming lists'), needs: 'server', when: films, advanced: true },
   { id: 'look', drawn: 'look', label: tk('Look'), needs: 'server', later: { where: tk('Settings, Appearance'), to: '/settings/appearance' } },
+  { id: 'colours', drawn: 'look', label: tk('Colours'), needs: 'server', advanced: true },
+  { id: 'tvguide', drawn: 'look', label: tk('TV guide'), needs: ['wittytuner'], advanced: true },
+  { id: 'network', drawn: 'ready', label: tk('Home network'), needs: 'server', advanced: true },
+  { id: 'remote', drawn: 'ready', label: tk('Away from home'), needs: 'server', advanced: true },
   { id: 'done', drawn: 'ready', label: tk('Ready'), needs: 'server' },
 ]
 
 // Before an account there is nothing past it to show.
-const BEFORE_ACCOUNT: StepId[] = ['welcome', 'account']
+const BEFORE_ACCOUNT: StepId[] = ['welcome', 'locale', 'account']
 
 export const drawnId = (id: StepId): DrawnId => STEPS.find((s) => s.id === id)?.drawn || 'ready'
 // The step a page is on, as "Step 3 of 5", and which page of its step it is.
@@ -75,7 +99,7 @@ const belongs = (s: StepInfo, f: Facts) => s.needs === 'server' || s.needs.some(
 // The steps this server has, in order. Before there's an account, the steps after it can't be
 // known yet, so it counts the ones every server has.
 export function planSteps(f: Facts): StepInfo[] {
-  return STEPS.filter((s) => belongs(s, f) && (s.when ? s.when(f) : true))
+  return STEPS.filter((s) => belongs(s, f) && (!s.advanced || !!f.advanced) && (s.when ? s.when(f) : true))
 }
 
 export const pathOf = (id: StepId) => '/setup/' + id
@@ -84,17 +108,19 @@ export function stepFromPath(path: string): string {
   return /^\/setup\/([a-z]+)\/?$/.exec(path)?.[1] || ''
 }
 
-// An address from before 0.8.3, when setup had twelve steps, goes to the page that holds its question now.
-const OLD_PAGES: Record<string, StepId> = {
-  language: 'welcome', name: 'media', network: 'media', modules: 'media', discs: 'media',
-  theme: 'look', wittytv: 'look', people: 'done', remote: 'done', details: 'done', logos: 'done', music: 'done', karaoke: 'done', listings: 'done',
+// A page only advanced setup has, opened in the quick one (an old address, or another browser), goes to the page that
+// holds its question there: the step's own Customize, or the next page.
+const QUICK_HOME: Record<string, StepId> = {
+  locale: 'welcome', name: 'modules', people: 'done', discs: 'media',
+  details: 'done', logos: 'done', music: 'done', karaoke: 'done', listings: 'done',
+  colours: 'look', tvguide: 'look', network: 'done', remote: 'done',
 }
 
 // The step to show for an address. Before there's an account, only the first two can be shown,
 // and afterwards those two are gone, so an old address or the Back key can't reach them.
 export function currentStep(steps: StepInfo[], wanted: string, signedIn: boolean): StepInfo {
-  const id = OLD_PAGES[wanted] || wanted
-  const found = steps.find((s) => s.id === id)
+  const old = wanted === 'theme' ? 'colours' : wanted === 'wittytv' ? 'tvguide' : wanted === 'language' ? 'locale' : wanted
+  const found = steps.find((s) => s.id === old) || steps.find((s) => s.id === QUICK_HOME[old])
   if (found && (signedIn || BEFORE_ACCOUNT.includes(found.id))) return found
   return steps[0]
 }
@@ -165,7 +191,7 @@ export type Outcome = {
 
 export function describeOutcome(o: Outcome, { t, list }: Words = ENGLISH): string[] {
   const out = [o.libraries.length ? t('Libraries: {names}', { names: list(o.libraries) }) : t('No libraries yet')]
-  if (o.modules.length) out.push(t('Add-ons: {names}', { names: list(o.modules) }))
+  if (o.modules.length) out.push(t('Modules: {names}', { names: list(o.modules) }))
   return out
 }
 

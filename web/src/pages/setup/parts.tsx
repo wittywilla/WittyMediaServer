@@ -48,6 +48,17 @@ export function StepActions({ back, note, children }: { back?: () => void; note?
   )
 }
 
+// A page of advanced setup: a short title, one sentence, what it asks, and Continue. What it asks saves as it's changed.
+export function PanelStep({ title, lead, back, next, busy, children, go }: { title: string; lead: string; back?: () => void; next: () => void; busy?: boolean; children: ReactNode; go?: string }) {
+  return (
+    <section>
+      <StepHead title={title} lead={lead} />
+      {children}
+      <StepActions back={back}><Button variant="primary" size="big" busy={busy} onClick={next}>{go || t('Continue')}</Button></StepActions>
+    </section>
+  )
+}
+
 // The optional choices of a step, kept out of the way: a Customize button beside the step's own, which opens them in a
 // dialog. Everything in it already has the usual answer, so nobody has to open it to finish setup.
 export function Customize({ title, children, label }: { title: string; children: ReactNode; label?: string }) {

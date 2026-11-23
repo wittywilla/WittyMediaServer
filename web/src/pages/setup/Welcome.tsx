@@ -20,8 +20,9 @@ const FEATURES = [
   { icon: <IconPalette />, title: tk('Yours'), text: tk('It runs on your own computer. No account with anyone, and nothing is reported back.') },
 ]
 
-// Step 1: the language (time zone and disc languages under Customize), then Get started, or bring back a backup.
-export function Welcome({ onStart }: { onStart: () => void }) {
+// Step 1: the language (time zone and disc languages under Customize), then quick or advanced setup, or bring back a
+// backup. Advanced setup asks every question on a page of its own; quick setup leaves them answered, under Customize.
+export function Welcome({ onStart }: { onStart: (advanced: boolean) => void }) {
   const [restoring, setRestoring] = useState(false)
   // While a backup is coming back, starting something else would only get in its way.
   const [busy, setBusy] = useState(false)
@@ -39,9 +40,11 @@ export function Welcome({ onStart }: { onStart: () => void }) {
         </div>
       )}
       <div className="su-starts" data-nav-group>
-        {!busy && <Button variant="primary" size="big" autoFocus onClick={() => { locale.confirm(); onStart() }}>{t('Get started')}</Button>}
-        {!busy && <Button size="big" aria-expanded={restoring} onClick={() => setRestoring((o) => !o)}>{restoring ? t('Close restore') : t('Restore from a backup')}</Button>}
+        {!busy && <Button variant="primary" size="big" autoFocus onClick={() => { locale.confirm(); onStart(false) }}>{t('Get started')}</Button>}
+        {!busy && <Button size="big" onClick={() => { locale.confirm(); onStart(true) }}>{t('Advanced setup')}</Button>}
       </div>
+      {!busy && <p className="muted su-start-note">{t('Advanced setup goes through every option, one page at a time.')}</p>}
+      {!busy && <p className="su-start-note"><Button variant="ghost" aria-expanded={restoring} onClick={() => setRestoring((o) => !o)}>{restoring ? t('Close restore') : t('Restore from a backup')}</Button></p>}
       {restoring && <RestorePanel onBusy={setBusy} />}
       <ul className="oobe-perks" aria-label={t('What your server does')}>
         {FEATURES.map((f) => <li key={f.title}><span className="ic">{f.icon}</span><span><b>{t(f.title)}</b> <span className="muted">{t(f.text)}</span></span></li>)}
@@ -57,7 +60,7 @@ function RestorePanel({ onBusy }: { onBusy: (b: boolean) => void }) {
   useEffect(() => { api.get<{ setupCodeRequired?: boolean }>('/status').then((s) => setNeedCode(!!s.setupCodeRequired)).catch(() => {}) }, [])
   return (
     <div className="su-restore">
-      <p className="muted su-start-note">{t('Brings back your accounts, libraries, what you’ve watched and your settings. Add-ons download again afterwards.')}</p>
+      <p className="muted su-start-note">{t('Brings back your accounts, libraries, what you’ve watched and your settings. Modules download again afterwards.')}</p>
       {needCode && (
         <>
           <Field label={t('Setup code')}><Input autoComplete="off" autoCapitalize="characters" spellCheck={false} value={code} onChange={(e) => setCode(e.target.value)} /></Field>

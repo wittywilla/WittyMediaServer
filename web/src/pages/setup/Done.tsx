@@ -13,7 +13,7 @@ import { Customize, Option, TickRow } from './parts'
 import { Details } from './Details'
 import { Listings } from './Listings'
 import { Logos } from './Logos'
-import { Network } from './HomeNetwork'
+import { HomeNetwork } from './HomeNetwork'
 import { list, t, tn } from '../../i18n'
 
 // The same screen as Settings, Remote Access: one short code and a QR code for each device, details further in.
@@ -32,8 +32,9 @@ async function readOutcome(): Promise<Outcome> {
   }
 }
 
-// Step 5: Ready. Start watching, with the three things people usually want next (another device, the family, this screen
-// as a TV) one press away, and every optional extra under Customize. Each extra is off, or as it comes, until changed.
+// Step 6: Ready. Start watching, with the three things people usually want next (another device, the family, this screen
+// as a TV) one press away, and every optional extra under Customize (advanced setup has had a page for each). Each extra
+// is off, or as it comes, until changed.
 export function Done({ facts, onFinish }: { facts: Facts; onFinish: (to?: string) => void }) {
   const [outcome, setOutcome] = useState<Outcome | null>(null)
   const [add, setAdd] = useState<'' | 'adult' | 'kids'>('')
@@ -83,19 +84,19 @@ export function Done({ facts, onFinish }: { facts: Facts; onFinish: (to?: string
       </div>
       {add && <AddProfile admin initialKind={add} onClose={() => setAdd('')} onDone={() => { setAdd(''); setAdded((n) => n + 1) }} />}
       {connect && (
-        <Dialog title={t('Connect a device')} size="wide" onClose={() => setConnect(false)}>
+        <Dialog title={t('Connect a device')} size="wide" className="su-connect" onClose={() => setConnect(false)}>
           <Suspense fallback={<Spinner />}><ConnectDevice /></Suspense>
         </Dialog>
       )}
       <div className="oobe-actions oobe-finish">
-        <Customize title={t('More options')}>
-          <Option title={t('Home network')} text={t('Found automatically, on its usual port')}><Network /></Option>
-          <Option title={t('Posters and details')} text={t('Free sources work already; keys are optional')}><Details facts={facts} /></Option>
-          <Option title={t('Logos')} text={t('Plain names unless you choose logos')}><Logos /></Option>
-          {music && <Option title={t('Lyrics and artists')} text={t('Off until you turn them on')}><MusicOnlineStep /></Option>}
-          {music && <Option title={t('Karaoke voices')} text={t('The quick version works already')}><SeparatorStep /></Option>}
-          {films && <Option title={t('Streaming lists')} text={t('Off until you turn them on')}><Listings /></Option>}
-        </Customize>
+        {!facts.advanced && <Customize title={t('More options')}>
+          <Option title={t('Home network')} text={t('How apps at home find this server')}><HomeNetwork /></Option>
+          <Option title={t('Posters and details')} text={t('More sources, and details already beside your files')}><Details facts={facts} /></Option>
+          <Option title={t('Logos')} text={t('Real logos on cards instead of plain names')}><Logos /></Option>
+          {music && <Option title={t('Lyrics and artists')} text={t('Lyrics and artist pages from the web')}><MusicOnlineStep /></Option>}
+          {music && <Option title={t('Karaoke voices')} text={t('Cleaner voice removal, a large download')}><SeparatorStep /></Option>}
+          {films && <Option title={t('Streaming lists')} text={t('Which streaming services list your titles')}><Listings /></Option>}
+        </Customize>}
         <Button variant="primary" size="big" busy={busy} autoFocus onClick={() => finish()}>{t('Start watching')}</Button>
       </div>
     </section>

@@ -328,6 +328,8 @@ A hosted WittyRelay is planned as a **free** service. Until it exists, and whene
 7. Choose **Check**. The page asks the relay what it allows and shows it, for example *Up to 8 Mbit/s per connection, 50 Mbit/s for everyone together, pictures up to 1080p.* Read it before going on: that is what your devices get when they use it.
 8. Choose **Use this relay**. Within a few seconds it says **Working**, with the same limits. The box at the top changes to **Connections will go through your relay** if your network blocks direct connections, or keeps **Direct connection works** (the relay is then only used from networks that need it).
 
+Under **Working** is the relay's health, a dot and a line: **good**, **busy** (most of what it allows is in use, so streams through it may be slower), **full** (it takes no new servers, and yours keeps its place) or **starting**, with how much is in use. It's renewed every five minutes. A WittyRelay older than 0.2 doesn't say, and no line is shown.
+
 The server tells the relay which of your devices may come through it, and keeps telling it every five minutes: a device you remove is cut off from the relay within minutes as well. Nobody else's devices can use it to reach your server. With `WITTYRELAY_ACCESS: "open"`, other servers may register with it too, within its limits; with `"key"` (the default), only servers you gave a key to.
 
 **What a relay sees**: your server's and your device's internet addresses, when, and how much. Never what's sent.

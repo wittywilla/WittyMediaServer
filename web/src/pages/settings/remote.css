@@ -112,6 +112,10 @@
 .p2p-relay { display: grid; gap: var(--sp-2); }
 .p2p-relay .input { width: 100%; }
 .p2p-allows { font-size: var(--text-sm); }
+.p2p-health { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.p2p-health::before { content: ""; inline-size: .5em; block-size: .5em; border-radius: 50%; background: var(--ok); flex: none; }
+.p2p-health[data-health="busy"]::before { background: var(--warn); }
+.p2p-health[data-health="full"]::before, .p2p-health[data-health="starting"]::before { background: var(--danger); }
 
 /* Connect a device comes first; the rest folds under one heading. */
 .rem-tech { margin-top: var(--sp-5); }

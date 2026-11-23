@@ -4,6 +4,7 @@ import { Suspense, useMemo, type ComponentType, type LazyExoticComponent } from 
 import { useParams } from 'react-router-dom'
 import { api, getToken, serverBase } from '../api'
 import { lazyModule } from '../moduleBundles'
+import { pageOf as namedPage } from '../moduleLoad'
 import { useApp } from '../state'
 import { Spinner } from '../components/common'
 import { t } from '../i18n'
@@ -39,7 +40,8 @@ function pageOf(module: string, page: string) {
   const key = module + '/' + page
   let c = loaded.get(key)
   if (!c) {
-    c = lazyModule<{ host: PageHost }>(module, (m) => (m.pages as Record<string, unknown> | undefined)?.[page])
+    // Only a page the module names: an address can't reach anything else in its bundle.
+    c = lazyModule<{ host: PageHost }>(module, (m) => namedPage(m.pages, page))
     loaded.set(key, c)
   }
   return c

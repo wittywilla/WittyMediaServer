@@ -10,9 +10,9 @@ import { setThemeModule } from './theme'
 import { moduleForPath } from './themeOverrides'
 import { getNavCollapsed, setNavCollapsed } from './navPrefs'
 import { SduiRoute } from './sdui/useSdui'
-import { EmptyState, PageSkeleton, Spinner, VersionTag } from './components/common'
+import { PageSkeleton, Spinner, VersionTag } from './components/common'
 import { shapeFor } from './ui/Surface'
-import { LinkButton } from './ui'
+import { PageNotFound } from './components/PageNotFound'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
 import Unreachable from './components/Unreachable'
@@ -289,9 +289,7 @@ export function PageRoutes() {
 }
 
 // An address that isn't a page: say so, with the way home, rather than landing somewhere unexplained.
-function NotFound() {
-  return <><h1 className="sr-only">{t('Page not found')}</h1><EmptyState title={t('There’s no page here')} text={t('The address may have changed, or it may be mistyped.')} action={<LinkButton variant="primary" to="/">{t('Go to Home')}</LinkButton>} /></>
-}
+const NotFound = PageNotFound
 
 // PlainAwayBar: while the owner lets the internet in unencrypted, administrators
 // see it on every page, in the words Settings, Remote Access uses. It can't be

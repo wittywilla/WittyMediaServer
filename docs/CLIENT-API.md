@@ -1479,7 +1479,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `PUT /modules/libraries/{type}/label` | admin | What this server calls a kind of library, for when two read alike or two modules share one: `{"label": "Blu-rays and DVDs", "taken": {"movies": "Movies"}}`. An empty label goes back to the usual name. `taken` is what the app shows for the other kinds, and a name already in use is refused. |
 | `GET /modules/web` | user | The web bundles in use. |
 | `GET /modules/{id}/web/{version}/{path}` | user | A file of the bundle in use. Only names in its signed list exist. |
-| `POST /modules/{id}/failed` | user | A browser saying a bundle wouldn't load or crashed: `{"version": "...", "reason": "..."}`. Three within a day, at most one a minute, from an administrator's browser take that version out of use, and anyone else's goes in the module's log. 204. |
+| `POST /modules/{id}/failed` | user | A browser saying a bundle wouldn't load or crashed: `{"version": "...", "reason": "..."}`. Three within a day, at most one a minute, from an administrator's browser take that version out of use, and anyone else's goes in the module's log. One browser (sign-in) counts once an hour for a version; its reports in between are only noted. Only a bundle that won't load or run is reported: a page a module doesn't have is a page not found. 204. |
 
 `POST /libraries` answers 409 with `"code": "module-missing"` and the `modules` that would make it possible when a kind of library's module isn't installed. A `games` library (made or changed with `PUT /libraries/{id}`) needs a module that scans games, installed and on; its `console` is `auto` or one of that module's consoles, or it's refused as "unknown console".
 

@@ -116,7 +116,9 @@ type Server struct {
 	logins     loginLimiter
 	loginSlots chan struct{} // password checks are slow on purpose: only so many at once
 	clientLogs clientLogLimiter
-	probes     struct {
+	// moduleReports: one browser's reports of a module failing count once an hour.
+	moduleReports moduleReportGate
+	probes        struct {
 		sync.Mutex
 		m map[string]*ffmpeg.Probe
 	}

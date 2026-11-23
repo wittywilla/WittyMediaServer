@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { recentMissingModule } from '../api'
+import { api, recentMissingModule, recentOutdatedModule } from '../api'
 import LogsLink from '../components/LogsLink'
 import { ModuleMissing } from '../components/ModuleMissing'
 import { useMedia } from '../shell/useNav'
@@ -181,6 +181,8 @@ export function EmptyState({ title, text, action, icon = <IconFilm /> }: { title
 export function LoadError({ what, onRetry }: { what: string; onRetry?: () => void }) {
   const module = recentMissingModule()
   if (module) return <ModuleMissing ids={[module]} onReady={() => window.location.reload()} />
+  const old = recentOutdatedModule()
+  if (old) return <LoadErrorOutdated id={old} what={what} onRetry={onRetry} />
   return (
     <div className="empty" role="alert">
       <span className="empty-ic" aria-hidden="true"><IconInfo /></span>
@@ -188,6 +190,25 @@ export function LoadError({ what, onRetry }: { what: string; onRetry?: () => voi
       <p>{t('The server didn’t answer properly. This is usually brief, and doesn’t mean anything has gone.')}</p>
       {onRetry && <button type="button" className="btn" onClick={onRetry}>{t('Try again')}</button>}
       <LogsLink />
+    </div>
+  )
+}
+
+// The page's module answered "not found" to a call this server makes: most likely the module is older than the server.
+function LoadErrorOutdated({ id, what, onRetry }: { id: string; what: string; onRetry?: () => void }) {
+  const [name, setName] = useState('')
+  useEffect(() => {
+    let live = true
+    api.get<{ modules: { id: string; name?: string }[] }>('/modules').then((r) => { if (live) setName(r.modules.find((m) => m.id === id)?.name || '') }).catch(() => {})
+    return () => { live = false }
+  }, [id])
+  return (
+    <div className="empty" role="alert">
+      <span className="empty-ic" aria-hidden="true"><IconInfo /></span>
+      <h2 className="empty-title">{t('{what} couldn’t be loaded', { what })}</h2>
+      <p>{name ? t('{module} may need updating. Settings, Modules shows whether an update is waiting.', { module: name }) : t('A module may need updating. Settings, Modules shows whether an update is waiting.')}</p>
+      <Link className="btn" to="/settings/modules">{t('Modules')}</Link>
+      {onRetry && <button type="button" className="btn" onClick={onRetry}>{t('Try again')}</button>}
     </div>
   )
 }

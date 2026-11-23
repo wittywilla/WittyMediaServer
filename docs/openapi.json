@@ -24086,6 +24086,60 @@
         "x-wms-auth": "admin"
       }
     },
+    "/libraries/{id}/read-only": {
+      "put": {
+        "operationId": "putLibrariesIdReadOnly",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "readOnly": {
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "{readOnly}."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether anything the server does may write into the library's folders: uploads, details and pictures saved beside the files, conversions. Any kind of library.",
+        "tags": [
+          "Browsing"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/libraries/{id}/purge-metadata": {
       "post": {
         "operationId": "postLibrariesIdPurgeMetadata",

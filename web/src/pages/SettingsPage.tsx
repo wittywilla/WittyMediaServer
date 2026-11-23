@@ -321,6 +321,24 @@ function NfoSwitch({ library }: { library: Library }) {
   )
 }
 
+// Read-only: nothing the server does writes into the library's folders. Every kind of library
+// with folders has it, games among them (#398).
+function ReadOnlySwitch({ library }: { library: Library }) {
+  const { refreshLibraries } = useApp()
+  const set = async (readOnly: boolean) => {
+    try { await api.put(`/libraries/${library.id}/read-only`, { readOnly }); await refreshLibraries(); toast(readOnly ? t('Nothing is written into the folders of {name} now', { name: library.name }) : t('{name} can have files and details saved in its folders again', { name: library.name })) } catch (e: any) { toast(e.message) }
+  }
+  const on = !!library.readOnly
+  return (
+    <div className="set-lib-switch">
+      <span><b>{t('Read-only')}</b><br /><small className="muted">{on
+        ? t('The server writes nothing into these folders: no uploads, no details or pictures saved beside the files, no conversions.')
+        : t('The server may save files here: uploads, and details and pictures beside the files when that is turned on.')}</small></span>
+      <Switch checked={on} label={t('Make {name} read-only', { name: library.name })} onChange={(v) => void set(v)} />
+    </div>
+  )
+}
+
 // Exported for WittyPlay's Settings, which shows the same list (its games libraries among them).
 export function Libraries() {
   const { libraries, refreshLibraries } = useApp()
@@ -379,6 +397,7 @@ export function Libraries() {
               <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span><bdi>{p}</bdi></span></li>)}</ul>
               {l.type === 'commercials' && <CommercialsSwitch library={l} />}
               {l.type !== 'radio' && l.type !== 'podcasts' && <NfoSwitch library={l} />}
+              {l.type !== 'radio' && l.paths.length > 0 && <ReadOnlySwitch library={l} />}
               <div className="set-lib-actions">
                 <ScanControl lib={l} scanning={l.scanning} progress={l.scanning ? { mode: l.scanMode } : null} size="sm" variant="default" onStarted={() => setTimeout(refreshLibraries, 1000)} />
                 <button className="btn sm ghost" onClick={() => setEditing(l)}><IconEdit /> {t('Edit')}</button>

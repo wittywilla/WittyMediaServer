@@ -341,6 +341,25 @@ The first raises a module's version in its `module.json` and `package.json` and 
 
 Versions stay below v1 while the APIs settle, so a minor version may change them.
 
+### What's new, and developer notes
+
+A version's section of the module's `CHANGELOG.md` is what the catalogue lists for it, and what **Settings, Modules, What's new** shows. People read that, so split it in two:
+
+```markdown
+## 0.7.3
+
+### What's new
+- Friends can invite each other into a game, and see who is playing.
+
+### Developer notes
+- `POST /games/online/friends/{user}/invite`, and the commands `wittyplay.invite.accept` and `wittyplay.invite.decline`.
+- `web/tests/virtualpad.test.ts` presses a virtual pad's buttons in CI.
+```
+
+**What's new** is two or three plain sentences: no file names, API paths, command names or test names. **Developer notes** holds everything else; the server folds it away under a toggle on the module's page and leaves it out of the What's new list. A version with only developer notes, or one that only retook the README's pictures, is shown as "Bug fixes and improvements." and isn't news.
+
+A section written before this, with no headings, is read the same way as well as it can be: each bullet's bold first sentence is the plain part, and a bullet that names code (anything in backticks) is a developer note.
+
 ## Releasing a module
 
 `wittymodule` does this from the module's own folder:

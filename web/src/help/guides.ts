@@ -149,7 +149,8 @@ export const settingsPages: Record<string, string> = {
   Playback: 'playback',
   'Video quality': 'quality',
   'DVDs and Blu-rays': 'discs',
-  'Channels & tuners': 'channels',
+  'Library channels & WittyTV': 'channels',
+  'Channels & tuners': 'channels', // its name before 0.8.3
   'Games & emulators': 'gaming',
   'Consoles & cores': 'gaming',
   'Standalone emulators': 'emulators',

@@ -5,7 +5,7 @@
    normal text colour and only icons take --ok and --danger, which are too light
    for small text on panels in the light themes. */
 
-.rem-status, .rem-advanced { padding: 20px 22px; }
+.set-card.rem-status, .set-card.rem-advanced { padding: 20px 22px; } /* .set-card has none, and settings.css can load after this file (#553) */
 /* Green: working as chosen. Amber: asked for, not working yet. Red: a fault. */
 .rem-status { border-left: 6px solid var(--bg-4); }
 .rem-status.rem-good { border-left-color: var(--ok); }

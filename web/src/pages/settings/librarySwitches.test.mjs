@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { commercialsSwitchText, nfoOn, nfoSwitchText } from './librarySwitches.ts'
+import { commercialsSwitchText, nfoOn, nfoSwitchShown, nfoSwitchText } from './librarySwitches.ts'
 
 test('.nfo files from other programs: on unless the library says off', () => {
   assert.equal(nfoOn({ foreignNfo: true }), true)
@@ -27,4 +27,9 @@ test('Settings, Libraries draws the switch and its words from the same value', (
   assert.match(page, /nfoSwitchText\(on\)/)
   assert.match(page, /checked=\{on\}/)
   assert.doesNotMatch(page, /<small className="muted">Off: /, 'no fixed "Off:" text under a switch')
+})
+
+test('the .nfo switch is offered only where a scan reads other programs’ .nfo files (#553)', () => {
+  for (const k of ['movies', 'shows', 'anime', 'discs', 'videos', 'commercials']) assert.equal(nfoSwitchShown(k), true, k)
+  for (const k of ['books', 'audiobooks', 'music', 'podcasts', 'radio', 'photos', 'games', 'shorts', 'channels', 'musicvideos']) assert.equal(nfoSwitchShown(k), false, k)
 })

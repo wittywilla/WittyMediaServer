@@ -763,7 +763,7 @@ function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean
       {v.blocked && !v.withdrawn && <p className="ms-why">{t('Taken out of use before: {reason}', { reason: v.blocked })}</p>}
       <details className="ms-more">
         <summary>{t('Release notes')}</summary>
-        <ChangeNotes text={v.notes} />
+        <ChangeNotes text={v.notes} developer />
       </details>
     </li>
   )

@@ -3,6 +3,8 @@
 import { Component, lazy, useEffect, useState, useSyncExternalStore, type ComponentType, type Context, type ReactNode } from 'react'
 import { api, mediaUrl } from './api'
 import { ModuleMissing } from './components/ModuleMissing'
+import { PageNotFound } from './components/PageNotFound'
+import { bundleCache, pickFrom, type Loaded } from './moduleLoad'
 import type { ReaderHost } from '@wittywilla/wittyink'
 
 // What modules show in the browser arrives as web bundles, with none of it in the app. The
@@ -35,7 +37,6 @@ const within = <T,>(ms: number, p: Promise<T>, otherwise: T) =>
 
 const keyOf = (b: Bundle) => `${b.id}@${b.version}`
 const failed = new Set<string>() // not tried again in this page's life
-const scripts = new Map<string, Promise<Record<string, unknown>>>()
 const readers = new Map<string, Promise<BundledReader>>()
 const links = new Map<string, HTMLLinkElement>()
 
@@ -61,20 +62,20 @@ function addStyle(b: Bundle) {
   })
 }
 
-// importBundle loads a bundle's script and stylesheet once, whoever asks, and reports a
-// failure once.
-function importBundle(b: Bundle, shape: (m: Record<string, unknown>) => boolean) {
-  let p = scripts.get(keyOf(b))
-  if (!p) {
-    p = (async () => {
-      const [m] = await Promise.all([import(/* @vite-ignore */ mediaUrl(b.base + b.entry)) as Promise<Record<string, unknown>>, b.style ? addStyle(b) : undefined])
-      if (!shape(m)) throw new Error('it is not the shape of bundle expected')
-      return m
-    })()
-    p.catch((e) => reportFailure(b, e))
-    scripts.set(keyOf(b), p)
-  }
-  return p
+// loadBundle loads a bundle's script and stylesheet once, whoever asks, and reports a bundle that
+// won't load or won't run. What it holds is the module: what each caller wants from it (a page,
+// a view, a reader) is checked by that caller, and a module without it is not broken (#592).
+const loadBundle = bundleCache<Bundle>(keyOf, async (b) => {
+  const [m] = await Promise.all([import(/* @vite-ignore */ mediaUrl(b.base + b.entry)) as Promise<Loaded>, b.style ? addStyle(b) : undefined])
+  return m
+}, reportFailure)
+
+// importBundle is a loaded bundle that has the shape a caller needs. One that loads but hasn't
+// is null for that caller, and isn't reported.
+async function importBundle(b: Bundle, shape: (m: Loaded) => boolean): Promise<Loaded> {
+  const m = await loadBundle(b)
+  if (!shape(m)) throw new Error('it is not the shape of bundle expected')
+  return m
 }
 
 const isComponent = (c: unknown) => typeof c === 'function' || (typeof c === 'object' && c !== null && '$$typeof' in c)
@@ -96,7 +97,7 @@ async function chooseReader(format: ReaderFormat, list: Bundle[]): Promise<Bundl
   const { moduleHost, hostFor } = await import('./moduleHost')
   const ink = readerKitOf(list)
   if (!ink || failed.has(keyOf(ink))) return null
-  const inkModule = await importBundle(ink, isInk)
+  const inkModule = await importBundle(ink, isInk).catch((e) => { reportFailure(ink, e); throw e })
   let r = readers.get(keyOf(bundle) + '|' + format)
   if (!r) {
     r = (async () => {
@@ -147,17 +148,24 @@ export function useReaderBundles(): Bundle[] | null {
   return list
 }
 
-// Any other plugin's bundle, for when it's opened: its script, or null if it isn't here.
-export async function bundledModule<T>(id: string, shape: (m: T) => boolean): Promise<T | null> {
+// loadedModule: a plugin's bundle, loaded, or null if it isn't here or won't load.
+async function loadedModule(id: string): Promise<Loaded | null> {
   try {
     const list = await askServer()
     const b = list.find((x) => x.id === id)
     if (!b || b.api > HOST_API || failed.has(keyOf(b))) return null
     await import('./moduleHost')
-    return await within(LOAD_MS, importBundle(b, (m) => shape(m as T)) as Promise<T | null>, null)
+    return await within(LOAD_MS, loadBundle(b) as Promise<Loaded | null>, null)
   } catch {
     return null
   }
+}
+
+// Any other plugin's bundle, for when it's opened: its script, or null if it isn't here or isn't
+// what was wanted.
+export async function bundledModule<T>(id: string, shape: (m: T) => boolean): Promise<T | null> {
+  const m = await loadedModule(id)
+  return m && shape(m as T) ? m as T : null
 }
 
 // A crash names the file it came from, so WittyInk answers for its own.
@@ -204,11 +212,14 @@ export function BundledReaderView({ r, host, fallback, children }: { r: BundledR
 
 // lazyModule is a component from a module's bundle, for React.lazy's place: until it's there it
 // waits, and if it isn't on this server it shows what's missing, with a way to add it.
+// A module that is here but has no such component (an address naming a page it doesn't have)
+// is a page not found, and nothing is reported.
 export function lazyModule<P extends object>(id: string, pick: (m: Record<string, unknown>) => unknown) {
   return lazy(async () => {
-    const m = await bundledModule<Record<string, unknown>>(id, (x) => isComponent(pick(x)))
-    const c = m ? pick(m) as ComponentType<P> : null
-    return { default: c ?? ((() => <ModuleMissing ids={[id]} onReady={() => window.location.reload()} />) as unknown as ComponentType<P>) }
+    const m = await loadedModule(id)
+    if (!m) return { default: (() => <ModuleMissing ids={[id]} onReady={() => window.location.reload()} />) as unknown as ComponentType<P> }
+    const c = pickFrom<ComponentType<P>>(m, pick, isComponent)
+    return { default: c.found ? c.value : (PageNotFound as unknown as ComponentType<P>) }
   })
 }
 

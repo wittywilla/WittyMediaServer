@@ -248,7 +248,7 @@ var routeRules = map[string]string{
 	"POST /api/me/2fa/disable":                            "Signed-in: Own password and code, with an attempt limit",
 	"POST /api/me/2fa/setup":                              "Signed-in: Own password, with an attempt limit",
 	"PUT /api/module-store/{id}/{key}":                    "Signed-in: own. Known module. A key of letters and digits. JSON of at most 64 KB, and 32 keys for a module",
-	"POST /api/modules/{id}/failed":                       "Signed-in: Known module. 4 KB body. Rate per account. Counts against a version only from an admin",
+	"POST /api/modules/{id}/failed":                       "Signed-in: Known module. 4 KB body. Rate per account. Counts against a version only from an admin, once an hour per sign-in",
 	"POST /api/auth/pair/{session}/approve":               "Adult: The PIN shown now or the one before it, used once. Five wrong PINs end the session. Limit on wrong codes. The device signs in as the caller or a profile the caller manages; as an administrator only with that administrator's password again",
 	"POST /api/auth/pair/{session}/deny":                  "Adult: Session is waiting. Limit on wrong codes",
 	"POST /api/pair/approve":                              "Adult: Code, with a limit on wrong codes. The device signs in as the caller or a profile the caller manages; as an administrator only with that administrator's password again",

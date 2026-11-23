@@ -134,6 +134,12 @@ func (s *Server) backupFolders() backup.Folders {
 // BackupSecretSettings are the settings a backup with no password leaves out.
 func BackupSecretSettings() []string { return append([]string{}, secretSettings...) }
 
+// BackupScrubSettings are the settings a backup with no password keeps with
+// the secrets inside them taken out.
+func BackupScrubSettings() map[string]func(string) string {
+	return map[string]func(string) string{p2pSettingKey: scrubP2PSetting}
+}
+
 // NoteRestore is told how the restore at this start went.
 func (s *Server) NoteRestore(r *backup.Result) {
 	s.backup.mu.Lock()
@@ -263,7 +269,7 @@ func (s *Server) startCreate(parts []string, password string, key *backup.Key, a
 	logging.Go("backup", func() {
 		var problems []string
 		out, man, err := backup.Create(ctx, backup.Options{Folders: s.backupFolders(), Parts: parts, LiveDB: s.DB.DB, Password: password, Key: key,
-			SecretSettings: BackupSecretSettings(), ServerVersion: s.Version, Auto: auto, Progress: s.backupProgress(t),
+			SecretSettings: BackupSecretSettings(), ScrubSettings: BackupScrubSettings(), ServerVersion: s.Version, Auto: auto, Progress: s.backupProgress(t),
 			Problem: func(file, why string) {
 				problems = append(problems, file+": "+why)
 				t.Problem(file, why)

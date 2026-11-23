@@ -38,8 +38,11 @@ type Options struct {
 	// SecretSettings are settings that hold keys and passwords, on top of those that
 	// look like it by their name.
 	SecretSettings []string
-	ServerVersion  string
-	Auto           bool
+	// ScrubSettings are settings that are kept, with the secrets inside them
+	// taken out by the function given for each.
+	ScrubSettings map[string]func(string) string
+	ServerVersion string
+	Auto          bool
 	// Output is the archive's path. Empty: a new name in the backups folder.
 	Output string
 	// Progress is told how far along it is. It may be nil.
@@ -581,7 +584,7 @@ func copyDatabase(ctx context.Context, o Options, out string, want map[string]bo
 		}
 	}
 	if !protected {
-		if err := stripSecrets(ctx, d, o.SecretSettings); err != nil {
+		if err := stripSecrets(ctx, d, o.SecretSettings, o.ScrubSettings); err != nil {
 			return none, err
 		}
 	}
@@ -621,7 +624,7 @@ func isSecretSetting(key string, listed map[string]bool) bool {
 }
 
 // stripSecrets leaves out what would let someone in or cost someone money.
-func stripSecrets(ctx context.Context, d *sql.DB, secret []string) error {
+func stripSecrets(ctx context.Context, d *sql.DB, secret []string, scrub map[string]func(string) string) error {
 	listed := map[string]bool{}
 	for _, k := range secret {
 		listed[k] = true
@@ -640,6 +643,8 @@ func stripSecrets(ctx context.Context, d *sql.DB, secret []string) error {
 		}
 		if isSecretSetting(k, listed) {
 			drop = append(drop, kv{k: k})
+		} else if f := scrub[k]; f != nil {
+			clean = append(clean, kv{k, f(v)})
 		} else if c := scrubAddress(v); c != v {
 			clean = append(clean, kv{k, c})
 		}

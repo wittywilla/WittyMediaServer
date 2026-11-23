@@ -426,12 +426,3 @@ func LocalName(host string) bool {
 	}
 	return false
 }
-
-// LocalAddress says what someone typed names something at home or on their VPN.
-func LocalAddress(host string) bool {
-	host = strings.Trim(host, "[]")
-	if a, err := netip.ParseAddr(host); err == nil {
-		return (*Policy)(nil).Classify(a) != Internet
-	}
-	return LocalName(host)
-}

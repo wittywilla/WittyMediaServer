@@ -162,10 +162,6 @@ type PersonIDs struct {
 	TVMaze string `json:"tvmaze,omitempty"`
 }
 
-func (p PersonIDs) empty() bool {
-	return p.TMDB == "" && p.IMDB == "" && p.TVDB == "" && p.TVMaze == ""
-}
-
 // CreditIn is one credit as a source gives it.
 type CreditIn struct {
 	Name       string

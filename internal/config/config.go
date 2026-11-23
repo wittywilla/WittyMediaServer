@@ -128,8 +128,6 @@ const (
 // names one: see resolveDefault.
 func DefaultDataDir() string { d, _, _ := resolveDefault(); return d }
 
-func defaultDataDir() string { return DefaultDataDir() }
-
 // resolveDefault finds the data folder when nothing on the command line or in a config file
 // names one, and says where it came from. In order:
 //

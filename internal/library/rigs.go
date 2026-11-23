@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strconv"
 	"strings"
 )
 
@@ -25,11 +24,6 @@ const (
 
 // IsRig reports whether a library belongs to a gaming PC, so that nothing scans it.
 func (l *Library) IsRig() bool { return l.Type == "games" && l.Console == RigConsole }
-
-// RigPath is the path of a rig's game, unique in the table and meaningless on disk.
-func RigPath(rigID int64, appID int) string {
-	return "rig://" + strconv.FormatInt(rigID, 10) + "/" + strconv.Itoa(appID)
-}
 
 // CreateRigLibrary makes the library that holds a rig's games.
 func (s *Store) CreateRigLibrary(ctx context.Context, name string) (*Library, error) {

@@ -10,13 +10,14 @@ import { CATEGORIES, checkAll, isBusy, mb, PHASE, storeView, type Failure, type 
 import { installAndWait } from './install'
 import { notInstalledWords, olderFromStore, series } from '../settings/store/olderServer'
 import { useOlderAsk } from '../settings/store/OlderServerDialog'
-import { ChoiceCards, LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
+import { ChoiceCards, TickRow } from './parts'
 import { ADVANCED, offerable, PLAIN_WORDS, RECOMMENDED, updateChoiceFrom, updateSettings, type UpdateChoice } from './plan'
 import { list, t, tn, tx } from '../../i18n'
 
-// What this server is for. Modules aren't part of the server: choosing one downloads it, signed,
-// from the official catalogue, through the store's own install. Nothing's fetched until someone
-// presses the button that says so, and nothing depends on it working.
+// Add-ons, in the Customize dialog of Your media: what the server does beyond movies, shows and music. Modules aren't part
+// of the server: choosing one downloads it, signed, from the official catalogue, through the store's own install. Nothing's
+// fetched until someone presses the button that says so, and nothing depends on it working. A kind of library that needs
+// one offers it right on the step, so most people never open this.
 
 const kindName = (k: string) => tx(LIB_TYPES.find((x) => x.type === k)?.name) || k
 const glyph = (m: StoreItem) => m.libraries?.length ? libIcon(m.libraries[0]) : m.group === 'tv' ? <IconTv /> : <IconPlug />
@@ -33,7 +34,7 @@ const ready = (m: StoreItem) => !!m.status?.installed
 // skipped: its only version was made for an older server, and Install anyway wasn't chosen.
 type Going = { id: string; name: string; state: 'waiting' | 'working' | 'done' | 'failed' | 'skipped'; failure?: Failure }
 
-export function Modules({ info, refresh, next, back }: StepProps) {
+export function Modules({ refresh }: { refresh: () => Promise<void> }) {
   const [view, setView] = useState<StoreView | null>(null)
   const [failed, setFailed] = useState(false)
   const [chosen, setChosen] = useState<Set<string>>(new Set())
@@ -43,7 +44,6 @@ export function Modules({ info, refresh, next, back }: StepProps) {
   const [live, setLive] = useState<Run | null>(null)
   const [checkErr, setCheckErr] = useState('')
   const stopped = useRef(false)
-  const done = useRef<HTMLButtonElement>(null)
   const older = useOlderAsk()
   const load = () => { setFailed(false); return storeView().then((v) => { setView(v); return v }).catch(() => { setFailed(true); return null }) }
   useEffect(() => {
@@ -129,20 +129,17 @@ export function Modules({ info, refresh, next, back }: StepProps) {
     await load()
     setRunning(false); setLive(null)
     setChosen(new Set())
-    requestAnimationFrame(() => done.current?.focus())
   }
 
-  const lead = t('Movies, TV shows and music work straight away. Modules add everything else. Choose what you want and it downloads now. Whatever you don’t choose isn’t downloaded.')
-  if (failed) return <section><StepHead title={t('What do you want on this server?')} lead={lead} /><LoadError what={t('The list of modules')} onRetry={load} /><StepActions back={back}><Button variant="primary" size="big" onClick={next}>{t('Continue without modules')}</Button></StepActions></section>
-  if (!view) return <section><StepHead title={t('What do you want on this server?')} lead={lead} /><Spinner /></section>
+  if (failed) return <LoadError what={t('The list of add-ons')} onRetry={load} />
+  if (!view) return <Spinner />
 
   if (going) {
     const bad = going.filter((g) => g.state === 'failed' || g.state === 'skipped')
     const allDone = !running
     return (
       <section>
-        <StepHead title={allDone ? (bad.length ? t('Some modules didn’t install') : t('Your modules are ready')) : t('Installing your modules')}
-          lead={allDone ? (bad.length ? t('Everything else works. You can try again now, or carry on and add these later.') : t('Each one was checked against its signature before it was put to use.')) : t('Each one is downloaded and checked before it’s used. You can leave this page open and wait: it takes as long as your connection does.')} />
+        <p className="oobe-sub" role="status">{allDone ? (bad.length ? t('Some add-ons didn’t install. Everything else works.') : t('Your add-ons are ready.')) : t('Installing. It takes as long as your connection does.')}</p>
         <ul className="su-going" aria-label={t('Modules being installed')}>
           {going.map((g) => {
             const item = live?.items.find((i) => i.id === g.id)
@@ -162,10 +159,10 @@ export function Modules({ info, refresh, next, back }: StepProps) {
           })}
         </ul>
         {allDone && (
-          <StepActions>
+          <div className="su-gap su-row">
             {bad.length > 0 && <Button onClick={() => install(bad)}>{t('Try again')}</Button>}
-            <Button ref={done} variant="primary" size="big" onClick={next}>{bad.length ? t('Continue without them') : t('Continue')}</Button>
-          </StepActions>
+            <Button onClick={() => setGoing(null)}>{t('Add more')}</Button>
+          </div>
         )}
         {older.dialog}
       </section>
@@ -174,7 +171,6 @@ export function Modules({ info, refresh, next, back }: StepProps) {
 
   return (
     <section>
-      <StepHead title={t('What do you want on this server?')} lead={lead} />
       {checkErr && (
         <Notice tone="warn" title={t('The list of modules couldn’t be read')}>
           <p className="su-para">{checkErr}</p>
@@ -184,7 +180,7 @@ export function Modules({ info, refresh, next, back }: StepProps) {
       <div className="oobe-mod-groups">
         {shelves.map((g) => (
           <section key={g.id} aria-label={g.title} data-nav-group>
-            <h2 className="oobe-type-head">{g.title}</h2>
+            <h3 className="oobe-type-head">{g.title}</h3>
             <div className="su-mods">
               {g.modules.map(row)}
             </div>
@@ -197,19 +193,14 @@ export function Modules({ info, refresh, next, back }: StepProps) {
           <div className="su-mods">{advanced.map(row)}</div>
         </details>
       )}
-      <h2 className="oobe-sub">{t('When a module has a new version')}</h2>
-      <ChoiceCards label={t('When a module has a new version')} value={updates} onChange={saveUpdates} cards={[
+      <h3 className="oobe-sub">{t('When an add-on has a new version')}</h3>
+      <ChoiceCards small label={t('When an add-on has a new version')} value={updates} onChange={saveUpdates} cards={[
         { value: 'ask', title: t('Tell me, and I’ll choose'), text: t('Looks online twice a day and shows what’s new. Nothing changes until you say so.') },
         { value: 'auto', title: t('Install them by themselves'), text: t('Keeps your modules up to date without asking. A version that doesn’t work is taken back out by itself.') },
         { value: 'never', title: t('Only when I check'), text: t('Doesn’t look online until you press Check now in Settings, Modules.') },
       ]} />
-      <p className="muted oobe-hint su-gap">{t('Modules come from the official list on GitHub. Asking for it tells GitHub your internet address, as any download does, and nothing about you or your files. Every module is signed, and this server won’t use one that doesn’t check out.')}</p>
-      <LaterNote info={info} />
-      <StepActions back={back}>
-        {picks.length > 0
-          ? <Button variant="primary" size="big" onClick={() => install(picks.map((m) => ({ id: m.id, name: m.name })))}>{tn('Download and install {count} module', 'Download and install {count} modules', picks.length)}</Button>
-          : <Button variant="primary" size="big" onClick={next}>{offered.some(ready) ? t('Continue') : t('Continue without modules')}</Button>}
-      </StepActions>
+      <p className="muted oobe-hint su-gap">{t('Add-ons come signed from the official list on GitHub, which sees only your internet address.')}</p>
+      {picks.length > 0 && <div className="su-gap"><Button variant="primary" onClick={() => install(picks.map((m) => ({ id: m.id, name: m.name })))}>{tn('Install {count} add-on', 'Install {count} add-ons', picks.length)}</Button></div>}
     </section>
   )
 }

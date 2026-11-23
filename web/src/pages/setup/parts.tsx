@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { Fragment, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { Fragment, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { t, tx } from '../../i18n'
-import { IconCheck } from '../../icons'
-import { Button } from '../../ui'
+import { IconCheck, IconDown } from '../../icons'
+import { Button, Dialog } from '../../ui'
 import { ranked, type Dir } from '../../ui/spatial'
 import type { Facts, StepInfo } from './plan'
 
@@ -45,6 +45,33 @@ export function StepActions({ back, note, children }: { back?: () => void; note?
       {note && <span className="muted oobe-grow">{note}</span>}
       <span className="su-actions-go">{children}</span>
     </div>
+  )
+}
+
+// The optional choices of a step, kept out of the way: a Customize button beside the step's own, which opens them in a
+// dialog. Everything in it already has the usual answer, so nobody has to open it to finish setup.
+export function Customize({ title, children, label }: { title: string; children: ReactNode; label?: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button variant="ghost" onClick={() => setOpen(true)} aria-haspopup="dialog">{label || t('Customize')}</Button>
+      {open && (
+        <Dialog title={title} size="wide" className="su-customize" onClose={() => setOpen(false)}
+          actions={<Button variant="primary" onClick={() => setOpen(false)}>{t('Done')}</Button>}>
+          <div className="su-customize-body">{children}</div>
+        </Dialog>
+      )}
+    </>
+  )
+}
+
+// One part of a Customize dialog, folded until it's opened, with what it is in a few words.
+export function Option({ title, text, children, open }: { title: string; text?: string; children: ReactNode; open?: boolean }) {
+  return (
+    <details className="su-option" open={open}>
+      <summary><span className="su-option-words"><b>{title}</b>{text && <small>{text}</small>}</span><IconDown size={20} /></summary>
+      <div className="su-option-body">{children}</div>
+    </details>
   )
 }
 

@@ -130,6 +130,19 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .su-more summary { min-height: 2.75rem; display: flex; align-items: center; gap: var(--sp-2); font-weight: 600; font-size: var(--text-md); cursor: pointer; }
 .su-more[open] summary { margin-bottom: var(--sp-3); }
 
+/* A step's Customize dialog: its parts folded, one under another, each opened when it's wanted. */
+.su-customize .su-customize-body { display: grid; gap: var(--sp-2); max-height: min(70vh, 46rem); overflow-y: auto; padding-right: var(--sp-1); }
+.su-option { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); }
+.su-option > summary { list-style: none; min-height: 3rem; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4); cursor: pointer; border-radius: inherit; }
+.su-option > summary::-webkit-details-marker { display: none; }
+.su-option-words { display: grid; gap: 2px; }
+.su-option-words small { color: var(--fg-2); font-size: var(--text-sm); }
+.su-option > summary svg { flex: none; transition: transform var(--dur-2); }
+.su-option[open] > summary svg { transform: rotate(180deg); }
+.su-option-body { padding: 0 var(--sp-4) var(--sp-4); }
+.su-option-body > :first-child { margin-top: 0; }
+html.ten-foot .su-option > summary, html.using-controller .su-option > summary { min-height: 3.5rem; }
+
 /* A plain button on a raised panel would melt into it. */
 :is(.oobe-lib, .oobe-name, .su-consent, .su-restore, .oobe-provider, .oobe-next-card, .oobe-locked-item) .btn:not(.primary, .ghost, .danger) { background: var(--bg-4); border-color: var(--border-strong); }
 .oobe-lib .game-bios-hint { margin: 0 0 var(--sp-4); }
@@ -170,9 +183,7 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .oobe-step.now > span { background: var(--accent-soft); color: var(--accent-text); font-weight: 700; }
 .oobe-step.now i { background: var(--accent); color: var(--accent-fg); }
 .oobe-col { min-width: 0; display: grid; gap: var(--sp-3); }
-.oobe-skip { margin: 0; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; font-size: var(--text-sm); }
 /* While modules are installing or installed, the step has its own Continue: no second way out under it. */
-main:has(.su-going) ~ .oobe-skip { display: none; }
 @media (max-width: 900px) { .oobe-body { grid-template-columns: 1fr; } .oobe-steps { display: none; } }
 .su-req { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr); gap: var(--sp-3); align-items: center; margin-top: var(--sp-3); }
 @media (max-width: 700px) { .su-req { grid-template-columns: 1fr; } }
@@ -244,7 +255,6 @@ main:has(.su-going) ~ .oobe-skip { display: none; }
 .lp-widgets i { min-block-size: 3.2rem; border-radius: var(--r-md); background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); }
 .lp-widgets i.wide { grid-column: span 2; }
 /* A step that isn't there yet is quieter, in --fg-3, which every theme keeps readable (not faded, which wasn't). */
-.oobe-step.missing > span { color: var(--fg-3); } .oobe-step small { font-size: var(--text-2xs); color: var(--fg-3); }
 .su-twostep { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
 .su-twostep .ui-field { grid-column: 1 / -1; max-inline-size: 16rem; }
 .su-twostep ol { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-2); font-size: var(--text-md); }
@@ -281,10 +291,6 @@ main:has(.su-going) ~ .oobe-skip { display: none; }
 .lp-headset .lp-carousel i, .lp-tv .lp-carousel i { block-size: 3.4rem; inline-size: auto; }
 .lp-headset .lp-carousel i.on, .lp-tv .lp-carousel i.on { block-size: 5.2rem; }
 /* Choose colours: the chosen layout large, in the theme being tried, above the themes drawn in it. */
-.su-colours { display: grid; gap: var(--sp-5); }
-.su-colours-big { display: grid; justify-items: center; gap: var(--sp-2); margin: 0; }
-.su-colours-big .layout-thumb { width: min(100%, 16rem); height: auto; border-radius: var(--r-lg); box-shadow: var(--e-2); }
-.su-colours-big figcaption { color: var(--fg-2); font-size: var(--text-sm); }
 /* Welcome's foot: Back to the language and time zone screen, and what it chose. */
 .su-chosen-locale { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-5); font-size: var(--text-sm); }
 
@@ -293,3 +299,9 @@ main:has(.su-going) ~ .oobe-skip { display: none; }
    top and bottom space, so the card adds the sides, and the first row has no line above it. */
 .set-card.su-separator { padding: var(--sp-1) var(--sp-4); }
 .su-separator > .set-row:first-child { border-top: 0; }
+
+/* Welcome: the language with its Customize button beside it, the same width as the buttons below. */
+.su-welcome-locale { display: flex; align-items: flex-end; gap: var(--sp-3); flex-wrap: wrap; margin: var(--sp-4) auto 0; max-inline-size: 30rem; text-align: start; }
+.su-welcome-locale > .ui-field { flex: 1 1 16rem; margin: 0; }
+/* Buttons side by side that wrap on a phone. */
+.su-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }

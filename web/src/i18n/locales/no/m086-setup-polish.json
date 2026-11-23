@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "Endre {name}-nøkkelen",
+  "Keep the saved key": "Behold den lagrede nøkkelen",
+  "Address copied": "Adressen er kopiert",
+  "Couldn’t copy it: select the address and copy it": "Kunne ikke kopiere den: merk adressen og kopier den",
+  "Right now this server only answers on this computer, at:": "Akkurat nå svarer serveren bare på denne datamaskinen, på:",
+  "Copy the address {url}": "Kopier adressen {url}",
+  "It also answers at {url}.": "Den svarer også på {url}.",
+  "QR code holding the address {url}": "QR-kode med adressen {url}",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "For å bruke den fra TV-en eller telefonen, sett {listen} til {port} der det er satt (konfigurasjonsfilen, {flag} eller {env}) og start den på nytt.",
+  "Then other devices at home can open it at {url}.": "Da kan andre enheter hjemme åpne den på {url}.",
+  "Write {standard} from {ext} files: there are none yet": "Skriv {standard} fra {ext}-filer: det finnes ingen ennå",
+  "{done} of {count} films and episodes converted": "Filmer og episoder konvertert: {done} av {count}",
+  "{done} of {count} shows": "Serier: {done} av {count}",
+  "{done} of {count} albums converted": "Album konvertert: {done} av {count}",
+  "lyrics for {done} of {count} songs": "Sangtekster: {done} av {count} sanger",
+  "{count} old files renamed to .bak": "Gamle filer omdøpt til .bak: {count}",
+  "{count} couldn’t be converted (see the log)": "Kunne ikke konverteres (se loggen): {count}",
+  "{done} of {count} films, episodes and shows": "Filmer, episoder og serier: {done} av {count}",
+  "{done} of {count} songs": "Sanger: {done} av {count}",
+  "{done} of {count} games": "Spill: {done} av {count}"
+}

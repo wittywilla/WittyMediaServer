@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "Αλλαγή του κλειδιού {name}",
+  "Keep the saved key": "Διατήρηση του αποθηκευμένου κλειδιού",
+  "Address copied": "Η διεύθυνση αντιγράφηκε",
+  "Couldn’t copy it: select the address and copy it": "Δεν έγινε αντιγραφή: επιλέξτε τη διεύθυνση και αντιγράψτε την",
+  "Right now this server only answers on this computer, at:": "Αυτή τη στιγμή ο διακομιστής απαντά μόνο σε αυτόν τον υπολογιστή, στη διεύθυνση:",
+  "Copy the address {url}": "Αντιγραφή της διεύθυνσης {url}",
+  "It also answers at {url}.": "Απαντά επίσης στη διεύθυνση {url}.",
+  "QR code holding the address {url}": "Κωδικός QR με τη διεύθυνση {url}",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "Για να τον χρησιμοποιήσετε από την τηλεόραση ή το τηλέφωνο, ορίστε το {listen} σε {port} εκεί όπου ορίζεται (στο αρχείο ρυθμίσεών του, {flag} ή {env}) και επανεκκινήστε τον.",
+  "Then other devices at home can open it at {url}.": "Μετά οι άλλες συσκευές του σπιτιού μπορούν να τον ανοίξουν στη διεύθυνση {url}.",
+  "Write {standard} from {ext} files: there are none yet": "Εγγραφή {standard} από αρχεία {ext}: δεν υπάρχουν ακόμα",
+  "{done} of {count} films and episodes converted": "Ταινίες και επεισόδια που μετατράπηκαν: {done} από {count}",
+  "{done} of {count} shows": "Σειρές: {done} από {count}",
+  "{done} of {count} albums converted": "Άλμπουμ που μετατράπηκαν: {done} από {count}",
+  "lyrics for {done} of {count} songs": "Στίχοι: {done} από {count} τραγούδια",
+  "{count} old files renamed to .bak": "Παλιά αρχεία μετονομάστηκαν σε .bak: {count}",
+  "{count} couldn’t be converted (see the log)": "Δεν μετατράπηκαν (δείτε το αρχείο καταγραφής): {count}",
+  "{done} of {count} films, episodes and shows": "Ταινίες, επεισόδια και σειρές: {done} από {count}",
+  "{done} of {count} songs": "Τραγούδια: {done} από {count}",
+  "{done} of {count} games": "Παιχνίδια: {done} από {count}"
+}

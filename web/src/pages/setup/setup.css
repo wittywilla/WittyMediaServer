@@ -311,3 +311,18 @@ html.ten-foot .su-option > summary, html.using-controller .su-option > summary {
 /* Connect a device, in a dialog of its own: the dialog has the title, so the card's own heading and frame go. */
 .su-connect .cd { border: 0; background: none; box-shadow: none; padding: 0; }
 .su-connect .cd > h2:first-child { display: none; }
+/* A key saved already (#534): the provider says so, with Change, instead of asking again. */
+.oobe-provider .op-head-static { cursor: default; }
+.oobe-provider .op-saved { margin-top: var(--sp-2); }
+
+/* The server's address on the last page (#536): always there, with Copy, and a QR code when other devices can open it. */
+.su-address { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); justify-self: stretch; }
+.su-address-text { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); flex: 1 1 14rem; min-width: 0; }
+.su-address-text small { flex-basis: 100%; overflow-wrap: anywhere; }
+.su-address-url { font-size: var(--text-md); font-weight: 600; padding: 4px 8px; border-radius: var(--r-sm); background: var(--bg-2); border: 1px solid var(--border); overflow-wrap: anywhere; }
+.su-address .qr { inline-size: 8.5rem; block-size: 8.5rem; flex: none; border-radius: var(--r-sm); }
+.su-address .qr-paper { fill: #ffffff; } /* design-ok: a QR code is dark on light whatever the theme, as cameras read nothing else */
+.su-address .qr-ink { fill: #000000; } /* design-ok: as above */
+html.tv-mode .su-address .qr { inline-size: 11rem; block-size: 11rem; }
+/* Short names in a sentence (listen, -listen, WMS_LISTEN) break between words, not inside them. */
+.oobe-next-card span code { overflow-wrap: normal; white-space: nowrap; }

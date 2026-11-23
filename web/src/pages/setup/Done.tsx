@@ -6,6 +6,9 @@ import { IconCheck, IconDevices, IconTv, IconUsers } from '../../icons'
 import type { ModuleReport } from '../../moduleStore'
 import { MusicOnlineStep, SeparatorStep } from '../MusicOnline'
 import { Button, Dialog, Spinner } from '../../ui'
+import { toast } from '../../state'
+import { copyText } from '../../gallery'
+import { bestAddress, type HomeAddresses } from './address'
 import { AddProfile } from '../Profiles'
 import { setTvMode, useTvMode } from '../../tvmode/mode'
 import { canMake, describeOutcome, type Facts, type Outcome } from './plan'
@@ -42,7 +45,15 @@ export function Done({ facts, onFinish }: { facts: Facts; onFinish: (to?: string
   const [connect, setConnect] = useState(false)
   const [busy, setBusy] = useState(false)
   const tv = useTvMode()
-  useEffect(() => { void readOutcome().then(setOutcome) }, [])
+  const [home, setHome] = useState<HomeAddresses | null>(null)
+  useEffect(() => {
+    void readOutcome().then(setOutcome)
+    api.get<HomeAddresses>('/system').then(setHome).catch(() => setHome({}))
+  }, [])
+  // Always a best guess at the server's address, to write down or copy (#536): the home-network one when other devices
+  // can open it, else the one this page uses.
+  const addr = bestAddress(location, home)
+  const copy = async () => { toast((await copyText(addr.url)) ? t('Address copied') : t('Couldn’t copy it: select the address and copy it')) }
   const music = canMake(facts, 'music')
   const films = canMake(facts, 'movies') || canMake(facts, 'shows')
   const finish = (to?: string) => { setBusy(true); onFinish(to) }
@@ -65,6 +76,13 @@ export function Done({ facts, onFinish }: { facts: Facts; onFinish: (to?: string
           <IconDevices size={22} />
           <b>{t('Watch on your other devices')}</b>
           <span>{t('Phones, TVs and computers connect with a short code, at home or away.')}</span>
+          <div className="su-address">
+            <div className="su-address-text">
+              <code className="su-address-url">{addr.url}</code>
+              <Button size="sm" variant="ghost" onClick={() => void copy()} aria-label={t('Copy the address {url}', { url: addr.url })}>{t('Copy')}</Button>
+              {!addr.reachable && <small className="muted">{t('Right now this server only answers on this computer.')}</small>}
+            </div>
+          </div>
           <Button size="sm" onClick={() => setConnect(true)}>{t('Connect a device')}</Button>
         </div>
         <div className="oobe-next-card">

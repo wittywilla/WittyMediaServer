@@ -161,3 +161,8 @@ html:has(.set-toc) { scroll-padding-top: calc(var(--topbar-h) + var(--control-h-
 .sep-card { display: flex; align-items: flex-start; gap: 8px; font-weight: 600; }
 .sep-card input { margin-top: 3px; }
 .sep-card small { display: block; font-weight: 400; color: var(--fg-2); }
+
+/* A key's field and its buttons (components/SavedKey, in setup and Settings, #534). */
+.set-key { display: flex; gap: 8px; flex-wrap: wrap; }
+.set-key .input { flex: 1 1 260px; min-width: 0; font-family: var(--font-mono); font-size: var(--text-sm); }
+.set-key .input.pin { flex: 0 1 200px; font-family: inherit; }

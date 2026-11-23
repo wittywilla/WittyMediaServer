@@ -29,9 +29,6 @@
 .set-notice-row .set-notice { flex: 1; margin: 0; }
 
 /* Keys with a test button; a row of three short fields. */
-.set-key { display: flex; gap: 8px; flex-wrap: wrap; }
-.set-key .input { flex: 1 1 260px; min-width: 0; font-family: var(--font-mono); font-size: var(--text-sm); }
-.set-key .input.pin { flex: 0 1 200px; font-family: inherit; }
 .set-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .set-trio label { display: grid; gap: 6px; font-size: var(--text-sm); color: var(--fg-2); }
 

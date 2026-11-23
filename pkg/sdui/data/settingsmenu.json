@@ -11,6 +11,7 @@
     ] },
     { "id": "household", "key": "groupHousehold", "title": "Household", "rows": [
       { "id": "signInTv", "key": "rowSignInTv", "title": "Sign in a TV", "icon": { "android": "tv", "apple": "tv", "web": "Tv" }, "tint": "#bd2f85", "native": "signInTv", "path": "/pair", "when": ["adult", "notTv"] },
+      { "id": "connectDevice", "key": "rowConnectDevice", "title": "Connect a device", "icon": { "android": "add_link", "apple": "link.badge.plus", "web": "Link" }, "tint": "#0a6fb8", "path": "/away", "when": ["adult", "notTv"] },
       { "id": "profiles", "key": "rowProfiles", "title": "Profiles and parental limits", "icon": { "android": "family_restroom", "apple": "figure.2.and.child.holdinghands", "web": "Users" }, "tint": "#b8500d", "native": "profiles", "path": "/settings/users", "when": ["adult"] }
     ] },
     { "id": "yours", "key": "groupYours", "title": "Yours", "rows": [

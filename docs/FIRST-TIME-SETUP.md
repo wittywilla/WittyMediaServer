@@ -34,6 +34,7 @@ Install the server first: [Getting started](GETTING_STARTED.md#install-it-and-st
 ## 1. Welcome
 
 ![The welcome page: the language, Get started, Advanced setup, Restore from a backup, and what the server does](images/setup-01-welcome.webp)
+*The first page: the language, then quick or advanced setup.*
 
 Pick your **language**: the page changes as you pick it. Then:
 
@@ -44,10 +45,12 @@ Pick your **language**: the page changes as you pick it. Then:
 **Customize** holds the **time zone** (the computer's own to begin with; the TV guide, recordings and logs follow it) and the language for **disc menus and sound tracks** (follows the language unless you pick another).
 
 ![The Customize dialog on Welcome: disc menus and sound tracks, and the time zone](images/setup-02-welcome-customize.webp)
+*Welcome's Customize: disc menus and sound tracks, and the time zone.*
 
 ## 2. Your account
 
 ![The account page: a name, a password typed twice, the server's name, and a tick to say you understand](images/setup-03-account.webp)
+*The account and the server's name, on one page.*
 
 A **name to sign in with**, a **password** of at least 8 characters typed twice, and optionally the **server's name**, which every app shows. Tick the box to say the files you add are your own responsibility, then press **Create account**. Keep the password safe: [forgetting it is hard to undo](ACCOUNTS.md#if-you-forget-your-password).
 
@@ -56,26 +59,32 @@ A **name to sign in with**, a **password** of at least 8 characters typed twice,
 **Where data is kept.** On a computer you use (the Windows tray app, the Mac app, a Linux desktop), the next page asks where the server keeps its settings and data. **Documents** is chosen to begin with; **Keep it here** carries on. A server, Docker or a service whose folder is already set doesn't ask. See [The data folder](DATA-FOLDER.md).
 
 ![Where data is kept: Documents chosen, the install folder beside it, and Somewhere else](images/setup-03-data-folder.webp)
+*Documents is chosen to begin with. The line under the choices says how much room there is.*
 
 ## 3. Modules
 
 ![The list of modules, each with a tick box and what it lets you add](images/setup-04-modules.webp)
+*Tick what you want. The folder browser is ticked for you.*
 
 Movies, TV shows and music work already. Modules add the rest: discs, games, live TV, books, comics, photos and more. Tick what you want and press **Install**: each one downloads, signed, from the official list, and is checked before it's used. **WittyIntegratedFileBrowser** is ticked to begin with: it lets you pick folders by looking through them, from any device. Nothing is downloaded until you press the button.
 
 ![Modules being installed, one at a time](images/setup-05-modules-installing.webp)
+*Each module downloads, and is checked before it's used.*
 
 **Customize** holds **when a module has a new version**: tell me and I'll choose (to begin with), install them by themselves, or only when I check. You can add modules any time in **Settings → Modules**, and **Your media** offers the module a kind of library needs, right where you'd want it.
 
 ## 4. Your media
 
 ![Every kind of media to choose from: movies, TV, music, books, photos, games and more](images/setup-06-media.webp)
+*Choose a kind, then its folder. A kind that needs a module offers it right there.*
 
 Pick a kind of media, then the folder it's in, as many times as you like. Each becomes a library. Your files stay where they are, and the scan starts at once.
 
 ![The folder for a Movies library](images/setup-08-media-movies.webp)
+*The folder for a Movies library. Openly licensed demo media.*
 
 ![The list of libraries so far, with every kind still there to add another](images/setup-09-media-added.webp)
+*Add another kind, or press Continue.*
 
 **Customize** holds two choices:
 
@@ -83,24 +92,29 @@ Pick a kind of media, then the folder it's in, as many times as you like. Each b
 - **More than one folder of a kind:** one library, or separate libraries with their own names.
 
 ![The Customize dialog on Your media](images/setup-07-media-customize.webp)
+*Your media's Customize: details beside your files, and one or separate libraries.*
 
 **Live TV and Games.** If you added WittyTuner or WittyPlay, their own page comes next. Live TV finds tuners on your network and offers a **demo tuner** to try the guide with nothing to buy; no channel lists come with the server, and encrypted channels are never decrypted ([Channels and live TV](CHANNELS.md)). Games: point it at your games folder and leave it ([Games](GAMES.md)).
 
 ![The games page](images/setup-10-games.webp)
+*Point it at your games folder and leave it.*
 
 ## 5. Look
 
 ![The layouts, each with a small picture, and a preview of the one chosen](images/setup-11-look.webp)
+*The layouts, tried as you choose.*
 
 Pick how everyone's Home starts out. The preview shows it on a TV, a computer, a phone or in VR, and the page tries it as you choose. Each person can pick their own later.
 
 **Customize** holds **Colours** (each look brings its own until you pick one theme for all of them, or import a theme) and, with WittyTuner, the **TV guide**'s own look.
 
 ![The Customize dialog on Look, with the themes](images/setup-12-look-customize.webp)
+*Look's Customize: one theme for all looks, or each look's own.*
 
 ## 6. Finish
 
 ![You're all set: what was added, and cards to connect a device, add the family and use this screen as a TV](images/setup-13-done.webp)
+*The last page: connect a device, add the family, use this screen as a TV.*
 
 Your libraries are being scanned. From here:
 
@@ -111,6 +125,7 @@ Your libraries are being scanned. From here:
 **Customize** holds everything optional, each off or as it comes until you change it: the **home network** (whether apps find the server by themselves, and its port), **posters and details** (free sources work already; two more take a free key; details already beside your media can be converted), **logos** for studios, networks and consoles, **lyrics and artists** from the web, **karaoke voices** (a cleaner way to take the singer out, a large download) and **streaming lists**.
 
 ![The Customize dialog on Finish](images/setup-14-done-customize.webp)
+*Finish's Customize: everything optional, each already answered.*
 
 Press **Start watching**.
 
@@ -137,12 +152,16 @@ Advanced setup asks everything quick setup leaves in **Customize**, on pages of 
 | | Away from home | Connect a device, and whether it works away from home | Settings → Remote Access |
 
 ![Advanced setup: the server's name, with its colours and mark](images/setup-22-advanced-name.webp)
+*Advanced setup: the server's name, colours and mark.*
 
 ![Advanced setup: who else watches](images/setup-23-advanced-people.webp)
+*Advanced setup: profiles, and what people can change.*
 
 ![Advanced setup: posters and details](images/setup-25-advanced-details.webp)
+*Advanced setup: posters and details.*
 
 ![Advanced setup: away from home](images/setup-32-advanced-remote.webp)
+*Advanced setup: connect a device, at home or away.*
 
 ## On a TV
 

@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -32,6 +33,8 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -160,10 +163,27 @@ func meet(ctx context.Context, h interface {
 
 // ---------------------------------------------------------------- server
 
-type devices struct{ ids map[string]bool }
+type devices struct {
+	mu  sync.Mutex
+	ids map[string]bool
+}
 
-func (d devices) Allowed(id string) bool { return d.ids[id] }
-func (d devices) Seen(string, string)    {}
+func (d *devices) Allowed(id string) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.ids[id]
+}
+func (d *devices) Seen(string, string) {}
+
+func (d *devices) list() []string {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	out := []string{}
+	for id := range d.ids {
+		out = append(out, id)
+	}
+	return out
+}
 
 var blob = bytes.Repeat([]byte("WittyMediaServer"), 1<<16) // 1 MiB
 
@@ -192,17 +212,17 @@ func server(args []string) error {
 	obs := fs.String("observers", "", "file of observers' addresses")
 	out := fs.String("out", "server.json", "where to write the status")
 	port := fs.Int("port", 4002, "")
+	revokeAfter := fs.Duration("revoke-after", 0, "take every device off the list after this long, as Settings does")
 	_ = fs.Parse(args)
-	ids := map[string]bool{}
-	var list []string
+	devs := &devices{ids: map[string]bool{}}
 	for _, d := range strings.Split(*device, ",") {
 		if d = strings.TrimSpace(d); d != "" {
-			ids[d], list = true, append(list, d)
+			devs.ids[d] = true
 		}
 	}
 	cfg := p2p.NodeConfig{
 		Seed: seedOf(1), Port: *port, Layers: p2p.Layers{Relay: true, HolePunch: true}, DevicesOnly: true,
-		Devices: devices{ids}, DeviceIDs: func() []string { return list }, Name: "netsim server",
+		Devices: devs, DeviceIDs: devs.list, Name: "netsim server",
 		Handler: handler(), Log: logger(),
 		Listen: []string{fmt.Sprintf("/ip4/0.0.0.0/udp/%d/quic-v1", *port), fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", *port)},
 	}
@@ -219,10 +239,32 @@ func server(args []string) error {
 	if *obs != "" {
 		go meet(ctx, n.Host(), *obs)
 	}
+	var revokedAt atomic.Int64
+	if *revokeAfter > 0 {
+		go func() {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(*revokeAfter):
+			}
+			// What taking a device off the list does on a real server: the
+			// list, the WittyRelay told at once, and every connection closed.
+			gone := devs.list()
+			devs.mu.Lock()
+			devs.ids = map[string]bool{}
+			devs.mu.Unlock()
+			revokedAt.Store(time.Now().UnixMilli())
+			n.DevicesChanged()
+			for _, id := range gone {
+				n.Kick(id)
+			}
+			slog.Info("netsim: every device was taken off the list", "devices", len(gone))
+		}()
+	}
 	go func() {
 		for {
 			st := n.Status()
-			writeJSON(*out, map[string]any{"id": n.ID(), "addrs": n.Addrs(), "status": st})
+			writeJSON(*out, map[string]any{"id": n.ID(), "addrs": n.Addrs(), "status": st, "revokedAt": revokedAt.Load()})
 			select {
 			case <-ctx.Done():
 				return
@@ -237,22 +279,26 @@ func server(args []string) error {
 // ---------------------------------------------------------------- client
 
 type result struct {
-	OK           bool     `json:"ok"`
-	Error        string   `json:"error,omitempty"`
-	ConnectSec   float64  `json:"connectSec"`
-	FirstPath    string   `json:"firstPath"`
-	Path         string   `json:"path"`
-	Transport    string   `json:"transport,omitempty"`
-	Community    bool     `json:"community"`
-	RelayAllows  string   `json:"relayAllows,omitempty"`
-	DirectAfter  float64  `json:"directAfterSec,omitempty"` // when a relayed connection became direct
-	MB           int      `json:"mb"`
-	Mbps         float64  `json:"mbps"`
-	Requests     int      `json:"requests,omitempty"`
-	Failed       int      `json:"failed,omitempty"`
-	LongestGapMs int64    `json:"longestOutageMs,omitempty"`
-	States       []string `json:"states"`
-	OwnAddrs     []string `json:"ownAddrs"`
+	OK           bool    `json:"ok"`
+	Error        string  `json:"error,omitempty"`
+	ConnectSec   float64 `json:"connectSec"`
+	FirstPath    string  `json:"firstPath"`
+	Path         string  `json:"path"`
+	Transport    string  `json:"transport,omitempty"`
+	Community    bool    `json:"community"`
+	RelayAllows  string  `json:"relayAllows,omitempty"`
+	DirectAfter  float64 `json:"directAfterSec,omitempty"` // when a relayed connection became direct
+	MB           int     `json:"mb"`
+	Mbps         float64 `json:"mbps"`
+	Requests     int     `json:"requests,omitempty"`
+	Failed       int     `json:"failed,omitempty"`
+	LongestGapMs int64   `json:"longestOutageMs,omitempty"`
+	// For a device that must not get in (a stranger) or must stop getting in
+	// (revoked): what it got anyway.
+	Answered        int      `json:"answered,omitempty"`
+	AnsweredRevoked int      `json:"answeredAfterRevoke,omitempty"`
+	States          []string `json:"states"`
+	OwnAddrs        []string `json:"ownAddrs"`
 }
 
 func client(args []string) error {
@@ -265,6 +311,8 @@ func client(args []string) error {
 	upgrade := fs.Duration("upgrade", 90*time.Second, "how long to wait for a relayed connection to become direct")
 	loop := fs.Duration("loop", 0, "keep sending requests this long, reporting outages")
 	seed := fs.Int("seed", 2, "")
+	refused := fs.Bool("expect-refused", false, "this device isn't on the list: ok means nothing ever answers it")
+	revoked := fs.Bool("expect-revoked", false, "the server takes this device off its list while -loop runs: ok means nothing answers after that")
 	_ = fs.Parse(args)
 
 	var info struct {
@@ -329,20 +377,6 @@ func client(args []string) error {
 		return nil
 	}
 
-	// Connected, and usable (a public relay that only introduces doesn't count).
-	deadline := time.Now().Add(*wait)
-	for {
-		st := c.State()
-		if st.Connected() && (st.Path != p2p.PathRelayed || st.Community) {
-			res.FirstPath = st.Path
-			break
-		}
-		if time.Now().After(deadline) {
-			return done(fmt.Errorf("no usable connection after %v: %+v", *wait, st))
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	res.ConnectSec = time.Since(start).Seconds()
 	get := func(path string, timeout time.Duration) (int64, error) {
 		rctx, rcancel := context.WithTimeout(ctx, timeout)
 		defer rcancel()
@@ -357,6 +391,40 @@ func client(args []string) error {
 		}
 		return io.Copy(io.Discard, r.Body)
 	}
+
+	if *refused {
+		// A stranger: it may find the server, and may even connect (a
+		// connection says nothing), but no request of its gets an answer, by
+		// any path, for as long as it keeps trying.
+		end := time.Now().Add(*wait)
+		for time.Now().Before(end) {
+			res.Requests++
+			if _, err := get("/hello", 5*time.Second); err == nil {
+				res.Answered++
+			}
+			time.Sleep(time.Second)
+		}
+		if res.Answered > 0 {
+			return done(fmt.Errorf("a device that isn't on the list was answered %d times", res.Answered))
+		}
+		res.OK = true
+		return done(nil)
+	}
+
+	// Connected, and usable (a public relay that only introduces doesn't count).
+	deadline := time.Now().Add(*wait)
+	for {
+		st := c.State()
+		if st.Connected() && (st.Path != p2p.PathRelayed || st.Community) {
+			res.FirstPath = st.Path
+			break
+		}
+		if time.Now().After(deadline) {
+			return done(fmt.Errorf("no usable connection after %v: %+v", *wait, st))
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	res.ConnectSec = time.Since(start).Seconds()
 	if _, err := get("/hello", 30*time.Second); err != nil {
 		return done(fmt.Errorf("/hello: %w", err))
 	}
@@ -382,10 +450,22 @@ func client(args []string) error {
 		end := time.Now().Add(*loop)
 		var lastOK = time.Now()
 		var longest time.Duration
+		revokedAt := func() int64 {
+			var st struct {
+				RevokedAt int64 `json:"revokedAt"`
+			}
+			b, _ := os.ReadFile(*srv)
+			_ = json.Unmarshal(b, &st)
+			return st.RevokedAt
+		}
 		for time.Now().Before(end) {
 			res.Requests++
+			asked := time.Now()
 			if _, err := get("/hello", 5*time.Second); err != nil {
 				res.Failed++
+			} else if at := revokedAt(); *revoked && at > 0 && asked.UnixMilli() > at+1000 {
+				// Asked a second after the server took it off the list, and answered.
+				res.AnsweredRevoked++
 			} else {
 				if gap := time.Since(lastOK); gap > longest {
 					longest = gap
@@ -398,6 +478,16 @@ func client(args []string) error {
 			longest = gap
 		}
 		res.LongestGapMs = longest.Milliseconds()
+		if *revoked {
+			if revokedAt() == 0 {
+				return done(errors.New("the server never took the device off its list, so this proves nothing"))
+			}
+			if res.AnsweredRevoked > 0 {
+				return done(fmt.Errorf("answered %d times after being taken off the list", res.AnsweredRevoked))
+			}
+			res.OK = true
+			return done(nil)
+		}
 		if time.Since(lastOK) > 10*time.Second {
 			return done(fmt.Errorf("never came back: last answer %v ago", time.Since(lastOK).Round(time.Second)))
 		}

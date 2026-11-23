@@ -45,6 +45,7 @@ export const TV_LEVEL_WORDS = [
   tk('Customising a page'),
   tk('Advanced quality'),
   tk('Canvas studio'),
+  tk('Advanced voice settings'),
   tk('Making a canvas'),
   tk('Custom cores'),
   tk('Importing game pictures'),

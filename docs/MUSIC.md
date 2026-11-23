@@ -121,7 +121,7 @@ Press the artwork or title in the bar, or **Full screen**. **F** then fills the 
 
 **Below the controls:** what's behind the player (**Album art**, **Canvas video** or **Visualizer**, and the visualizer's styles), **Look**, **Lyrics** and **Karaoke**.
 
-**Lyrics** opens the words with a switch at the top: **In time** follows the song, and **Read** shows them at your own pace, and whatever came with the album: text files open in the panel, and a PDF booklet opens in a new tab. A text file named after one song counts as that song's lyrics instead.
+**Lyrics** opens the words with one switch at the top: **Follow along** follows the song, and **Read** shows them at your own pace, and whatever came with the album: text files open in the panel, and a PDF booklet opens in a new tab. A text file named after one song counts as that song's lyrics instead.
 
 **The sleep timer** stops playing in 15, 30, 45, 60 or 90 minutes, or **After this song**.
 

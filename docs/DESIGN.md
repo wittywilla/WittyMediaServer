@@ -268,6 +268,29 @@ One rule for every page, here and in the apps (WittyMediaClient's docs/APP-DESIG
   guide) and a settings row (what a setting is at the start, its control at the end).
 - TV mode follows the same rule at ten feet.
 
+### Standalone pages
+
+A page with no app around it: signing in, Who's watching, signing in with a phone, the two-step code, can't
+reach the server, choosing a server in the apps, From away when signed out, the last-resort error page, and the
+pages the apps' local connector answers a browser with. Every one is drawn the same way, with
+`components/StandaloneCard.tsx` (and `pkg/wittyconnect/page.go` for the connector, which has no web client):
+
+1. **One card, centred both ways**, in the setup wizard's look (design tokens only, so it follows the theme).
+2. **The server's logo and name at the top**, small: the name its owner gave it in setup (`brandName` from
+   `GET /api/status`). A page that knows no server yet shows the app's own.
+3. **No scrolling** at 1280×720, 1366×768, 1440×900 and 1920×1080 at 100% zoom, at phone sizes (360×640,
+   390×844) where it can, and in TV mode. Use the wide card (`wide`) for two columns (a QR code beside its code
+   and PIN, a row of profiles), and let short screens take the card's tighter spacing. Scrolling is only a
+   fallback for a very small or zoomed screen.
+4. **One heading and one short sentence, no label said twice**, in plain words. A page drawn from a spec has its
+   eyebrow hidden (the brand line stands for it). The first action is a full-width button; the others are text
+   buttons inside the card (`.sa-text-btn`), never a bar of their own.
+
+On an address only this device can use (127.0.0.1, localhost), leave out a QR code a phone would scan: lead with
+the code. `npm run test:standalone` (in CI) loads each page at those sizes and checks the card is there and
+centred, the logo and name show, and nothing scrolls at 720 pixels tall or more. A new standalone page goes in
+its list (`scripts/test-standalone.mjs`, `PAGES`).
+
 ### Navigation
 
 - **Wide screens**: a side menu, a top bar, or both, chosen per device under *Settings, Appearance*.

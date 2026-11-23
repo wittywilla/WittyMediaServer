@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useState } from 'react'
-import { Brand, BrandMark } from './common'
+import { StandaloneCard } from './StandaloneCard'
 import SpecPage from '../spec/SpecPage'
 import { handledIds } from '../spec/model'
 import { unreachableSpec } from '../spec/specs/unreachable'
@@ -24,11 +24,8 @@ export default function Unreachable() {
   useEffect(() => { if (left <= 0 && !loading) { setTries((n) => n + 1); retryStatus() } }, [left, loading, retryStatus])
   const page = unreachableSpec({ address: window.location.origin, trying: loading, seconds: Math.max(left, 0), tries })
   return (
-    <div className="center">
-      <div className="auth-spec">
-        <div className="brand"><BrandMark /><Brand name="" /></div>
-        <SpecPage page={page} handled={handledIds(page)} onAction={() => { setTries((n) => n + 1); retryStatus() }} />
-      </div>
-    </div>
+    <StandaloneCard name="">
+      <SpecPage page={page} handled={handledIds(page)} onAction={() => { setTries((n) => n + 1); retryStatus() }} />
+    </StandaloneCard>
   )
 }

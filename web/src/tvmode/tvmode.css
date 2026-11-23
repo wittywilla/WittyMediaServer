@@ -188,10 +188,7 @@ html.tv-mode .tvm-key:focus { outline: none; background: var(--fg); color: var(-
 .tvm-row.danger .tvm-row-name { color: var(--danger); }
 
 /* ---- Who's watching: 200 avatars in one centred row, focus on the avatar alone */
-html.tv-mode .who { gap: calc(var(--tvu) * 32); padding: calc(var(--tvu) * 60) var(--tvm-gutter); }
-html.tv-mode .who-brand { font-size: var(--tvm-headline); gap: calc(var(--tvu) * 16); }
-html.tv-mode .who-brand img { width: calc(var(--tvu) * 56); height: calc(var(--tvu) * 56); }
-html.tv-mode .who h1 { font-size: var(--tvm-display); font-weight: 700; }
+html.tv-mode .who-card { gap: calc(var(--tvu) * 28); }
 html.tv-mode .who-grid { flex-wrap: nowrap; gap: calc(var(--tvu) * 48); max-width: none; padding-top: calc(var(--tvu) * 24); }
 html.tv-mode .who-tile { gap: 0; padding: calc(var(--tvu) * 12) calc(var(--tvu) * 8); color: var(--fg-2); }
 html.tv-mode .who-tile:focus { outline: none; transform: none; }

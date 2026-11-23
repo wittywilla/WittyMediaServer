@@ -3,7 +3,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { reportClient } from '../errorReport'
 import { t } from '../i18n'
-import { IconRefresh } from '../icons'
+import { StandaloneCard } from './StandaloneCard'
 
 // The last line of defence: an error while drawing a page would otherwise leave
 // a blank screen. It's reported to the server's log and this offers a way back.
@@ -21,19 +21,19 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, { 
   render() {
     if (!this.state.failed) return this.props.children
     return (
-      <main className="center">
-        <div className="empty" role="alert">
-          <span className="empty-ic" aria-hidden="true"><IconRefresh /></span>
-          <h1 style={{ margin: '0 0 var(--sp-1)', fontSize: 'var(--text-lg)', color: 'var(--fg)' }}>{t('This page ran into a problem')}</h1>
-          <p>{t("Reloading usually fixes it. What happened has been noted in your server's log, and nothing was sent anywhere else.")}</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 'var(--sp-2)' }}>
-            <button type="button" className="btn primary" onClick={() => window.location.reload()}>{t('Reload')}</button>
-            <button type="button" className="btn ghost" onClick={() => window.location.assign('/')}>{t('Go to Home')}</button>
-            <a className="btn ghost" href="/help/troubleshooting">{t('Troubleshooting')}</a>
-          </div>
-          <p style={{ marginTop: 'var(--sp-3)' }}>{t('Looking after this server, and it keeps happening?')} <a href="/settings/logs?tab=bundle">{t('Download the logs, sanitized for sharing, for whoever is helping you.')}</a></p>
+      <StandaloneCard foot={<>{t('Looking after this server, and it keeps happening?')} <a href="/settings/logs?tab=bundle">{t('Download the logs, sanitized for sharing, for whoever is helping you.')}</a></>}>
+        <div role="alert">
+          <h1>{t('This page ran into a problem')}</h1>
+          <p className="sa-lead">{t("Reloading usually fixes it. What happened has been noted in your server's log, and nothing was sent anywhere else.")}</p>
         </div>
-      </main>
+        <div className="sa-actions">
+          <button type="button" className="btn primary" onClick={() => window.location.reload()}>{t('Reload')}</button>
+          <div className="sa-links">
+            <button type="button" className="sa-text-btn" onClick={() => window.location.assign('/')}>{t('Go to Home')}</button>
+            <a className="sa-text-btn" href="/help/troubleshooting">{t('Troubleshooting')}</a>
+          </div>
+        </div>
+      </StandaloneCard>
     )
   }
 }

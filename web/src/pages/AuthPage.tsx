@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom'
 import { api, ApiError, isNativeShell, profileName, setToken, type User } from '../api'
 import ConnectServer from '../components/ConnectServer'
 import { PairDevice } from '../components/PairDevice'
-import { Brand, BrandMark, VersionTag } from '../components/common'
+import { VersionTag } from '../components/common'
+import { StandaloneCard } from '../components/StandaloneCard'
 import SpecPage from '../spec/SpecPage'
 import { handledIds } from '../spec/model'
 import { codeSpec, signInSpec } from '../spec/specs/auth'
@@ -22,7 +23,7 @@ type Profile = { id: number; name: string; displayName?: string; kind: 'adult' |
 // tile per profile; elsewhere (or when an admin chose it) the classic name
 // and password form. The server decides which, see GET /api/profiles.
 export default function AuthPage() {
-  const { brandName, version, setUser } = useApp()
+  const { version, setUser } = useApp()
   // On a TV the username shows under a profile name that differs from it, as in the apps.
   const tv = useTvMode()
   const [tapErr, setTapErr] = useState('')
@@ -50,14 +51,15 @@ export default function AuthPage() {
   }, [])
   if (!style) return <div className="center"><div className="spinner" /></div>
   if (changing) return <ConnectServer onCancel={() => setChanging(false)} />
-  if (pairing) return <div className="center"><PairDevice onBack={() => setPairing(false)} /></div>
-  const withPhone = <button type="button" className="btn ghost" onClick={() => setPairing(true)}>{t('Sign in with your phone')}</button>
-  const changeServer = isNativeShell() && <button type="button" className="btn ghost sm" onClick={() => setChanging(true)}>{t('Change server')}</button>
+  if (pairing) return <PairDevice onBack={() => setPairing(false)} />
+  // The other ways in, as text buttons at the card's foot (docs/DESIGN.md, "Standalone pages").
+  const withPhone = <button type="button" className="sa-text-btn" onClick={() => setPairing(true)}>{t('Sign in with your phone')}</button>
+  const changeServer = isNativeShell() && <button type="button" className="sa-text-btn" onClick={() => setChanging(true)}>{t('Change server')}</button>
+  const foot = <><VersionTag version={version} /> · <Link to="/away">{t('Connect a device')}</Link> · <Link to="/help">{t('Help')}</Link> · <Link to="/legal">{t('Legal')}</Link></>
 
   if (style === 'profiles' && !chosen && !other) {
     return (
-      <div className="who">
-        <div className="who-brand"><BrandMark /><Brand name={brandName} /></div>
+      <StandaloneCard wide className="who-card" foot={foot}>
         <h1>{t('Who’s watching?')}</h1>
         <ul className="who-grid" role="list">
           {profiles!.map((p, i) => (
@@ -72,20 +74,19 @@ export default function AuthPage() {
           ))}
         </ul>
         {tapErr && <div className="error" role="alert">{tapErr}</div>}
-        <button type="button" className="btn ghost" onClick={() => setOther(true)}>{t('Sign in with another account')}</button>
-        {withPhone}
-        {changeServer}
-        <div className="auth-version"><VersionTag version={version} /> · <Link to="/away">{t('Connect a device')}</Link> · <Link to="/help">{t('Help')}</Link> · <Link to="/legal">{t('Legal')}</Link></div>
-      </div>
+        <div className="sa-links">
+          <button type="button" className="sa-text-btn" onClick={() => setOther(true)}>{t('Sign in with another account')}</button>
+          {withPhone}
+          {changeServer}
+        </div>
+      </StandaloneCard>
     )
   }
   return (
-    <div className="center">
+    <StandaloneCard foot={foot}>
       <PasswordForm profile={chosen} onBack={style === 'profiles' ? () => { setChosen(null); setOther(false) } : undefined} />
-      {!chosen && withPhone}
-      {changeServer}
-      <div className="auth-version"><VersionTag version={version} /> · <Link to="/away">{t('Connect a device')}</Link> · <Link to="/help">{t('Help')}</Link> · <Link to="/legal">{t('Legal')}</Link></div>
-    </div>
+      {(!chosen || changeServer) && <div className="sa-links">{!chosen && withPhone}{changeServer}</div>}
+    </StandaloneCard>
   )
 }
 
@@ -120,10 +121,10 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
       setTimeout(() => document.querySelector<HTMLElement>('[data-field="password"]')?.focus())
     } finally { setBusy(false) }
   }
-  const logo = <div className="brand"><BrandMark /><Brand name={brandName} /></div>
+  // The card shows the server's logo and name; a chosen profile adds its picture.
   const head = profile
     ? <div className="auth-profile"><Avatar name={profileName(profile)} avatar={profile.avatar} big />{tv && profileName(profile) !== profile.name && <span className="who-user">@{profile.name}</span>}</div>
-    : logo
+    : null
   const act = (id: string) => {
     if (id === 'back') { if (needCode) { setNeedCode(false); setErr(''); setPassword('') } else onBack?.() }
     else if (!busy) submit()

@@ -73,6 +73,9 @@ jobs:
         run: cd web && npm run test:links
       - name: Every button has a name a screen reader can say
         run: cd web && npm run test:names
+      # The runner's Chrome, headless, on the build above and a stand-in for the API: no Go, no data folder.
+      - name: Standalone pages are one centred card with the server's name, and don't scroll
+        run: cd web && WV_BROWSER=$(command -v google-chrome) npm run test:standalone
       - name: Every source file has its licence header
         run: python3 scripts/license-headers.py
       - name: Known vulnerabilities in web packages

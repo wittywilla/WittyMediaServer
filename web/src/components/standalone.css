@@ -1,0 +1,96 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* A standalone page (components/StandaloneCard.tsx): one card, centred both ways, the server's logo and name at its
+   top, small enough for a 1280×720 screen and a phone without scrolling (docs/DESIGN.md, "Standalone pages").
+   The card is the setup wizard's (oobe.css, .oobe-card): tokens only, so it follows the theme and look in use. */
+.sa-page {
+  display: grid; place-items: center; box-sizing: border-box; min-height: 100vh; min-height: 100dvh;
+  padding: max(var(--sp-4), env(safe-area-inset-top, 0px)) max(var(--sp-4), env(safe-area-inset-right, 0px)) max(var(--sp-4), env(safe-area-inset-bottom, 0px)) max(var(--sp-4), env(safe-area-inset-left, 0px));
+  background: radial-gradient(70% 60% at 50% 0%, rgb(var(--accent-rgb) / .12), transparent 70%), var(--bg);
+}
+.sa-card {
+  display: flex; flex-direction: column; gap: var(--sp-4); box-sizing: border-box; width: min(100%, 30rem); min-inline-size: 0;
+  padding: clamp(var(--sp-5), 3vw, var(--sp-8)); border: 1px solid var(--border); border-radius: var(--r-xl);
+  background: var(--bg-2); box-shadow: var(--e-3); animation: sa-in var(--dur-3) var(--ease-out);
+}
+.sa-card.wide { width: min(100%, 52rem); }
+@keyframes sa-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sa-card { animation: none; } }
+.sa-card :is(code, kbd, samp, a) { overflow-wrap: anywhere; }
+
+/* The server's logo and name: small, the card's first line. */
+.sa-brand { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); min-width: 0; font-size: var(--text-md); font-weight: 700; letter-spacing: var(--tracking-heading); }
+.sa-brand .brand-mark { flex: none; width: 28px; height: 28px; object-fit: contain; border-radius: var(--r-sm); }
+.sa-brand .brand-badge { display: inline-grid; place-items: center; font-size: var(--text-xs); }
+.sa-brand .brand-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); }
+.sa-brand .brand-name b { color: var(--brand-accent); font-weight: 700; }
+
+/* One heading and one sentence, centred; the rest of the card reads from the start. */
+.sa-card h1 { margin: 0; font-size: var(--text-2xl, 1.75rem); letter-spacing: var(--tracking-display); line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+.sa-lead { margin: 0 auto; max-width: 44ch; color: var(--fg-2); font-size: var(--text-md); line-height: var(--leading-snug, 1.45); text-align: center; }
+.sa-actions { display: flex; flex-direction: column; align-items: stretch; gap: var(--sp-2); }
+.sa-actions .btn { justify-content: center; }
+/* A secondary action is a text button. */
+.sa-text-btn { align-self: center; min-height: var(--control-h-sm, 2.25rem); padding: 0 var(--sp-3); border: 0; border-radius: var(--r-md); background: none; color: var(--accent-text, var(--accent)); font: inherit; font-size: var(--text-md); font-weight: 600; cursor: pointer; }
+.sa-text-btn:hover { text-decoration: underline; }
+.sa-foot { color: var(--fg-3); font-size: var(--text-xs); text-align: center; }
+.sa-foot a { color: inherit; }
+
+/* A page drawn from a spec, inside the card: the card's brand line stands for the eyebrow, the heading is the
+   card's, fields take the card's width, and the page's buttons are the card's own: the first a full-width button,
+   the rest text buttons, not a bar of their own. */
+.sa-card .spec-page { gap: var(--sp-4); max-width: none; margin: 0; padding: 0; }
+.sa-card .spec-eyebrow { display: none; }
+.sa-card .spec-head { text-align: center; }
+.sa-card .spec-head h1 { font-size: var(--text-2xl, 1.75rem); }
+.sa-card .spec-lead { margin: var(--sp-2) auto 0; max-width: 44ch; }
+.sa-card .spec-field { max-width: none; }
+.sa-card .spec-note { max-width: none; }
+.sa-card .spec-fields { gap: var(--sp-3); }
+.sa-card .spec-dock { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.sa-card .spec-dock .dock-row { flex-direction: column; align-items: stretch; width: 100%; gap: var(--sp-1); }
+.sa-card .spec-dock .dock-btn { justify-content: center; }
+.sa-card .spec-dock .dock-btn.primary { width: 100%; }
+.sa-card .spec-dock .dock-btn:not(.primary) { align-self: center; border-color: transparent; background: none; color: var(--accent-text, var(--accent)); }
+.sa-card .spec-dock .dock-btn:not(.primary):hover { background: none; text-decoration: underline; }
+.sa-card .spec-dock .dock-btn:not(.primary):focus-visible { background: var(--fg); color: var(--bg); text-decoration: none; }
+.sa-card .spec-chips { justify-content: center; }
+.sa-card .spec-chip { border-color: transparent; background: none; color: var(--accent-text, var(--accent)); }
+
+/* Short screens (a 1280×720 laptop, a phone on its side): less air, the same card. */
+@media (max-height: 820px) {
+  .sa-page { padding-block: var(--sp-3); }
+  .sa-card { gap: var(--sp-3); padding: var(--sp-5); }
+  .sa-card .spec-page { gap: var(--sp-3); }
+  .sa-card h1, .sa-card .spec-head h1 { font-size: var(--text-xl); }
+}
+@media (max-width: 480px) {
+  .sa-page { padding-inline: var(--sp-3); }
+  .sa-card { padding: var(--sp-4); }
+}
+
+/* TV mode: the card is read from the sofa, so the type is larger (ten-foot) and the card wider, still on one
+   screen. No keyboard words here: a remote's OK and Back reach everything. */
+html.tv-mode .sa-card { width: min(100%, 40rem); }
+html.tv-mode .sa-card.wide { width: min(100%, 64rem); }
+html.tv-mode .sa-brand .brand-mark { width: 36px; height: 36px; }
+html.tv-mode .sa-card .spec-dock { min-height: 0; padding: 0; }
+html.tv-mode .sa-card .spec-dock .dock-btn { min-height: 56px; }
+@media (max-height: 820px) { html.tv-mode .sa-page { padding-block: var(--sp-2); } html.tv-mode .sa-card { gap: var(--sp-2); padding: var(--sp-4) var(--sp-6); } }
+
+/* The other ways in (another account, a phone, another server): text buttons in a row at the card's foot. */
+.sa-links { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-1) var(--sp-2); }
+
+/* Who's watching: the profiles in a row (or rows) across the wide card. */
+.who-card .who-grid { max-width: none; gap: clamp(var(--sp-2), 2vw, var(--sp-6)); }
+.who-card .avatar-tile.big { width: clamp(72px, 11vw, 112px); height: clamp(72px, 11vw, 112px); font-size: clamp(30px, 4.5vw, 48px); }
+.who-card .who-name { font-size: var(--text-md); }
+@media (max-height: 820px) { .who-card .avatar-tile.big { width: clamp(64px, 9vw, 96px); height: clamp(64px, 9vw, 96px); } }
+/* A chosen profile's picture over its password. */
+.sa-card .auth-profile { margin: 0; }
+.sa-card .auth-profile .avatar-tile.big { width: 72px; height: 72px; font-size: var(--text-2xl, 1.75rem); }
+
+/* From away, signed out (pages/AwayPage.tsx): the three steps. */
+.away-sa .away-steps { margin: 0; padding-inline-start: 1.25rem; display: grid; gap: var(--sp-2); color: var(--fg-2); line-height: var(--leading-snug, 1.45); }
+.away-sa .away-steps b { color: var(--fg); }
+.sa-card > .btn { justify-content: center; }

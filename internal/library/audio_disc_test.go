@@ -21,13 +21,13 @@ func TestDiscFromName(t *testing.T) {
 		track        *int
 		disc, track2 int
 	}{
-		{"201-lady_gaga_feat._colby_odonis-just_dance", `E:\m\Fame Monster`, &one, 2, 1},
-		{"101-lady_gaga-bad_romance", `E:\m\Fame Monster`, &one, 1, 1},
-		{"201-song", `E:\m\x`, &d201, 2, 1},
-		{"2-01 Song", `E:\m\x`, nil, 2, 1},
-		{"1.02 Song", `E:\m\x`, &two, 1, 2},
-		{"01 - Song", `E:\m\Album CD2`, &one, 2, 1},
-		{"05 Song", `E:\m\Disc 3`, nil, 3, 0},
+		{"201-lady_gaga_feat._colby_odonis-just_dance", filepath.Join("m", "Fame Monster"), &one, 2, 1},
+		{"101-lady_gaga-bad_romance", filepath.Join("m", "Fame Monster"), &one, 1, 1},
+		{"201-song", filepath.Join("m", "x"), &d201, 2, 1},
+		{"2-01 Song", filepath.Join("m", "x"), nil, 2, 1},
+		{"1.02 Song", filepath.Join("m", "x"), &two, 1, 2},
+		{"01 - Song", filepath.Join("m", "Album CD2"), &one, 2, 1},
+		{"05 Song", filepath.Join("m", "Disc 3"), nil, 3, 0},
 	}
 	for _, c := range cases {
 		d, tr := discFromName(c.base, c.dir, c.track)
@@ -44,7 +44,7 @@ func TestDiscFromName(t *testing.T) {
 		base  string
 		track *int
 	}{{"101 Dalmatians", nil}, {"205-song", &two}, {"01 - Song", &one}, {"12 Song", nil}} {
-		if d, _ := discFromName(c.base, `E:\m\Album`, c.track); d != nil {
+		if d, _ := discFromName(c.base, filepath.Join("m", "Album"), c.track); d != nil {
 			t.Errorf("%s: disc %d, want none", c.base, *d)
 		}
 	}

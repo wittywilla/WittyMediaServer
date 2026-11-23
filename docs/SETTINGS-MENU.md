@@ -53,3 +53,7 @@ the apps (`node shared/scripts/sync-settings-menu.mjs` in WittyMediaClient). If 
 a level in `tvlevels.json`, and a summary in `internal/server/api_tv_levels.go` if a line of what is set helps.
 `go test ./pkg/sdui` checks the file; `web/src/pages/settings/menu/model.test.mjs`, the apps' `SettingsMenuTest` and
 `SettingsMenuTests`, and `npm run test:settings-menu` (against a running server) check the clients.
+
+---
+
+<sub>WittyMediaServer documentation</sub>

@@ -88,3 +88,10 @@ test('every row\'s words are in the clients\' table of words too', () => {
   assert.equal(titles(menuGroups(menu, who(), web)).length, 8)
   for (const g of menu.groups) { assert.match(g.key, /^group[A-Z]/); for (const r of g.rows) assert.match(r.key, /^row[A-Z]/) }
 })
+
+test('every word in the menu is written out for translation (words.ts)', () => {
+  const words = readFileSync(new URL('./words.ts', import.meta.url), 'utf8')
+  for (const g of menu.groups) for (const w of [g.title, ...g.rows.map((r) => r.title)]) {
+    assert.ok(words.includes(`tk('${w}')`) || words.includes(`tk(${JSON.stringify(w)})`), `words.ts is missing "${w}"`)
+  }
+})

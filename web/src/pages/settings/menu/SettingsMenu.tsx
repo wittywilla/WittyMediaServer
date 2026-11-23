@@ -21,6 +21,7 @@ import { setTvMode } from '../../../tvmode/mode'
 import { t, tx } from '../../../i18n'
 import { menuGroups, rowFor, rowLevel, rowSummary, type MenuGroup, type MenuRow, type MenuWho } from './model'
 import { SETTINGS_MENU } from './table'
+import './words'
 import './menu.css'
 
 // The settings menu, drawn from the server's one list (settingsmenu.json) as the Android phone app draws its You

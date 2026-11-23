@@ -178,7 +178,7 @@ export function Modules({ info, refresh, next, back }: StepProps) {
       {checkErr && (
         <Notice tone="warn" title={t('The list of modules couldn’t be read')}>
           <p className="su-para">{checkErr}</p>
-          <p className="su-para">{t('Check this computer’s internet connection and try again. You can also carry on without them: movies, TV shows and music still work, and you can add modules later in Settings, Modules.')}</p>
+          <p className="su-para">{t('Check this computer’s internet connection and try again. You can also carry on without them: movies, TV shows and music still work, and you can add modules later in Settings, Module store.')}</p>
         </Notice>
       )}
       <div className="oobe-mod-groups">
@@ -201,7 +201,7 @@ export function Modules({ info, refresh, next, back }: StepProps) {
       <ChoiceCards label={t('When a module has a new version')} value={updates} onChange={saveUpdates} cards={[
         { value: 'ask', title: t('Tell me, and I’ll choose'), text: t('Looks online twice a day and shows what’s new. Nothing changes until you say so.') },
         { value: 'auto', title: t('Install them by themselves'), text: t('Keeps your modules up to date without asking. A version that doesn’t work is taken back out by itself.') },
-        { value: 'never', title: t('Only when I check'), text: t('Doesn’t look online until you press Check now in Settings, Modules.') },
+        { value: 'never', title: t('Only when I check'), text: t('Doesn’t look online until you press Check now in Settings, Module store.') },
       ]} />
       <p className="muted oobe-hint su-gap">{t('Modules come from the official list on GitHub. Asking for it tells GitHub your internet address, as any download does, and nothing about you or your files. Every module is signed, and this server won’t use one that doesn’t check out.')}</p>
       <LaterNote info={info} />

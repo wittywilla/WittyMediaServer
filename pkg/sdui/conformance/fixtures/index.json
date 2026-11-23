@@ -262,6 +262,12 @@
    "formFactor": "desktop"
   },
   {
+   "id": "detail-album-two-discs-tv",
+   "file": "detail-album-two-discs-tv.json",
+   "title": "An album on two discs, on a television",
+   "formFactor": "tv"
+  },
+  {
    "id": "detail-artist",
    "file": "detail-artist.json",
    "title": "An artist's page",
@@ -278,6 +284,12 @@
    "file": "detail-collection.json",
    "title": "A collection's page",
    "formFactor": "tablet"
+  },
+  {
+   "id": "detail-collection-songs-tv",
+   "file": "detail-collection-songs-tv.json",
+   "title": "A playlist of songs on a television",
+   "formFactor": "tv"
   },
   {
    "id": "detail-film-credits",

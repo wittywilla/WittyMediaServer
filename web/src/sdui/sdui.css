@@ -178,6 +178,10 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-seasons .episode.sdui-ph .thumb { position: relative; }
 .sdui-seasons .episode.sdui-ph .thumb .skel { position: absolute; inset: 0; height: 100%; }
 .sdui-tracks { max-width: 960px; }
+/* A release on more than one disc: its heading over the disc's first song ("Disc 2"). */
+.sdui-tracks .track-list li.new-disc { flex-wrap: wrap; }
+.sdui-tracks .track-list li.new-disc::before { content: attr(data-disc); flex: 1 0 100%; margin: var(--sp-4) 0 var(--sp-1); padding: 0 var(--sp-2); font-size: var(--text-sm); font-weight: 700; color: var(--fg-2); text-transform: uppercase; letter-spacing: var(--tracking-label); }
+.sdui-tracks .track-list li.new-disc:first-child::before { margin-top: 0; }
 
 /* Tabs, filters, search. */
 .sdui-tabs { display: flex; flex-direction: column; gap: var(--sdui-m); }

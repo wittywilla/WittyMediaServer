@@ -14,7 +14,8 @@ import { QrCode } from '../../components/QrCode'
 import { countWords } from '../../libraryNouns'
 import { useApp } from '../../state'
 import { useAudio } from '../../audio/player'
-import { IconCheck, IconDown, IconLeft, IconPause, IconPlay, IconRight, IconSearch, IconStar } from '../../icons'
+import { IconCheck, IconDown, IconLeft, IconMore, IconPause, IconPlay, IconRight, IconSearch, IconStar } from '../../icons'
+import { Pop } from '../../audio/controls'
 import { tokenVar } from '../../themeOverrides'
 import { Segmented, Tabs as TabStrip } from '../../ui/Choice'
 import { Select } from '../../ui/Field'
@@ -314,11 +315,6 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const shown = onlyConsole && consoles.some((c) => c.name === onlyConsole) ? view.children.filter((c) => c.node.props?.console === onlyConsole) : view.children
   const [focusId, setFocusId] = useState('')
   const focused = focusedOf(shown, focusId)
-  // The chosen card is the one the focus is on: arrows, a remote or a pad move it, and the details follow. A pointer only points:
-  // hovering shows a hover style, a click chooses the card (the details stay on it however the pointer then moves), and a
-  // second click (or a double-click, or Enter) opens it. Whether the card pressed was already the chosen one is read as the
-  // press begins, before the focus it brings has chosen it.
-  const pressedChosen = useRef(false)
   // A shell may lay a growing row out as a grid or a list (WittyPlay's layout choice); up and down then move between its lines.
   const chosenLayout = useContext(RowLayoutContext)
   const laid = grow ? chosenLayout : 'shelf'
@@ -341,9 +337,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
         <div className="row-wrap">
           <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
           <div className={'row' + (chips ? ' sdui-chips' : '')} ref={row} data-nav-group role="list" onKeyDown={lines} aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}>
-            {waiting ? <Placeholders view={view} /> : shown.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined}
-              onPointerDownCapture={detail ? () => { pressedChosen.current = c.id === focused?.id } : undefined}
-              onClickCapture={detail ? (e) => { if (e.detail > 0 && !pressedChosen.current) { e.preventDefault(); e.stopPropagation(); setFocusId(c.id) } pressedChosen.current = false } : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
+            {waiting ? <Placeholders view={view} /> : shown.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined} onPointerEnter={grow || detail ? () => setFocusId(c.id) : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
             {view.hasMore && !waiting && <Near horizontal root={row} onNear={() => page.more(view.id)} />}
             {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, placeholders: 2 }} />}
             {seeAllCard && !waiting && !view.hasMore && <div role="listitem" className="sdui-item"><SeeAllCard to={view.seeAll!} label={seeAllLabel} title={view.text?.title} wide={wideCards} /></div>}
@@ -664,6 +658,10 @@ function DetailHeaderView({ view }: { view: View }) {
   const logo = picture(obj(images, 'logo'))
   const buttons = buttonsOf(p)
   const primary = buttons.find((b) => b.primary)
+  // The first menuAfter buttons stand on their own; the rest are in a More menu (an album's Add to queue, Go to artist, Share).
+  const menuAfter = typeof p.menuAfter === 'number' && p.menuAfter > 0 && p.menuAfter < buttons.length ? p.menuAfter : 0
+  const standing = menuAfter ? buttons.slice(0, menuAfter) : buttons
+  const inMenu = menuAfter ? buttons.slice(menuAfter) : []
   const overview = view.text?.overview
   const button = (b: (typeof buttons)[number]) => {
     const step = plan(b.action, { externalLinks: page.layout.externalLinks })
@@ -700,8 +698,27 @@ function DetailHeaderView({ view }: { view: View }) {
           {/* The main action, then the rest (Watch later, Mark watched, Download, Share) as icons with their names, lined up
               under the title on a wide screen and centred under a full-width Play on a phone (sdui.css). */}
           <div className="actions sdui-detail-actions" data-nav-group>
-            {buttons.filter((b) => b.primary).map(button)}
-            {buttons.some((b) => !b.primary) && <div className="sdui-detail-more">{buttons.filter((b) => !b.primary).map(button)}</div>}
+            {standing.filter((b) => b.primary).map(button)}
+            {(standing.some((b) => !b.primary) || inMenu.length > 0) && (
+              <div className="sdui-detail-more">
+                {standing.filter((b) => !b.primary).map(button)}
+                {inMenu.length > 0 && (
+                  <Pop label={t('More for {title}', { title: view.text?.title || '' })} icon={<><span className="sdui-action-icon"><IconMore /></span><span className="sdui-action-label">{t('More')}</span></>} className="sdui-action">
+                    {(close) => (
+                      <div className="mp-menu" role="menu">
+                        {inMenu.map((b) => {
+                          const step = plan(b.action, { externalLinks: page.layout.externalLinks })
+                          if (step.do === 'nothing') return null
+                          const icon = sduiIcon(b.icon)
+                          if (step.do === 'go' && !page.inert) return <Link key={b.id} role="menuitem" className="mh-menu-link" to={step.to} onClick={close}>{icon} {b.label}</Link>
+                          return <button key={b.id} type="button" role="menuitem" onClick={() => { close(); if (!page.inert) page.act(b.action, view) }}>{icon} {b.label}</button>
+                        })}
+                      </div>
+                    )}
+                  </Pop>
+                )}
+              </div>
+            )}
             {!page.inert && <Suspense fallback={null}><DetailExtras place="tools" header={view.node} doc={page.doc} /></Suspense>}
           </div>
           {overview && (
@@ -972,15 +989,20 @@ function TrackListView({ view }: { view: View }) {
   const { current, playing } = useAudio()
   const waiting = loading(view, page.busy(view.id))
   const showNumbers = view.node.props?.showNumbers !== false
+  // A release on more than one disc: a heading before each disc's songs, numbered from 1 again (the server's numbers).
+  const discs = typeof view.node.props?.discs === 'number' && view.node.props.discs > 1
+  const discLabel = (n: number) => t('Disc {n}', { n })
   return (
     <section className="sdui-tracks" style={scopeStyle(view.node)} data-sdui-section={view.id}>
       <StateLine view={view} />
       <ol className="track-list" aria-label={view.label} data-nav-group>
-        {waiting ? Array.from({ length: 6 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((t) => {
+        {waiting ? Array.from({ length: 6 }, (_, k) => <li key={k} className="sdui-ph" aria-hidden="true"><i className="skel" /></li>) : view.children.map((t, i) => {
           const p = t.node.props || {}
           const on = current != null && String(current.id) === str(p, 'itemId')
+          const disc = discs ? num(p, 'disc') || 1 : 0
+          const newDisc = discs && (i === 0 || (num(view.children[i - 1].node.props || {}, 'disc') || 1) !== disc)
           return (
-            <li key={t.id} className={on ? 'on' : ''}>
+            <li key={t.id} className={(on ? 'on' : '') + (newDisc ? ' new-disc' : '')} data-disc={newDisc ? discLabel(disc) : undefined}>
               <button type="button" aria-label={t.label} aria-current={on ? 'true' : undefined} data-sdui-focus={t.node.focus ? t.id : undefined} data-tv-first={t.node.focus?.default || undefined} onClick={() => !page.inert && page.act(t.node.action, t)}>
                 <span className="tl-n">{on && playing ? <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i> : showNumbers && num(p, 'number') ? num(p, 'number') : ''}</span>
                 <span className="tl-t"><b>{t.text?.title}</b>{t.text?.subtitle && <span className="muted">{t.text.subtitle}</span>}

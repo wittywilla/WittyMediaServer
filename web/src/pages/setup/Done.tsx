@@ -6,10 +6,6 @@ import { IconCheck, IconInfo, IconPlug, IconTv, IconUsers } from '../../icons'
 import type { ModuleReport } from '../../moduleStore'
 import type { ListingStatus } from '../../metadata'
 import { Button, Spinner } from '../../ui'
-import { QrCode } from '../../components/QrCode'
-import { toast } from '../../state'
-import { copyText } from '../../gallery'
-import { bestAddress, type HomeAddresses } from './address'
 import { AddProfile } from '../Profiles'
 import { setTvMode, useTvMode } from '../../tvmode/mode'
 import { describeOutcome, updateChoiceFrom, type Facts, type Outcome, type StepInfo } from './plan'
@@ -41,7 +37,7 @@ async function readOutcome(): Promise<Outcome> {
 
 export function Done({ steps, facts, onFinish }: { steps: StepInfo[]; facts: Facts; onFinish: (to?: string) => void }) {
   const [outcome, setOutcome] = useState<Outcome | null>(null)
-  const [home, setHome] = useState<HomeAddresses | null>(null)
+  const [lan, setLan] = useState<string[] | null>(null)
   const [addKids, setAddKids] = useState(false)
   const [kidsAdded, setKidsAdded] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -54,13 +50,12 @@ export function Done({ steps, facts, onFinish }: { steps: StepInfo[]; facts: Fac
     void readOutcome().then(setOutcome)
     api.get<{ settings?: { enabled?: boolean } }>('/p2p/settings').then((r) => setAway(!!r.settings?.enabled)).catch(() => setAway(null))
     api.get<User[]>('/users').then((u) => setHasKids(u.some((x) => x.kind === 'kids'))).catch(() => {})
-    api.get<HomeAddresses>('/system').then(setHome).catch(() => setHome({}))
+    api.get<{ lanUrls?: string[] }>('/system').then((s) => setLan(s.lanUrls || [])).catch(() => setLan([]))
   }, [])
   const tuner = facts.modules.includes('wittytuner')
-  // Always a best guess at the server's address, to write down or copy (#536): the home-network one when other devices
-  // can open it, else the one this page uses, with where it will be once it's opened to the network.
-  const addr = bestAddress(location, home)
-  const copy = async () => { toast((await copyText(addr.url)) ? t('Address copied') : t('Couldn’t copy it: select the address and copy it')) }
+  // Addresses other devices at home can open. This one may only be "localhost".
+  const here = /^(localhost|127\.|\[::1\])/.test(location.hostname) || location.hostname.endsWith('.localhost') ? '' : location.origin
+  const addrs = here ? [here] : lan || []
   const lines = outcome ? describeOutcome(outcome, steps, { t, tn, list }) : []
   const where = (id: string) => tx(steps.find((s) => s.id === id)?.later?.where)
   const finish = (to?: string) => { setBusy(true); onFinish(to) }
@@ -93,19 +88,9 @@ export function Done({ steps, facts, onFinish }: { steps: StepInfo[]; facts: Fac
         <div className="oobe-next-card">
           <IconTv size={22} />
           <b>{t('Watch on every screen at home')}</b>
-          {addr.reachable
-            ? <span>{t('On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:')}</span>
-            : <span>{t('Right now this server only answers on this computer, at:')}</span>}
-          <div className="su-address">
-            <div className="su-address-text">
-              <code className="su-address-url">{addr.url}</code>
-              <Button size="sm" onClick={() => void copy()} aria-label={t('Copy the address {url}', { url: addr.url })}>{t('Copy')}</Button>
-              {addr.also && <small className="muted">{t('It also answers at {url}.', { url: addr.also })}</small>}
-            </div>
-            {addr.reachable && home && <QrCode text={addr.url} label={t('QR code holding the address {url}', { url: addr.url })} />}
-          </div>
-          {!addr.reachable && <span><Fill text={t('To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.')} parts={{ listen: <code>listen</code>, port: <code>:{location.port || 9797}</code>, flag: <code>-listen</code>, env: <code>WMS_LISTEN</code> }} /></span>}
-          {!addr.reachable && addr.later && <span><Fill text={t('Then other devices at home can open it at {url}.')} parts={{ url: <code>{addr.later}</code> }} /></span>}
+          {addrs.length > 0
+            ? <><span>{t('On the same home network (Wi-Fi or cable), open this address on your TV, phone, tablet or another computer:')}</span>{addrs.slice(0, 2).map((a) => <code key={a}>{a}</code>)}</>
+            : <span><Fill text={t('Right now this server only answers on this computer. To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.')} parts={{ listen: <code>listen</code>, port: <code>:{location.port || 9797}</code>, flag: <code>-listen</code>, env: <code>WMS_LISTEN</code> }} /></span>}
           <TickRow kind="switch" checked={tv} onChange={setTvMode} title={t('Use this screen as a TV')} text={t('TV mode: laid out and driven like the TV apps, with a remote or a controller, for a screen across the room. Only on this device.')} />
         </div>
         {!hasKids && (

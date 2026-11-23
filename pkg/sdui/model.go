@@ -534,6 +534,10 @@ type Item struct {
 	Artist string `json:"artist,omitempty"`
 	Track  int    `json:"track,omitempty"`
 	Count  int    `json:"count,omitempty"`
+	// Disc is a song's disc in a release of more than one (Track is its place on that disc).
+	Disc int `json:"disc,omitempty"`
+	// ArtistRoute opens an album's artist (the album page's Go to artist).
+	ArtistRoute string `json:"artistRoute,omitempty"`
 	// Channel and Programme open WittyTV's More info (GET /api/tv/{key}/programme) from a
 	// recording: its channel's key and "<key>@<start>". Empty when the profile may not watch it.
 	Channel   string `json:"channel,omitempty"`

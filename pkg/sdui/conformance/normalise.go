@@ -568,15 +568,26 @@ func (n *normaliser) element(x *sdui.Node, depth int, parent *sdui.Node) Element
 	case "Track":
 		e.Role = "button"
 		parts := []string{}
+		// A release on more than one disc: which disc, then its place on it.
+		if d, ok := num(p, "disc"); ok && parent != nil {
+			if n, _ := num(parent.Props, "discs"); n > 1 {
+				parts = append(parts, "Disc "+strconv.Itoa(int(d)))
+			}
+		}
 		if t, ok := num(p, "number"); ok && (parent == nil || parent.Props["showNumbers"] != false) {
 			parts = append(parts, "Track "+strconv.Itoa(int(t)))
 		}
 		parts = append(parts, str(p, "title"))
 		text("title", str(p, "title"))
 		lines("title", 1)
+		// The song's own artist when it isn't the album's (a guest), whatever showArtist says.
+		who := str(p, "credit")
 		if parent != nil && parent.Props["showArtist"] == true {
-			parts = append(parts, str(p, "artist"))
-			text("subtitle", str(p, "artist"))
+			who = str(p, "artist")
+		}
+		if who != "" {
+			parts = append(parts, who)
+			text("subtitle", who)
 		}
 		if d, ok := num(p, "durationSec"); ok && (parent == nil || parent.Props["showDuration"] != false) {
 			parts = append(parts, spokenDuration(int(d)))

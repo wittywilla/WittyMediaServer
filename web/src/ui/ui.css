@@ -197,10 +197,3 @@
 
 /* A form that fills a dialog: its buttons are in the dialog's foot, tied to it with form="id". */
 .ui-dialog-form { display: grid; gap: var(--sp-3); min-width: 0; }
-
-/* A key for an outside service that's already saved (components/SavedKey.tsx): says so, with Change, never a field. */
-.saved-key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
-.saved-key-mark { display: inline-flex; align-items: center; gap: var(--sp-1); font-weight: 600; color: var(--fg); }
-.saved-key-mark svg { color: var(--accent-text); flex: none; }
-.saved-key-field { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
-.saved-key-field .input { flex: 1 1 260px; min-width: 0; font-family: var(--font-mono); font-size: var(--text-sm); }

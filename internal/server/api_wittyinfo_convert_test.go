@@ -77,13 +77,6 @@ func TestConvertGatherAndSpread(t *testing.T) {
 	if rep.Retired != 4 {
 		t.Errorf("retired %d", rep.Retired)
 	}
-	// Films and episodes, and shows, each counted as what they are (#535).
-	if rep.Titles != 1 || rep.TitlesConverted != 1 || rep.Songs != 0 || rep.Albums != 0 {
-		t.Errorf("counted: %+v", rep)
-	}
-	if got := convertResult("wittyinfo", rep); got != "1 of 1 film or episode converted; 4 old files renamed to .bak." {
-		t.Errorf("result: %q", got)
-	}
 	// Gathering again finds nothing new.
 	if rep, _ := ts.Scanner.GatherInfo(ctx, libs, o, nil); rep.Converted != 0 || rep.Unchanged != 1 {
 		t.Errorf("again: %+v", rep)

@@ -1104,6 +1104,9 @@
         "artist": {
           "type": "string"
         },
+        "artistRoute": {
+          "type": "string"
+        },
         "badges": {
           "items": {
             "type": "string"
@@ -1136,6 +1139,9 @@
         },
         "died": {
           "type": "string"
+        },
+        "disc": {
+          "type": "integer"
         },
         "episode": {
           "type": "integer"

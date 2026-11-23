@@ -70,6 +70,10 @@ test('actions: each type comes to one step, and anything unknown or unsafe to no
   assert.deepEqual(plan({ type: 'navigate', to: '//elsewhere.example' }), { do: 'nothing' })
   assert.deepEqual(plan({ type: 'play', item: '3' }), { do: 'play', item: '3', resume: true })
   assert.deepEqual(plan({ type: 'play', item: '3', params: { resume: false } }), { do: 'play', item: '3', resume: false })
+  // An album page's Shuffle and Add to queue: every song of its album, in a new order or after what is playing.
+  assert.deepEqual(plan({ type: 'play', item: '3', params: { resume: false, shuffle: true } }), { do: 'play', item: '3', resume: false, shuffle: true })
+  assert.deepEqual(plan({ type: 'command', op: 'queue.add', item: '3' }), { do: 'queue', item: '3' })
+  assert.deepEqual(plan({ type: 'command', op: 'queue.add' }), { do: 'nothing' })
   assert.deepEqual(plan({ type: 'native', to: 'settings' }), { do: 'go', to: '/settings' })
   assert.deepEqual(plan({ type: 'native', to: 'share', params: { item: '7' } }), { do: 'screen', screen: 'share', item: '7' })
   assert.deepEqual(plan({ type: 'external', url: 'https://example.org/' }), { do: 'open', url: 'https://example.org/' })

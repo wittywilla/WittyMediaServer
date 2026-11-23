@@ -231,7 +231,7 @@ a.mus-by:hover { text-decoration: underline; }
 .mus-tr-heart.liked { opacity: 1; color: var(--accent-text); }
 .mus-tr:hover .mus-tr-heart, .mus-tr-heart:focus-visible { opacity: 1; }
 .mus-tr .mh-more > button, .mus-tr .mp-pop > button { opacity: 0; }
-.mus-tr:hover .mh-more > button, .mus-tr:focus-within .mh-more > button, .mus-tr .mp-pop > button:focus-visible { opacity: 1; }
+.mus-tr:hover :is(.mh-more > button, .mp-pop > button), .mus-tr:focus-within :is(.mh-more > button, .mp-pop > button) { opacity: 1; }
 @media (hover: none) { .mus-tr-heart:not(.liked) { opacity: 0; pointer-events: none; } .mus-tr .mh-more > button, .mus-tr .mp-pop > button { opacity: 1; } }
 @media (max-width: 700px) {
   .mus-tracks, .mus-tracks.with-album { --cols: 32px minmax(0, 1fr) 40px; }
@@ -274,7 +274,8 @@ a.mus-by:hover { text-decoration: underline; }
 .mus.tv { --mus-card: 220px; --mus-side: 360px; --mus-row-art: 48px; }
 .mus.tv .mus-tr { height: 64px; font-size: var(--text-md); }
 .mus.tv .mus-tracks.with-art .mus-tr { height: 72px; }
-.mus.tv .mus-tr-heart, .mus.tv .mus-tr .mh-more > button { opacity: 1; }
+/* The row's menu is how a remote reaches the artist and the album, so it always shows (it is .mp-pop > button). */
+.mus.tv .mus-tr-heart, .mus.tv .mus-tr :is(.mh-more > button, .mp-pop > button) { opacity: 1; }
 .mus.tv :is(a, button, input, select):focus-visible, .mus.tv .mus-card:focus-within { outline: 4px solid var(--focus); outline-offset: 3px; }
 .mus.tv .mus-card:focus-within .mus-card-link:focus-visible { outline: none; }
 .mus.tv .mus-side { height: calc(100vh - var(--topbar-h) - var(--sp-4) - var(--dock-space, 0px) - 72px); }

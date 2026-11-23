@@ -124,7 +124,7 @@ html.tv-mode .audio-bar .mp-ibtn svg { width: 32px; height: 32px; }
 html.tv-mode .audio-bar .ab-ctl .mp-ibtn.big { width: 80px; height: 80px; }
 html.tv-mode .audio-bar .ab-ctl { gap: var(--sp-4); }
 html.tv-mode .audio-bar .ab-time { font-size: var(--text-md); }
-html.tv-mode:has(.audio-bar:not(.full, .collapsed)) { --dock-space: 136px; }
+html.tv-mode:has(.audio-bar:not(.full, .collapsed)) { --dock-space: 160px; }
 html.tv-mode .app:has(~ .audio-bar:not(.collapsed)) .content { padding-bottom: calc(var(--dock-space) + var(--sp-8)); }
 /* Collapsed: a small round button in the corner, keeping the play button to hand. */
 .audio-bar.collapsed { left: auto; right: 16px; transform: none; width: auto; display: flex; gap: 6px; padding: 5px 8px 5px 5px; border-radius: var(--r-full); grid-template-columns: none; }

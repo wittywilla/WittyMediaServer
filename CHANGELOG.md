@@ -5,6 +5,20 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+**Clone a station (#622)**
+
+- **A channel can follow a real TV station's schedule, played from your own files.** On **Channels**, press
+  **Clone a station**, pick where the guide comes from (TVmaze's free public schedule, an XMLTV link or file, or the
+  guide your tuners and IPTV playlists already have), the days and the station. Every programme is matched to your
+  library by series, season and episode, episode title, air date and metadata ids, with how sure each match is.
+- **What you don't have is filled in**, and each slot says how: the closest episode of the same series, another
+  episode of it, a similar show (genre, network, era, rating), or whatever fits the time. Green, amber and red show
+  exact matches, stand-ins and gaps, and **Swap** chooses another in one press.
+- **It keeps to the station's clock**, with commercials on by default: spread through each programme at its natural
+  breaks where your files mark them, from the programme's own era first. **Advanced options** has the matching rules,
+  how many breaks, repeating, the time zone, a shift, and **Follow the station**, which reads the guide again each week.
+  Only the guide's words are used: nothing is recorded or decrypted. See docs/CHANNELS.md, "Clone a station".
+
 **Connecting another device (#605)**
 
 - **One way to connect a device, at the top of Settings → Remote Access** (and on the From away page): it says

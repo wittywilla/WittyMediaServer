@@ -334,10 +334,11 @@ func (s *Server) handleChannelPreview(w http.ResponseWriter, r *http.Request) {
 		Definition channels.Definition `json:"definition"`
 		Day        int                 `json:"day"` // days from today
 	}
-	if err := readJSON(r, &b); err != nil {
+	if err := readJSONUpTo(r, &b, maxChannelBody); err != nil {
 		writeErr(w, 400, "that channel could not be read")
 		return
 	}
+	b.Definition.CompileClone(s.Channels.Location())
 	if err := b.Definition.Validate(); err != nil {
 		writeErr(w, 400, err.Error())
 		return

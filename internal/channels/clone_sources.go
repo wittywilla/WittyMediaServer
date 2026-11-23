@@ -309,6 +309,11 @@ func Tidy(in []CloneSlot) []CloneSlot {
 		if n := len(out); n > 0 {
 			prev := &out[n-1]
 			end := prev.Start + int64(prev.Dur)
+			if s.Start == prev.Start && s.Dur >= minSlotSec && prev.Dur >= minSlotSec {
+				// Two at once: an hour-long premiere listed as its two episodes. The second
+				// follows the first.
+				s.Start, s.Wall = end, wallAfter(prev.Wall, prev.Dur)
+			}
 			if s.Start < end {
 				// Overlap: the earlier one stops where this starts.
 				prev.Dur = int(s.Start - prev.Start)
@@ -324,7 +329,7 @@ func Tidy(in []CloneSlot) []CloneSlot {
 		}
 		if s.Dur < minSlotSec {
 			if n := len(out); n > 0 && out[n-1].Start+int64(out[n-1].Dur) >= s.Start {
-				out[n-1].Dur += int(s.Start + int64(s.Dur) - (out[n-1].Start + int64(out[n-1].Dur)))
+				out[n-1].Dur += max(0, int(s.Start+int64(s.Dur)-(out[n-1].Start+int64(out[n-1].Dur))))
 			}
 			continue
 		}

@@ -418,3 +418,15 @@ func TestBreakPoints(t *testing.T) {
 		t.Error("too short for breaks")
 	}
 }
+
+// An hour-long premiere listed as two episodes at the same time plays them one after the other.
+func TestTidyTwoAtOnce(t *testing.T) {
+	out := Tidy([]CloneSlot{
+		{Start: 0, Dur: 1800, Wall: "2005-02-21 20:30", Title: "Avatar", Episode: ip(1)},
+		{Start: 0, Dur: 1800, Wall: "2005-02-21 20:30", Title: "Avatar", Episode: ip(2)},
+		{Start: 3600, Dur: 1800, Wall: "2005-02-21 21:30", Title: "Next"},
+	})
+	if len(out) != 3 || out[1].Start != 1800 || out[1].Wall != "2005-02-21 21:00" || *out[1].Episode != 2 || out[2].Start != 3600 {
+		t.Fatalf("got %+v", out)
+	}
+}

@@ -2,8 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { Cc, R, mk, secP, secR } from '../model.ts'
 import type { SpecChip, SpecPageData, SpecRow, SpecSection } from '../types.ts'
-import { t } from '../../sdui/words.ts'
-import { bidi } from '../../i18n'
+import { bidi, t } from '../../sdui/words.ts'
 
 // Panels of media pages: a creator video's chapters and autoplay (canvas "videopage"), a photo's details (canvas
 // "photoview") and a book's actions and formats (canvas "bookpage"). The pages keep their picture, player and cover.

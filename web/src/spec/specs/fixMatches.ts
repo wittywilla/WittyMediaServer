@@ -2,8 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { mk, secF, secN, secP, secR } from '../model.ts'
 import type { SpecPageData, SpecRow, SpecSection } from '../types.ts'
-import { t } from '../../sdui/words.ts'
-import { bidi } from '../../i18n'
+import { bidi, t } from '../../sdui/words.ts'
 
 // Fix matches (canvas keys "fixmatches" and "editmatch"): the review's tabs and tools, and the opened title's
 // panel with its suggestions. The list of titles and the keys stay the page's own. Ids: tab:<key>, search, find,

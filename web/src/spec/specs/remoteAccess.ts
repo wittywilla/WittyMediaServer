@@ -2,8 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { Cc, R, mk, secF, secN, secP, secR } from '../model.ts'
 import type { SpecChip, SpecField, SpecPageData, SpecRow, SpecSection } from '../types.ts'
-import { t, tk, tn } from '../../sdui/words.ts'
-import { bidi } from '../../i18n'
+import { bidi, t, tk, tn } from '../../sdui/words.ts'
 
 // Settings, Remote Access (canvas "remoteaccess"): who can connect, limits for viewers away, who is connected from
 // outside, sign-in protection, advanced addresses. Real data from GET /remote and GET /sessions?all=1.

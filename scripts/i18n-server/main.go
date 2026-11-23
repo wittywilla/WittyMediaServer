@@ -277,7 +277,7 @@ var sentence = regexp.MustCompile(`^[\p{Lu}][\p{L}'’]*( +[^ ]+){2,}`)
 var verb = regexp.MustCompile(`%[-+# 0-9.*]*[a-zA-Z]`)
 
 // SQL, which reads like a sentence that starts with a capital.
-var sqlStart = regexp.MustCompile(`^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|PRAGMA|WITH|ATTACH|DETACH|REPLACE|VACUUM|BEGIN|COMMIT|ROLLBACK|ANALYZE|REINDEX) `)
+var sqlStart = regexp.MustCompile(`^(CASE WHEN|SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|PRAGMA|WITH|ATTACH|DETACH|REPLACE|VACUUM|BEGIN|COMMIT|ROLLBACK|ANALYZE|REINDEX) `)
 
 func isWords(s string) bool {
 	if sqlStart.MatchString(s) {

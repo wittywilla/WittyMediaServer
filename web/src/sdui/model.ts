@@ -9,8 +9,7 @@
 
 import { cardStyle, UNKNOWN_STYLE } from './cardStyles.ts'
 import { WEB_LAYOUT, type Action, type Document, type Layout, type Node, type Props, type Shell } from './types.ts'
-import { t, tn, tx } from './words.ts'
-import { bidi } from '../i18n'
+import { bidi, t, tn, tx } from './words.ts'
 
 export type View = {
   id: string

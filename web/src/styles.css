@@ -837,14 +837,19 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .legal-note a, .auth-version a, .oobe-ack a, .legal-ack-bar a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: from-font; }
 .set-legal { margin: var(--sp-4) 0 0; }
 /* The page's own notice says more than the general one, and settings show no media. */
-.legal-foot { margin: var(--section-gap) 0 0; }
+/* A page's foot is centred, like the version line under it (docs/DESIGN.md, Centring). */
+.legal-foot { margin: var(--section-gap) auto 0; text-align: center; }
 .content:has(.legal-note:not(.legal-foot)) .legal-foot, .content:has(.set-shell) .legal-foot { display: none; }
-.legal-ack-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border-bottom: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); }
+/* A bar under the top bar runs the window's width, and what's on it (the words and their button) is centred as a
+   group, the same in every bar (docs/DESIGN.md, Centring, #609). */
+.legal-ack-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border-bottom: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); }
 /* After Leave TV mode (App.tsx, docs/TV-MODE.md): the message and its two buttons together, in the middle. */
 .tv-return-bar { justify-content: center; }
 .tv-return-bar p { margin: 0; }
 .tv-return-bar svg { width: 18px; height: 18px; color: var(--accent-text); }
-.legal-ack-bar p { flex: 1 1 32ch; margin: 0; max-width: 80ch; line-height: 1.5; }
+.legal-ack-bar p { flex: 0 1 auto; max-width: 80ch; margin: 0; line-height: 1.5; }
+/* Wrapped onto lines of their own (a phone), the words are centred over their button. */
+@media (max-width: 640px) { .legal-ack-bar p { flex-basis: 100%; text-align: center; } }
 /* Unencrypted connections from away: stays until the setting goes. */
 .plain-away-bar { background: var(--danger-soft); border-bottom: 2px solid var(--danger); color: var(--fg); }
 .oobe-ack { display: flex; align-items: flex-start; gap: var(--sp-2); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }

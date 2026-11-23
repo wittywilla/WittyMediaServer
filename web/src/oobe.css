@@ -12,8 +12,9 @@
 .oobe-head .brand { margin: 0; }
 .oobe-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-xl); padding: clamp(var(--sp-5), 4vw, var(--sp-10)); box-shadow: var(--e-3); animation: oobe-in var(--dur-3) var(--ease-out); }
 @keyframes oobe-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.oobe-card h1 { margin: 0 0 var(--sp-2); font-size: var(--page-title); letter-spacing: var(--tracking-display); }
-.oobe-card .lead { color: var(--fg-2); font-size: var(--text-base); margin: 0 0 var(--sp-6); max-width: 62ch; }
+/* A step's title and lead are centred in its card; the questions under them read from the start (docs/DESIGN.md, Centring). */
+.oobe-card h1 { margin: 0 0 var(--sp-2); font-size: var(--page-title); letter-spacing: var(--tracking-display); text-align: center; }
+.oobe-card .lead { color: var(--fg-2); font-size: var(--text-base); margin: 0 auto var(--sp-6); max-width: 62ch; text-align: center; }
 /* An address or a code (the pairing page, a folder) breaks where it must on a phone instead of pushing the card
    past the edge of the screen. */
 .oobe-card { min-inline-size: 0; }

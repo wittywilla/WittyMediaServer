@@ -10,7 +10,10 @@
 
 /* The foot of a step. */
 .su-actions-go { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--sp-3); margin-left: auto; }
-.su-later { margin: var(--sp-5) 0 0; color: var(--fg-3); font-size: var(--text-sm); }
+.su-later { margin: var(--sp-5) 0 0; color: var(--fg-3); font-size: var(--text-sm); text-align: center; }
+/* A step's narrow form sits in the middle of the card, under its centred title; its labels and fields still read from
+   the start (docs/DESIGN.md, Centring, #609). */
+.oobe-card :is(.su-form, .oobe-form, .su-net, .su-start-note) { margin-inline: auto; }
 .su-gap { margin-top: var(--sp-4); }
 .su-gap-under { margin-bottom: var(--sp-4); }
 .su-plain { list-style: none; margin: 0; padding: 0; }

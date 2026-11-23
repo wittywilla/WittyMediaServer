@@ -94,3 +94,13 @@ html.tv-mode .sa-card .spec-dock .dock-btn { min-height: 56px; }
 .away-sa .away-steps { margin: 0; padding-inline-start: 1.25rem; display: grid; gap: var(--sp-2); color: var(--fg-2); line-height: var(--leading-snug, 1.45); }
 .away-sa .away-steps b { color: var(--fg); }
 .sa-card > .btn { justify-content: center; }
+
+/* TV mode, read from the sofa: the words at the TV's own sizes (tvmode.css), still one screen. */
+html.tv-mode .sa-brand { font-size: var(--tvm-body); }
+html.tv-mode .sa-card :is(h1, .spec-head h1) { font-size: var(--tvm-headline); }
+html.tv-mode :is(.sa-lead, .sa-card .spec-lead, .sa-card .spec-note) { font-size: var(--tvm-body); }
+html.tv-mode .sa-card :is(.spec-field-label, .spec-field-hint) { font-size: var(--tvm-secondary); }
+html.tv-mode .sa-text-btn, html.tv-mode .sa-card .spec-dock .dock-btn:not(.primary) { min-height: calc(var(--tvu) * 64); font-size: var(--tvm-body); }
+html.tv-mode .sa-foot { font-size: var(--tvm-label); }
+/* A Kids or Guest badge sits on the face's lower edge; the name starts below it. */
+html.tv-mode .who-card .who-name { margin-top: calc(var(--tvu) * 36); }

@@ -114,7 +114,7 @@
 .p2p-allows { font-size: var(--text-sm); }
 
 /* Connect a device comes first; the rest folds under one heading. */
-.rem-tech { margin-top: 18px; }
-.rem-tech > summary { cursor: pointer; list-style: revert; padding: 14px 4px; }
+.rem-tech { margin-top: var(--sp-5); }
+.rem-tech > summary { cursor: pointer; list-style: revert; padding: var(--sp-3) var(--sp-1); }
 .rem-tech > summary h2 { display: inline; margin: 0; font-size: var(--text-lg); }
-.rem-tech > summary .muted { display: block; margin: 4px 0 0 1.3em; font-size: var(--text-sm); line-height: 1.45; }
+.rem-tech > summary .muted { display: block; margin: var(--sp-1) 0 0 1.3em; font-size: var(--text-sm); line-height: 1.45; }

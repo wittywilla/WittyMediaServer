@@ -314,6 +314,11 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const shown = onlyConsole && consoles.some((c) => c.name === onlyConsole) ? view.children.filter((c) => c.node.props?.console === onlyConsole) : view.children
   const [focusId, setFocusId] = useState('')
   const focused = focusedOf(shown, focusId)
+  // The chosen card is the one the focus is on: arrows, a remote or a pad move it, and the details follow. A pointer only points:
+  // hovering shows a hover style, a click chooses the card (the details stay on it however the pointer then moves), and a
+  // second click (or a double-click, or Enter) opens it. Whether the card pressed was already the chosen one is read as the
+  // press begins, before the focus it brings has chosen it.
+  const pressedChosen = useRef(false)
   // A shell may lay a growing row out as a grid or a list (WittyPlay's layout choice); up and down then move between its lines.
   const chosenLayout = useContext(RowLayoutContext)
   const laid = grow ? chosenLayout : 'shelf'
@@ -336,7 +341,9 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
         <div className="row-wrap">
           <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
           <div className={'row' + (chips ? ' sdui-chips' : '')} ref={row} data-nav-group role="list" onKeyDown={lines} aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}>
-            {waiting ? <Placeholders view={view} /> : shown.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined} onPointerEnter={grow || detail ? () => setFocusId(c.id) : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
+            {waiting ? <Placeholders view={view} /> : shown.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined}
+              onPointerDownCapture={detail ? () => { pressedChosen.current = c.id === focused?.id } : undefined}
+              onClickCapture={detail ? (e) => { if (e.detail > 0 && !pressedChosen.current) { e.preventDefault(); e.stopPropagation(); setFocusId(c.id) } pressedChosen.current = false } : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
             {view.hasMore && !waiting && <Near horizontal root={row} onNear={() => page.more(view.id)} />}
             {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, placeholders: 2 }} />}
             {seeAllCard && !waiting && !view.hasMore && <div role="listitem" className="sdui-item"><SeeAllCard to={view.seeAll!} label={seeAllLabel} title={view.text?.title} wide={wideCards} /></div>}

@@ -6,8 +6,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -41,7 +39,6 @@ func main() {
 	// "service": it answers the service start as a module of API 5 does, keeping where its host
 	// API is, and a source answered without one fails as a real module's does.
 	var host string
-	var listening net.Listener
 	wittymodule.Main(raw, func(method string, params json.RawMessage) (any, []byte, error) {
 		if slices.Contains(do, "service") {
 			switch method {
@@ -53,14 +50,9 @@ func main() {
 				if p.Host != "" {
 					host = p.Host // a start with none (a check that it's there) keeps the last
 				}
-				if listening == nil {
-					var err error
-					if listening, err = net.Listen("tcp", "127.0.0.1:0"); err != nil {
-						return nil, nil, err
-					}
-					go func() { _ = http.Serve(listening, http.NotFoundHandler()) }()
-				}
-				return map[string]string{"url": "http://" + listening.Addr().String(), "token": "t"}, nil, nil
+				// An address on this machine, never listened on: its calls go over the pipe, and on
+				// Linux and macOS the sandbox gives this module no network to listen with.
+				return map[string]string{"url": "http://127.0.0.1:9", "token": "t"}, nil, nil
 			case "service.busy":
 				return false, nil, nil
 			case "sdui.items":

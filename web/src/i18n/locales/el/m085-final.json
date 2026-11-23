@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "Κωδικός QR που ανοίγει αυτή τη σελίδα σε τηλέφωνο ή υπολογιστή",
   "A Canvas video": "Ένα βίντεο Canvas",
   "Advanced quality settings": "Προηγμένες ρυθμίσεις ποιότητας",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Ανοίξτε το στην εφαρμογή WittyMediaClient σε υπολογιστή ή σε πρόγραμμα περιήγησης για να κάνετε αλλαγές. Ό,τι επιλέξετε εκεί εμφανίζεται και εδώ."
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Ανοίξτε το στην εφαρμογή WittyMediaClient σε υπολογιστή ή σε πρόγραμμα περιήγησης για να κάνετε αλλαγές. Ό,τι επιλέξετε εκεί εμφανίζεται και εδώ.",
+  "Change this from a computer or phone.": "Αλλάξτε το από υπολογιστή ή τηλέφωνο.",
+  "or open": "ή ανοίξτε"
 }

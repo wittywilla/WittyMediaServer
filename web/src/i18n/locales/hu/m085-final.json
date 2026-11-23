@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "QR-kód, amely telefonon vagy számítógépen nyitja meg ezt az oldalt",
   "A Canvas video": "Egy Canvas-videó",
   "Advanced quality settings": "Speciális minőségi beállítások",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "A módosításhoz nyisd meg a WittyMediaClient alkalmazásban egy számítógépen vagy egy webböngészőben. Amit ott választasz, itt is megjelenik."
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "A módosításhoz nyisd meg a WittyMediaClient alkalmazásban egy számítógépen vagy egy webböngészőben. Amit ott választasz, itt is megjelenik.",
+  "Change this from a computer or phone.": "Ezt számítógépről vagy telefonról módosíthatja.",
+  "or open": "vagy nyissa meg"
 }

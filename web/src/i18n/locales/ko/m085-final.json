@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "휴대폰이나 컴퓨터에서 이 페이지를 여는 QR 코드",
   "A Canvas video": "캔버스 동영상",
   "Advanced quality settings": "고급 화질 설정",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "바꾸려면 컴퓨터의 WittyMediaClient 앱이나 웹 브라우저에서 여세요. 그곳에서 고른 내용이 여기에도 표시됩니다."
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "바꾸려면 컴퓨터의 WittyMediaClient 앱이나 웹 브라우저에서 여세요. 그곳에서 고른 내용이 여기에도 표시됩니다.",
+  "Change this from a computer or phone.": "컴퓨터나 휴대폰에서 변경하세요.",
+  "or open": "또는 열기"
 }

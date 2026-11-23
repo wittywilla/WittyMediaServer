@@ -6,6 +6,8 @@ import { api } from '../api'
 import QrCode from '../pages/settings/QrCode'
 import { Button, Dialog } from '../ui'
 import { IconDevices } from '../icons'
+import { Brand, BrandMark } from '../components/common'
+import { useApp } from '../state'
 import { t, tx } from '../i18n'
 import { pageAddress, type TvLevel } from './levels'
 import { TV_LEVELS, tvPartLevel, tvPartTitle } from './levelTable'
@@ -56,17 +58,12 @@ function Address({ text }: { text: string }) {
   return <span className="tvl-addr">{parts.map((p, i) => <span key={i}>{p}{i < parts.length - 1 && <>/<wbr /></>}</span>)}</span>
 }
 
-// The small label at the top of a card or banner: what kind of screen this is.
-const Eyebrow = ({ device }: { device: boolean }) => (
-  <p className="tvl-eyebrow"><span className="tvl-eyebrow-ic" aria-hidden="true"><IconDevices /></span>{device ? t('On a computer') : t('Outside TV mode')}</p>
-)
-
-function SetNow({ lines }: { lines: string[] }) {
+function SetNow({ lines, centred }: { lines: string[]; centred?: boolean }) {
   if (!lines.length) return null
   return (
-    <div className="tvl-now">
+    <div className={'tvl-now' + (centred ? ' tvl-now-centred' : '')}>
       <span className="tvl-now-label">{t('Set now')}</span>
-      <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>
+      {centred ? <p className="tvl-now-line">{lines.join(' · ')}</p> : <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>}
     </div>
   )
 }
@@ -76,6 +73,7 @@ function SetNow({ lines }: { lines: string[] }) {
 export function OnAComputer({ level, title, path, summary, children }: { level: TvLevel; title: string; path: string; summary?: string; children?: ReactNode }) {
   const nav = useNavigate()
   const s = useSummary(summary)
+  const { brandName } = useApp()
   const device = tvClient() === 'tvDevice'
   const address = addressOf(path, s.addresses)
   const first = useRef<HTMLButtonElement>(null)
@@ -109,23 +107,24 @@ export function OnAComputer({ level, title, path, summary, children }: { level: 
       </div>
     )
   }
+  // The whole screen's card: one centred column as the sign-in screens ("Who's watching?") have it, for across the room.
+  // The server's name small under the glow, the screen's name, one short line, the QR code as the centrepiece with
+  // the address under it, what is set now, the buttons, and the server's own words at the foot. No keyboard keys.
   return (
-    <div className="tvl-page" data-tv-client={device ? 'tv' : 'computer'}>
-      <section className={'tvl-card' + (device ? '' : ' tvl-computer')} aria-labelledby="tvl-title">
-        <div className="tvl-text">
-          <Eyebrow device={device} />
-          <h1 id="tvl-title" className="tvl-title">{title}</h1>
-          <p className="tvl-note">{tvNote()}</p>
-          <SetNow lines={s.lines} />
-          {device && <p className="tvl-follow">{t('What you change there applies on this TV too.')}</p>}
-          {actions}
-        </div>
+    <div className="tvl-page tvl-centred" data-tv-client={device ? 'tv' : 'computer'}>
+      <section className={'tvl-stage' + (device ? '' : ' tvl-computer')} aria-labelledby="tvl-title">
+        <div className="who-brand tvl-brand"><BrandMark /><Brand name={brandName} /></div>
+        <h1 id="tvl-title" className="tvl-title"><span className="tvl-title-ic" aria-hidden="true"><IconDevices /></span>{title}</h1>
+        <p className="tvl-note">{device ? t('Change this from a computer or phone.') : tvNote()}</p>
         {device && (
-          <figure className="tvl-qr">
-            <QrCode text={address} label={t('QR code that opens {title} on a phone or computer', { title })} size={240} />
-            <figcaption>{t('Scan with a phone to open this page')}<Address text={address} /></figcaption>
+          <figure className="tvl-qr-big">
+            <QrCode text={address} label={t('QR code that opens {title} on a phone or computer', { title })} size={300} />
+            <figcaption><span>{t('or open')}</span><Address text={address} /></figcaption>
           </figure>
         )}
+        <SetNow lines={s.lines} centred />
+        {actions}
+        {device && <p className="tvl-foot">{TV_NOTE()} {t('What you change there applies on this TV too.')}</p>}
       </section>
     </div>
   )

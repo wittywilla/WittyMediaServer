@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "קוד QR שפותח את הדף הזה בטלפון או במחשב",
   "A Canvas video": "סרטון קנבס",
   "Advanced quality settings": "הגדרות איכות מתקדמות",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "כדי לבצע שינויים, אפשר לפתוח את זה באפליקציית WittyMediaClient במחשב, או בדפדפן אינטרנט. מה שבוחרים שם מופיע גם כאן."
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "כדי לבצע שינויים, אפשר לפתוח את זה באפליקציית WittyMediaClient במחשב, או בדפדפן אינטרנט. מה שבוחרים שם מופיע גם כאן.",
+  "Change this from a computer or phone.": "שנו זאת ממחשב או מטלפון.",
+  "or open": "או פתחו"
 }

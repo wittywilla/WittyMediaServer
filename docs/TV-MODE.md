@@ -35,6 +35,11 @@ page remembers it on that device (`wms.tvclient`). With neither, a browser whose
 a Fire TV, a BRAVIA, a Google TV and others) is a TV device, and everything else is a computer. The apps' own TV
 screens (Android TV, tvOS) are always the TV device's card.
 
+The card is one centred column, as the sign-in screens are ("Who's watching?"): the server's name under a soft
+glow, the screen's name, one short line ("Change this from a computer or phone."), the QR code large on a white tile
+with "or open" and the address under it, what is set now, the buttons, and on a TV device the note above at its foot.
+The Android TV and Apple TV apps draw the same card (`OnAComputerCard`). No keyboard keys are shown on a television.
+
 Navigation never dead-ends. A button has focus, Back (or Escape, or B on a controller) leaves the screen the way it
 came, and there are no controls a remote can't reach. Settings in TV mode opens on its menu, with each such row saying
 so, instead of jumping into its first page.

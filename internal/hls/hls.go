@@ -1205,6 +1205,14 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string, 
 	if sp.Growing {
 		if sp.StartSec > 0 {
 			args = append(args, "-ss", strconv.FormatFloat(sp.StartSec, 'f', 3, 64))
+			// A copied picture starts at the keyframe before the place, while sound that is
+			// converted would start at the place itself: the first seconds would be picture alone,
+			// and a player that sets up its buffers from the first segment has no room for the
+			// sound when it comes (hls.js: bufferAppendError, #501). Both start at the keyframe
+			// (and the sound filter below keeps what comes before the place).
+			if sp.CopyVideo && !sp.NoVideo {
+				args = append(args, "-noaccurate_seek")
+			}
 		}
 		// A copy runs as fast as the disk reads; a few times real time leaves
 		// plenty ahead of the viewer without filling the disk for nothing.
@@ -1373,6 +1381,12 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string, 
 		// stretched back at one sample a second: out of step with the picture for
 		// minutes, and more so with every such join.
 		af := "aresample=async=1:min_hard_comp=0.01:first_pts=0"
+		if sp.Growing && sp.StartSec > 0 && sp.CopyVideo && !sp.NoVideo {
+			// Read from the keyframe before the place (-noaccurate_seek, above), the sound comes
+			// with the copied picture from there: first_pts=0 would cut it back to the place,
+			// and the first segment would again be picture alone (#501).
+			af = "aresample=async=1:min_hard_comp=0.01"
+		}
 		if sp.AudioFilter != "" {
 			af = sp.AudioFilter + "," + af
 		}

@@ -124,5 +124,7 @@
   "QR code that opens this page on a phone or computer": "QR-код, открывающий эту страницу на телефоне или компьютере",
   "A Canvas video": "Видео для холста",
   "Advanced quality settings": "Расширенные настройки качества",
-  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Чтобы внести изменения, откройте это в приложении WittyMediaClient на компьютере или в веб-браузере. То, что вы там выберете, появится и здесь."
+  "Open it in the WittyMediaClient app on a computer, or in a web browser, to make changes. What you choose there shows here too.": "Чтобы внести изменения, откройте это в приложении WittyMediaClient на компьютере или в веб-браузере. То, что вы там выберете, появится и здесь.",
+  "Change this from a computer or phone.": "Измените это на компьютере или телефоне.",
+  "or open": "или откройте"
 }

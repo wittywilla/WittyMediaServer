@@ -8,17 +8,7 @@
 .tvl-page { display: flex; flex-direction: column; justify-content: center; gap: var(--sp-8); min-height: 60vh; padding-block: var(--sp-6); }
 .tvl-page.tvl-viewing { justify-content: flex-start; min-height: 0; }
 
-.tvl-card {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-10); align-items: center;
-  width: 100%; max-width: 1180px; margin-inline: auto; padding: var(--sp-8); border-radius: var(--r-xl);
-  background: var(--bg-2); border: 1px solid var(--border); box-shadow: var(--card-shadow);
-}
 /* A computer's card has no QR code: one column, as wide as its words need. */
-.tvl-card.tvl-computer { grid-template-columns: minmax(0, 1fr); max-width: 760px; }
-.tvl-text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-4); min-width: 0; }
-.tvl-eyebrow { display: inline-flex; align-items: center; gap: var(--sp-2); margin: 0; color: var(--accent-text); font-size: var(--text-sm); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
-.tvl-eyebrow-ic { display: inline-grid; place-items: center; width: 1.8em; height: 1.8em; border-radius: var(--r-sm); background: var(--accent-soft); }
-.tvl-eyebrow-ic svg { width: 1.1em; height: 1.1em; }
 .tvl-title { margin: 0; font-size: var(--page-title); line-height: 1.1; }
 .tvl-note { margin: 0; max-width: 34em; font-size: var(--text-lg); line-height: 1.4; }
 .tvl-follow { margin: 0; color: var(--fg-2); }
@@ -30,11 +20,7 @@
 .tvl-now ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); }
 
 /* The QR code, with the address it holds under it: the same thing, in words. */
-.tvl-qr { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); max-width: 300px; color: var(--fg-2); text-align: center; }
-.tvl-qr figcaption { display: flex; flex-direction: column; gap: var(--sp-1); }
-.tvl-qr .rem-qr { border-radius: var(--r-md); }
 .tvl-addr { font-family: var(--font-mono); color: var(--accent-text); overflow-wrap: normal; word-break: normal; }
-.tvl-qr .tvl-addr { font-size: var(--text-sm); }
 
 /* ------------------------------------------------------------------ a screen shown read only */
 .tvl-banner {
@@ -72,22 +58,13 @@
 /* ------------------------------------------------------------------ TV mode's sizes, for the card and the banner */
 html.tv-mode .tvl-page { gap: calc(var(--tvu) * 48); min-height: calc(100vh - var(--tvm-safe-y) * 2 - var(--tvu) * 160); padding: 0; }
 html.tv-mode .tvl-page.tvl-viewing { min-height: 0; }
-html.tv-mode .tvl-card { max-width: calc(var(--tvu) * 1400); gap: calc(var(--tvu) * 80); padding: calc(var(--tvu) * 64); border-radius: var(--tvm-r-tile); }
-html.tv-mode .tvl-card.tvl-computer { max-width: calc(var(--tvu) * 1000); }
-html.tv-mode .tvl-text { gap: calc(var(--tvu) * 24); }
-html.tv-mode .tvl-eyebrow { font-size: var(--tvm-caption); }
 html.tv-mode .tvl-title { font-size: var(--tvm-pagetitle); }
 html.tv-mode .tvl-note { font-size: var(--tvm-body); }
-html.tv-mode .tvl-card :is(.tvl-now, .tvl-follow) { font-size: var(--tvm-caption); }
 html.tv-mode .tvl-now-label { font-size: calc(var(--tvu) * 20); }
-html.tv-mode .tvl-qr { max-width: calc(var(--tvu) * 420); font-size: var(--tvm-caption); }
-html.tv-mode .tvl-qr .tvl-addr { font-size: calc(var(--tvu) * 22); }
-html.tv-mode .tvl-qr .rem-qr { width: calc(var(--tvu) * 320); height: calc(var(--tvu) * 320); }
 html.tv-mode .tvl-banner { max-width: calc(var(--tvu) * 1400); gap: calc(var(--tvu) * 32); padding: calc(var(--tvu) * 28) calc(var(--tvu) * 36); font-size: var(--tvm-caption); }
 html.tv-mode .tvl-banner-title { font-size: var(--tvm-title); }
 
 @media (max-width: 700px) {
-  .tvl-card { grid-template-columns: 1fr; }
   .tvl-banner { flex-wrap: wrap; }
 }
 
@@ -128,3 +105,37 @@ html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) :is(.btn.icon, .btn.sq
 html.tv-mode :is(.set-shell, .ui-dialog:has(.tvl-dialog)) .btn.sm:is(.icon, .square) { width: var(--control-h-sm); }
 html.tv-mode .set-shell:not(.tv-menu), html.tv-mode .set-shell.tv-menu { max-width: calc(var(--tvu) * 1400); margin-inline: auto; }
 html.tv-mode .ui-dialog:has(.tvl-dialog) { width: min(calc(var(--tvu) * 760), calc(100vw - var(--tvu) * 96)); max-width: none; }
+
+/* ------------------------------------------------------------------ the card, centred as the sign-in screens */
+/* One column in the middle with the soft light from the top ("Who's watching?", oobe.css): the server's name, the
+   screen's name, a line, the QR code large on a white tile with the address under it, what is set now, the buttons
+   and a quiet foot. */
+.tvl-page.tvl-centred { position: relative; align-items: center; isolation: isolate; }
+.tvl-page.tvl-centred::before {
+  content: ''; position: fixed; inset: 0 0 auto; height: 70vh; z-index: -1; pointer-events: none;
+  background: radial-gradient(70% 60% at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%);
+}
+.tvl-stage { display: flex; flex-direction: column; align-items: center; gap: var(--sp-5); width: 100%; max-width: 1000px; margin-inline: auto; text-align: center; }
+.tvl-brand { justify-content: center; }
+.tvl-stage .tvl-title { display: inline-flex; align-items: center; justify-content: center; gap: .35em; flex-wrap: wrap; overflow-wrap: anywhere; }
+.tvl-title-ic { display: inline-grid; place-items: center; color: var(--accent-text); }
+.tvl-title-ic svg { width: .85em; height: .85em; }
+.tvl-stage .tvl-note { color: var(--fg-2); }
+.tvl-qr-big { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); }
+.tvl-qr-big .rem-qr { padding: var(--sp-5); border-radius: var(--r-xl); background: #fff; } /* design-ok: a QR code needs a white tile to be scanned, in every theme */
+.tvl-qr-big figcaption { display: flex; flex-direction: column; gap: var(--sp-1); color: var(--fg-2); max-width: 100%; }
+.tvl-qr-big .tvl-addr { font-size: var(--text-lg); font-weight: 700; font-family: inherit; }
+.tvl-now-line { margin: 0; }
+.tvl-now.tvl-now-centred { align-items: center; border-left: 0; padding: var(--sp-3) var(--sp-8); background: var(--bg-2); border: 1px solid var(--border); }
+.tvl-stage .tvl-actions { justify-content: center; }
+.tvl-foot { margin: 0; max-width: 40em; color: var(--fg-3); font-size: var(--text-sm); }
+
+html.tv-mode .tvl-stage { max-width: calc(var(--tvu) * 1400); gap: calc(var(--tvu) * 20); }
+html.tv-mode .tvl-brand { font-size: calc(var(--tvu) * 24); }
+html.tv-mode .tvl-brand img, html.tv-mode .tvl-brand svg { width: calc(var(--tvu) * 36); height: calc(var(--tvu) * 36); }
+html.tv-mode .tvl-qr-big .rem-qr { width: min(calc(var(--tvu) * 400), 30vh); height: auto; padding: calc(var(--tvu) * 28); border-radius: calc(var(--tvu) * 24); }
+html.tv-mode .tvl-qr-big .rem-qr svg, html.tv-mode .tvl-qr-big .rem-qr canvas, html.tv-mode .tvl-qr-big .rem-qr img { width: 100%; height: auto; }
+html.tv-mode .tvl-qr-big figcaption { font-size: var(--tvm-caption); }
+html.tv-mode .tvl-qr-big .tvl-addr { font-size: calc(var(--tvu) * 34); }
+html.tv-mode .tvl-now.tvl-now-centred { padding: calc(var(--tvu) * 20) calc(var(--tvu) * 40); font-size: var(--tvm-body); }
+html.tv-mode .tvl-foot { font-size: calc(var(--tvu) * 24); max-width: calc(var(--tvu) * 1300); }

@@ -114,7 +114,7 @@ var startExe, _ = os.Executable()
 
 // version is stamped by the release scripts (-X main.version=...); this is
 // the default for source builds.
-var version = "0.8.2-alpha"
+var version = "0.8.3-alpha"
 
 func usage() {
 	fmt.Println(`WittyMediaServer

@@ -107,7 +107,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: tk('System'), pages: [
     { to: 'logs', label: tk('WittyLog'), icon: <IconFile />, admin: true, hint: tk('What is recorded and for how long, and downloading logs to share') },
     { to: 'diagnoser', label: tk('WittyDiagnoser'), icon: <IconTune />, admin: true, hint: tk('The disk diagnoser: checks your discs and your drives, and changes nothing') },
-    { to: 'modules', label: tk('Modules'), icon: <IconPlug />, admin: true, hint: tk('What this server can do: add, remove, update and choose versions') },
+    { to: 'modules', label: tk('Module store'), icon: <IconPlug />, admin: true, hint: tk('What this server can do: add, remove, update and choose versions') },
     { to: 'backup', label: tk('Backup'), icon: <IconDownload />, admin: true, hint: tk('A ZIP of your data and metadata, on demand or on a schedule, and bringing one back') },
     { to: 'repair', label: tk('Repair'), icon: <IconWrench />, admin: true, hint: tk('Finds and fixes problems with metadata, the database, modules and this install') },
     { to: 'reset', label: tk('Reset'), icon: <IconRefresh />, admin: true, hint: tk('Back to a new install, with a copy kept if you want one') },

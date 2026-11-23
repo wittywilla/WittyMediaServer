@@ -32,6 +32,14 @@ test('an administrator on the web sees every row with a page', () => {
   for (const id of ['topMenu', 'servers', 'away', 'appLog']) assert.ok(!all.includes(id), id)
 })
 
+test('module settings and the module store are side by side, in their own group', () => {
+  const gs = menuGroups(menu, who(), web)
+  assert.deepEqual(gs.find((g) => g.id === 'modules').rows.map((r) => r.title), ['Module settings', 'Module store'])
+  assert.ok(!gs.find((g) => g.id === 'maintenance').rows.some((r) => r.path === '/settings/modules'))
+  // Someone who isn't an administrator sees the settings alone.
+  assert.deepEqual(menuGroups(menu, who({ admin: false }), web).find((g) => g.id === 'modules').rows.map((r) => r.id), ['moduleSettings'])
+})
+
 test('the desktop app adds its own rows', () => {
   const desktop = new Set(['servers', 'away', 'appLog'])
   const gs = menuGroups(menu, who({ app: true, servers: true, fromAway: true }), (r) => !!r.path || desktop.has(r.native))

@@ -89,7 +89,7 @@ func (m *SettingsMenu) Problems() []string {
 			if r.ID == "" || r.Key == "" || r.Title == "" {
 				out = append(out, at+": needs an id, a key and a title")
 			}
-			if ids[r.Key] && r.Key != "rowModules" {
+			if ids[r.Key] {
 				out = append(out, at+": key "+r.Key+" used twice")
 			}
 			ids[r.Key] = true

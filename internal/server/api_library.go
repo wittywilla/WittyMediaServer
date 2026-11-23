@@ -1016,6 +1016,33 @@ func (s *Server) handleLibraryNFO(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"foreignNfo": b.Use})
 }
 
+// PUT /api/libraries/{id}/read-only {readOnly}: whether anything the server does may write
+// into the library's folders (uploads, pictures and details saved beside the files,
+// conversions). Every kind of library has it, games among them (#398).
+func (s *Server) handleLibraryReadOnly(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var b struct {
+		ReadOnly bool `json:"readOnly"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if err := s.Store.SetLibraryReadOnly(r.Context(), id, b.ReadOnly); err != nil {
+		if errors.Is(err, library.ErrNotFound) {
+			writeErr(w, 404, "no such library")
+		} else {
+			writeErr(w, 500, err.Error())
+		}
+		return
+	}
+	writeJSON(w, 200, map[string]any{"readOnly": b.ReadOnly})
+}
+
 // POST /api/libraries/{id}/purge-metadata: deletes every .nfo and .metadata.json file in the
 // library's folders (media, pictures and subtitles stay), then scans it again. Refused for a
 // read-only library.

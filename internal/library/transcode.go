@@ -98,7 +98,7 @@ func (s *Store) SetLibraryReadOnly(ctx context.Context, id int64, on bool) error
 }
 
 // ErrReadOnly: someone asked to add a file to a library set to read-only.
-var ErrReadOnly = errors.New("this library is set to read-only, so nothing can be added to its folders. An administrator can change that under its conversion settings")
+var ErrReadOnly = errors.New("this library is set to read-only, so nothing can be added to its folders. An administrator can change that in Settings, Libraries")
 
 // libraryReadOnly: nothing may be written into this library's folders.
 func (s *Store) libraryReadOnly(ctx context.Context, id int64) bool {

@@ -76,6 +76,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/libraries/{id}` | Admin | Numeric id |
 | `POST /api/libraries/{id}/scan` | Admin | Library exists; body `{mode}` read up to 4 KB, only `changes` or `full` (400 otherwise) |
 | `PUT /api/libraries/{id}/nfo` | Admin | Library exists |
+| `PUT /api/libraries/{id}/read-only` | Admin | Library exists |
 | `POST /api/libraries/{id}/purge-metadata` | Admin | Library exists and isn't read-only; deletes only `.nfo` and `.metadata.json` files inside its folders |
 | `GET /api/libraries/{id}/scan` | Signed-in | Library is within the account's allowed libraries. File names for admins only |
 | `POST /api/libraries/{id}/forget-metadata` | Admin | Library exists and isn't being scanned. Removes only files the server recorded writing, and NFOs with its marker, inside the library's folders, through the folder (never through a link out of it); a person's `.nfo.bak` goes back. Every item keeps its ID; history, locks and people's edits stay. Logged and shown in Activity |

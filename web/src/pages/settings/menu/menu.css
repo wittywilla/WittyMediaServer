@@ -1,0 +1,90 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* The settings menu (SettingsMenu.tsx), as the Android phone app draws its You page: a group's heading in small
+   capitals, then its rows, each a tinted icon tile, the name, what is set, and a chevron. --tint is a row's colour.
+   A phone: one column. A wide screen and a TV: the person on the left third, the groups on the right two-thirds. */
+
+.sm-home { display: grid; gap: var(--sp-6); max-width: 640px; margin: 0 auto; }
+.sm-home.wide { grid-template-columns: minmax(15rem, 1fr) minmax(0, 2fr); gap: var(--sp-12); max-width: 1180px; align-items: start; }
+.sm-left { position: sticky; top: var(--page-top, var(--sp-8)); }
+.sm-right { display: grid; gap: var(--sp-6); min-width: 0; }
+
+/* The person: picture, names, role, and the buttons under them. */
+.sm-person { display: grid; justify-items: center; text-align: center; }
+.sm-person .avatar-tile.big { width: 88px; height: 88px; border-radius: 22%; font-size: var(--text-4xl); }
+.sm-person.wide .avatar-tile.big { width: 160px; height: 160px; font-size: calc(var(--text-4xl) * 1.8); }
+.sm-person-name { margin-top: var(--sp-3); font-size: var(--text-2xl); font-weight: 600; letter-spacing: var(--tracking-heading); line-height: var(--leading-tight); overflow-wrap: anywhere; }
+.sm-person-sub { margin-top: var(--sp-1); color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.sm-person-actions { display: grid; gap: var(--sp-2); justify-items: center; margin-top: var(--sp-4); }
+.sm-person.wide .sm-person-actions { justify-items: stretch; width: min(100%, 18rem); }
+.sm-pill { border-radius: var(--r-full); }
+.sm-pill.danger { color: var(--danger); }
+
+/* The groups. */
+.sm-groups { display: grid; gap: var(--sp-6); }
+.sm-group-h { margin: 0 0 var(--sp-2); padding-inline: var(--sp-4); font-size: var(--text-2xs); font-weight: 600; letter-spacing: var(--tracking-label, .06em); text-transform: uppercase; color: var(--fg-2); }
+.sm-row { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: 52px; padding: var(--sp-2) var(--sp-3) var(--sp-2) var(--sp-4); border: 0; background: none; color: var(--fg); font: inherit; font-size: var(--text-base); text-align: start; text-decoration: none; cursor: pointer; }
+.sm-ic { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 25%; background: color-mix(in srgb, var(--tint) 22%, var(--bg-2)); color: color-mix(in srgb, var(--tint) 65%, var(--fg)); }
+.sm-ic svg { width: 18px; height: 18px; }
+.sm-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sm-value { flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-2); font-size: var(--text-sm); }
+.sm-go { flex: none; width: 18px; height: 18px; color: var(--fg-3); }
+.danger > .sm-name { color: var(--danger); }
+
+/* list: each group one card, hairlines between rows starting after the tile. */
+.sm-list .sm-rows { overflow: hidden; border-radius: var(--r-lg); background: var(--bg-2); }
+.sm-list .sm-row { position: relative; }
+.sm-list .sm-row + .sm-row::before { content: ''; position: absolute; top: 0; right: 0; left: calc(var(--sp-4) + 32px + var(--sp-3)); border-top: 1px solid var(--border); }
+.sm-list .sm-row:hover { background: var(--bg-3); }
+.sm-list .sm-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* nav: the same rows beside a settings page, smaller, the open one marked. */
+.sm-nav { gap: var(--sp-4); }
+.sm-nav .sm-group-h { padding-inline: var(--sp-3); color: var(--fg-3); }
+.sm-nav .sm-rows { display: grid; gap: 2px; }
+.sm-nav .sm-row { min-height: 38px; padding: 0 var(--sp-2); gap: 10px; border-radius: var(--r-md); color: var(--fg-2); font-size: var(--text-md); font-weight: 500; }
+.sm-nav .sm-ic { width: 26px; height: 26px; }
+.sm-nav .sm-ic svg { width: 15px; height: 15px; }
+.sm-nav .sm-go { display: none; }
+.sm-nav .sm-row:hover { background: var(--hover); color: var(--fg); }
+.sm-nav .sm-row.on { background: var(--accent-soft); color: var(--fg); font-weight: 600; }
+
+/* This server: its mark, name, address and fingerprint in a card, the buttons under it. */
+.sm-server-card { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-4); border-radius: var(--r-lg); background: var(--bg-2); }
+.sm-server-card .brand-mark { flex: none; width: 40px; height: 40px; border-radius: 22%; object-fit: contain; }
+.sm-server-text { display: grid; gap: 2px; min-width: 0; }
+.sm-server-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-server-text span, .sm-server-text small { color: var(--fg-2); font-size: var(--text-sm); }
+.sm-server-text small { font-size: var(--text-xs); color: var(--fg-3); }
+.sm-server-actions { display: grid; gap: var(--sp-2); margin-top: var(--sp-3); }
+.sm-server-actions .btn.danger { color: var(--danger); }
+
+/* The settings page's own column on a computer: the menu beside it is the nav above. */
+.set-nav .sm-nav { margin-top: var(--sp-2); }
+.set-nav > .set-nav-title { display: block; color: inherit; text-decoration: none; }
+
+/* A phone: the page's edge and the shell's bar, as You was. */
+@media (max-width: 760px) {
+  .sm-home { gap: var(--sp-6); }
+}
+
+/* TV mode: the rows are tiles of their own, as Android TV and Apple TV draw them, sized in TV units. */
+html.tv-mode .sm-home.tv { grid-template-columns: 1fr 2fr; gap: calc(var(--tvu) * 64); max-width: none; }
+html.tv-mode .sm-home.tv .sm-left { min-height: calc(100vh - var(--tvu) * 200); display: flex; align-items: center; justify-content: center; }
+html.tv-mode .sm-home.tv .avatar-tile.big { width: calc(var(--tvu) * 200); height: calc(var(--tvu) * 200); font-size: calc(var(--tvu) * 86); }
+html.tv-mode .sm-home.tv .sm-person-name { font-size: var(--tvm-title); }
+html.tv-mode .sm-home.tv .sm-person-sub { font-size: var(--tvm-secondary); }
+html.tv-mode .sm-home.tv .sm-person { width: 100%; }
+html.tv-mode .sm-home.tv .sm-person-actions { width: min(100%, calc(var(--tvu) * 420)); gap: calc(var(--tvu) * 16); margin-top: calc(var(--tvu) * 24); }
+html.tv-mode .sm-home.tv .sm-right { gap: calc(var(--tvu) * 32); padding: calc(var(--tvu) * 8) calc(var(--tvu) * 16) calc(var(--tvu) * 32); }
+.sm-tv { gap: calc(var(--tvu, 1px) * 32); }
+.sm-tv .sm-group-h { margin-bottom: calc(var(--tvu, 1px) * 12); padding: 0; font-size: var(--tvm-caption, var(--text-xs)); font-weight: 500; }
+.sm-tv .sm-rows { display: grid; gap: calc(var(--tvu, 1px) * 16); }
+.sm-tv .tvm-row { width: 100%; border: 0; font: inherit; font-size: var(--tvm-body, var(--text-base)); text-align: start; cursor: pointer; }
+.sm-tv .sm-ic { width: calc(var(--tvu, 1px) * 32); height: calc(var(--tvu, 1px) * 32); border-radius: calc(var(--tvu, 1px) * 8); }
+.sm-tv .sm-ic svg { width: calc(var(--tvu, 1px) * 20); height: calc(var(--tvu, 1px) * 20); }
+.sm-tv .sm-value { font-size: var(--tvm-secondary, var(--text-sm)); }
+.sm-tv .sm-elsewhere { color: var(--fg-3); }
+.sm-tv .sm-go { width: calc(var(--tvu, 1px) * 24); height: calc(var(--tvu, 1px) * 24); }
+html.tv-mode .sm-home.tv .sm-group-h { font-size: var(--tvm-caption); }
+html.tv-mode .sm-home.tv .sm-server-card { padding: calc(var(--tvu) * 20); border-radius: var(--tvm-r-tile); }

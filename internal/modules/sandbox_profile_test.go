@@ -4,6 +4,7 @@
 package modules
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -71,7 +72,8 @@ func TestWritableFoldersAreOnlyWhatsAsked(t *testing.T) {
 	if got := strings.Join(writableFolders(SandboxSaveArg, []string{"-save", "/s"}, env), ","); got != "/s" {
 		t.Errorf("the save argument: %s", got)
 	}
-	if got := strings.Join(writableFolders(SandboxWriteData, nil, env), ","); got != "/d,/w,/t" {
+	// The folders come back as the system writes them (backslashes on Windows, #532).
+	if got := filepath.ToSlash(strings.Join(writableFolders(SandboxWriteData, nil, env), ",")); got != "/d,/w,/t" {
 		t.Errorf("its data: %s", got)
 	}
 }

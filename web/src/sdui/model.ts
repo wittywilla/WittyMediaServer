@@ -352,10 +352,14 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
       e.role = 'button'
       const parts: string[] = []
       const n = num(p, 'number')
+      const disc = num(p, 'disc')
+      if (disc !== undefined && typeof parent?.props?.discs === 'number' && parent.props.discs > 1) parts.push(t('Disc {n}', { n: Math.trunc(disc) }))
       if (n !== undefined && parent?.props?.showNumbers !== false) parts.push(t('Track {number}', { number: String(Math.trunc(n)) }))
       parts.push(str(p, 'title'))
       text('title', str(p, 'title')); lines('title', 1)
-      if (parent?.props?.showArtist === true) { parts.push(str(p, 'artist')); text('subtitle', str(p, 'artist')) }
+      // The song's own artist when it isn't the album's (a guest), whatever showArtist says.
+      const who = parent?.props?.showArtist === true ? str(p, 'artist') : str(p, 'credit')
+      if (who) { parts.push(who); text('subtitle', who) }
       const d = num(p, 'durationSec')
       if (d !== undefined && parent?.props?.showDuration !== false) { parts.push(spokenDuration(Math.trunc(d))); text('duration', clock(Math.trunc(d))) }
       e.label = join(...parts)

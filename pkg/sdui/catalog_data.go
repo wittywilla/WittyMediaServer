@@ -447,7 +447,8 @@ func buildComponents() []ComponentSpec {
 			Props: []PropSpec{
 				pEnum("layout", "Layout", "Backdrop behind the text, poster beside it, or a compact strip.", "backdrop", "backdrop|Backdrop", "poster|Poster beside", "compact|Compact"),
 				pList("actions", "Buttons", "The buttons offered, in order. One the title or the profile can't use is left out.", []string{"play", "restart", "watchLater", "watched", "download", "share"},
-					"play|Play or Resume", "restart|Play from the start", "watchLater|Watch later", "watched|Mark watched", "download|Download", "share|Share", "playOn|Play on another device", "watchParty|Watch party"),
+					"play|Play or Resume", "restart|Play from the start", "shuffle|Shuffle (an album, an artist)", "queue|Add to queue (an album)", "artist|Go to artist (an album)", "watchLater|Watch later", "watched|Mark watched", "download|Download", "share|Share", "playOn|Play on another device", "watchParty|Watch party"),
+				pOf(PropInt, "menuAfter", "Buttons before More", "The first this many buttons stand on their own and the rest go in a More menu (on a TV and a phone; a wide window may show them all). 0: every button stands on its own."),
 				pList("facts", "Facts", "The line of facts under the title, in order.", []string{"year", "runtime", "contentRating", "rating", "genres"},
 					"year|Year", "runtime|Running time", "contentRating|Certificate", "rating|Score", "genres|Genres", "studio|Studio", "artist|Artist (an album or song)", "count|How many it holds", "season|Season and episode",
 					"knownFor|Known for (a person)", "born|Born (a person)", "died|Died (a person)"),
@@ -485,9 +486,10 @@ func buildComponents() []ComponentSpec {
 				pBool("showNumbers", "Show track numbers", "", true),
 				pBool("showArtist", "Show each track's artist", "For compilations.", false),
 				pBool("showDuration", "Show lengths", "", true),
+				pOf(PropInt, "discs", "Discs", "Made by the server: how many discs the songs are on, when more than one. Head each disc's songs with \"Disc <n>\" (its tracks' disc prop); numbers start at 1 on each."),
 			},
 			Renders: map[string]string{
-				"tv":      "A list down the right two thirds of the screen, one row per track: number, title, length; the playing track in token accent.",
+				"tv":      "Under the header, the full width of the safe area, one row per track: number, title (and its credit under it), length; the playing track in token accent with a playing mark in place of its number. With discs, a \"Disc <n>\" heading before each disc's rows. Every row is a focus stop and the page scrolls to keep the focused row in view.",
 				"phone":   "Full-width rows 56 points tall: number, title over artist, length; swipe actions are the app's own.",
 				"desktop": "A table: #, Title, Artist (when shown), Length; double-click plays.",
 			},
@@ -517,8 +519,10 @@ func buildComponents() []ComponentSpec {
 
 		{Type: "Track", Label: "Track", Icon: "music", Category: "detail", Since: 2, Data: "none", Focus: "item",
 			Description: "One row of a TrackList. Made by the server.",
-			Props: []PropSpec{pOf(PropString, "title", "Title", ""), pOf(PropString, "artist", "Artist", ""), pOf(PropInt, "number", "Number", ""), pOf(PropInt, "durationSec", "Length in seconds", ""),
-				pOf(PropString, "itemId", "Item", ""), pOf(PropNumber, "progress", "Progress", "0 to 1.")},
+			Props: []PropSpec{pOf(PropString, "title", "Title", ""), pOf(PropString, "artist", "Artist", ""), pOf(PropInt, "number", "Number", "Its place on its disc."), pOf(PropInt, "durationSec", "Length in seconds", ""),
+				pOf(PropString, "itemId", "Item", ""), pOf(PropNumber, "progress", "Progress", "0 to 1."),
+				pOf(PropInt, "disc", "Disc", "Which disc it is on, sent only when the list holds more than one."),
+				pOf(PropString, "credit", "Credit", "The song's own artist when it isn't the album's (a guest, a compilation): shown under the title whatever showArtist says.")},
 			A11y: "Role: button. Label as TrackList says."},
 
 		{Type: "Banner", Label: "Banner", Icon: "star", Category: "media", Since: 2, Authored: true, Data: "optional", Focus: "item",

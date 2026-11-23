@@ -132,6 +132,9 @@ func (rv *sduiResolver) item(it *library.Item) sdui.Item {
 		if it.Track != nil {
 			out.Track = *it.Track
 		}
+		if it.DiscNo != nil {
+			out.Disc = *it.DiscNo
+		}
 		if p := out.Images["poster"]; p != "" {
 			out.Images["square"] = p
 		}
@@ -271,6 +274,9 @@ func (rv *sduiResolver) album(lib int64, a library.Album) sdui.Item {
 	}
 	if a.Genre != "" {
 		out.Genres = []string{a.Genre}
+	}
+	if a.Artist != "" {
+		out.ArtistRoute = "/artist/" + itoa(lib) + "?name=" + url.QueryEscape(a.Artist)
 	}
 	if a.CoverItem != 0 {
 		out.Images["square"] = "/api/items/" + itoa(a.CoverItem) + "/poster"

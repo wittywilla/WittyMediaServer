@@ -51,21 +51,13 @@ func (o ConvertOptions) does(format string) bool { return o.Format == "" || o.Fo
 
 // ConvertReport says what a conversion did.
 type ConvertReport struct {
-	Titles    int `json:"titles"`    // films and episodes looked at
-	Shows     int `json:"shows"`     // shows (and their seasons) looked at
-	Converted int `json:"converted"` // titles, shows and songs that gained something
-	// Each kind on its own, so a result can say what it counted: films and episodes, shows,
-	// songs (their lyrics) and albums (cover and album.nfo).
-	TitlesConverted int      `json:"titlesConverted"`
-	ShowsConverted  int      `json:"showsConverted"`
-	Songs           int      `json:"songs"`
-	SongsConverted  int      `json:"songsConverted"`
-	Albums          int      `json:"albums"`
-	AlbumsConverted int      `json:"albumsConverted"`
-	Unchanged       int      `json:"unchanged"` // had nothing to convert
-	Failed          int      `json:"failed"`
-	Retired         int      `json:"retired"` // files renamed to .bak
-	Errors          []string `json:"errors,omitempty"`
+	Titles    int      `json:"titles"`    // films and episodes looked at
+	Shows     int      `json:"shows"`     // shows (and their seasons) looked at
+	Converted int      `json:"converted"` // titles and shows that gained something
+	Unchanged int      `json:"unchanged"` // had nothing to convert
+	Failed    int      `json:"failed"`
+	Retired   int      `json:"retired"` // files renamed to .bak
+	Errors    []string `json:"errors,omitempty"`
 }
 
 func (r *ConvertReport) fail(what string, err error) {
@@ -529,7 +521,6 @@ func (s *Scanner) GatherInfo(ctx context.Context, libs []int64, o ConvertOptions
 			continue
 		}
 		rep.Converted++
-		rep.TitlesConverted++
 		_ = s.ApplyInfoNow(ctx, it.ID)
 		if o.Retire {
 			rep.Retired += s.Store.retire(ctx, used)
@@ -641,7 +632,6 @@ func (s *Scanner) GatherInfo(ctx context.Context, libs []int64, o ConvertOptions
 		}
 		if changed {
 			rep.Converted++
-			rep.ShowsConverted++
 		} else {
 			rep.Unchanged++
 		}
@@ -778,7 +768,6 @@ func (s *Scanner) SpreadInfo(ctx context.Context, libs []int64, o ConvertOptions
 			continue
 		}
 		rep.Converted++
-		rep.TitlesConverted++
 		if o.Retire {
 			if l.Origin == "file" {
 				rep.Retired += s.Store.retire(ctx, []string{l.Path})
@@ -819,7 +808,6 @@ func (s *Scanner) SpreadInfo(ctx context.Context, libs []int64, o ConvertOptions
 			continue
 		}
 		rep.Converted++
-		rep.ShowsConverted++
 		if o.Retire {
 			if l.Origin == "file" {
 				rep.Retired += s.Store.retire(ctx, []string{l.Path})

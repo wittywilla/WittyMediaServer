@@ -36,13 +36,6 @@ func TestWittyaudioSong(t *testing.T) {
 	if err != nil || rep.Converted != 1 {
 		t.Fatalf("%+v %v", rep, err)
 	}
-	// Counted as songs and albums, never as titles and shows (#535).
-	if rep.Songs != 1 || rep.SongsConverted != 1 || rep.Albums != 1 || rep.AlbumsConverted != 1 || rep.Titles != 0 || rep.Shows != 0 {
-		t.Errorf("gathered: %+v", rep)
-	}
-	if got := convertResult("wittyaudio", rep); got != "1 of 1 album converted; lyrics for 1 of 1 song." {
-		t.Errorf("result: %q", got)
-	}
 	song, err := os.ReadFile(stem + ".wittyaudio")
 	if err != nil {
 		t.Fatal("no .wittyaudio beside the song:", err)
@@ -98,9 +91,6 @@ func TestWittyaudioSong(t *testing.T) {
 	rep, err = ts.Scanner.SpreadInfo(ctx, []int64{f.song.LibraryID}, library.ConvertOptions{Format: wittyinfo.FormatAudio}, nil)
 	if err != nil || rep.Converted != 1 {
 		t.Fatalf("spread: %+v %v", rep, err)
-	}
-	if rep.Songs != 1 || rep.SongsConverted != 1 || rep.Albums != 1 || rep.AlbumsConverted != 1 {
-		t.Errorf("spread: %+v", rep)
 	}
 	if b, _ := os.ReadFile(stem + ".lrc"); !strings.Contains(string(b), "[00:16.00]Second line") {
 		t.Errorf("lrc: %s", b)

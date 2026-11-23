@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { getTvMode } from '../tvmode/mode'
+import { HELP_EVENT } from '../ui/KeyHelp.event'
 import { useEffect, useRef, useState } from 'react'
 import { fmtTime, getPrefs } from '../api'
 import { Thumb } from './ChapterThumb'
@@ -273,7 +275,10 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {onSettings && <button role="menuitem" onClick={() => { setPop(null); onSettings() }}><IconSettings /> {t('Viewing settings')}</button>}
           {onQuality && <button role="menuitem" onClick={() => { setPop(null); onQuality() }}><IconInfo /> {t('How this is playing')}</button>}
           {onEditInfo && <button role="menuitem" onClick={() => { setPop(null); onEditInfo() }}><IconChapters /> {t('Edit scenes and skips')}</button>}
-          <button role="menuitem" onClick={() => { setPop(null); setHelp(true) }}><span className="kbd-help" aria-hidden="true">?</span> {t('Keyboard shortcuts')}</button>
+          {/* A TV shows the remote's keys (the app's Keys dialog), never a keyboard's shortcuts. */}
+          {getTvMode()
+            ? <button role="menuitem" onClick={() => { setPop(null); window.dispatchEvent(new Event(HELP_EVENT)) }}><IconInfo /> {t('Keys')}</button>
+            : <button role="menuitem" onClick={() => { setPop(null); setHelp(true) }}><span className="kbd-help" aria-hidden="true">?</span> {t('Keyboard shortcuts')}</button>}
         </Menu>
       )}
       {pop === 'audio' && audio && (

@@ -101,7 +101,9 @@ export type Step =
   | { do: 'go'; to: string }
   | { do: 'layer'; to: string }
   | { do: 'back' }
-  | { do: 'play'; item: string; resume: boolean }
+  | { do: 'play'; item: string; resume: boolean; shuffle?: boolean }
+  // Add an album's songs (the album of this song) to the end of what is playing.
+  | { do: 'queue'; item: string }
   | { do: 'open'; url: string }
   | { do: 'screen'; screen: string; item?: string }
   | { do: 'tab'; tabs: string; tab: string }
@@ -172,7 +174,7 @@ export function plan(a: Action | undefined, opts: { externalLinks?: boolean } = 
   switch (a.type) {
     case 'navigate': return a.to && safeRoute(a.to) ? { do: a.as === 'layer' ? 'layer' : 'go', to: a.to } : { do: 'nothing' }
     case 'back': return { do: 'back' }
-    case 'play': return a.item ? { do: 'play', item: a.item, resume: a.params?.resume !== false } : { do: 'nothing' }
+    case 'play': return a.item ? { do: 'play', item: a.item, resume: a.params?.resume !== false, ...(a.params?.shuffle === true ? { shuffle: true } : {}) } : { do: 'nothing' }
     case 'external': return a.url && /^https?:\/\//i.test(a.url) && opts.externalLinks !== false ? { do: 'open', url: a.url } : { do: 'nothing' }
     case 'native': {
       if (!a.to) return { do: 'nothing' }
@@ -189,6 +191,7 @@ export function plan(a: Action | undefined, opts: { externalLinks?: boolean } = 
         case 'watched.clear': return a.item ? { do: 'request', method: 'DELETE', path: `/items/${encodeURIComponent(a.item)}/progress` } : { do: 'nothing' }
         case 'selectTab': return typeof a.params?.tab === 'string' ? { do: 'tab', tabs: typeof a.params?.tabs === 'string' ? a.params.tabs : '', tab: a.params.tab } : { do: 'nothing' }
         case 'refresh': return { do: 'refresh' }
+        case 'queue.add': return a.item ? { do: 'queue', item: a.item } : { do: 'nothing' }
       }
       if (a.op && CLIENT_OPS.has(a.op)) return { do: 'client', op: a.op, params: a.params || {} }
       { const spec = a.op ? commandSpecs.get(a.op) : undefined; if (spec && spec.method !== 'GET') return commandRequest(spec, a) }

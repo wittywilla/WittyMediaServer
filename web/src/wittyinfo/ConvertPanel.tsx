@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
-import { t, tn, tx } from '../i18n'
+import { t, tn } from '../i18n'
 import { IconCheck } from '../icons'
 import { Progress } from '../ui'
 import './info.css'
@@ -27,29 +27,7 @@ type Counts = {
 }
 type GameCounts = { games: number; withMetadata: number; withInfo: number }
 type TaskView = { id: string; key?: string; state: string; percent: number; done: number; total: number; item?: string; result?: string; error?: string }
-// What a finished conversion of the server's own did, counted by kind (GET /wittyinfo/convert/report).
-export type ConvertReport = { titles: number; titlesConverted: number; shows: number; showsConverted: number; songs: number; songsConverted: number; albums: number; albumsConverted: number; failed: number; retired: number }
-type Row = {
-  key: 'wittyinfo' | 'wittyaudio' | 'wittyplay'; ext: string; what: string; found: string; has: number; hasOwn: number; standard: string
-  // How far it is, in what the row counts: films, episodes and shows; songs; games.
-  counted: (done: number, total: number) => string
-}
-
-// A finished conversion in a sentence, in the row's own words: films and episodes, and shows, for .wittyinfo; albums,
-// and songs' lyrics, for .wittyaudio. Each count is out of how many there were of that kind.
-export function convertResult(format: 'wittyinfo' | 'wittyaudio', r: ConvertReport): string {
-  const parts: string[] = []
-  if (format === 'wittyinfo') {
-    if (r.titles > 0 || r.shows === 0) parts.push(tn('{done} of {count} film or episode converted', '{done} of {count} films and episodes converted', r.titles, { done: r.titlesConverted }))
-    if (r.shows > 0) parts.push(tn('{done} of {count} show', '{done} of {count} shows', r.shows, { done: r.showsConverted }))
-  } else {
-    parts.push(tn('{done} of {count} album converted', '{done} of {count} albums converted', r.albums, { done: r.albumsConverted }))
-    parts.push(tn('lyrics for {done} of {count} song', 'lyrics for {done} of {count} songs', r.songs, { done: r.songsConverted }))
-  }
-  if (r.retired > 0) parts.push(tn('{count} old file renamed to .bak', '{count} old files renamed to .bak', r.retired))
-  if (r.failed > 0) parts.push(tn('{count} couldn’t be converted (see the log)', '{count} couldn’t be converted (see the log)', r.failed))
-  return parts.join('; ') + '.'
-}
+type Row = { key: 'wittyinfo' | 'wittyaudio' | 'wittyplay'; ext: string; what: string; found: string; has: number; hasOwn: number; standard: string }
 
 export default function ConvertPanel({ onBusy, compact, beforeStart }: { onBusy?: (busy: boolean) => void; compact?: boolean; beforeStart?: () => Promise<unknown> }) {
   const [counts, setCounts] = useState<Counts | null>(null)
@@ -61,10 +39,7 @@ export default function ConvertPanel({ onBusy, compact, beforeStart }: { onBusy?
   const [retire, setRetire] = useState(false)
   const [tasks, setTasks] = useState<Record<string, TaskView>>({})
   const [started, setStarted] = useState<Record<string, string>>({})
-  // The counts behind each finished row, to say its result in this page's language.
-  const [reports, setReports] = useState<Record<string, ConvertReport>>({})
   const poll = useRef<ReturnType<typeof setInterval> | null>(null)
-  const gotReport = useRef(new Set<string>())
 
   const load = () => {
     api.get<{ counts: Counts; canWrite: boolean }>('/wittyinfo/convert/counts').then((r) => { setCounts(r.counts); setCanWrite(r.canWrite) }).catch((e) => setErr((e as Error).message))
@@ -77,19 +52,16 @@ export default function ConvertPanel({ onBusy, compact, beforeStart }: { onBusy?
     key: 'wittyinfo', ext: '.wittyinfo', what: t('Films and TV'), standard: t('NFO files, posters and skip files'),
     found: t('Films and episodes: {titles} · with NFO files: {nfo} · with pictures: {art} · shows: {shows}', { titles: counts.titles, nfo: counts.withNfo, art: counts.withArt, shows: counts.shows }),
     has: counts.withNfo + counts.withArt + counts.withSkips + counts.showsWithNfo, hasOwn: counts.withInfo + counts.showsWithInfo,
-    counted: (done, total) => tn('{done} of {count} film, episode or show', '{done} of {count} films, episodes and shows', total, { done }),
   })
   if (counts && counts.songs) rows.push({
     key: 'wittyaudio', ext: '.wittyaudio', what: t('Music'), standard: t('.lrc lyrics, album covers and album.nfo files'),
     found: t('Songs: {songs} · with lyrics files: {lyrics} · albums: {albums} · with a cover or album.nfo: {art}', { songs: counts.songs, lyrics: counts.songsWithLyrics, albums: counts.albums, art: counts.albumsWithArt }),
     has: counts.songsWithLyrics + counts.albumsWithArt, hasOwn: counts.songsWithInfo + counts.albumsWithInfo,
-    counted: (done, total) => tn('{done} of {count} song', '{done} of {count} songs', total, { done }),
   })
   if (games && games.games) rows.push({
     key: 'wittyplay', ext: '.wittyplay', what: t('Games'), standard: t('game lists, NFO files, box art and screenshots'),
     found: t('Games: {games} · with details beside them: {meta}', { games: games.games, meta: games.withMetadata }),
     has: games.withMetadata, hasOwn: games.withInfo,
-    counted: (done, total) => tn('{done} of {count} game', '{done} of {count} games', total, { done }),
   })
 
   const chosen = rows.filter((r) => (dir[r.key] || 'keep') !== 'keep')
@@ -109,13 +81,6 @@ export default function ConvertPanel({ onBusy, compact, beforeStart }: { onBusy?
         // A module's task (WittyPlay's) is known by its key; the server's own by its id.
         for (const [k, id] of Object.entries(started)) { const x = all.find((y) => y.id === id || y.key === id); if (x) next[k] = x }
         setTasks(next)
-        // The server's own rows: their counts, to say the result in this page's words.
-        for (const [k, x] of Object.entries(next)) {
-          if (k !== 'wittyplay' && x.state === 'done' && !gotReport.current.has(x.id)) {
-            gotReport.current.add(x.id)
-            api.get<ConvertReport>('/wittyinfo/convert/report?task=' + encodeURIComponent(x.id)).then((r) => setReports((all) => ({ ...all, [k]: r }))).catch(() => { /* the task's own sentence is shown */ })
-          }
-        }
         if (Object.values(next).length === ids.length && Object.values(next).every((x) => x.state !== 'running' && x.state !== 'queued')) {
           if (poll.current) clearInterval(poll.current)
           poll.current = null
@@ -161,16 +126,11 @@ export default function ConvertPanel({ onBusy, compact, beforeStart }: { onBusy?
             <p className="muted wi-help">{r.found}</p>
             <label className="wi-check"><input type="radio" name={name} checked={d === 'keep'} disabled={!!started[r.key]} onChange={() => setDir({ ...dir, [r.key]: 'keep' })} /> {t('Leave them as they are')}</label>
             <label className="wi-check"><input type="radio" name={name} checked={d === 'gather'} disabled={!!started[r.key] || !r.has} onChange={() => setDir({ ...dir, [r.key]: 'gather' })} /> {t('Gather the {standard} into {ext} files', { standard: r.standard, ext: r.ext })}</label>
-            <label className="wi-check"><input type="radio" name={name} checked={d === 'spread'} disabled={!!started[r.key] || !r.hasOwn} onChange={() => setDir({ ...dir, [r.key]: 'spread' })} /> {r.hasOwn
-              ? tn('Write {standard} from the {count} {ext} file', 'Write {standard} from the {count} {ext} files', r.hasOwn, { standard: r.standard, ext: r.ext })
-              : t('Write {standard} from {ext} files: there are none yet', { standard: r.standard, ext: r.ext })}</label>
+            <label className="wi-check"><input type="radio" name={name} checked={d === 'spread'} disabled={!!started[r.key] || !r.hasOwn} onChange={() => setDir({ ...dir, [r.key]: 'spread' })} /> {tn('Write {standard} from the {count} {ext} file', 'Write {standard} from the {count} {ext} files', r.hasOwn, { standard: r.standard, ext: r.ext })}</label>
             {tk && (
               <div className="wi-conv-progress" role="status" aria-live="polite">
                 <Progress value={tk.percent >= 0 ? tk.percent : undefined} label={r.what} />
-                <span className="muted wi-conv-words">{tk.state === 'done'
-                  ? <><IconCheck size={16} /> {r.key !== 'wittyplay' && reports[r.key] ? convertResult(r.key, reports[r.key]) : tk.result ? tx(tk.result) : t('Done')}</>
-                  : tk.state === 'failed' ? tx(tk.error) : tk.state === 'cancelled' ? t('Stopped')
-                    : tk.total ? <>{r.counted(tk.done, tk.total)}{tk.item && <span className="wi-conv-item">{tk.item}</span>}</> : tk.item ? tx(tk.item) : t('Starting…')}</span>
+                <span className="muted">{tk.state === 'done' ? <><IconCheck size={16} /> {tk.result || t('Done')}</> : tk.state === 'failed' ? tk.error : tk.state === 'cancelled' ? t('Stopped') : tk.total ? t('{done} of {total}: {item}', { done: tk.done, total: tk.total, item: tk.item || '' }) : tk.item || t('Starting…')}</span>
               </div>
             )}
           </fieldset>

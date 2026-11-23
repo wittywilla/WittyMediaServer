@@ -24,63 +24,10 @@ import (
 //
 //	GET  /api/wittyinfo/convert/counts?libraries=1,2   what there is to convert
 //	POST /api/wittyinfo/convert                         start it as a task
-//	GET  /api/wittyinfo/convert/report?task=ID          what a finished one did, counted by kind
 
 func (s *Server) wittyinfoConvertRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/wittyinfo/convert/counts", s.requireAdmin(s.handleConvertCounts))
 	m.Handle("POST /api/wittyinfo/convert", s.requireAdmin(s.handleConvert))
-	m.Handle("GET /api/wittyinfo/convert/report", s.requireAdmin(s.handleConvertReport))
-}
-
-// GET /api/wittyinfo/convert/report?task=ID: the counts behind a finished conversion's result, so
-// a page can say it in its own language and words (films and episodes, shows, albums, songs).
-func (s *Server) handleConvertReport(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("task")
-	j := &s.convertJobs
-	j.mu.Lock()
-	rep, ok := j.reports[id]
-	j.mu.Unlock()
-	if !ok {
-		writeErr(w, 404, "no report for that task")
-		return
-	}
-	writeJSON(w, 200, rep)
-}
-
-// convertResult is a finished conversion's result in a sentence, for Tasks and the log, counting
-// what the format holds: films and episodes, and shows (.wittyinfo); albums, and songs' lyrics
-// (.wittyaudio).
-func convertResult(format string, rep library.ConvertReport) string {
-	plural := func(n int, one, many string) string {
-		if n == 1 {
-			return one
-		}
-		return many
-	}
-	var parts []string
-	if format == "" || format == "wittyinfo" {
-		if rep.Titles > 0 || rep.Shows == 0 {
-			parts = append(parts, fmt.Sprintf("%d of %d %s converted", rep.TitlesConverted, rep.Titles, plural(rep.Titles, "film or episode", "films and episodes")))
-		}
-		if rep.Shows > 0 {
-			parts = append(parts, fmt.Sprintf("%d of %d %s", rep.ShowsConverted, rep.Shows, plural(rep.Shows, "show", "shows")))
-		}
-	}
-	if format == "" || format == "wittyaudio" {
-		if rep.Albums > 0 || rep.Songs == 0 || format == "wittyaudio" {
-			parts = append(parts, fmt.Sprintf("%d of %d %s converted", rep.AlbumsConverted, rep.Albums, plural(rep.Albums, "album", "albums")))
-		}
-		if rep.SongsConverted > 0 || format == "wittyaudio" {
-			parts = append(parts, fmt.Sprintf("lyrics for %d of %d %s", rep.SongsConverted, rep.Songs, plural(rep.Songs, "song", "songs")))
-		}
-	}
-	if rep.Retired > 0 {
-		parts = append(parts, fmt.Sprintf("%d old %s renamed to .bak", rep.Retired, plural(rep.Retired, "file", "files")))
-	}
-	if rep.Failed > 0 {
-		parts = append(parts, fmt.Sprintf("%d couldn't be (see the log)", rep.Failed))
-	}
-	return strings.Join(parts, "; ") + "."
 }
 
 // convertLibraries are the libraries asked for, or every one with films or shows.
@@ -223,11 +170,7 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 	}
 	title := titles[b.Direction+"/"+b.Format]
 	stopped, stop := context.WithCancel(context.Background())
-	unit := "titles"
-	if b.Format == "wittyaudio" {
-		unit = "songs"
-	}
-	task := s.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: title, Unit: unit, By: byUser(u), Cancel: stop, AdminOnly: true})
+	task := s.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: title, Unit: "titles", By: byUser(u), Cancel: stop, AdminOnly: true})
 	sid := logging.NewID("convert")
 	log := s.Log.With("cat", "library", "session", sid, "direction", b.Direction)
 	started := s.background("wittyinfo conversion", func(bg context.Context) {
@@ -277,9 +220,15 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 			task.Finish(err)
 			return
 		}
-		j.keep(task.ID(), rep)
-		task.Result(convertResult(b.Format, rep))
-		log.Info("converted", "format", b.Format, "titles", rep.Titles, "shows", rep.Shows, "songs", rep.Songs, "albums", rep.Albums, "converted", rep.Converted, "failed", rep.Failed, "retired", rep.Retired, "errors", strings.Join(rep.Errors, " | "))
+		msg := fmt.Sprintf("%d of %d titles and shows converted", rep.Converted, rep.Titles+rep.Shows)
+		if rep.Retired > 0 {
+			msg += fmt.Sprintf("; %d old files renamed to .bak", rep.Retired)
+		}
+		if rep.Failed > 0 {
+			msg += fmt.Sprintf("; %d couldn't be (see the log)", rep.Failed)
+		}
+		task.Result(msg + ".")
+		log.Info("converted", "titles", rep.Titles, "shows", rep.Shows, "converted", rep.Converted, "failed", rep.Failed, "retired", rep.Retired, "errors", strings.Join(rep.Errors, " | "))
 		task.Finish(nil)
 	}, "cat", "library", "session", sid)
 	if !started {
@@ -292,26 +241,8 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 202, map[string]any{"ok": true, "task": task.ID(), "libraries": libs, "format": b.Format})
 }
 
-// convertJobs: the formats being converted now, and the reports of the last few that finished.
+// convertJobs: the formats being converted now.
 type convertJobs struct {
 	mu      sync.Mutex
 	running map[string]bool
-	reports map[string]library.ConvertReport
-	order   []string
-}
-
-// keep remembers a finished conversion's report by its task, the last 20 of them.
-func (j *convertJobs) keep(task string, rep library.ConvertReport) {
-	j.mu.Lock()
-	defer j.mu.Unlock()
-	if j.reports == nil {
-		j.reports = map[string]library.ConvertReport{}
-	}
-	rep.Errors = nil // for the log, not for pages
-	j.reports[task] = rep
-	j.order = append(j.order, task)
-	for len(j.order) > 20 {
-		delete(j.reports, j.order[0])
-		j.order = j.order[1:]
-	}
 }

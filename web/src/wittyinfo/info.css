@@ -173,29 +173,6 @@ label.btn { position: relative; cursor: pointer; }
 .wi-conv-row legend code { font-size: var(--text-sm); color: var(--fg-2); }
 .wi-conv-progress { display: flex; flex-direction: column; gap: var(--sp-1); margin-top: var(--sp-2); font-size: var(--text-sm); }
 .wi-conv-opts { display: flex; flex-direction: column; gap: var(--sp-1); }
-.wi-conv-words { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); }
-.wi-conv-item { overflow-wrap: anywhere; }
-/* The choices are drawn here, not left to the browser: a browser greys a disabled radio, and the rows are disabled once a
-   conversion starts, which left the chosen one pale grey on a light theme (#535). The ring is text colour, the dot the
-   theme's accent as text (4.5:1 on its background in every theme), and a chosen one stays solid when disabled. */
-.wi-convert .wi-check input[type="radio"], .wi-convert .wi-check input[type="checkbox"] { flex: none; margin: 0; }
-.wi-convert .wi-check input[type="radio"] {
-  appearance: none; -webkit-appearance: none; inline-size: 20px; block-size: 20px; border-radius: 50%;
-  border: 2px solid var(--fg-2); background: var(--bg-2); display: grid; place-content: center; cursor: pointer;
-}
-.wi-convert .wi-check input[type="radio"]::before { content: ''; inline-size: 10px; block-size: 10px; border-radius: 50%; transform: scale(0); background: var(--accent-text); transition: transform var(--dur-1); }
-.wi-convert .wi-check input[type="radio"]:checked { border-color: var(--accent-text); }
-.wi-convert .wi-check input[type="radio"]:checked::before { transform: scale(1); }
-.wi-convert .wi-check input[type="radio"]:focus-visible { outline: var(--focus-width) solid var(--focus); outline-offset: var(--focus-offset); }
-.wi-convert .wi-check input[type="radio"]:disabled { cursor: default; }
-.wi-convert .wi-check input[type="radio"]:disabled:not(:checked) { opacity: .5; }
-.wi-convert .wi-check:has(input:disabled:not(:checked)) { color: var(--fg-2); }
-.wi-convert .wi-check input[type="checkbox"] { accent-color: var(--accent); }
-@media (pointer: coarse) { .wi-convert .wi-check input[type="radio"] { inline-size: 22px; block-size: 22px; } }
-@media (forced-colors: active) {
-  .wi-convert .wi-check input[type="radio"] { border-color: CanvasText; }
-  .wi-convert .wi-check input[type="radio"]::before { background: Highlight; forced-color-adjust: none; }
-}
 @media (max-width: 760px) {
   .wi-item.wi-lyric, .wi-item.wi-sub-item { grid-template-columns: 1fr 1fr; }
   .wi-item.wi-lyric > .wi-label { grid-column: 1 / -1; }

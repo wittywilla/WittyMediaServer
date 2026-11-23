@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
+import { getTvMode } from '../tvmode/mode'
 import { useMedia } from '../shell/useNav'
 import { useApp } from '../state'
 import { UseAComputer, advancedHere } from '../ui/advanced'
@@ -465,10 +466,10 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         )}
       </div>
 
-      <p className="np-hints" aria-hidden="true">
+      {!getTvMode() && <p className="np-hints" aria-hidden="true">
         <kbd>Esc</kbd> {t('close')} · <kbd>{t('Space')}</kbd> {t('play or pause')} · <kbd>←</kbd> <kbd>→</kbd> {t('previous or next')}
         {canSing && <> · <kbd>L</kbd> {t('lyrics')} · <kbd>K</kbd> {t('karaoke')}</>}{!p.live && <> · <kbd>V</kbd> {t('visualizer')}</>}
-      </p>
+      </p>}
       <div className="mp-sr" aria-live="polite">{said}</div>
       {walled && <UseAComputer what={walled} onClose={() => setWalled('')} />}
       {studio && <Suspense fallback={null}><CanvasStudio itemId={it.id} title={it.title} kind="song" runtimeSec={p.duration} artist={it.artist || it.albumArtist || ''} onClose={() => setStudio(false)} /></Suspense>}

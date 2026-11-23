@@ -9,7 +9,6 @@ import { toast } from '../state'
 import { Select } from '../ui'
 import { Row, Section, Switch } from './settings/ui'
 import { TickRow } from './setup/parts'
-import { keySaved, SavedKeyField } from '../components/SavedKey'
 import { num, t, tk, tn, tx } from '../i18n'
 
 // Lyrics and artist information from online. Both are off until the owner agrees, here or in
@@ -174,7 +173,7 @@ export function MusicOnlineSettings({ s, set, on }: Draft) {
           <input className="input" disabled={!useOnline} placeholder="http://192.168.1.20:3300" value={s.lyricsMirror || ''} spellCheck={false} autoComplete="off" onChange={(e) => set('lyricsMirror', e.target.value)} aria-label={t('Address of your LRCLIB server')} />
         </Row>
         <Row label={t('Musixmatch key')} dim={!useOnline} stack desc={<>{linked(t('Optional and paid. {Musixmatch} only gives whole lyrics on its paid plans; the free plan is refused and that’s what’s shown. Your key is kept on this server. It’s asked before LRCLIB, and is told the song’s artist, title and length.'), { Musixmatch: <a href="https://developer.musixmatch.com" target="_blank" rel="noreferrer">Musixmatch</a> })}</>}>
-          <SavedKeyField name="Musixmatch" saved={keySaved(s, 'lyricsMusixmatchKey')} disabled={!useOnline} placeholder={t('API key')} value={s.lyricsMusixmatchKey || ''} onChange={(v) => set('lyricsMusixmatchKey', v)} label={t('Musixmatch key')} />
+          <input className="input" disabled={!useOnline} placeholder={t('API key')} value={s.lyricsMusixmatchKey || ''} spellCheck={false} autoComplete="off" onChange={(e) => set('lyricsMusixmatchKey', e.target.value)} aria-label={t('Musixmatch key')} />
         </Row>
         <Row label={t('Artist biographies and photos')} badge={t('No API key needed')} desc={<>{linked(t('From {Wikipedia}, credited on the artist’s page. When an artist has no {file} in their folder, your server sends Wikipedia the artist’s name. The text is CC BY-SA 4.0, and each picture has its own licence, linked from its article. Nothing is written beside your music.'), { Wikipedia: <a href="https://www.wikipedia.org" target="_blank" rel="noreferrer">Wikipedia</a>, file: <code>artist.jpg</code> })}</>}>
           <Switch label={t('Artist biographies and photos')} checked={on('musicInfoOnline', '0')} onChange={(v) => set('musicInfoOnline', v ? '1' : '0')} />

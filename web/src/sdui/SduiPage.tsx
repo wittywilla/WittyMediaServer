@@ -385,17 +385,26 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
   }, [nav, loc.pathname, loc.search])
 
   // Start playing with the app's own player: what kind of thing it is decides which.
-  const play = useCallback(async (id: string, resume: boolean) => {
+  const play = useCallback(async (id: string, resume: boolean, shuffle?: boolean, enqueue?: boolean) => {
     try {
       const it = await api.get<Item>(`/items/${encodeURIComponent(id)}`)
       if (it.kind === 'audio') {
         const type = libraries.find((l) => l.id === it.libraryId)?.type
         const mode = (type === 'audiobooks' || type === 'podcasts' ? type : 'music') as AudioMode
-        // A track of an album plays the album from there.
+        // A track of an album plays the album from there; Shuffle plays all of it in a new order, and Add to queue
+        // puts all of it after what is playing.
         let queue: Item[] = []
         if (it.album) queue = await api.get<Item[]>(`/music/tracks?library=${it.libraryId}&artist=${encodeURIComponent(it.albumArtist || it.artist || '')}&album=${encodeURIComponent(it.album)}`).catch(() => [])
+        if (!queue.length) queue = [it]
+        if (enqueue) { audio.enqueue(queue); const said = t('Added to the queue'); toast(said, { tone: 'ok' }); announce(said); return }
+        if (shuffle) {
+          const mixed = [...queue]
+          for (let i = mixed.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [mixed[i], mixed[j]] = [mixed[j], mixed[i]] }
+          audio.play(mixed, 0, mode)
+          return
+        }
         const at = queue.findIndex((t) => t.id === it.id)
-        if (at >= 0) audio.play(queue, at, mode); else audio.play([it], 0, mode)
+        audio.play(queue, Math.max(0, at), mode)
         return
       }
       if (isDisc(it)) { nav(resume ? `/play/${it.id}?mode=${dvdStartMode(it)}${insertFxOn(it) ? '&insert=1' : ''}` : `/play/${it.id}?mode=title&start=0`); return }
@@ -410,7 +419,8 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
       case 'go': nav(step.to); break
       case 'layer': setLayer(step.to); break
       case 'back': nav(-1); break
-      case 'play': play(step.item, step.resume); break
+      case 'play': play(step.item, step.resume, step.shuffle); break
+      case 'queue': play(step.item, false, false, true); break
       case 'open': window.open(step.url, '_blank', 'noopener,noreferrer'); break
       case 'tab': setQuery({ tab: step.tab }); break
       case 'refresh': setTick((n) => n + 1); break

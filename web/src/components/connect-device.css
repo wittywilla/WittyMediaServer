@@ -1,0 +1,38 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Connect a device: the code large enough to read across a desk, the QR code beside it, and the
+   rest folded away. State is said in words; only icons take colour. */
+
+.set-card.cd { padding: var(--sp-5) var(--sp-6); text-align: center; }
+.cd h2 { margin: 0 0 var(--sp-2); font-size: var(--text-xl); }
+.cd-who { list-style: none; margin: 0 0 var(--sp-3); padding: 0; display: grid; gap: var(--sp-1); justify-items: center; }
+.cd-who li { display: flex; gap: var(--sp-2); align-items: flex-start; font-weight: 600; line-height: 1.4; }
+.cd-who li > span { flex: none; margin-top: 2px; color: var(--fg-2); }
+.cd-who li.cd-ok > span { color: var(--ok); }
+.cd-who li.cd-bad > span { color: var(--danger); }
+.cd-who li.cd-wait > span { color: var(--warn); }
+.cd-turn { margin: 0 0 var(--sp-3); }
+.cd-start p { margin: 0 auto var(--sp-3); max-width: 62ch; line-height: 1.5; }
+/* The code and its QR code side by side, the pair centred in the card. */
+.cd-offer { display: grid; gap: var(--sp-4) var(--sp-6); grid-template-columns: minmax(0, 26rem) auto; justify-content: center; align-items: center; }
+.cd-steps { min-width: 0; }
+.cd-label { margin: 0; font-size: var(--text-sm); color: var(--fg-2); font-weight: 600; }
+.cd-code { margin: var(--sp-1) 0 var(--sp-3); font: 700 clamp(2rem, 6vw, 3rem)/1.1 var(--font-mono, ui-monospace, monospace); letter-spacing: .08em; user-select: all; overflow-wrap: anywhere; }
+.cd-steps ol { margin: 0 0 var(--sp-2); padding: 0; list-style-position: inside; display: grid; gap: var(--sp-1); line-height: 1.5; }
+.cd-note { margin: 0 0 var(--sp-2); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: var(--bg-3); line-height: 1.5; }
+.cd-time { margin: 0 0 var(--sp-3); color: var(--fg-2); font-variant-numeric: tabular-nums; }
+.cd-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; justify-content: center; }
+.cd-qr .rem-qr { display: block; width: 220px; height: 220px; max-width: 100%; border-radius: var(--r-sm); }
+.cd-more { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: var(--sp-2); }
+.cd-more summary { cursor: pointer; font-weight: 600; padding: var(--sp-1) 0; }
+.cd-opt { margin: var(--sp-2) 0 var(--sp-3); }
+.cd-opt p { margin: 0 auto var(--sp-1); line-height: 1.5; max-width: 70ch; }
+.cd-line { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; justify-content: center; }
+.cd-line code { min-width: 0; overflow-wrap: anywhere; font-size: var(--text-sm); }
+.cd-link { display: block; max-height: 6.5em; overflow: auto; }
+.cd-parties { padding-left: 1.2em; display: grid; gap: var(--sp-2); line-height: 1.45; }
+.cd-parties span { color: var(--fg-2); }
+@media (max-width: 640px) {
+  .cd-offer { grid-template-columns: minmax(0, 1fr); }
+  .cd-qr { justify-self: center; }
+}

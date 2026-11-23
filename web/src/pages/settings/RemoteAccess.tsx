@@ -16,6 +16,7 @@ import LegalNote from '../../components/LegalNote'
 import { ask } from '../../ui/Overlay'
 import { Segmented } from '../../ui/Choice'
 import PeerToPeer from './PeerToPeer'
+import ConnectDevice from '../../components/ConnectDevice'
 import SpecPage from '../../spec/SpecPage'
 import { handledIds } from '../../spec/model'
 import { advancedSpec, chooserSpec, limitsSpec, outsideSpec, protectionSpec, type Choice } from '../../spec/specs/remoteAccess'
@@ -101,6 +102,8 @@ function choiceOf(st: Status): Choice {
 export default function RemoteAccess() {
   const [st, setSt] = useState<Status | null>(null)
   const [busy, setBusy] = useState(false)
+  // Open by itself when a link points into it (#p2p, from the guide or a notice).
+  const [techOpen, setTechOpen] = useState(() => typeof location !== 'undefined' && location.hash.length > 1)
   const load = useCallback(() => api.get<Status>('/remote').then(setSt), [])
   const [failed, setFailed] = useState(false)
   useEffect(() => { load().catch(() => setFailed(true)) }, [load])
@@ -129,16 +132,23 @@ export default function RemoteAccess() {
   const choice = choiceOf(st)
   return (
     <>
-      <PageHead title={tk('Remote Access')} desc={t("Who can use this server, and from where. It starts as home network only, and this server doesn't contact anyone for remote access unless a step below says so.")} />
-      <StatusCard st={st} save={save} busy={busy} />
-      <Chooser st={st} choice={choice} save={save} busy={busy} />
-      <PeerToPeer />
-      {(choice !== 'home' || s.allowPlainAway) && <PlainAway st={st} save={save} busy={busy} applied={applied} reload={load} />}
-      {choice !== 'home' && <OutsideTest st={st} reload={load} />}
-      {choice !== 'home' && <Limits s={s} save={save} busy={busy} />}
-      <People />
-      <Protection st={st} reload={load} />
-      <Advanced s={s} save={save} busy={busy} />
+      <PageHead title={tk('Remote Access')} desc={t('Connect your other devices to this server, at home or away.')} />
+      {/* One thing first, so no contents bar listing the technical sections folded below. */}
+      <nav data-own-toc hidden aria-hidden="true" />
+      <ConnectDevice />
+      {/* Everything else is for people who want to know how, or to set up a way in of their own. */}
+      <details className="rem-tech" open={techOpen} onToggle={(e) => setTechOpen((e.target as HTMLDetailsElement).open)}>
+        <summary><h2>{t('Technical details and other ways in')}</h2><span className="muted">{t('Peer-to-peer settings, devices that connect from away, private networks, your router, HTTPS, limits and sign-in protection.')}</span></summary>
+        <StatusCard st={st} save={save} busy={busy} />
+        <PeerToPeer />
+        <Chooser st={st} choice={choice} save={save} busy={busy} />
+        {(choice !== 'home' || s.allowPlainAway) && <PlainAway st={st} save={save} busy={busy} applied={applied} reload={load} />}
+        {choice !== 'home' && <OutsideTest st={st} reload={load} />}
+        {choice !== 'home' && <Limits s={s} save={save} busy={busy} />}
+        <People />
+        <Protection st={st} reload={load} />
+        <Advanced s={s} save={save} busy={busy} />
+      </details>
       <LegalNote kind="remote" className="set-legal" />
     </>
   )

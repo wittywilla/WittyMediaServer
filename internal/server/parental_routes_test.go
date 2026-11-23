@@ -104,6 +104,11 @@ var plainRoutes = []string{
 	"POST /api/p2p/devices",
 	"POST /api/p2p/invite",
 	"POST /api/p2p/join",
+	// Connecting a device: a code for home, and a link and the code from away only for a profile
+	// allowed to use the server away from home (FeatureRemote, in the handler).
+	"GET /api/connect",
+	"POST /api/connect/offer",
+	"DELETE /api/connect/offer",
 	"DELETE /api/remote-control/devices/{id}",
 	"DELETE /api/syncplay/rooms/{id}",
 	"GET /api/auth/pair/{session}/info",

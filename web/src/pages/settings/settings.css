@@ -14,10 +14,12 @@
 
 /* ---------------------------------------------------------------- page */
 .set-main { min-width: 0; padding-bottom: 96px; }
-.set-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: 4px 0 22px; }
+/* The page's title and lead are centred in its column, and its buttons, as a group, under them (docs/DESIGN.md, Centring,
+   #609). The sections under them are forms, and read from the start. */
+.set-head { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); margin: 4px 0 22px; text-align: center; }
 .set-head h1 { margin: 0 0 6px; font-size: var(--page-title); letter-spacing: var(--tracking-display); }
-.set-head p { margin: 0; color: var(--fg-2); font-size: var(--text-md); max-width: 62ch; line-height: var(--leading-body); }
-.set-head-actions { flex: none; display: flex; gap: 8px; }
+.set-head p { margin: 0 auto; color: var(--fg-2); font-size: var(--text-md); max-width: 62ch; line-height: var(--leading-body); }
+.set-head-actions { flex: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 
 /* Section cards. The older pages' panels look the same. */
 .set-card, .set-main .panel { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); margin: 0 0 var(--sp-5); max-width: none; padding: 0; }
@@ -103,7 +105,6 @@
   .set-nav { gap: var(--sp-6); }
 }
 @media (max-width: 600px) {
-  .set-head { flex-direction: column; align-items: stretch; }
   .set-card-head { padding: var(--sp-4) var(--sp-4) var(--sp-1); flex-direction: column; }
   .set-card-body, .set-main .panel { padding-left: 16px; padding-right: 16px; }
   .set-row { flex-direction: column; align-items: stretch; gap: 10px; }

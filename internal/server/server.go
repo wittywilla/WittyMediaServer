@@ -712,6 +712,12 @@ func (s *Server) logRequest(r *http.Request, id string, sw *statusWriter, start 
 	default:
 		lv = slog.LevelDebug
 	}
+	// The viewer left (closed the page, moved on) before the answer was ready: what failed
+	// was only the waiting, not the server, so it is no error to look into.
+	left := sw.code >= 500 && errors.Is(r.Context().Err(), context.Canceled)
+	if left {
+		lv = slog.LevelInfo
+	}
 	// While the flight recorder is on, every request goes there, whatever the level says.
 	if !s.Logs.Accepts("http", lv) && !s.Logs.FlightRecorderOn() || quietPath(r.URL.Path) && lv < slog.LevelWarn {
 		return
@@ -727,6 +733,9 @@ func (s *Server) logRequest(r *http.Request, id string, sw *statusWriter, start 
 	args := []any{"cat", "http", "from", ip, "m", r.Method, "p", redactPath(r.URL.Path), "q", redactQuery(r.URL.RawQuery), "s", sw.code, "ms", time.Since(start).Milliseconds()}
 	if sw.errBody != nil {
 		args = append(args, "err", string(sw.errBody))
+	}
+	if left {
+		args = append(args, "left", true)
 	}
 	s.Log.Log(ctx, lv, "http", args...)
 }

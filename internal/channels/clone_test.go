@@ -458,3 +458,16 @@ func TestCloneLongSlotsAndFillerTurns(t *testing.T) {
 		t.Fatalf("filler always from one series: %+v", slots)
 	}
 }
+
+// A series whose episodes are all longer than the slots still doesn't repeat one while others are
+// free.
+func TestCloneNoRepeatWhenNothingFits(t *testing.T) {
+	slots := []CloneSlot{
+		{Title: "Like Cheers", Genres: []string{"Comedy"}, Network: "NBC", Year: 1983, Dur: 15 * 60},
+		{Title: "Like Cheers", Genres: []string{"Comedy"}, Network: "NBC", Year: 1983, Dur: 15 * 60},
+	}
+	cloneLib().Match(slots, CloneOptions{NoFiller: true})
+	if slots[0].Item == 0 || slots[0].Item == slots[1].Item {
+		t.Fatalf("the same stand-in twice: %+v", slots)
+	}
+}

@@ -398,21 +398,35 @@ func (m *matcher) pickEpisode(sh *LibShow, slotDur int) *LibEpisode {
 		return nil
 	}
 	start := m.next[sh.ID] % n
-	var fallback *LibEpisode
+	// The first that fits and hasn't played, else the first that hasn't played, else the
+	// first that fits, else the next in turn.
+	var unused, fits *LibEpisode
 	for k := range n {
 		e := &sh.Episodes[(start+k)%n]
-		fits := slotDur == 0 || e.Dur <= slotDur+30
-		if m.used[e.Item] == 0 && fits {
-			return e
+		fit := slotDur == 0 || e.Dur <= slotDur+30
+		if m.used[e.Item] == 0 && fit {
+			return m.took(sh, e)
 		}
-		if fallback == nil && fits {
-			fallback = e
+		if unused == nil && m.used[e.Item] == 0 {
+			unused = e
+		}
+		if fits == nil && fit {
+			fits = e
 		}
 	}
-	if fallback != nil {
-		return fallback
+	switch {
+	case unused != nil:
+		return m.took(sh, unused)
+	case fits != nil:
+		return m.took(sh, fits)
 	}
-	return &sh.Episodes[start]
+	return m.took(sh, &sh.Episodes[start])
+}
+
+// took moves a series' turn on past the episode chosen.
+func (m *matcher) took(sh *LibShow, e *LibEpisode) *LibEpisode {
+	m.next[sh.ID] = indexOf(sh, e.Item) + 1
+	return e
 }
 
 type scoredShow struct {
@@ -493,8 +507,12 @@ func likeness(s *CloneSlot, genres []string, network string, year int, rating, n
 	if w := wordOverlap(normTitle(s.Title), norm); w > 0 {
 		score += w
 	}
-	if dur > 0 && s.Dur > 0 && dur <= s.Dur+30 && dur*10 >= s.Dur*6 {
+	switch {
+	case dur <= 0 || s.Dur <= 0:
+	case dur <= s.Dur+30 && dur*10 >= s.Dur*6:
 		score += 1
+	case dur > s.Dur+60:
+		score -= 1.5 // it would be cut short
 	}
 	if len(why) == 0 {
 		return score, "a show like it"

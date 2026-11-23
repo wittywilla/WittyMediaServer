@@ -216,9 +216,6 @@ func (s *Server) themeChoicesOf(r *http.Request) themeChoices {
 	return out
 }
 
-// userThemeChoice is the theme the account picked for itself, if it is here.
-func (s *Server) userThemeChoice(r *http.Request) string { return s.themeChoicesOf(r).Theme }
-
 func (s *Server) themeKnown(id string) bool {
 	_, err := s.Themes.Colors(id)
 	return err == nil

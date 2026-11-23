@@ -104,15 +104,6 @@ func WritePointer(p Pointer) error {
 	return os.Rename(tmp, file)
 }
 
-// RemovePointer forgets the choice: the next start uses whatever comes after it.
-func RemovePointer() error {
-	err := os.Remove(PointerFile())
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	return err
-}
-
 // LegacyDataDir is the platform's own data folder, where every desktop install kept its data
 // before setup asked: %LOCALAPPDATA%\WittyMediaServer, ~/Library/Application Support/WittyMediaServer,
 // ~/.local/share/wittymediaserver. A server on it keeps using it until someone moves it.

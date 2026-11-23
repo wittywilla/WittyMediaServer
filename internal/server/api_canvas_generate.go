@@ -50,13 +50,6 @@ const (
 	maxCanvasSeconds = 15.0
 )
 
-// canvasArgs are FFmpeg's arguments after the input for a loop of dur seconds. With fade,
-// the clip's last second is cross-faded into its first, and the first second is then left
-// off: the last frame shown is the frame just before the first one shown.
-func canvasArgs(sh canvasShape, dur float64, fade bool, encoder, out string) []string {
-	return canvasArgsCrop(sh, dur, fade, encoder, out, "")
-}
-
 // canvasArgsCrop is canvasArgs with the picture first cut to crop (FFmpeg's crop=w:h:x:y), when it is not "".
 func canvasArgsCrop(sh canvasShape, dur float64, fade bool, encoder, out, crop string) []string {
 	scale := fmt.Sprintf("scale=-2:'min(%d,ih)':flags=bilinear,fps=%d,format=yuv420p", sh.height, sh.fps)

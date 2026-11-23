@@ -5,7 +5,6 @@ package livetv
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -17,9 +16,6 @@ import (
 // closeWait is how long Close waits for the manager's own work. A recording or an FFmpeg that
 // doesn't stop when told mustn't hold up the server's stopping for ever.
 var closeWait = 10 * time.Second
-
-// errStopping: work asked for after Close, which doesn't start.
-var errStopping = errors.New("the server is stopping")
 
 // background runs fn on a goroutine of its own, as the manager's own work: a scan, a guide update,
 // a recording, and nobody waits for it. ctx ends when the manager stops, and Close waits for fn, so

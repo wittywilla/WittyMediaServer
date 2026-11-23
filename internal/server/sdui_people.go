@@ -18,17 +18,6 @@ import (
 // title first, through the account's limits; a person only when they are in something the
 // account may see.
 
-// creditGroup is the SDUI group a credit is in: cast, guests or the department's key.
-func creditGroup(c library.Credit) string {
-	switch c.Role {
-	case library.RoleCast:
-		return "cast"
-	case library.RoleGuest:
-		return "guests"
-	}
-	return c.Department
-}
-
 // creditItem is a person card.
 func creditItem(c library.Credit, group string) sdui.Item {
 	id := itoa(c.PersonID)

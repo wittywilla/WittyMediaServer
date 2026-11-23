@@ -706,9 +706,9 @@ export default function GuidePage() {
           </label>
         </div>
         <div className="ctv-bar-group ctv-bar-time" role="group" aria-label={t('Time')} data-nav-group>
-          <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label={t('Half an hour earlier')}><IconLeft size={16} /></button>
+          <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label={t('Half an hour earlier')} title={t('Half an hour earlier')}><IconLeft size={16} /></button>
           <button className={'ctv-btn sm' + (floorSlot(now) === from ? ' on' : '')} onClick={goNow}>{t('Now')}</button>
-          <button className="ctv-btn sm icon" onClick={() => shiftTime(SLOT)} aria-label={t('Half an hour later')}><IconRight size={16} /></button>
+          <button className="ctv-btn sm icon" onClick={() => shiftTime(SLOT)} aria-label={t('Half an hour later')} title={t('Half an hour later')}><IconRight size={16} /></button>
           <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label={t('Search the schedule')} title={t('Search the schedule (S)')}><IconSearch size={16} /></button>
           {user?.isAdmin && <Link className="ctv-btn sm" to="/tv/channels" aria-label={t('Edit channels')}><IconSettings size={16} /> <span className="hide-narrow">{t('Edit channels')}</span></Link>}
         </div>

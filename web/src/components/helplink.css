@@ -14,7 +14,8 @@
   .set-back + .set-help > * { pointer-events: auto; }
   .set-main:has(.st-page > .back-link) > .set-back + .set-help { height: auto; padding-top: 0; margin: 0 0 calc(var(--sp-2) * -1); pointer-events: auto; }
 }
-/* On a phone the row it shares is the top bar's, whose far end is the activity button: stop short of it. */
+/* On a phone that row is the top bar's, which is drawn over the page and takes the tap (#551): the link has a
+   line of its own under the bar instead, at the end where it is on a computer. */
 @media (max-width: 700px) {
-  .set-back + .set-help { padding-inline-end: calc(var(--control-h) + var(--sp-3)); }
+  .set-back + .set-help, .set-main:has(.st-page > .back-link) > .set-back + .set-help { height: auto; padding: 0; margin: 0 0 var(--sp-1); pointer-events: auto; }
 }

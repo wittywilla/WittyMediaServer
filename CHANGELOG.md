@@ -3,9 +3,7 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
-## 0.8.3-alpha
-
-Released 2026-11-23.
+## Unreleased
 
 **Clone a station (#622)**
 
@@ -20,6 +18,10 @@ Released 2026-11-23.
   breaks where your files mark them, from the programme's own era first. **Advanced options** has the matching rules,
   how many breaks, repeating, the time zone, a shift, and **Follow the station**, which reads the guide again each week.
   Only the guide's words are used: nothing is recorded or decrypted. See docs/CHANNELS.md, "Clone a station".
+
+## 0.8.3-alpha
+
+Released 2026-11-23.
 
 **Connecting another device (#605)**
 

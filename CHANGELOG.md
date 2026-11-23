@@ -5,7 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.8.1-alpha
 
-Released 2026-11-19.
+Released 2026-11-23.
 
 - **Live TV's channel banner shows for 3 seconds (#556).** Choosing a channel shows its name and what's on for three seconds instead of seven, then gets out of the way.
 - **Albums on more than one disc, in order, with their covers (#558).** A 2-CD album whose files have no disc tag listed

@@ -259,8 +259,9 @@ func (s *Store) ReadInfoFile(ctx context.Context, path string) (info *wittyinfo.
 	if st.Size() > wittyinfo.MaxFile {
 		err = fmt.Errorf("not a usable .wittyinfo: larger than %d MB", wittyinfo.MaxFile>>20)
 	} else {
-		var b []byte
-		if b, err = io.ReadAll(io.LimitReader(f, wittyinfo.MaxFile+1)); err == nil {
+		// The file's size is known: one buffer of it, where io.ReadAll would allocate about twice.
+		b := make([]byte, 0, st.Size()+1)
+		if b, err = readInto(b, io.LimitReader(f, wittyinfo.MaxFile+1)); err == nil {
 			info, err = wittyinfo.Parse(b)
 		}
 	}
@@ -283,6 +284,23 @@ func keepInfo(path string, e infoCacheEntry) {
 	}
 	infoCache.m[path] = e
 	infoCache.bytes += e.bytes
+}
+
+// readInto reads r to its end, appending to b, growing it only if r holds more than b has room for.
+func readInto(b []byte, r io.Reader) ([]byte, error) {
+	for {
+		if len(b) == cap(b) {
+			b = append(b, 0)[:len(b)]
+		}
+		n, err := r.Read(b[len(b):cap(b)])
+		b = b[:len(b)+n]
+		if err == io.EOF {
+			return b, nil
+		}
+		if err != nil {
+			return b, err
+		}
+	}
 }
 
 // ForgetInfoFile drops what a file read as, after it was written.

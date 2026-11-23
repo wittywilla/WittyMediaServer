@@ -304,7 +304,7 @@ func readMember(f *zip.File, limit int64) ([]byte, error) {
 		return nil, err
 	}
 	defer rc.Close()
-	b, err := io.ReadAll(io.LimitReader(rc, limit+1))
+	b, err := readSized(io.LimitReader(rc, limit+1), int64(min(f.UncompressedSize64, uint64(limit))))
 	if err != nil {
 		return nil, fmt.Errorf("can't be unpacked: %v", err)
 	}
@@ -312,6 +312,26 @@ func readMember(f *zip.File, limit int64) ([]byte, error) {
 		return nil, fmt.Errorf("larger than %d KB unpacked", limit>>10)
 	}
 	return b, nil
+}
+
+// readSized reads r to its end into one buffer of size+1 bytes, when size is what r should hold:
+// io.ReadAll grows its buffer as it goes, which allocates about twice a large member. More than
+// size is still read (a header can be wrong), the buffer growing as io.ReadAll's would.
+func readSized(r io.Reader, size int64) ([]byte, error) {
+	b := make([]byte, 0, size+1)
+	for {
+		n, err := r.Read(b[len(b):cap(b)])
+		b = b[:len(b)+n]
+		if err == io.EOF {
+			return b, nil
+		}
+		if err != nil {
+			return b, err
+		}
+		if len(b) == cap(b) {
+			b = append(b, 0)[:len(b)]
+		}
+	}
 }
 
 // ImageExts are the picture types a .wittyinfo may hold, and what each really is.

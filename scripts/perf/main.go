@@ -53,6 +53,7 @@ var (
 	repeat   = flag.Int("repeat", 30, "how many times each API route is asked")
 	scanWait = flag.Duration("scan-timeout", 60*time.Minute, "longest wait for one library's scan")
 	again    = flag.Bool("report", false, "report the run in -out again, with the query plans made again, instead of running")
+	profile  = flag.Bool("profile", false, "record CPU and allocation profiles of each scan (they allocate too: compare scans without it)")
 	libs     libFlag
 )
 
@@ -507,7 +508,7 @@ func topStacks(dump []byte) []string {
 
 func (s *server) scan(typ, path string) Scan {
 	sc := Scan{Type: typ, Path: path}
-	defer s.profile("scan-" + typ)()
+	defer s.profileStep("scan-" + typ)()
 	before := s.vars()
 	t0 := time.Now()
 	code, b := s.call("POST", "/api/libraries", map[string]any{"name": typ + " " + filepath.Base(path), "type": typ, "paths": []string{path}})
@@ -525,7 +526,7 @@ func (s *server) scan(typ, path string) Scan {
 // rescan scans a library again with nothing changed, as the six-hourly scan does.
 func (s *server) rescan(was Scan) Scan {
 	sc := Scan{Type: was.Type, Path: was.Path, ID: was.ID}
-	defer s.profile("rescan-" + was.Type)()
+	defer s.profileStep("rescan-" + was.Type)()
 	before := s.vars()
 	last := s.lastScan(was.ID)
 	// last_scan_at is in whole seconds: one second on, this scan's end can be told apart.
@@ -539,12 +540,15 @@ func (s *server) rescan(was Scan) Scan {
 	return sc
 }
 
-// profile records where the server's processor time and allocations go while a step runs:
+// profileStep records, with -profile, where the server's processor time and allocations go while a step runs:
 // CPU profiles of 10 s each, one after another until the step ends, and the allocations
 // profile before and after it. go tool pprof reads the CPU pieces together
 // (go tool pprof cpu-scan-music-*.pprof), and the allocations as a difference
 // (go tool pprof -sample_index=alloc_space -diff_base allocs-scan-music-before.pprof allocs-scan-music-after.pprof).
-func (s *server) profile(step string) (done func()) {
+func (s *server) profileStep(step string) (done func()) {
+	if !*profile {
+		return func() {}
+	}
 	s.save("/debug/pprof/allocs", "allocs-"+step+"-before.pprof")
 	stop := make(chan struct{})
 	finished := make(chan struct{})

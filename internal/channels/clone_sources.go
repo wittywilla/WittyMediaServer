@@ -182,7 +182,8 @@ func (s *Store) GuideSlots(ctx context.Context, channel string, from, to time.Ti
 // TVmazeCredit is the attribution its licence asks for.
 const TVmazeCredit = "Schedule data from TVmaze (tvmaze.com), CC BY-SA 4.0"
 
-type tvmazeEntry struct {
+// TVmazeEntry is one episode in TVmaze's schedule.
+type TVmazeEntry struct {
 	Name     string `json:"name"`
 	Season   *int   `json:"season"`
 	Number   *int   `json:"number"`
@@ -213,8 +214,8 @@ type tvmazeEntry struct {
 }
 
 // ParseTVmaze reads one day of /schedule.
-func ParseTVmaze(body []byte) ([]tvmazeEntry, error) {
-	var list []tvmazeEntry
+func ParseTVmaze(body []byte) ([]TVmazeEntry, error) {
+	var list []TVmazeEntry
 	if err := json.Unmarshal(body, &list); err != nil {
 		return nil, errors.New("TVmaze sent something that isn't a schedule")
 	}
@@ -222,7 +223,7 @@ func ParseTVmaze(body []byte) ([]tvmazeEntry, error) {
 }
 
 // TVmazeStations lists the networks in a day of TVmaze's schedule.
-func TVmazeStations(days ...[]tvmazeEntry) []Station {
+func TVmazeStations(days ...[]TVmazeEntry) []Station {
 	byID := map[int]*Station{}
 	for _, list := range days {
 		for i := range list {
@@ -250,7 +251,7 @@ func TVmazeStations(days ...[]tvmazeEntry) []Station {
 }
 
 // TVmazeSlots is one network's programmes from days of TVmaze's schedule.
-func TVmazeSlots(network string, days ...[]tvmazeEntry) []CloneSlot {
+func TVmazeSlots(network string, days ...[]TVmazeEntry) []CloneSlot {
 	var out []CloneSlot
 	for _, list := range days {
 		for i := range list {
@@ -441,4 +442,28 @@ func (s *Store) CommercialLibraries(ctx context.Context) ([]int64, error) {
 		out = append(out, id)
 	}
 	return out, rows.Err()
+}
+
+// CarryPins keeps what was chosen by hand in an earlier import, for the same programme at the
+// same time of the same weekday in a new one.
+func CarryPins(old, fresh []CloneSlot) {
+	key := func(s *CloneSlot) string {
+		t, err := time.Parse("2006-01-02 15:04", s.Wall)
+		if err != nil {
+			return ""
+		}
+		return t.Weekday().String() + t.Format("15:04") + normTitle(s.Title)
+	}
+	pins := map[string]*CloneSlot{}
+	for i := range old {
+		if old[i].Pinned && old[i].Item > 0 {
+			pins[key(&old[i])] = &old[i]
+		}
+	}
+	for i := range fresh {
+		if p := pins[key(&fresh[i])]; p != nil {
+			fresh[i].Item, fresh[i].Rule, fresh[i].Confidence, fresh[i].Why, fresh[i].Pinned = p.Item, p.Rule, p.Confidence, p.Why, true
+			fresh[i].ItemTitle, fresh[i].ItemSub, fresh[i].ItemDur = p.ItemTitle, p.ItemSub, p.ItemDur
+		}
+	}
 }

@@ -54,6 +54,9 @@ type Store struct {
 // ErrNotFound: no such channel.
 var ErrNotFound = errors.New("channel not found")
 
+// Location is the time zone channels keep to.
+func (s *Store) Location() *time.Location { return s.loc() }
+
 func (s *Store) loc() *time.Location {
 	if s.Loc != nil {
 		return s.Loc

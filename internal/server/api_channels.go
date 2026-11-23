@@ -63,6 +63,7 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/channels/{id}/logo", a(s.handleChannelLogo))
 	m.Handle("PUT /api/channels/{id}/logo", ad(s.handleSetChannelLogo))
 	m.Handle("DELETE /api/channels/{id}/logo", ad(s.handleDeleteChannelLogo))
+	s.cloneRoutes(m)
 	s.tunerRoutes(m)
 	s.tvExtraRoutes(m)
 	if s.DB != nil && s.Cfg != nil {
@@ -157,7 +158,7 @@ func channelError(w http.ResponseWriter, err error) {
 
 func (s *Server) handleCreateChannel(w http.ResponseWriter, r *http.Request) {
 	var c channels.Channel
-	if err := readJSON(r, &c); err != nil {
+	if err := readJSONUpTo(r, &c, maxChannelBody); err != nil {
 		writeErr(w, 400, "that channel could not be read")
 		return
 	}
@@ -216,7 +217,7 @@ func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The body replaces what it names; nothing else changes.
-	if err := readJSON(r, c); err != nil {
+	if err := readJSONUpTo(r, c, maxChannelBody); err != nil {
 		writeErr(w, 400, "that channel could not be read")
 		return
 	}
@@ -669,6 +670,8 @@ type guideProgramme struct {
 	Trimmed int64  `json:"trimmed,omitempty"`
 	// Clip: a scene from the disc ItemID, not the whole of it.
 	Clip *channels.ClipRef `json:"clip,omitempty"`
+	// For: on a cloned station, the programme this one stands in for.
+	For string `json:"for,omitempty"`
 }
 
 // guideChannel is one row of the guide.
@@ -750,7 +753,7 @@ const encryptedHelpURL = "/api/modules/wittytuner/encrypted-help"
 
 func fromSchedule(p channels.Programme) guideProgramme {
 	g := guideProgramme{Start: p.Start, End: p.End, Kind: p.Kind, Title: p.Title, Sub: p.Sub, Genre: p.Genre, Rating: p.Rating, Year: p.Year,
-		ItemID: p.ItemID, ShowID: p.ShowID, Season: p.Season, Episode: p.Episode, Role: p.Role, Trimmed: p.Trimmed, Clip: p.Clip}
+		ItemID: p.ItemID, ShowID: p.ShowID, Season: p.Season, Episode: p.Episode, Role: p.Role, Trimmed: p.Trimmed, Clip: p.Clip, For: p.For}
 	if p.Kind == channels.KindSlate {
 		g.Title = "We'll be right back"
 	}

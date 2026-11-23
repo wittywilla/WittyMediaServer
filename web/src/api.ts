@@ -346,14 +346,25 @@ export async function downloadFile(path: string, name: string) {
 }
 
 // Media URLs that go through <img>/<video>: append the token so native
-// wrappers without cookies still work. Over HTTPS in a browser the cookie is
-// enough, and a sign-in has no business in addresses, which end up in the logs
-// of any reverse proxy on the way.
+// wrappers without cookies still work. A page of the server's own has its
+// sign-in in a cookie the server sets (GET /api/status), and a sign-in has no
+// business in addresses, which end up in history, copied links and the logs of
+// any proxy on the way. Nor is it ever added to an address on another server.
 export function mediaUrl(path: string): string {
-  const full = path.startsWith('http') ? path : serverBase() + path
+  const base = serverBase()
+  const full = path.startsWith('http') ? path : base + path
   const tok = getToken()
-  if (!tok || (!serverBase() && window.location.protocol === 'https:')) return full
+  if (!tok || !base || !sameServer(full, base)) return full
   return full + (full.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(tok)
+}
+
+// sameServer: an address is on the server this app talks to.
+export function sameServer(url: string, base: string): boolean {
+  try {
+    return new URL(url).origin === new URL(base).origin
+  } catch {
+    return false
+  }
 }
 // mediaUrl with something more in its query.
 export const mediaUrlQ = (path: string, q: string) => { const u = mediaUrl(path); return u + (u.includes('?') ? '&' : '?') + q }

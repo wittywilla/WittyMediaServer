@@ -41,7 +41,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 
 | Method + route | Who may call it | What it validates |
 |---|---|---|
-| `GET /api/status` | Public | Reports setup state, branding and the caller's own account if signed in. Version left out for signed-out callers from the internet |
+| `GET /api/status` | Public | Reports setup state, branding and the caller's own account if signed in. Version left out for signed-out callers from the internet. A page of this server's own signed in by a header gets the sign-in cookie, so its media addresses carry no token; nothing is sent to another origin |
 | `POST /api/setup` | Public, until the first account exists | Refused once an account exists. 16 KB body. From outside the home network: setup code, with an attempt limit. Name and password rules |
 | `GET /api/setup/state` | Public | Nothing: whether first run is over, its steps and where it is |
 | `PUT /api/setup/state` | Public, until first run is over | Refused once it is over (409). Before the first account: the setup code, as for POST /api/setup. After: an administrator. 4 KB body; step and done are known step names |
@@ -59,10 +59,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/capabilities` | Public | Describes the server to apps. Version left out for signed-out callers from the internet |
 | `POST /api/identity` | Public | Nonce format. Answers with a signature over it |
 | `POST /api/pair/start` | Public | Server is set up. Limits on open codes per address and for the server |
-| `POST /api/pair/poll` | Public | 64-character device secret. Polling rate |
+| `POST /api/pair/poll` | Public | 64-character device secret. Polling rate. An approved sign-in on this server's own page also gets the cookie, as `GET /api/status` |
 | `POST /api/pair/redeem` | Public | Six digits. Wrong-code limits per address and for the server. Code used once |
 | `POST /api/auth/pair` | Public | Server is set up. The same limits on open sessions as `/api/pair/start`. The TOTP secret never leaves memory. Session lasts 5 minutes |
-| `GET /api/auth/pair/{session}` | Public | Session ID and the 64-character device secret in a header, compared as a hash in constant time. Polling rate. The sign-in is handed out once, while the approver's session stands |
+| `GET /api/auth/pair/{session}` | Public | Session ID and the 64-character device secret in a header, compared as a hash in constant time. Polling rate. The sign-in is handed out once, while the approver's session stands. On this server's own page also as the cookie, as `GET /api/status` |
 | `GET /api/auth/pair/{session}/pin` | Public | Session ID and the 64-character device secret in a header. Only while the session is waiting |
 | `GET /api/me` | Signed-in | The caller's own account |
 | `GET /api/me/ui` | Signed-in | own |

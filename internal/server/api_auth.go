@@ -20,7 +20,10 @@ import (
 )
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
-	u := s.resolveUser(r)
+	u, tok := s.signedIn(r)
+	if u != nil {
+		s.cookieForPage(w, r, tok)
+	}
 	ctx := r.Context()
 	// The setup wizard continues after the admin account exists, until its last page. It says it's
 	// under way with setupDone "0". A server that never said so, because it's older or was set up
@@ -110,6 +113,21 @@ func (s *Server) setCookie(w http.ResponseWriter, r *http.Request, token string)
 		s.notePlainSession(r, token)
 	}
 	http.SetCookie(w, c)
+}
+
+// cookieForPage gives one of this server's own pages the sign-in cookie for the token it signed
+// in with by header, when it doesn't have it yet (a sign-in by pairing, or a cookie that ran
+// out before the session did). With it, the page's pictures and videos need no token in their
+// addresses, where a sign-in ends up in history, copied links and the logs of a proxy on the
+// way. A page or app on another origin keeps its token to itself: it is never sent a cookie.
+func (s *Server) cookieForPage(w http.ResponseWriter, r *http.Request, tok string) {
+	if tok == "" || auth.IsStreamToken(tok) || s.crossOrigin(r) {
+		return
+	}
+	if c, err := r.Cookie(auth.CookieName); err == nil && c.Value == tok {
+		return
+	}
+	s.setCookie(w, r, tok)
 }
 
 // setupMu makes "is there an account yet?" and creating the first admin one

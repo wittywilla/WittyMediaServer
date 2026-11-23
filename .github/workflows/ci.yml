@@ -64,6 +64,8 @@ jobs:
         run: cd web && npm run test:pads
       - name: Module screens are drawn once, inside their card Provider
         run: cd web && npm run test:cards
+      - name: A sign-in stays out of media addresses
+        run: cd web && npm run test:links
       - name: Every source file has its licence header
         run: python3 scripts/license-headers.py
       - name: gofmt

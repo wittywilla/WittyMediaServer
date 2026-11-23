@@ -25,6 +25,7 @@
   .mus-side > * { background: var(--bg-2); border-radius: var(--r-lg); }
 }
 @media (min-width: 1500px) { .mus { --mus-side: 340px; } }
+.mus.no-side { grid-template-columns: minmax(0, 1fr); }
 .mus-side-nav { display: grid; padding: var(--sp-2); }
 .mus-side-nav a, .mus-side-head a { display: flex; align-items: center; gap: var(--sp-4); min-height: 44px; padding: 0 var(--sp-3); border-radius: var(--r-md); color: var(--fg-2); font-weight: 700; text-decoration: none; transition: color var(--dur-2); }
 .mus-side-nav a:hover, .mus-side-head a:hover, .mus-side-nav a.active, .mus-side-head a.active { color: var(--fg); }

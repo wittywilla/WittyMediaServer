@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 )
 
 func TestSaveItemMetadataRoundTrip(t *testing.T) {
@@ -79,7 +79,7 @@ func TestLoadImageOnlyPictures(t *testing.T) {
 	if err := os.WriteFile(secret, []byte("SQLite format 3 and everyone's data"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

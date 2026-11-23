@@ -20,7 +20,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
 	"github.com/wittywilla/wittymediaserver/internal/config"
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -36,7 +36,7 @@ type contractServer struct {
 func newContractServer(t *testing.T) *contractServer {
 	t.Helper()
 	dir := t.TempDir()
-	d, err := db.Open(dir)
+	d, err := dbtest.Open(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

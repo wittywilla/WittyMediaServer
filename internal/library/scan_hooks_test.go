@@ -17,7 +17,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymodule"
 )
@@ -118,7 +118,7 @@ type hookFixture struct {
 
 func newHookFixture(t *testing.T, roots int) *hookFixture {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

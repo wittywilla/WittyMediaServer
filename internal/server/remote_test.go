@@ -18,7 +18,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/config"
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
@@ -27,7 +27,7 @@ import (
 // A whole server without FFmpeg or media: enough for sign-in and settings.
 func remoteServer(t *testing.T, cfg *config.Config) (*Server, http.Handler) {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

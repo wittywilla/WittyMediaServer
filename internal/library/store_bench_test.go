@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 )
 
 // A large home library, to keep the queries behind the main pages honest:
@@ -22,7 +22,7 @@ const (
 
 func benchStore(b *testing.B) (*Store, int64, int64, int64) {
 	b.Helper()
-	d, err := db.Open(b.TempDir())
+	d, err := dbtest.Open(b.TempDir())
 	if err != nil {
 		b.Fatal(err)
 	}

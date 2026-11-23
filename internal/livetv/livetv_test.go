@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
@@ -32,7 +32,7 @@ func tsData(n int, scrambled bool) []byte {
 
 func bareManager(t *testing.T) *Manager {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

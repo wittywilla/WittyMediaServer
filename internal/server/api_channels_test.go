@@ -17,7 +17,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/config"
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
 	"github.com/wittywilla/wittymediaserver/internal/library"
@@ -27,7 +27,7 @@ import (
 func tvServer(t *testing.T) (h http.Handler, admin, kid string, s *Server) {
 	t.Helper()
 	dir := t.TempDir()
-	d, err := db.Open(dir)
+	d, err := dbtest.Open(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

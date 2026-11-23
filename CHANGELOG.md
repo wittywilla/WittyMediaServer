@@ -3,6 +3,61 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## 0.8.2-alpha
+
+Released 2026-11-23.
+
+**Safer**
+
+- **Peer-to-peer: a device you take off the list is signed out (#589).** Removing a device from the peer-to-peer list
+  closed its connections; now it also ends the sign-ins it used over them. Sign-ins on your other devices stay.
+- **Peer-to-peer: stricter limits and cleaner names (#591).** Tries at an invite or a code are counted per address
+  first, so one busy address can't hold up everyone else's invites. Names that come from elsewhere (an invite's server
+  name, a device's name, what a relay says about itself) lose control characters and the invisible characters that
+  turn text around.
+- **Backups without a password leave relay access keys out (#590),** as they already left out other keys and secrets.
+- **Sign-ins stay out of picture and video addresses (#575).** The server's own web pages no longer put the session
+  token in the addresses of pictures, videos and downloads, so it can't end up in a log or a copied link.
+
+**Music, TV and artwork**
+
+- **One album folder is one album (#577).** A compilation whose songs each have their own artist was split into one
+  album per artist; it's now one album, by the artist the folder above is named after or by **Various Artists**.
+  Album names that differ only in spacing or case ("2.5 beats", "2.5beats") are one album too. A **Scan for changes**
+  applies it.
+- **TV mode's album and artist pages use the whole screen (#580),** with one stop per song for the remote and a music
+  bar sized for a TV.
+- **A renamed or removed picture beside the media is found again (#584),** instead of a broken image. The server looks
+  for the next best picture in the same folder, and a **Scan for changes** fixes the rest. A drive that's away changes
+  nothing.
+- **Changing quality keeps the sound (#578).** A film started part-way in its original quality, or resumed, could play
+  without sound, or stop with an error when the quality changed.
+- **On a phone, the category bar opens at its start (#579),** with Featured in view.
+
+**Libraries and modules**
+
+- **Any library can be read-only (#574),** games among them: Settings → Libraries has a **Read-only** switch on every
+  library with folders.
+- **A module page that doesn't exist says "page not found" (#593),** instead of a broken page.
+- **The log no longer calls it a server error when a viewer leaves mid-request (#582).**
+- **Scans use less memory on big .wittyinfo archives (#587).**
+
+**Modules in this release:** WittyModule 0.5.6, WittyPlay 0.7.12, WittyTuner 0.5.1, WittyPhotos 0.5.3, WittyComics,
+WittyEbook, WittyPDF, WittyVisualizer and WittyCouch 0.4.3, WittyCD 0.3.3, WittyRigs 0.4.2, WittyBluray and WittyDVD
+0.5.2, WittyIntegratedFileBrowser 0.4.2 and WittyDisc 0.3.5. Each module's own changelog says what changed; many make
+TV remotes' Back button work and stop showing keyboard keys on a TV.
+
+### Developer notes for 0.8.2-alpha
+
+- New route `PUT /api/libraries/{id}/read-only` (admin), in CLIENT-API.md, SECURITY-ROUTES.md and openapi.json (#574).
+- `sessions.p2p_devices`, migration 40 (#589); `p2p.CleanName` (#591).
+- Fuzz tests for playlists, .wittyinfo, XMLTV (#576) and the transport stream reader, now 97% covered (#594);
+  network-simulator scenarios for strangers, revoked devices and bad links (#599).
+- The docs contract checks sign-in enforcement on every build, and the modules job can't skip (#586).
+- CI: cheaper hashes, a copied database per test and the race detector in four shares (#585); two flaky tests fixed
+  (#569); code nothing calls removed (#588); one guide for the Mac (#573).
+- A published release starts the website's build when `SITE_BUILD_TOKEN` is set (#603, docs/PUBLISHING.md).
+
 ## 0.8.1-alpha
 
 Released 2026-11-23.

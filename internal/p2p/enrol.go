@@ -22,6 +22,11 @@ type EnrolRequest struct {
 	Secret   string `json:"secret"`
 	Name     string `json:"name"`     // what to call the device in the list
 	Platform string `json:"platform"` // desktop | android | apple | ...
+	// Device and DeviceSig: shown from the invite's own enrol key, through the
+	// server's relay, on behalf of the device's own key (enrolkey.go). Empty
+	// otherwise, when the key that shows the invite is the one listed.
+	Device    string `json:"device,omitempty"`
+	DeviceSig string `json:"deviceSig,omitempty"`
 }
 
 // EnrolResponse is the server's answer.

@@ -116,6 +116,10 @@ func ParseRelayAddr(s string) (peer.AddrInfo, error) {
 // one after registerTTL by default.
 const registerEvery = 5 * time.Minute
 
+// registerRetry is how soon a registration the relay didn't take is tried again: just over its
+// one-minute window for registrations.
+const registerRetry = 65 * time.Second
+
 // Register tells a WittyRelay about this server once and returns its answer.
 func (h *Host) Register(ctx context.Context, relay peer.AddrInfo, req RegisterRequest) (RegisterResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -163,8 +167,13 @@ func (n *Node) keepRegistered() {
 	}
 	first := true
 	for {
+		wait := registerEvery
 		for i, r := range n.cfg.OwnRelays {
-			n.registerOnce(i, r)
+			if !n.registerOnce(i, r) {
+				// A relay that said "busy" (too many registrations from this network in a minute) keeps
+				// the list it had: an invite opened just now isn't on it. Try again soon, not in minutes.
+				wait = registerRetry
+			}
 		}
 		if first {
 			first = false
@@ -173,19 +182,20 @@ func (n *Node) keepRegistered() {
 		select {
 		case <-n.ctx.Done():
 			return
-		case <-time.After(registerEvery):
+		case <-time.After(wait):
 		case <-n.devicesChanged:
 		}
 	}
 }
 
-func (n *Node) registerOnce(i int, r OwnRelay) {
+// registerOnce registers with one relay, and says whether it took.
+func (n *Node) registerOnce(i int, r OwnRelay) bool {
 	st := OwnRelayStatus{Addr: r.Addr, State: "unreachable"}
 	ai, err := ParseRelayAddr(r.Addr)
 	if err != nil {
 		st.State, st.Error = "refused", err.Error()
 		n.setOwnRelay(i, st)
-		return
+		return true // a setting that can't work: trying sooner changes nothing
 	}
 	st.ID = ai.ID.String()
 	var devices []string
@@ -194,7 +204,7 @@ func (n *Node) registerOnce(i int, r OwnRelay) {
 	}
 	res, err := n.host.Register(n.ctx, ai, RegisterRequest{Key: r.Key, Name: n.cfg.Name, Devices: devices})
 	if n.ctx.Err() != nil {
-		return
+		return true
 	}
 	n.count.registrations.Add(1)
 	if err != nil || !res.OK {
@@ -235,6 +245,7 @@ func (n *Node) registerOnce(i int, r OwnRelay) {
 		}
 	}
 	n.setOwnRelay(i, st)
+	return st.State == "ok"
 }
 
 // reserve holds a place on a relay and keeps this server's addresses

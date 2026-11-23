@@ -827,6 +827,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	if err := s.Store.markMissing(ctx, libraryID, keep, offline); err != nil {
 		return err
 	}
+	if n, err := s.Store.repointStaleArt(ctx, libraryID); err != nil && ctx.Err() == nil {
+		s.Log.WarnContext(ctx, "could not look for pictures that have moved", "library", lib.Name, "err", err)
+	} else if n > 0 {
+		s.Log.InfoContext(ctx, "pictures that were renamed or removed beside the media were looked for again", "library", lib.Name, "items", n)
+	}
 	s.importPlaylists(ctx, lib, playlists)
 	if err := s.Store.markShowsMissing(ctx, libraryID); err != nil {
 		return err

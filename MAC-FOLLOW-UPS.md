@@ -67,7 +67,17 @@ git fetch origin && git switch v0.8.1-alpha && git pull
 - [ ] **5. `go test` on macOS** for what 0.8.1 changed most: `go test ./internal/config ./internal/datahome ./internal/uninstall ./internal/separator ./internal/server`
   (the last takes a while). Expected: all pass.
 
-- [ ] **6. Report:** tick these, commit, and close the `mac` issues this section answers.
+- [ ] **6. The server's address on setup's last page, and the voice presets on Metal (added 2026-11-22).** Once #546
+  is in `v0.8.1-alpha`: run the server listening on loopback (`-listen 127.0.0.1:19555`) and on all addresses
+  (`-listen 0.0.0.0:19555`), each with Wi-Fi alone, then with Ethernet and Wi-Fi, then with a VPN on. Setup's last
+  page (and `GET /api/system`'s `lanGuess`, `localOnly`, `lanUrls`) should name the Mac's home-network address, the
+  one the default route uses (`mainLANIP` asks the system with a UDP socket, sending nothing), never the VPN's or a
+  link-local one, and its QR code should open the server from a phone on the same Wi-Fi. Also, with Demucs on Metal
+  (step 4), play a separated song in Safari's karaoke and choose a Voice settings preset (#524): heard at once, with
+  no drop-out. The Apple apps' side of the 0.8.1 UI changes is in WittyMediaClient's `MAC-FOLLOW-UPS.md`, "0.8.1-alpha
+  UI changes on Apple".
+
+- [ ] **7. Report:** tick these, commit, and close the `mac` issues this section answers.
 
 ---
 

@@ -65,7 +65,7 @@ export const STEPS: StepInfo[] = [
   { id: 'storage', drawn: 'server', label: tk('Where data is kept'), needs: 'server', when: (f) => !!f.askData, noSkip: true, later: { where: tk('Settings, Data folder'), to: '/settings/data-folder' } },
   { id: 'name', drawn: 'server', label: tk('Name'), needs: 'server', later: { where: tk('Settings, Appearance, under Name and logo'), to: '/settings/appearance#name' } },
   { id: 'network', drawn: 'server', label: tk('Home network'), needs: 'server', later: { where: tk('Settings, Network'), to: '/settings/network' } },
-  { id: 'modules', drawn: 'modules', label: tk('Modules'), needs: 'server', when: (f) => f.store, later: { where: tk('Settings, Modules'), to: '/settings/modules' } },
+  { id: 'modules', drawn: 'modules', label: tk('Modules'), needs: 'server', when: (f) => f.store, later: { where: tk('Settings, Module store'), to: '/settings/modules' } },
   { id: 'media', drawn: 'libraries', label: tk('Libraries'), needs: 'server', later: { where: tk('Settings, Libraries'), to: '/settings/libraries' } },
   { id: 'tv', drawn: 'modulesetup', label: tk('Live TV'), needs: ['wittytuner'], later: { where: tk('Settings, Live TV & tuners'), to: '/settings/tuners' } },
   { id: 'games', drawn: 'modulesetup', label: tk('Games'), needs: ['wittyplay'], later: { where: tk('Settings, Game metadata'), to: '/settings/game-metadata' } },
@@ -148,7 +148,7 @@ export function updateSettings(c: UpdateChoice): { moduleUpdateCheck: string; mo
 }
 
 // Until it's set, the automatic check follows the one for server updates, which is on unless
-// someone turned it off. Settings, Modules works it out the same way.
+// someone turned it off. Settings, Module store works it out the same way.
 export function updateChoiceFrom(s: Record<string, string>): UpdateChoice {
   if ((s.moduleUpdateCheck || s.updateCheck || '1') !== '1') return 'never'
   return s.moduleAutoInstall === '1' ? 'auto' : 'ask'

@@ -374,7 +374,7 @@ More: [WittyDiagnoser](DIAGNOSER.md).
 What this server can do, one piece at a time.
 
 ![The Modules page in Settings](images/settings-modules.webp)
-*Settings, Modules.*
+*Settings, Module store.*
 
 - **Browse the store** opens the module store. **Other stores** is on its page.
 - **Updates** has **Look for updates automatically** and **Install updates automatically**. Each update is signed, and takes effect with no restart.

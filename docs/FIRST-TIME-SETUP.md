@@ -108,7 +108,7 @@ Under the list, choose what happens when a module has a new version: tell you an
 *Each module downloads, and its signature is checked before it goes in.*
 
 ![Every module ticked off as ready](images/setup-06-modules-ready.webp)
-*If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Modules.*
+*If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Module store.*
 
 See [Modules and the store](MODULE-STORE.md).
 

@@ -245,7 +245,7 @@ The server starts each module's program with these limits:
 | Can't signal your other programs | Where the system allows | Yes | Yes | **No** |
 | Stops when the server stops | Yes | Yes | When its pipe closes | When its pipe closes |
 
-Settings, Modules and the store say what your system does, wherever it's short of a full sandbox.
+Settings, Module store and the store say what your system does, wherever it's short of a full sandbox.
 
 **On a Mac** that's Apple's own sandbox. It's checked before it's relied on, and if an official module's helper won't start in it, it starts without it and the page says so. A module from another publisher never starts without it. It was tried on a real Mac (macOS 27) in November 2026. WittyPlay's helper runs outside it: a Mac can't start one sandbox inside another, and WittyPlay puts each game in a stricter sandbox of its own, with no network, no other programs and nothing to write but its saves.
 

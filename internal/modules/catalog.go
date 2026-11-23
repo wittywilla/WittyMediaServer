@@ -191,7 +191,7 @@ func (e *ErrModuleMissing) Error() string {
 	for i, r := range e.Modules {
 		names[i] = r.Name
 	}
-	return "this kind of library needs " + joinOr(names) + ". Add it in Settings, Modules."
+	return "this kind of library needs " + joinOr(names) + ". Add it in Settings, Module store."
 }
 
 func joinOr(s []string) string {

@@ -206,7 +206,7 @@ function LoadErrorOutdated({ id, what, onRetry }: { id: string; what: string; on
     <div className="empty" role="alert">
       <span className="empty-ic" aria-hidden="true"><IconInfo /></span>
       <h2 className="empty-title">{t('{what} couldn’t be loaded', { what })}</h2>
-      <p>{name ? t('{module} may need updating. Settings, Modules shows whether an update is waiting.', { module: name }) : t('A module may need updating. Settings, Modules shows whether an update is waiting.')}</p>
+      <p>{name ? t('{module} may need updating. Settings, Module store shows whether an update is waiting.', { module: name }) : t('A module may need updating. Settings, Module store shows whether an update is waiting.')}</p>
       <Link className="btn" to="/settings/modules">{t('Modules')}</Link>
       {onRetry && <button type="button" className="btn" onClick={onRetry}>{t('Try again')}</button>}
     </div>

@@ -200,3 +200,10 @@ export function readGuidePrefs(raw: string | null | undefined): GuidePrefs {
   if (!v || typeof v !== 'object') v = {}
   return { set: typeof v.set === 'string' && v.set ? v.set : undefined, pageSize: readPageSize(v.pageSize) }
 }
+
+// TV mode's guide rows: as many whole rows as fit the room at the look's own height, never fewer than five (smaller,
+// down to 40 px, to fit them), sharing the room so the last one isn't cut in half. The list is n rows tall.
+export function tvRows(room: number, base: number): { n: number; rowH: number } {
+  const n = Math.max(5, Math.floor(room / base))
+  return { n, rowH: Math.max(40, Math.floor(room / n)) }
+}

@@ -82,7 +82,12 @@ export function runAction(a: Action, e: KeyboardEvent): boolean {
     case 'tabPrev': return stepBar(-1)
     case 'tabNext': return stepBar(1)
     case 'options': return options()
-    case 'dock': return focusNextZone()
+    case 'dock': {
+      // A screen that keeps its Dock behind a button (TV mode's guide: Shortcuts) opens it with this key instead.
+      const toggle = Array.from(document.querySelectorAll<HTMLElement>('[data-dock-toggle]')).find(shown)
+      if (toggle && !document.activeElement?.closest('[data-dock-close]')) { toggle.click(); return true }
+      return focusNextZone()
+    }
     case 'top': top(); return true
     case 'pageUp': case 'pageDown':
       // Only a pad's synthetic press: a real Page key scrolls the page itself, and in a bar it switches tabs (TvFrame).
@@ -91,7 +96,12 @@ export function runAction(a: Action, e: KeyboardEvent): boolean {
       return true
     case 'back':
       // From the Dock, Back returns to the Stage (the Back ladder's second step); the rest is the page's.
-      if (zoneOf(document.activeElement) === 'dock' && !document.querySelector(BUSY)) return focusZone('stage') || focusZone('bar')
+      if (zoneOf(document.activeElement) === 'dock' && !document.querySelector(BUSY)) {
+        // A Dock that a button opened closes again, back to that button.
+        const toggle = document.activeElement?.closest('[data-dock-close]') ? Array.from(document.querySelectorAll<HTMLElement>('[data-dock-toggle]')).find(shown) : undefined
+        if (toggle) { toggle.click(); return true }
+        return focusZone('stage') || focusZone('bar')
+      }
       return false
     default: return false
   }

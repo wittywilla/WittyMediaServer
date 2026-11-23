@@ -3,6 +3,15 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+**Connecting another device**
+
+- **A link or QR code works from away through your own WittyRelay (#614).** A device that had never been at home
+  couldn't join when the server's only way in was its own relay, which lets through only devices the server has
+  listed. While an invite is open, the server now also lists a single-use key made from it, which the app uses only to
+  show the invite; the relay still lets through no key the server hasn't listed.
+
 ## 0.8.3-alpha
 
 Released 2026-11-23.
@@ -19,10 +28,6 @@ Released 2026-11-23.
   link (under **More options**) from away. Whichever is used first ends the other; it works once, for fifteen minutes.
   The code is checked without being sent: the server that made it proves so first. The rest of the page (peer-to-peer
   settings, private networks, the router, HTTPS, limits) is folded under **Technical details and other ways in**.
-- **A link or QR code works from away through your own WittyRelay (#614).** A device that had never been at home
-  couldn't join when the server's only way in was its own relay, which lets through only devices the server has
-  listed. While an invite is open, the server now also lists a single-use key made from it, which the app uses only to
-  show the invite; the relay still lets through no key the server hasn't listed.
 - **The QR code for joining from away is drawn again.** The link it held had grown too long for one, so none appeared.
 - **The code a TV shows for joining from away is no longer offered on the server**: it depended on the public address
   book finding the server, which too often it didn't. A TV signs in at home with **Sign in a TV**, as before.

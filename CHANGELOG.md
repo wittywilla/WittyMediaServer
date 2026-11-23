@@ -3,6 +3,32 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+**Players (#470)**
+
+- **A TV remote's Up and Down no longer change the volume of a film.** A TV has a volume of its own: on the picture,
+  Up brings the controls back and Down goes into them, at the timeline. On a computer Up and Down still set the volume.
+- **The quality menu never offers more than the original has.** A 1080p film of 6.4 Mbps no longer lists "1080p,
+  about 8 Mbps"; Original covers it, and the smaller sizes are held to the original's rate.
+- **Live TV on a phone gets the simple bar,** as films do: channel up and down, the last channel, now and next and the
+  guide are in its Options sheet. Live TV no longer has a speed setting.
+- **Picture in picture** is in the player's More menu (and a phone's Options sheet) where the browser has it. Not on
+  a TV; the apps use their system's own.
+- **On a computer, the music bar no longer shows the page's words in the gap under it.**
+
+**Pages (#438)**
+
+- **WittyTV's channel pages start where every other page starts,** at the top and on the page's left edge, not lower
+  down in a narrower column of their own.
+- **The chosen game on WittyPlay's home rows stays inside its row.** It grew twice, so its top ran under the tabs and
+  the first one started off the left edge of the screen.
+
+**Libraries**
+
+- **An episode whose title starts with a number keeps it.** "S01E05 - 80's Cats" is episode 5, "80's Cats", not
+  episodes 5 to 80 called "'s Cats". Run **Scan for changes** to correct ones already scanned.
+
 ## 0.8.3-alpha
 
 Released 2026-11-23.

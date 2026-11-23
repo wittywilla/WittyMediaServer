@@ -3,6 +3,18 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+**Languages (#497, #498)**
+
+- **What the server says follows your language.** Backup parts, Remote Access status, the peer-to-peer list, one-click
+  channels and every other sentence the server sends are now marked for translation and shown translated where a
+  translation exists. German has the ones that were reported; the others follow in the translation pass. A check in
+  CI stops new English slipping past.
+- **Arabic and Hebrew keep Latin titles in order.** A file name such as "00-aurora-…-2019" or a title's "2 hr 10 min"
+  no longer has its digits and dashes moved, and a long title is cut at its end. A screenshot test walks the pages in
+  both languages.
+
 ## 0.8.3-alpha
 
 Released 2026-11-23.

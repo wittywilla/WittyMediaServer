@@ -3,6 +3,20 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+**Connecting another device (#605)**
+
+- **One way to connect a device, at the top of Settings → Remote Access** (and on the From away page): it says
+  whether devices away from home can connect, then **Show a code** gives a short code and a QR code. Type the code on
+  a device on your home network (**Add a server → Enter a code** in WittyMediaClient), or scan the QR code or paste the
+  link (under **More options**) from away. Whichever is used first ends the other; it works once, for fifteen minutes.
+  The code is checked without being sent: the server that made it proves so first. The rest of the page (peer-to-peer
+  settings, private networks, the router, HTTPS, limits) is folded under **Technical details and other ways in**.
+- **The QR code for joining from away is drawn again.** The link it held had grown too long for one, so none appeared.
+- **The code a TV shows for joining from away is no longer offered on the server**: it depended on the public address
+  book finding the server, which too often it didn't. A TV signs in at home with **Sign in a TV**, as before.
+
 ## 0.8.2-alpha
 
 Released 2026-11-23.

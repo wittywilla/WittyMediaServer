@@ -7,15 +7,15 @@ import { problems, withIds } from '../model.ts'
 
 const d = (id, o = {}) => ({ id, name: 'Phone', platform: 'ios', how: 'invite', created: 1, lastSeen: 2, connected: false, ...o })
 
-test('devices: empty says how to add one; otherwise a row and a Remove chip each, then the invite chip', () => {
+test('devices: empty says how to add one; otherwise a row and a Remove chip each (new ones come in by Connect a device)', () => {
   const none = devicesSpec([], () => 'x')
   assert.equal(none.sections[0].kind, 'note')
-  assert.deepEqual(none.sections[1].items.map((c) => c.id), ['invite'])
+  assert.equal(none.sections.length, 1, 'no chips with nothing to remove')
   const p = devicesSpec([d('abcdefghijkl', { user: 'Pip', connected: true, path: 'relayed' }), d('b')], () => 'now')
   assert.equal(p.sections[0].items[0].title, 'Phone · Pip')
   assert.equal(p.sections[0].items[0].value, 'Connected through a relay')
   assert.match(p.sections[0].items[0].sub, /added now by invite · last connected now · ID ending efghijkl/)
-  assert.deepEqual(p.sections[1].items.map((c) => c.id), ['remove:abcdefghijkl', 'remove:b', 'invite'])
+  assert.deepEqual(p.sections[1].items.map((c) => c.id), ['remove:abcdefghijkl', 'remove:b'])
   assert.deepEqual(problems(withIds(p)), [])
 })
 

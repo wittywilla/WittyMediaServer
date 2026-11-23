@@ -667,6 +667,10 @@ type p2pInvite struct {
 	userID  int64
 	expires time.Time
 	used    bool
+	// spent is shared with the code shown beside this link (api_connect.go):
+	// the link, the code over the web port and the code from away are one way
+	// in, and whichever is used first ends the others. nil for a link alone.
+	spent *atomic.Bool
 }
 
 type p2pInvites struct {
@@ -680,6 +684,11 @@ func p2pSecretHash(secret string) string {
 }
 
 func (in *p2pInvites) make(by, userID int64, session string) (string, error) {
+	return in.makeShared(by, userID, session, nil)
+}
+
+// makeShared is make, for a link that is one of several forms of the same way in.
+func (in *p2pInvites) makeShared(by, userID int64, session string, spent *atomic.Bool) (string, error) {
 	in.mu.Lock()
 	defer in.mu.Unlock()
 	now := time.Now()
@@ -699,7 +708,7 @@ func (in *p2pInvites) make(by, userID int64, session string) (string, error) {
 		return "", err
 	}
 	secret := base64.RawURLEncoding.EncodeToString(raw)
-	in.open[p2pSecretHash(secret)] = &p2pInvite{by: by, session: session, userID: userID, expires: now.Add(p2pInviteTTL)}
+	in.open[p2pSecretHash(secret)] = &p2pInvite{by: by, session: session, userID: userID, expires: now.Add(p2pInviteTTL), spent: spent}
 	return secret, nil
 }
 
@@ -715,6 +724,9 @@ func (in *p2pInvites) take(secret string) (*p2pInvite, string) {
 		return nil, "used"
 	case time.Now().After(v.expires):
 		return nil, "expired"
+	case v.spent != nil && !v.spent.CompareAndSwap(false, true):
+		v.used = true
+		return nil, "used"
 	}
 	v.used = true
 	return v, ""

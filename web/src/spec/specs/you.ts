@@ -26,7 +26,7 @@ export function youSpec(d: YouIn): SpecPageData {
   if (d.adult && d.twoStep !== null) account.push(row(t('Two-step sign-in'), '/settings/security', 'Lock', 'b', d.twoStep === undefined ? '' : d.twoStep ? t('On') : t('Off')))
   account.push(row(t('Your devices'), '/settings/security', 'Devices', 'f', d.devices))
   s.push(secR(t('Account'), account))
-  if (d.adult) s.push(secR(t('Household'), [row(t('Sign in a TV'), '/pair', 'Tv', 'a'), row(t('From away'), '/away', 'Tv', 'a'), row(t('Profiles and parental limits'), '/settings/users', 'Users', 'c')]))
+  if (d.adult) s.push(secR(t('Household'), [row(t('Sign in a TV'), '/pair', 'Tv', 'a'), row(t('Connect a device'), '/away', 'Tv', 'a'), row(t('Profiles and parental limits'), '/settings/users', 'Users', 'c')]))
   const yours: SpecRow[] = [row(t('Your year'), '/review', 'Sparkles', 'c'), row(t('Collections and playlists'), '/collections', 'Stack', 'b')]
   if (!d.sharingHidden) yours.push(row(t('Share links'), '/settings/sharing', 'Link', 'a'))
   if (!d.activityHidden) yours.push(row(t('Activity'), '/settings/activity', 'Activity', 'c'))

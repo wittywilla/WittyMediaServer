@@ -61,6 +61,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/pair/start` | Public | Server is set up. Limits on open codes per address and for the server |
 | `POST /api/pair/poll` | Public | 64-character device secret. Polling rate. An approved sign-in on this server's own page also gets the cookie, as `GET /api/status` |
 | `POST /api/pair/redeem` | Public | Six digits. Wrong-code limits per address and for the server. Code used once |
+| `POST /api/connect/hello` | Public | A well-formed lookup key and nonce. The login limiter per address. Answers only for a code this server made, with a proof bound to its identity key; nothing for any other |
+| `POST /api/connect/answer` | Public | A challenge this server handed out, answered once within a minute. Three wrong proofs end the code. The login limiter per address. The code's maker still signed in. Code used once, and its link with it |
 | `POST /api/auth/pair` | Public | Server is set up. The same limits on open sessions as `/api/pair/start`. The TOTP secret never leaves memory. Session lasts 5 minutes |
 | `GET /api/auth/pair/{session}` | Public | Session ID and the 64-character device secret in a header, compared as a hash in constant time. Polling rate. The sign-in is handed out once, while the approver's session stands. On this server's own page also as the cookie, as `GET /api/status` |
 | `GET /api/auth/pair/{session}/pin` | Public | Session ID and the 64-character device secret in a header. Only while the session is waiting |
@@ -383,6 +385,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/p2p/devices` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `POST /api/p2p/devices` | Signed-in | A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all |
 | `DELETE /api/p2p/devices/{id}` | Signed-in | own. Any account's for an admin. Someone else's answers as if there were none |
+| `GET /api/connect` | Signed-in | Says only whether devices can connect from away, and whether the caller may turn that on |
+| `POST /api/connect/offer` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Limit on tries per account and on open codes; one open per person. The link only for a profile allowed away from home, with peer-to-peer connections on |
+| `DELETE /api/connect/offer` | Signed-in | own |
 | `POST /api/p2p/invite` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections are on. Limit on open invites |
 | `POST /api/p2p/join` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections and their address book are on. A well-formed code. Limit on codes waiting |
 | `GET /api/p2p/settings` | Admin | Nothing further |

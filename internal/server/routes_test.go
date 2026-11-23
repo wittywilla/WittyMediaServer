@@ -45,6 +45,9 @@ var publicRoutes = map[string]bool{
 	"POST /api/pair/start":  true,
 	"POST /api/pair/poll":   true,
 	"POST /api/pair/redeem": true,
+	// A code typed on a device: the server proves it made it, then the device does.
+	"POST /api/connect/hello":  true,
+	"POST /api/connect/answer": true,
 	// Pairing v2: start, and the device's own polling with its secret.
 	"POST /api/auth/pair":              true,
 	"GET /api/auth/pair/{session}":     true,

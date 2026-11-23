@@ -142,13 +142,16 @@ For an address on the internet, the app insists on `https://`, because your pass
 
 Away from home, the app can reach your server **peer to peer**, with nothing set up on your router and no account with anyone. An administrator turns it on first, in **Settings → Remote Access → Peer-to-peer connections**. [Remote access](REMOTE.md#peer-to-peer-connections) says what that exposes, and how to test it.
 
-There are three ways for a device to join:
+### Connect a device
 
-- **It was at home first.** Open the app at home, signed in. Within a minute it adds itself to your server's list. Away from home, it then connects by itself. The app's **From away** row, under **You**, says how it's doing.
-- **A link or a QR code.** Someone signed in opens **From away** on the server (the `/away` page) and presses **Make a link**. In the app, choose **Join with a link or code** and paste the link, or **Scan a QR code**. A link works once, for fifteen minutes.
-- **A code on the screen.** For a TV that has never been at home with your server. In the app, choose **Join from away**. It shows a code like `K7QM-2XHD`. On a phone or computer signed in to the server, type it under **A device that shows a code** on the From away page, or **A TV that shows a code** in **Settings → Remote Access**. The TV finds your server and signs in as you.
+One way, the same everywhere. On the server, open **Settings → Remote Access** (or **Connect a device** under **You**) and press **Show a code**. It shows a short code like `K7QM-2XHD` and a QR code.
 
-**Only type in a code you can see on your own device.** Whoever shows it gets in as you. Signing a device in as an administrator asks for the administrator's password again.
+- **On your home network:** in the app, choose **Add a server**, then **Enter a code**, and type the code. The app asks the servers it finds on the network, and the one that made the code proves it before the app says anything more.
+- **Away from home:** scan the QR code with the device's camera, or send the device the link under **More options** and choose **Add a server → Paste a link**. This needs peer to peer on; the page offers to turn it on.
+
+The code and the link are one way in: they work once, for fifteen minutes, and whichever is used first ends the other. Signing a device in as an administrator asks for the administrator's password again.
+
+A device that was signed in at home also adds itself to the server's list within a minute, and from then on connects from away by itself. The app's **From away** row, under **You**, says how it's doing.
 
 A device connected this way counts as away from home: it gets the [limits for viewers away from home](REMOTE.md#limits-for-viewers-away-from-home).
 

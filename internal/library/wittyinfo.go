@@ -203,18 +203,35 @@ func ShowInfoPaths(showPath string, season int, seasonDir string) []string {
 }
 
 type infoCacheEntry struct {
-	mod  time.Time
-	size int64
-	info *wittyinfo.Info
-	err  error
+	mod   time.Time
+	size  int64
+	info  *wittyinfo.Info
+	err   error
+	bytes int64 // what its pictures and subtitles take
 }
 
 // infoCache keeps what each file read as, until it changes on disk: a player asks for the
-// markers often, and an archive with pictures is worth reading once.
+// markers often, and an archive with pictures is worth reading once. It holds at most
+// infoCacheBytes of pictures and subtitles: a scan reads every archive in a library, and kept
+// whole they were tens of MB on a small library, held until the server stopped.
 var infoCache = struct {
 	sync.Mutex
-	m map[string]infoCacheEntry
+	m     map[string]infoCacheEntry
+	bytes int64
 }{m: map[string]infoCacheEntry{}}
+
+const infoCacheBytes = 16 << 20
+
+// infoBytes is what an archive's members take in memory.
+func infoBytes(info *wittyinfo.Info) int64 {
+	var n int64
+	if info != nil {
+		for _, b := range info.Files {
+			n += int64(len(b))
+		}
+	}
+	return n
+}
 
 // ReadInfoFile reads a .wittyinfo beside the media, through the library's checks. found
 // says whether there is one; err why it can't be used.
@@ -242,25 +259,62 @@ func (s *Store) ReadInfoFile(ctx context.Context, path string) (info *wittyinfo.
 	if st.Size() > wittyinfo.MaxFile {
 		err = fmt.Errorf("not a usable .wittyinfo: larger than %d MB", wittyinfo.MaxFile>>20)
 	} else {
-		var b []byte
-		if b, err = io.ReadAll(io.LimitReader(f, wittyinfo.MaxFile+1)); err == nil {
+		// The file's size is known: one buffer of it, where io.ReadAll would allocate about twice.
+		b := make([]byte, 0, st.Size()+1)
+		if b, err = readInto(b, io.LimitReader(f, wittyinfo.MaxFile+1)); err == nil {
 			info, err = wittyinfo.Parse(b)
 		}
 	}
-	infoCache.Lock()
-	if len(infoCache.m) > 2000 {
-		clear(infoCache.m)
-	}
-	infoCache.m[path] = infoCacheEntry{mod: st.ModTime(), size: st.Size(), info: info, err: err}
-	infoCache.Unlock()
+	keepInfo(path, infoCacheEntry{mod: st.ModTime(), size: st.Size(), info: info, err: err, bytes: infoBytes(info)})
 	return info, true, err
+}
+
+// keepInfo caches what a file read as. Past 2000 files or infoCacheBytes it starts again, and an
+// archive larger than that alone is read again each time.
+func keepInfo(path string, e infoCacheEntry) {
+	infoCache.Lock()
+	defer infoCache.Unlock()
+	forgetInfoLocked(path)
+	if e.bytes > infoCacheBytes {
+		return
+	}
+	if len(infoCache.m) > 2000 || infoCache.bytes+e.bytes > infoCacheBytes {
+		clear(infoCache.m)
+		infoCache.bytes = 0
+	}
+	infoCache.m[path] = e
+	infoCache.bytes += e.bytes
+}
+
+// readInto reads r to its end, appending to b, growing it only if r holds more than b has room for.
+func readInto(b []byte, r io.Reader) ([]byte, error) {
+	for {
+		if len(b) == cap(b) {
+			b = append(b, 0)[:len(b)]
+		}
+		n, err := r.Read(b[len(b):cap(b)])
+		b = b[:len(b)+n]
+		if err == io.EOF {
+			return b, nil
+		}
+		if err != nil {
+			return b, err
+		}
+	}
 }
 
 // ForgetInfoFile drops what a file read as, after it was written.
 func ForgetInfoFile(path string) {
 	infoCache.Lock()
-	delete(infoCache.m, path)
+	forgetInfoLocked(path)
 	infoCache.Unlock()
+}
+
+func forgetInfoLocked(path string) {
+	if old, ok := infoCache.m[path]; ok {
+		infoCache.bytes -= old.bytes
+		delete(infoCache.m, path)
+	}
 }
 
 // LoadInfo finds a target's .wittyinfo: the kept copy, else the file beside the media.

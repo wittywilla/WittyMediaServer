@@ -218,7 +218,7 @@ To report a security problem, see [SECURITY.md](SECURITY.md).
 
 Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has how to build, test and send a change. Disc engines must stay free of other players' code, because they're written from the public disc formats.
 
-**Working on a Mac?** Start with [MAC-FOLLOW-UPS.md](MAC-FOLLOW-UPS.md), newest section first, and the apps' own list in WittyMediaClient's [MAC-FOLLOW-UPS.md](https://github.com/wittywilla/WittyMediaClient/blob/v0.8.1-alpha/MAC-FOLLOW-UPS.md).
+**Working on a Mac?** Start with [MAC-START-HERE.md](MAC-START-HERE.md): what to install, what to clone, and every Mac task across the server, the apps and the modules, in order.
 
 ## Licence and legal
 

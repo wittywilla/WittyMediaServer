@@ -2,7 +2,7 @@
 
 How to set up a Mac from nothing to build, run, test and package WittyMediaServer, where it keeps its files on a Mac, and what hasn't worked or hasn't been tried there yet.
 
-This is for whoever develops on a Mac. To just install the server on one, see [Installing: macOS](INSTALL.md#macos). The plan for the port itself, and the state of every repository, is in the [macOS port hand-over](handover/MACOS-PORT.md).
+The Mac work still to do, across every repository and in order, is in [MAC-START-HERE.md](../MAC-START-HERE.md). This is for whoever develops on a Mac. To just install the server on one, see [Installing: macOS](INSTALL.md#macos). The plan for the port itself, and the state of every repository, is in the [macOS port hand-over](handover/MACOS-PORT.md).
 
 - [Where macOS stands](#where-macos-stands)
 - [Setting up a Mac from nothing](#setting-up-a-mac-from-nothing)

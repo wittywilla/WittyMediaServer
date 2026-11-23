@@ -54,6 +54,7 @@ Android app is now signed with one permanent key, so later versions install over
 - New routes `POST /api/connect/hello` and `/api/connect/answer` for Enter a code (#608); `RelayOffer.Health` (#620).
 - docs/GAMING-STREAM.md: nothing is sent before a game stream's hello (#607).
 - CI: jobs side by side, caches from master only, known.json checked, flaky tests fixed (#616).
+- Updated dependencies from dependabot (#625).
 - `scripts/set-tag-rules.sh` covers WittyRelay (#626); docs/PUBLISHING.md lists every repository that needs
   `SITE_BUILD_TOKEN` (#619).
 

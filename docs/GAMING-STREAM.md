@@ -168,7 +168,13 @@ the cookie or `?token=` from a browser. The first message must be the hello, as 
 
 The server answers with the stream's description, `{"type": "stream", ...}`, and then the picture, starting with a keyframe.
 A hello that's missing, late or wrong is answered with `{"type": "error", "code": "bad-hello", "text": "..."}`, and the
-connection closes.
+connection closes. Send nothing before the hello: most WebSocket libraries send what was queued while the socket was
+opening as soon as it opens, ahead of a hello sent from the open callback, so queue events until the hello has gone and
+drop input (pad states are sent again anyway). Since WittyPlay 0.7.13 the server skips binary messages that arrive
+before the hello, up to 64, so older apps that sent a pad state or a keyframe request first still connect.
+
+An error's `text` is for programs and logs. Apps show their own words for a `code`, or none when the connection is
+simply tried again (`bad-hello`, `no-session`, `busy`, `no-codec`, `too-large`, `failed`).
 Everything else is the same as over WebRTC: binary messages are what would go on `input`, and text is what would go on
 `events`. The server keeps at most two frames waiting for a slow connection. Past that it drops the frame, waits for a
 keyframe, and lowers the bitrate, so delay can't build up. Sound and events are never dropped.

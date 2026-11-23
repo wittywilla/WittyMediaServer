@@ -3,30 +3,31 @@
 /* Connect a device: the code large enough to read across a desk, the QR code beside it, and the
    rest folded away. State is said in words; only icons take colour. */
 
-.set-card.cd { padding: var(--sp-5) var(--sp-6); }
+.set-card.cd { padding: var(--sp-5) var(--sp-6); text-align: center; }
 .cd h2 { margin: 0 0 10px; font-size: var(--text-xl); }
-.cd-who { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; }
+.cd-who { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; justify-items: center; }
 .cd-who li { display: flex; gap: 8px; align-items: flex-start; font-weight: 600; line-height: 1.4; }
 .cd-who li > span { flex: none; margin-top: 2px; color: var(--fg-2); }
 .cd-who li.cd-ok > span { color: var(--ok); }
 .cd-who li.cd-bad > span { color: var(--danger); }
 .cd-who li.cd-wait > span { color: var(--warn); }
 .cd-turn { margin: 0 0 14px; }
-.cd-start p { margin: 0 0 12px; max-width: 62ch; line-height: 1.5; }
-.cd-offer { display: grid; gap: 18px 28px; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+.cd-start p { margin: 0 auto 12px; max-width: 62ch; line-height: 1.5; }
+/* The code and its QR code side by side, the pair centred in the card. */
+.cd-offer { display: grid; gap: 18px 32px; grid-template-columns: minmax(0, 26rem) auto; justify-content: center; align-items: center; }
 .cd-steps { min-width: 0; }
 .cd-label { margin: 0; font-size: var(--text-sm); color: var(--fg-2); font-weight: 600; }
 .cd-code { margin: 2px 0 12px; font: 700 clamp(2rem, 6vw, 3rem)/1.1 var(--font-mono, ui-monospace, monospace); letter-spacing: .08em; user-select: all; overflow-wrap: anywhere; }
-.cd-steps ol { margin: 0 0 10px; padding-left: 1.3em; display: grid; gap: 6px; line-height: 1.5; }
+.cd-steps ol { margin: 0 0 10px; padding: 0; list-style-position: inside; display: grid; gap: 6px; line-height: 1.5; }
 .cd-note { margin: 0 0 8px; padding: 8px 12px; border-radius: var(--r-sm); background: var(--bg-3); line-height: 1.5; }
 .cd-time { margin: 0 0 12px; color: var(--fg-2); font-variant-numeric: tabular-nums; }
-.cd-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cd-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .cd-qr .rem-qr { display: block; width: 220px; height: 220px; max-width: 100%; border-radius: var(--r-sm); }
 .cd-more { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 10px; }
 .cd-more summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
 .cd-opt { margin: 8px 0 12px; }
-.cd-opt p { margin: 0 0 6px; line-height: 1.5; max-width: 70ch; }
-.cd-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cd-opt p { margin: 0 auto 6px; line-height: 1.5; max-width: 70ch; }
+.cd-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
 .cd-line code { min-width: 0; overflow-wrap: anywhere; font-size: var(--text-sm); }
 .cd-link { display: block; max-height: 6.5em; overflow: auto; }
 .cd-parties { padding-left: 1.2em; display: grid; gap: 8px; line-height: 1.45; }

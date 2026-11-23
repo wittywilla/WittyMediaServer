@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -59,26 +58,8 @@ type RelayOffer struct {
 // Clean holds an offer read from someone else's relay to sane values: it is
 // shown to people and decides limits, so nothing in it is taken as it comes.
 func (o RelayOffer) Clean() RelayOffer {
-	clip := func(s string, n int) string {
-		s = strings.Map(func(r rune) rune {
-			if r < 0x20 || r == 0x7f {
-				return ' '
-			}
-			return r
-		}, strings.TrimSpace(s))
-		if !utf8.ValidString(s) {
-			s = strings.ToValidUTF8(s, "")
-		}
-		if len(s) > n {
-			s = s[:n]
-			for !utf8.ValidString(s) {
-				s = s[:len(s)-1]
-			}
-		}
-		return s
-	}
 	o.V = 1
-	o.Software, o.Name, o.Note = clip(o.Software, 60), clip(o.Name, 60), clip(o.Note, 280)
+	o.Software, o.Name, o.Note = CleanName(o.Software, 60), CleanName(o.Name, 60), CleanName(o.Note, 280)
 	if o.Access != "key" {
 		o.Access = "open"
 	}

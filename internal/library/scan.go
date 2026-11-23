@@ -827,6 +827,11 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	if err := s.Store.markMissing(ctx, libraryID, keep, offline); err != nil {
 		return err
 	}
+	if lib.Type == "music" {
+		if err := s.Store.unifyFolderAlbums(ctx, libraryID); err != nil && ctx.Err() == nil {
+			s.Log.WarnContext(ctx, "could not put together albums split by their tags", "library", lib.Name, "err", err)
+		}
+	}
 	s.importPlaylists(ctx, lib, playlists)
 	if err := s.Store.markShowsMissing(ctx, libraryID); err != nil {
 		return err

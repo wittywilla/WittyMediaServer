@@ -36,10 +36,42 @@ func main() {
 		m.Version = "9.9.9"
 		raw, _ = json.Marshal(m)
 	}
+	// "service": it answers the service start as a module of API 5 does, keeping where its host
+	// API is, and a source answered without one fails as a real module's does.
+	var host string
 	wittymodule.Main(raw, func(method string, params json.RawMessage) (any, []byte, error) {
+		if slices.Contains(do, "service") {
+			switch method {
+			case "service":
+				var p struct {
+					Host string `json:"host"`
+				}
+				_ = json.Unmarshal(params, &p)
+				if p.Host != "" {
+					host = p.Host // a start with none (a check that it's there) keeps the last
+				}
+				// An address on this machine, never listened on: its calls go over the pipe, and on
+				// Linux and macOS the sandbox gives this module no network to listen with.
+				return map[string]string{"url": "http://127.0.0.1:9", "token": "t"}, nil, nil
+			case "service.busy":
+				return false, nil, nil
+			case "sdui.items":
+				if host == "" {
+					return nil, nil, &wittymodule.CallError{Code: "no-host", Message: "this server has no host API (it is older than module API 5)"}
+				}
+				if slices.Contains(do, "slow-items") {
+					time.Sleep(time.Second)
+				}
+				return map[string]any{"items": []map[string]any{{"id": "s1", "kind": "game", "title": "host " + host}}, "total": 1}, nil, nil
+			}
+		}
 		switch {
 		case slices.Contains(do, "crash"):
 			os.Exit(4)
+		case slices.Contains(do, "say-and-crash") && method == "read":
+			// What a real helper's crash leaves behind: its last words on stderr, then exit 1.
+			fmt.Fprintln(os.Stderr, "panic: the disc's title table is shorter than it says")
+			os.Exit(1)
 		case slices.Contains(do, "hang"):
 			time.Sleep(time.Hour)
 		case slices.Contains(do, "garbage"):

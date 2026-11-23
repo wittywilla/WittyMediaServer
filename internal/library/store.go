@@ -622,10 +622,17 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	} else {
 		where = append(where, "i.library_id NOT IN (SELECT id FROM libraries WHERE type = '"+CommercialsType+"' AND show_main = 0)")
 	}
+	// A search finds a word in a title, another title, an artist's or an album's name, or the
+	// plot, and with no order asked for it lists them in that order of how well they match: "lady"
+	// is Lady Gaga's albums before a book whose blurb has a lady in it (#553).
+	var rankArgs []any
+	rank := ""
 	if q.Search != "" {
-		where = append(where, "(i.title LIKE ? OR i.overview LIKE ? OR "+altTitlesLike+")")
 		like := "%" + q.Search + "%"
-		args = append(args, like, like, like)
+		where = append(where, "(i.title LIKE ? OR "+altTitlesLike+" OR "+searchNames+" LIKE ? OR i.overview LIKE ?)")
+		args = append(args, like, like, like, like)
+		rank = "CASE WHEN i.title LIKE ? THEN 0 WHEN i.title LIKE ? OR " + altTitlesLike + " THEN 1 WHEN " + searchNames + " LIKE ? THEN 2 ELSE 3 END, "
+		rankArgs = []any{q.Search + "%", like, like, like}
 	}
 	if q.Genre != "" {
 		where = append(where, "('|' || IFNULL(i.genres,'') || '|') LIKE ?")
@@ -755,6 +762,11 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	default:
 		order += ", i.id"
 	}
+	if rank != "" && q.Sort == "" {
+		order = rank + order
+	} else {
+		rankArgs = nil
+	}
 	w := strings.Join(where, " AND ")
 	var total int
 	if !q.NoTotal {
@@ -770,7 +782,7 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Brief {
 		cols = itemColsBrief
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM items i WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM items i WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(append(args, rankArgs...), limit, q.Offset)...)
 	if err != nil {
 		return nil, 0, err
 	}

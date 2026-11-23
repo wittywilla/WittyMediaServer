@@ -78,7 +78,7 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `settings-activity.webp` | Settings, Activity. |
 | `settings-appearance.webp` | Settings, Appearance. |
 | `settings-backup.webp` | Settings, Backup. |
-| `settings-channels.webp` | Settings, Channels & tuners. |
+| `settings-channels.webp` | Settings, Library channels & WittyTV. |
 | `settings-consoles.webp` | Settings, Consoles & cores. |
 | `settings-couch.webp` | Settings, Game PCs. |
 | `settings-diagnoser.webp` | Settings, WittyDiagnoser. |

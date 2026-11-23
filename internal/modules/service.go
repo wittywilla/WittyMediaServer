@@ -113,6 +113,9 @@ func (m *Manager) ServiceConn(id string) (*service.Conn, error) {
 		if a == nil {
 			return nil, m.missing(id)
 		}
+		// Started only here, with where its host API is: a call never starts it again bare,
+		// which would leave it with no host API (it answers "older than module API 5").
+		a.p.once = true
 		if serviceReachesHost[id] && !a.p.strict {
 			// It listens on this machine and calls the host API back, which a sandbox without a
 			// network refuses; its helpers, which read the discs, still have none.
@@ -559,15 +562,37 @@ func (m *Manager) Uninstall(id string, keepData bool) error {
 // for a module of API 5, whose service has its data and its host API. handled is false when there
 // is no service to ask.
 func (m *Manager) serviceCall(id, method string, params, out any) (blob []byte, err error, handled bool) {
-	if _, err := m.ServiceConn(id); err != nil {
-		return nil, nil, false
+	for try := 0; ; try++ {
+		if _, err := m.ServiceConn(id); err != nil {
+			return nil, nil, false
+		}
+		m.svcMu.Lock()
+		s := m.services[id]
+		m.svcMu.Unlock()
+		if s == nil {
+			return nil, nil, false
+		}
+		blob, err = s.a.Call(method, params, out)
+		var ce *wittymodule.CallError
+		if err == nil || errors.As(err, &ce) {
+			return blob, err, true
+		}
+		// It ended (during this call, or before it): the next start is a whole one, with its
+		// host API. A call that never reached it is asked again of the new one, once.
+		m.dropService(id, s)
+		if !errors.Is(err, errHelperGone) || try > 0 {
+			return blob, err, true
+		}
 	}
+}
+
+// dropService forgets a service whose process has ended, if it is still the one in use, so the
+// next ServiceConn starts it the whole way.
+func (m *Manager) dropService(id string, s *runningService) {
 	m.svcMu.Lock()
-	s := m.services[id]
-	m.svcMu.Unlock()
-	if s == nil {
-		return nil, nil, false
+	defer m.svcMu.Unlock()
+	if m.services[id] == s {
+		s.a.Close()
+		delete(m.services, id)
 	}
-	blob, err = s.a.Call(method, params, out)
-	return blob, err, true
 }

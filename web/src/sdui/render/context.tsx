@@ -20,7 +20,8 @@ export type PageCtx = {
   inert?: boolean
   act: (a: Action | undefined, from?: View) => void
   // More of a section's items: its next page, a season's episodes, or another try.
-  more: (sectionId: string, url?: string, replace?: boolean) => void
+  // now: a person asked (Retry), so a section that failed is asked at once, whatever its back-off.
+  more: (sectionId: string, url?: string, replace?: boolean, now?: boolean) => void
   busy: (sectionId: string) => boolean
   failed: (sectionId: string) => boolean
   setQuery: (change: Record<string, string>) => void

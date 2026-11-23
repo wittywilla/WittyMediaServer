@@ -50,7 +50,10 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* The bar: floating along the bottom, a pill with the artwork standing out of it, in
    the theme's own colours. Room is left under the page so it never hides anything. */
 .audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: var(--z-dock, 45); display: flex; align-items: center; gap: var(--sp-2);
-  padding: 8px 8px 12px; border-radius: var(--r-xl); background: var(--bg-2); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out); }
+  padding: 8px 8px 12px; border-radius: var(--r-xl); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out);
+  /* Solid whatever the theme: a theme (or one made in the theme maker) whose panel colour lets light through still
+     gets the page's own colour under it, so the page's words never read through the song's (#551). */
+  background: linear-gradient(var(--bg-2), var(--bg-2)) var(--bg); }
 @keyframes toast-bar-in { from { opacity: 0; } }
 /* While the account menu is open, it comes first. */
 /* Always a square that keeps its size: the bar squeezes its words, never the art (#522). One size, --ab-art, set per layout. */

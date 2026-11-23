@@ -151,7 +151,8 @@ a.mod-row:hover { background: var(--hover); }
 /* Where the menu is the page (narrower windows, TV mode), its title is a page title: centred. */
 .set-shell.tv-menu .set-nav-title { margin-left: 0; text-align: center; }
 @media (max-width: 1280px) {
-  .set-shell { grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 760px; }
+  /* One column, in the middle of the page rather than against its left edge with 40% empty beside it (#551). */
+  .set-shell { grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 760px; margin-inline: auto; }
   .set-shell.at-menu .set-nav-title { margin-left: 0; text-align: center; }
   .set-back { display: block; margin-bottom: var(--sp-2); }
   .set-nav-link { min-height: 56px; padding: var(--sp-2); }

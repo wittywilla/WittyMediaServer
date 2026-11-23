@@ -45,3 +45,15 @@ html.ten-foot .qmenu .qm-item { min-height: 60px; font-size: var(--text-lg); }
 
 /* Show stream info: a corner of the picture, white on black whatever the picture. */
 .player .stream-info { position: absolute; top: 76px; left: var(--sp-4); z-index: 5; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-sm); background: rgb(0 0 0 / .78); color: #fff; font: 600 12px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; pointer-events: none; max-width: calc(100% - 2 * var(--sp-4)); } /* design-ok: white on black whatever the picture */
+
+/* The subtitle and sound track list (TrackPicker.tsx): the quality menu's look, with a search box
+   and quiet group headings. Long lists scroll inside the panel, never under the control bar. */
+.qmenu.tmenu { display: flex; flex-direction: column; max-height: min(520px, calc(100% - 150px)); overflow: hidden; }
+.qmenu.tmenu .tm-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.qmenu.tmenu .tm-group { display: grid; gap: 2px; }
+.qmenu.tmenu .tm-head { padding: var(--sp-2) var(--sp-3) var(--sp-1); color: var(--fg-2); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); }
+.qmenu.tmenu .tm-search { margin: 0 var(--sp-1) var(--sp-2); min-height: 40px; padding: 0 var(--sp-3); background: var(--bg-2); color: var(--fg); border: 1px solid var(--border-strong); border-radius: var(--r-sm); font: inherit; color-scheme: dark; }
+.qmenu.tmenu .qm-item { min-height: 44px; }
+@media (max-width: 600px) {
+  .qmenu.tmenu { max-height: 72%; }
+}

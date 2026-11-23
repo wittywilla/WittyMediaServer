@@ -55,6 +55,17 @@ A tag with a suffix such as `-alpha` is published as a pre-release, and its Dock
 
 **To retry,** fix what failed and run the release workflow again on the same tag from the **Actions** tab (**Re-run jobs**). A tag can't be moved or deleted, and a published version number is never used again: if the fix needs a new commit, release the next version.
 
+## The website, after a release
+
+wittymediaserver.com lists the newest server and client. Its build runs on a schedule, but GitHub can start scheduled builds hours late, so a published release of the server or the client starts the site's build itself. For that, both repositories need one secret, made once:
+
+1. On github.com, click your picture, then **Settings**, **Developer settings**, **Personal access tokens** and **Fine-grained tokens**. Click **Generate new token**.
+2. Name it `Website rebuild`. Under **Repository access**, choose **Only select repositories** and pick **wittywilla/WittyMediaServer.com**. Under **Permissions**, set **Actions** to **Read and write**, and leave everything else as it is. Click **Generate token** and copy it.
+3. In **wittywilla/WittyMediaServer**, open **Settings**, **Secrets and variables**, **Actions**, and click **New repository secret**. Name it `SITE_BUILD_TOKEN`, paste the token, and click **Add secret**.
+4. Do the same in **wittywilla/WittyMediaClient**.
+
+The token can only start the website's builds, nothing else. Without it, or once it has expired, a release still publishes: its **website** job says so, and the site catches up on its own schedule. To rebuild the site now, open **Actions** in wittywilla/WittyMediaServer.com, then **Build and publish**, **Run workflow**.
+
 ## Version tags
 
 A version tag (`v0.8.0-alpha`, `v0.4.0`, and a Go module folder's `wittydvdplayer/v0.3.0`) starts a release, and Go's module

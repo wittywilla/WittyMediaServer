@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "{name} anahtarını değiştir",
+  "Keep the saved key": "Kayıtlı anahtarı koru",
+  "Address copied": "Adres kopyalandı",
+  "Couldn’t copy it: select the address and copy it": "Kopyalanamadı: adresi seçip kopyalayın",
+  "Right now this server only answers on this computer, at:": "Şu anda bu sunucu yalnızca bu bilgisayarda, şu adreste yanıt veriyor:",
+  "Copy the address {url}": "{url} adresini kopyala",
+  "It also answers at {url}.": "Şu adreste de yanıt verir: {url}.",
+  "QR code holding the address {url}": "{url} adresini içeren QR kodu",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "Televizyonunuzdan veya telefonunuzdan kullanmak için, {listen} ayarını ayarlandığı yerde (yapılandırma dosyası, {flag} veya {env}) {port} yapın ve sunucuyu yeniden başlatın.",
+  "Then other devices at home can open it at {url}.": "Ardından evdeki diğer cihazlar onu {url} adresinden açabilir.",
+  "Write {standard} from {ext} files: there are none yet": "{ext} dosyalarından {standard} yaz: henüz hiç yok",
+  "{done} of {count} films and episodes converted": "Dönüştürülen film ve bölümler: {done} / {count}",
+  "{done} of {count} shows": "Diziler: {done} / {count}",
+  "{done} of {count} albums converted": "Dönüştürülen albümler: {done} / {count}",
+  "lyrics for {done} of {count} songs": "Şarkı sözleri: {done} / {count} şarkı",
+  "{count} old files renamed to .bak": "Adı .bak olarak değiştirilen eski dosyalar: {count}",
+  "{count} couldn’t be converted (see the log)": "Dönüştürülemeyenler (günlüğe bakın): {count}",
+  "{done} of {count} films, episodes and shows": "Filmler, bölümler ve diziler: {done} / {count}",
+  "{done} of {count} songs": "Şarkılar: {done} / {count}",
+  "{done} of {count} games": "Oyunlar: {done} / {count}"
+}

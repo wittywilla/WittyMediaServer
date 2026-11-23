@@ -116,7 +116,7 @@ func (s *Scanner) gatherSongs(ctx context.Context, libs []int64, o ConvertOption
 			continue
 		}
 		step(it.Title)
-		rep.Titles++
+		rep.Songs++
 		changed := false
 		// The song: its lyrics.
 		if p := songLyricsFile(it.Path); p != "" {
@@ -140,6 +140,7 @@ func (s *Scanner) gatherSongs(ctx context.Context, libs []int64, o ConvertOption
 							rep.fail(it.Title, err)
 						} else {
 							changed = true
+							rep.SongsConverted++
 							if o.Retire {
 								rep.Retired += s.Store.retire(ctx, []string{p})
 							}
@@ -152,6 +153,7 @@ func (s *Scanner) gatherSongs(ctx context.Context, libs []int64, o ConvertOption
 		key := s.Store.AlbumKey(ctx, it)
 		if !albums[key] {
 			albums[key] = true
+			rep.Albums++
 			dir := filepath.Dir(it.Path)
 			var used []string
 			t := InfoTarget{Kind: InfoAlbum, ID: key}
@@ -215,6 +217,7 @@ func (s *Scanner) gatherSongs(ctx context.Context, libs []int64, o ConvertOption
 					rep.fail(it.Album, err)
 				} else {
 					changed = true
+					rep.AlbumsConverted++
 					if o.Retire {
 						rep.Retired += s.Store.retire(ctx, used)
 					}
@@ -249,7 +252,7 @@ func (s *Scanner) spreadSongs(ctx context.Context, libs []int64, o ConvertOption
 			continue
 		}
 		step(it.Title)
-		rep.Titles++
+		rep.Songs++
 		did := false
 		infos := s.Store.InfosFor(ctx, it)
 		if x := infos.UsableItem(); x != nil && x.Audio != nil && x.Audio.Lyrics != nil {
@@ -259,6 +262,7 @@ func (s *Scanner) spreadSongs(ctx context.Context, libs []int64, o ConvertOption
 					rep.fail(it.Title, err)
 				} else {
 					did = true
+					rep.SongsConverted++
 				}
 			}
 			if o.Retire && infos.Item.Origin == "file" {
@@ -269,8 +273,12 @@ func (s *Scanner) spreadSongs(ctx context.Context, libs []int64, o ConvertOption
 			}
 		}
 		key := s.Store.AlbumKey(ctx, it)
+		if _, seen := albums[key]; !seen {
+			rep.Albums++
+		}
 		if a := infos.Album; a.Info != nil && !albums[key] {
 			albums[key] = true
+			wrote := false
 			dir := filepath.Dir(it.Path)
 			x := a.Info.Localize(s.Store.serverLanguage(ctx))
 			// The covers: cover.jpg, then cover-2.jpg and on; the back as back.jpg.
@@ -290,7 +298,7 @@ func (s *Scanner) spreadSongs(ctx context.Context, libs []int64, o ConvertOption
 					if err := writeBeside(dst, x.Files[name], roots); err != nil {
 						rep.fail(it.Album, err)
 					} else {
-						did = true
+						wrote = true
 					}
 				}
 			}
@@ -305,8 +313,12 @@ func (s *Scanner) spreadSongs(ctx context.Context, libs []int64, o ConvertOption
 				if err := writeNFO(filepath.Join(dir, "album.nfo"), n, roots); err != nil {
 					rep.fail(it.Album, err)
 				} else {
-					did = true
+					wrote = true
 				}
+			}
+			if wrote {
+				did = true
+				rep.AlbumsConverted++
 			}
 			if o.Retire {
 				if a.Origin == "file" {
@@ -314,6 +326,8 @@ func (s *Scanner) spreadSongs(ctx context.Context, libs []int64, o ConvertOption
 				}
 				_ = s.Store.SetStoredInfo(ctx, InfoTarget{Kind: InfoAlbum, ID: key}, nil)
 			}
+		} else if !albums[key] {
+			albums[key] = false // seen, with nothing to write
 		}
 		if did {
 			rep.Converted++

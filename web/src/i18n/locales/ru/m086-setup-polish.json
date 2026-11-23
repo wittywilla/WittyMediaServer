@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "Изменить ключ {name}",
+  "Keep the saved key": "Оставить сохранённый ключ",
+  "Address copied": "Адрес скопирован",
+  "Couldn’t copy it: select the address and copy it": "Не удалось скопировать: выделите адрес и скопируйте его",
+  "Right now this server only answers on this computer, at:": "Сейчас этот сервер отвечает только на этом компьютере, по адресу:",
+  "Copy the address {url}": "Скопировать адрес {url}",
+  "It also answers at {url}.": "Он также отвечает по адресу {url}.",
+  "QR code holding the address {url}": "QR-код с адресом {url}",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "Чтобы пользоваться им с телевизора или телефона, задайте для {listen} значение {port} там, где оно задаётся (в его файле конфигурации, {flag} или {env}), и перезапустите его.",
+  "Then other devices at home can open it at {url}.": "После этого другие устройства дома смогут открыть его по адресу {url}.",
+  "Write {standard} from {ext} files: there are none yet": "Записать {standard} из файлов {ext}: их пока нет",
+  "{done} of {count} films and episodes converted": "Преобразовано фильмов и эпизодов: {done} из {count}",
+  "{done} of {count} shows": "Сериалы: {done} из {count}",
+  "{done} of {count} albums converted": "Преобразовано альбомов: {done} из {count}",
+  "lyrics for {done} of {count} songs": "Тексты песен: {done} из {count}",
+  "{count} old files renamed to .bak": "Старых файлов переименовано в .bak: {count}",
+  "{count} couldn’t be converted (see the log)": "Не удалось преобразовать (см. журнал): {count}",
+  "{done} of {count} films, episodes and shows": "Фильмы, эпизоды и сериалы: {done} из {count}",
+  "{done} of {count} songs": "Песни: {done} из {count}",
+  "{done} of {count} games": "Игры: {done} из {count}"
+}

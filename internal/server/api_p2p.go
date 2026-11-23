@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"net"
 	"net/http"
@@ -744,14 +745,14 @@ func (s *Server) p2pEnrol(ctx context.Context, id string, req p2p.EnrolRequest, 
 	in, reason := s.p2p.invites.take(req.Secret)
 	switch reason {
 	case "wrong":
-		return fail(reason, "That invite isn't right. Ask for a new one.")
+		return fail(reason, i18n.T("That invite isn't right. Ask for a new one."))
 	case "used":
-		return fail(reason, "That invite has already been used. Ask for a new one.")
+		return fail(reason, i18n.T("That invite has already been used. Ask for a new one."))
 	case "expired":
-		return fail(reason, "That invite has expired. Invites last fifteen minutes: ask for a new one.")
+		return fail(reason, i18n.T("That invite has expired. Invites last fifteen minutes: ask for a new one."))
 	}
 	if !s.stillSignedIn(ctx, in.session, in.by) {
-		return fail("expired", "Whoever made that invite has signed out. Ask for a new one.")
+		return fail("expired", i18n.T("Whoever made that invite has signed out. Ask for a new one."))
 	}
 	name := p2p.CleanName(req.Name, 60)
 	dev, err := s.p2pAddDevice(ctx, in.userID, id, name, req.Platform, "invite")
@@ -996,13 +997,13 @@ type p2pThirdParty struct {
 }
 
 var p2pThirdParties = []p2pThirdParty{
-	{"dht", "The public IPFS network: its starting points (bootstrap.libp2p.io, run by the libp2p project's sponsors) and then some dozens of other people's computers that keep its shared address book",
-		"This server's connection ID, its IP addresses and port, and that it runs this software. Anyone who has the ID can ask the address book where the server is."},
-	{"relay", "Public relays: other people's computers on that network, or other WittyMediaServer owners who offered theirs",
-		"The IP addresses of this server and of the device connecting, when, and how much is sent. Not what is sent: that is encrypted between the device and this server."},
-	{"portMap", "Your own router, on your home network", "A request to forward one port to this computer. Nothing leaves your home for it."},
-	{"ipv6", "Your own router, on your home network", "A request to let connections in to this computer's IPv6 address on one port."},
-	{"holePunch", "The device that is connecting, and the relay that introduces the two", "Each side's public IP address and port, which they need to reach each other."},
+	{"dht", i18n.T("The public IPFS network: its starting points (bootstrap.libp2p.io, run by the libp2p project's sponsors) and then some dozens of other people's computers that keep its shared address book"),
+		i18n.T("This server's connection ID, its IP addresses and port, and that it runs this software. Anyone who has the ID can ask the address book where the server is.")},
+	{"relay", i18n.T("Public relays: other people's computers on that network, or other WittyMediaServer owners who offered theirs"),
+		i18n.T("The IP addresses of this server and of the device connecting, when, and how much is sent. Not what is sent: that is encrypted between the device and this server.")},
+	{"portMap", i18n.T("Your own router, on your home network"), i18n.T("A request to forward one port to this computer. Nothing leaves your home for it.")},
+	{"ipv6", i18n.T("Your own router, on your home network"), i18n.T("A request to let connections in to this computer's IPv6 address on one port.")},
+	{"holePunch", i18n.T("The device that is connecting, and the relay that introduces the two"), i18n.T("Each side's public IP address and port, which they need to reach each other.")},
 }
 
 type p2pView struct {
@@ -1182,24 +1183,24 @@ func describeP2P(st p2p.Status, devices int) []checkStep {
 	steps := []checkStep{}
 	add := func(name, state, detail string) { steps = append(steps, checkStep{name, state, detail}) }
 
-	add("At home", "ok", "On your home network apps keep connecting the way they always have. Nothing here changes that.")
+	add("At home", "ok", i18n.T("On your home network apps keep connecting the way they always have. Nothing here changes that."))
 
 	// Reached from outside: what other computers proved by connecting back.
 	switch {
 	case len(st.Reachable) > 0:
-		add("Reachable from outside", "ok", "Other computers on the internet connected straight to this server at "+shortAddrs(st.Reachable, 3)+". Apps can connect directly.")
+		add(i18n.T("Reachable from outside"), "ok", i18n.F("Other computers on the internet connected straight to this server at {shortAddrs}. Apps can connect directly.", "shortAddrs", shortAddrs(st.Reachable, 3)))
 	case st.Reachability == "private" || len(st.Unreachable) > 0:
-		add("Reachable from outside", "warn", "Computers on the internet tried to connect straight to this server and couldn't. That is normal behind a home router. Apps then connect by hole punching, which works with most routers.")
+		add(i18n.T("Reachable from outside"), "warn", i18n.T("Computers on the internet tried to connect straight to this server and couldn't. That is normal behind a home router. Apps then connect by hole punching, which works with most routers."))
 	default:
-		add("Reachable from outside", "wait", "Not known yet. It takes a few minutes after turning this on for other computers to try.")
+		add(i18n.T("Reachable from outside"), "wait", i18n.T("Not known yet. It takes a few minutes after turning this on for other computers to try."))
 	}
 
 	// IPv6.
 	switch {
 	case !st.Layers.IPv6:
-		add("IPv6", "off", "Turned off: the router isn't asked to let IPv6 connections in.")
+		add("IPv6", "off", i18n.T("Turned off: the router isn't asked to let IPv6 connections in."))
 	case !hasIPv6(st.Addrs):
-		add("IPv6", "off", "This computer has no IPv6 address the internet can reach, so there is nothing to open.")
+		add("IPv6", "off", i18n.T("This computer has no IPv6 address the internet can reach, so there is nothing to open."))
 	default:
 		open, why := 0, ""
 		for _, p := range st.Mapping.Pinholes {
@@ -1211,14 +1212,14 @@ func describeP2P(st p2p.Status, devices int) []checkStep {
 		}
 		switch {
 		case open > 0:
-			add("IPv6", "ok", "This computer has an IPv6 address, and your router agreed to let connections in to it on port "+fmt.Sprint(st.Port)+".")
+			add("IPv6", "ok", i18n.F("This computer has an IPv6 address, and your router agreed to let connections in to it on port {port}.", "port", fmt.Sprint(st.Port)))
 		case hasIPv6(st.Reachable):
-			add("IPv6", "ok", "This computer has an IPv6 address, and it was reached from outside.")
+			add("IPv6", "ok", i18n.T("This computer has an IPv6 address, and it was reached from outside."))
 		default:
 			if why == "" {
 				why = "the router offers no way to ask"
 			}
-			add("IPv6", "warn", "This computer has an IPv6 address, but your router's firewall wasn't opened for it ("+why+"). Devices that also have IPv6 can usually still get through by hole punching.")
+			add("IPv6", "warn", i18n.F("This computer has an IPv6 address, but your router's firewall wasn't opened for it ({why}). Devices that also have IPv6 can usually still get through by hole punching.", "why", why))
 		}
 	}
 
@@ -1226,13 +1227,13 @@ func describeP2P(st p2p.Status, devices int) []checkStep {
 	m := st.Mapping
 	switch {
 	case !st.Layers.PortMap:
-		add("Port on your router", "off", "Turned off: the router isn't asked to forward a port.")
+		add(i18n.T("Port on your router"), "off", i18n.T("Turned off: the router isn't asked to forward a port."))
 	case m.Shared:
-		add("Port on your router", "warn", "Your router forwarded the port, but its own outside address ("+m.ExternalIP+") isn't a public one. Either your internet provider shares one address between customers (CGNAT), or there is a second router in front of this one. A forwarded port can't be reached like that, so it isn't used. Hole punching is.")
+		add(i18n.T("Port on your router"), "warn", i18n.F("Your router forwarded the port, but its own outside address ({externalIP}) isn't a public one. Either your internet provider shares one address between customers (CGNAT), or there is a second router in front of this one. A forwarded port can't be reached like that, so it isn't used. Hole punching is.", "externalIP", m.ExternalIP))
 	case m.Usable():
-		add("Port on your router", "ok", fmt.Sprintf("Your router forwards port %d (UDP and TCP) to this computer, asked by %s. It is renewed every half hour and removed when you turn this off. Outside address: %s.", st.Port, m.Protocol, m.ExternalIP))
+		add(i18n.T("Port on your router"), "ok", i18n.F("Your router forwards port {port} (UDP and TCP) to this computer, asked by {protocol}. It is renewed every half hour and removed when you turn this off. Outside address: {externalIP}.", "port", st.Port, "protocol", m.Protocol, "externalIP", m.ExternalIP))
 	case m.On && m.Renewed == 0 && m.Error == "" && len(m.Mappings) == 0:
-		add("Port on your router", "wait", "Asking your router.")
+		add(i18n.T("Port on your router"), "wait", i18n.T("Asking your router."))
 	default:
 		why := m.Error
 		for _, x := range m.Mappings {
@@ -1243,17 +1244,17 @@ func describeP2P(st p2p.Status, devices int) []checkStep {
 		if why == "" {
 			why = "no answer"
 		}
-		add("Port on your router", "warn", "Your router didn't forward a port ("+why+"). Many routers have this (UPnP, NAT-PMP or PCP) turned off, which is a fair choice. Hole punching doesn't need it.")
+		add(i18n.T("Port on your router"), "warn", i18n.F("Your router didn't forward a port ({why}). Many routers have this (UPnP, NAT-PMP or PCP) turned off, which is a fair choice. Hole punching doesn't need it.", "why", why))
 	}
 
 	// The kind of router, which decides whether hole punching can work.
 	switch {
 	case !st.Layers.HolePunch:
-		add("Hole punching", "off", "Turned off. Apps can then only connect directly (IPv6, or a forwarded port) or through a community relay.")
+		add("Hole punching", "off", i18n.T("Turned off. Apps can then only connect directly (IPv6, or a forwarded port) or through a community relay."))
 	case st.NATUDP == "open" || st.NATTCP == "open":
-		add("Hole punching", "ok", "Your router uses the same outside port whoever it talks to, which is what hole punching needs. It works when the network the app is on does the same, as most home and mobile networks do.")
+		add("Hole punching", "ok", i18n.T("Your router uses the same outside port whoever it talks to, which is what hole punching needs. It works when the network the app is on does the same, as most home and mobile networks do."))
 	case st.NATUDP == "strict" && st.NATTCP != "open":
-		add("Hole punching", "warn", "Your router picks a different outside port for every destination (a \"symmetric\" NAT). Hole punching usually fails with those. A forwarded port, IPv6 or a community relay is needed instead.")
+		add("Hole punching", "warn", i18n.T("Your router picks a different outside port for every destination (a \"symmetric\" NAT). Hole punching usually fails with those. A forwarded port, IPv6 or a community relay is needed instead."))
 	default:
 		add("Hole punching", "wait", "On. What kind of router this is isn't known yet; it shows after a few connections.")
 	}
@@ -1261,11 +1262,11 @@ func describeP2P(st p2p.Status, devices int) []checkStep {
 	// The address book.
 	switch {
 	case !st.Layers.DHT:
-		add("Public address book", "off", "Turned off: this server isn't announced, and apps can only use addresses they already know.")
+		add(i18n.T("Public address book"), "off", i18n.T("Turned off: this server isn't announced, and apps can only use addresses they already know."))
 	case st.DHTPeers > 0:
-		add("Public address book", "ok", fmt.Sprintf("Connected to the public IPFS network (%d of its computers known). Apps find this server there by its ID.", st.DHTPeers))
+		add(i18n.T("Public address book"), "ok", i18n.F("Connected to the public IPFS network ({dHTPeers} of its computers known). Apps find this server there by its ID.", "dHTPeers", st.DHTPeers))
 	default:
-		add("Public address book", "warn", "The public IPFS network hasn't been reached yet. If this stays, something blocks outgoing connections. Apps that already know an address still connect.")
+		add(i18n.T("Public address book"), "warn", i18n.T("The public IPFS network hasn't been reached yet. If this stays, something blocks outgoing connections. Apps that already know an address still connect."))
 	}
 
 	// Relays.
@@ -1277,18 +1278,18 @@ func describeP2P(st p2p.Status, devices int) []checkStep {
 	}
 	switch {
 	case !st.Layers.Relay:
-		add("Relays", "off", "Turned off: no relay is used, so no hole punching either. Only direct connections work.")
+		add("Relays", "off", i18n.T("Turned off: no relay is used, so no hole punching either. Only direct connections work."))
 	case len(st.Reachable) > 0 && len(st.Relays) == 0:
-		add("Relays", "ok", "Not needed: this server can be reached directly.")
+		add("Relays", "ok", i18n.T("Not needed: this server can be reached directly."))
 	case community > 0:
-		add("Relays", "ok", fmt.Sprintf("Holding a place on %d relay(s), %d of them community relays that can carry a whole connection when no direct one can be made. What goes through is encrypted; a relay sees only addresses and amounts.", len(st.Relays), community))
+		add("Relays", "ok", i18n.F("Holding a place on {len} relay(s), {community} of them community relays that can carry a whole connection when no direct one can be made. What goes through is encrypted; a relay sees only addresses and amounts.", "len", len(st.Relays), "community", community))
 	case len(st.Relays) > 0:
-		add("Relays", "ok", fmt.Sprintf("Holding a place on %d public relay(s). They introduce an app to this server so the two can connect directly; they carry too little for anything else. No community relay was found, so where hole punching fails there is no way through.", len(st.Relays)))
+		add("Relays", "ok", i18n.F("Holding a place on {len} public relay(s). They introduce an app to this server so the two can connect directly; they carry too little for anything else. No community relay was found, so where hole punching fails there is no way through.", "len", len(st.Relays)))
 	default:
-		add("Relays", "wait", "Looking for a relay. This takes up to a minute after turning on.")
+		add("Relays", "wait", i18n.T("Looking for a relay. This takes up to a minute after turning on."))
 	}
 	if st.RelayService {
-		add("Helping others", "ok", "This server offers itself as a community relay while it can be reached from outside: up to 16 other servers, 2 GiB per connection.")
+		add("Helping others", "ok", i18n.T("This server offers itself as a community relay while it can be reached from outside: up to 16 other servers, 2 GiB per connection."))
 	}
 
 	connected := map[string]bool{}
@@ -1297,7 +1298,7 @@ func describeP2P(st p2p.Status, devices int) []checkStep {
 	}
 	switch {
 	case devices == 0:
-		add("Devices", "warn", "No device is on the list yet. Open the app on a device while it is at home and signed in, or make an invite below.")
+		add("Devices", "warn", i18n.T("No device is on the list yet. Open the app on a device while it is at home and signed in, or make an invite below."))
 	default:
 		add("Devices", "ok", fmt.Sprintf("%d on the list, %d connected now.", devices, len(connected)))
 	}
@@ -1367,7 +1368,7 @@ func (s *Server) p2pSelfTest(ctx context.Context, node *p2p.Node) []checkStep {
 	}
 	client, err := p2p.NewClient(cc)
 	if err != nil {
-		add("Test", "fail", "The test couldn't start: "+err.Error())
+		add("Test", "fail", i18n.F("The test couldn't start: {error}", "error", err.Error()))
 		return steps
 	}
 	defer client.Close()
@@ -1391,19 +1392,19 @@ func (s *Server) p2pSelfTest(ctx context.Context, node *p2p.Node) []checkStep {
 		if why == "" {
 			why = "it wasn't found in time"
 		}
-		add("Finding this server", "fail", "A second node on this computer looked for this server by its ID through "+how+" and couldn't connect: "+why+". If you only just turned this on, wait two minutes and try again.")
+		add(i18n.T("Finding this server"), "fail", i18n.F("A second node on this computer looked for this server by its ID through {how} and couldn't connect: {why}. If you only just turned this on, wait two minutes and try again.", "how", how, "why", why))
 		return steps
 	}
-	add("Finding this server", "ok", "A second node on this computer found this server by its ID through "+how+".")
+	add(i18n.T("Finding this server"), "ok", i18n.F("A second node on this computer found this server by its ID through {how}.", "how", how))
 	switch state.Path {
 	case p2p.PathRelayed:
 		kind := "a public relay"
 		if state.Community {
 			kind = "a community relay"
 		}
-		add("Connecting", "ok", "It connected through "+kind+", encrypted to this server's key. This is how an app away from home starts, before it tries for a direct connection.")
+		add("Connecting", "ok", i18n.F("It connected through {kind}, encrypted to this server's key. This is how an app away from home starts, before it tries for a direct connection.", "kind", kind))
 	default:
-		add("Connecting", "ok", "It connected directly ("+state.Transport+"). Being on the same computer, that says nothing about your router.")
+		add("Connecting", "ok", i18n.F("It connected directly ({transport}). Being on the same computer, that says nothing about your router.", "transport", state.Transport))
 	}
 	// A request through it, if the path can carry one.
 	req, _ := http.NewRequestWithContext(ctx, "GET", "http://server/api/health", nil)
@@ -1413,11 +1414,11 @@ func (s *Server) p2pSelfTest(ctx context.Context, node *p2p.Node) []checkStep {
 	switch {
 	case err == nil:
 		res.Body.Close()
-		add("A request", "ok", fmt.Sprintf("The server answered a request over the connection (%d), and treated it as coming from away from home.", res.StatusCode))
+		add("A request", "ok", i18n.F("The server answered a request over the connection ({statusCode}), and treated it as coming from away from home.", "statusCode", res.StatusCode))
 	case errors.Is(err, p2p.ErrNoDirectPath):
-		add("A request", "warn", "Through a public relay only the introduction is possible, and from this same computer a direct connection usually can't be made (most routers don't loop back). So this part can't be tested from here: try the app on mobile data.")
+		add("A request", "warn", i18n.T("Through a public relay only the introduction is possible, and from this same computer a direct connection usually can't be made (most routers don't loop back). So this part can't be tested from here: try the app on mobile data."))
 	default:
-		add("A request", "fail", "The server was reached, but a request over the connection failed: "+err.Error())
+		add("A request", "fail", i18n.F("The server was reached, but a request over the connection failed: {error}", "error", err.Error()))
 	}
 	return steps
 }
@@ -1467,7 +1468,7 @@ func verdictP2P(st p2p.Status) p2pVerdict {
 	case !st.Layers.Relay && !direct:
 		v = p2pVerdict{State: "warn", Title: "Only direct connections are allowed, and none has worked yet",
 			Detail: "Relays are turned off, so hole punching is too. Devices away from home can only connect if your router forwards a port or lets IPv6 in.",
-			Todo:   []string{"Turn Relays on under Peer-to-peer options. Public relays carry only the introduction; a relay of your own carries more."}}
+			Todo:   []string{i18n.T("Turn Relays on under Peer-to-peer options. Public relays carry only the introduction; a relay of your own carries more.")}}
 	case direct:
 		v = p2pVerdict{State: "ok", Title: "Direct connection works",
 			Detail: "Other computers on the internet connected straight to this server. Your devices will too, from any network.", Todo: []string{}}
@@ -1481,30 +1482,30 @@ func verdictP2P(st p2p.Status) p2pVerdict {
 		}
 	case strict && haveRelay:
 		v = p2pVerdict{State: "ok", Title: "Connections will go through your relay",
-			Detail: "Your network blocks direct connections from outside, so devices away from home connect through your relay. It can't see what it carries: that's encrypted between the device and this server." + relayWords(),
-			Todo:   []string{"For direct connections as well, turn on UPnP or NAT-PMP in your router's settings, then test again."}}
+			Detail: i18n.F("Your network blocks direct connections from outside, so devices away from home connect through your relay. It can't see what it carries: that's encrypted between the device and this server.{relayWords}", "relayWords", relayWords()),
+			Todo:   []string{i18n.T("For direct connections as well, turn on UPnP or NAT-PMP in your router's settings, then test again.")}}
 	case strict:
 		v = p2pVerdict{State: "warn", Title: "Your network blocks direct connections; we'll use a relay when WittyRelay is available",
 			Detail: "Your router (or your internet provider, if it shares one address between customers) stops devices outside from connecting straight in, and hole punching can't get through it. The public relays only introduce devices; they don't carry films.",
 			Todo: []string{
-				"Look for UPnP or NAT-PMP in your router's settings and turn it on, then test again.",
-				`Or run your own WittyRelay and add it under "Your own WittyRelay" below: see Remote access, "Your own WittyRelay".`,
-				`Or use a private network instead: see Remote access, "The recommended way".`,
+				i18n.T("Look for UPnP or NAT-PMP in your router's settings and turn it on, then test again."),
+				i18n.T(`Or run your own WittyRelay and add it under "Your own WittyRelay" below: see Remote access, "Your own WittyRelay".`),
+				i18n.T(`Or use a private network instead: see Remote access, "The recommended way".`),
 			}}
 	case !st.Layers.DHT && len(st.Relays) == 0 && ownOK == 0:
 		v = p2pVerdict{State: "warn", Title: "Devices can only use addresses they already know",
 			Detail: "The public address book is off and no relay is held, so a device that is away finds this server only at an address it remembers.",
-			Todo:   []string{"Turn the Public address book on under Peer-to-peer options."}}
+			Todo:   []string{i18n.T("Turn the Public address book on under Peer-to-peer options.")}}
 	case st.DHTPeers == 0 && len(st.Relays) == 0 && ownOK == 0 && time.Since(time.Unix(st.Started, 0)) > 3*time.Minute:
 		v = p2pVerdict{State: "fail", Title: "This server can't reach the internet for peer-to-peer connections",
 			Detail: "Nothing outside answered: not the public address book, not a relay. A firewall on this computer or the network may block outgoing UDP and TCP.",
-			Todo:   []string{"Check that this computer's firewall lets WittyMediaServer connect out.", "On an office or school network this may not be allowed: use a private network instead."}}
+			Todo:   []string{i18n.T("Check that this computer's firewall lets WittyMediaServer connect out."), i18n.T("On an office or school network this may not be allowed: use a private network instead.")}}
 	default:
 		v = p2pVerdict{State: "wait", Title: "Still finding out", Todo: []string{},
 			Detail: "It takes a few minutes after turning this on for other computers to try connecting to this server. Test again in five minutes."}
 	}
 	if ownBad != "" {
-		v.Todo = append(v.Todo, "Your WittyRelay isn't working: "+ownBad)
+		v.Todo = append(v.Todo, i18n.F("Your WittyRelay isn't working: {ownBad}", "ownBad", ownBad))
 	}
 	return v
 }

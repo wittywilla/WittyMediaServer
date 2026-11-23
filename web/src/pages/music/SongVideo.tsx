@@ -10,7 +10,7 @@ import { Dialog } from '../../ui/Overlay'
 import { Button } from '../../ui/Button'
 import { albumLink, artistLink } from './parts'
 import { howWords, placeIn, useMusicLinks, type MusicLink, type MusicLinkSide } from './links'
-import { list, t, tn, tx } from '../../i18n'
+import { list, t, tn, tx, bidi } from '../../i18n'
 
 // Going between a song and its music video: Watch the video from a song, Play the song from
 // a video, at the same place when the two line up. Admins tie and untie them here too.
@@ -140,7 +140,7 @@ function Side({ s, kind }: { s: MusicLinkSide; kind: 'song' | 'video' }) {
   return (
     <span className="mv-tie-side">
       <b>{s.title}</b>
-      <span className="muted">{[s.artist, kind === 'song' ? s.album : t('Music video'), s.runtimeSec ? fmtTime(s.runtimeSec) : ''].filter(Boolean).join(' · ')}</span>
+      <span className="muted">{[s.artist, kind === 'song' ? s.album : t('Music video'), s.runtimeSec ? fmtTime(s.runtimeSec) : ''].filter(Boolean).map(bidi).join(' · ')}</span>
     </span>
   )
 }

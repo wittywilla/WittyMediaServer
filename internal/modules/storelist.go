@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"image"
 	_ "image/jpeg" // so a screenshot can be checked
 	_ "image/png"
@@ -147,7 +148,7 @@ func (m *Manager) listedCatalog() (*wittymodule.Catalog, string) {
 // that the newest there is, with why it can't be used.
 func (s *Stores) offer(mod *wittymodule.CatalogModule) (*wittymodule.CatalogVersion, Fit) {
 	if len(mod.Versions) == 0 {
-		return nil, Fit{Kind: FitNone, Why: "No version of " + mod.Name + " for this server is published yet."}
+		return nil, Fit{Kind: FitNone, Why: i18n.F("No version of {name} for this server is published yet.", "name", mod.Name)}
 	}
 	server := s.m.cfg.Server
 	var first Fit
@@ -169,7 +170,7 @@ func (s *Stores) offer(mod *wittymodule.CatalogModule) (*wittymodule.CatalogVers
 	if older != nil {
 		// Nothing made for this server: the newest made for an older one, with its warning, which
 		// is only installed by someone who confirms it.
-		olderFit.Why = "No version of " + mod.Name + " for this server is published yet. " + olderFit.Why
+		olderFit.Why = i18n.F("No version of {name} for this server is published yet. {why}", "name", mod.Name, "why", olderFit.Why)
 		return older, olderFit
 	}
 	return &mod.Versions[0], first
@@ -178,7 +179,7 @@ func (s *Stores) offer(mod *wittymodule.CatalogModule) (*wittymodule.CatalogVers
 // fitOf says whether one version can be installed on a server of this version, on this system.
 func fitOf(name string, v *wittymodule.CatalogVersion, server string) Fit {
 	if v.Withdrawn != nil {
-		return Fit{Kind: FitWithdrawn, Why: "Its publisher withdrew version " + v.Version + ": " + sentence(cleanText(v.Withdrawn.Reason))}
+		return Fit{Kind: FitWithdrawn, Why: i18n.F("Its publisher withdrew version {version}: {sentence}", "version", v.Version, "sentence", sentence(cleanText(v.Withdrawn.Reason)))}
 	}
 	// A module built for a server from before this cut-off can't run, whatever range it claims.
 	if wittymodule.Compare(v.MinServer, MinModuleServer) < 0 && wittymodule.Compare(server, MinModuleServer) >= 0 {
@@ -378,7 +379,7 @@ func (s *Stores) officialItem(st *Status, cat *wittymodule.Catalog) StoreItem {
 				it.Fit = was
 			}
 		} else if it.Fit.OK {
-			it.Fit = Fit{Kind: FitNone, Why: "The list of modules doesn't include " + st.Name + " any more."}
+			it.Fit = Fit{Kind: FitNone, Why: i18n.F("The list of modules doesn't include {name} any more.", "name", st.Name)}
 		}
 	} else if it.Fit.OK && !st.Installed {
 		it.Fit = Fit{Kind: FitNone, Why: "This server hasn't read the list of modules yet. Check for updates, or check its internet connection."}
@@ -438,15 +439,15 @@ func knownPermission(p string) bool {
 func PermissionWords(p string) (name, words string) {
 	switch p {
 	case wittymodule.PermissionNetwork:
-		return "The network", "It can connect to other computers, on your network or the internet."
+		return "The network", i18n.T("It can connect to other computers, on your network or the internet.")
 	case wittymodule.PermissionPrograms:
-		return "Other programs", "It can start other programs on this server, such as FFmpeg."
+		return "Other programs", i18n.T("It can start other programs on this server, such as FFmpeg.")
 	case wittymodule.PermissionDevices:
-		return "This machine's devices", "It can open hardware such as a TV tuner or a graphics card."
+		return i18n.T("This machine's devices"), i18n.T("It can open hardware such as a TV tuner or a graphics card.")
 	case wittymodule.PermissionData:
-		return "A folder of its own", "It can write to one folder this server gives it, to keep what it needs."
+		return i18n.T("A folder of its own"), i18n.T("It can write to one folder this server gives it, to keep what it needs.")
 	}
-	return cleanText(p), "This server doesn't know what this means, so it won't run a version that asks for it."
+	return cleanText(p), i18n.T("This server doesn't know what this means, so it won't run a version that asks for it.")
 }
 
 // ItemDetail is a module's page.

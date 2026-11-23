@@ -19,7 +19,7 @@ import { handledIds } from '../../spec/model'
 import { autoplaySpec, chaptersSpec } from '../../spec/specs/media'
 import { VideoSongPanel } from '../music/SongVideo'
 import { VideoLyrics } from '../music/VideoLyrics'
-import { t, tn } from '../../i18n'
+import { t, tn, bidi } from '../../i18n'
 
 // The watch page: the video, what it is and who made it, comments, and what to
 // watch next beside it.
@@ -87,7 +87,7 @@ export default function WatchPage() {
               </div>
             </div>
             <div className="ch-desc">
-              <div className="ch-desc-stats">{[views ? tn('{count} view', '{count} views', views, { count: fmtCount(views) }) : '', d.uploadDate ? `${d.uploadDate} (${timeAgo(d.uploadDate)})` : '', d.platform].filter(Boolean).join(' · ')}</div>
+              <div className="ch-desc-stats">{[views ? tn('{count} view', '{count} views', views, { count: fmtCount(views) }) : '', d.uploadDate ? `${d.uploadDate} (${timeAgo(d.uploadDate)})` : '', d.platform].filter(Boolean).map(bidi).join(' · ')}</div>
               {d.description && <p className={more || !long ? '' : 'clamped'}>{d.description}</p>}
               {long && <button className="btn sm ghost" aria-expanded={more} onClick={() => setMore(!more)}>{more ? t('Show less') : t('Show more')}</button>}
               {d.tags.length > 0 && <div className="ch-tagline">{d.tags.map((tag) => <Link key={tag} to={`/library/${d.libraryId}?tag=${encodeURIComponent(tag)}`}>#{tag}</Link>)}</div>}
@@ -112,7 +112,7 @@ export default function WatchPage() {
         {next.map((v) => (
           <Link key={v.id} to={`/watch/${v.id}`} className="ch-next-item">
             <span className={'ch-next-thumb' + (v.vertical ? ' tall' : '')}><img src={videoThumb(v.id, 320, v.updatedAt)} alt="" loading="lazy" /></span>
-            <span className="cr-text"><b>{v.title}</b><span className="muted">{v.creator}</span><span className="muted">{[viewsOf(v) ? tn('{count} view', '{count} views', viewsOf(v), { count: fmtCount(viewsOf(v)) }) : '', timeAgo(v.uploadDate)].filter(Boolean).join(' · ')}</span></span>
+            <span className="cr-text"><b>{v.title}</b><span className="muted">{v.creator}</span><span className="muted">{[viewsOf(v) ? tn('{count} view', '{count} views', viewsOf(v), { count: fmtCount(viewsOf(v)) }) : '', timeAgo(v.uploadDate)].filter(Boolean).map(bidi).join(' · ')}</span></span>
           </Link>
         ))}
       </aside>

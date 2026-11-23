@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -164,7 +165,7 @@ func (s *Server) handleSDUIExperiencePut(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	if req, _ := s.requiredLook(r, cfg); req != nil {
-		writeErr(w, 403, "The look is required"+byAdmin(req)+".")
+		writeErr(w, 403, i18n.F("The look is required{byAdmin}.", "byAdmin", byAdmin(req)))
 		return
 	}
 	var body struct {

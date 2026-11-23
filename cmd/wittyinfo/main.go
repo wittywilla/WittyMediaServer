@@ -25,6 +25,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"os"
@@ -307,7 +308,7 @@ func describe(x *wittyinfo.Info) string {
 		w("For one video\n")
 	}
 	if id := x.Identity; id != nil {
-		w("Made for: %s, %s long", orDash(id.FileName), wittyinfo.Clock(float64(id.DurationSec)))
+		w(i18n.T("Made for: %s, %s long"), orDash(id.FileName), wittyinfo.Clock(float64(id.DurationSec)))
 		if id.Edition != "" {
 			w(" (%s)", id.Edition)
 		}

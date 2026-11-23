@@ -38,7 +38,7 @@ import { WidgetGridView } from './widgets'
 import { CardRouteContext } from './cardRoute'
 import { gameTitleLabel, gameTitleParts, titleLang, type GameTitles } from './titles'
 import { useGameTitlePref } from './useGameTitles'
-import { t, tn, tx } from '../../i18n'
+import { t, tn, tx, bidi } from '../../i18n'
 import { setWords } from '../words'
 
 // The layout step (model.ts) is also run by node's tests, so it is handed the app's words here.
@@ -190,7 +190,7 @@ export const CardView = memo(function CardView({ view, showTitles }: { view: Vie
         <>
           {text.title && <div className={'title' + (view.lines?.title && view.lines.title > 1 ? ' sdui-clamp' : '')} style={view.lines?.title && view.lines.title > 1 ? clamp(view.lines.title) : undefined} lang={gameName ? titleLang(gameName.main) : undefined}>{gameName ? gameName.main : text.title}</div>}
           {gameName?.sub && <div className="sub game-title-sub" lang={titleLang(gameName.sub)}>{gameName.sub}</div>}
-          {(text.subtitle || text.remaining) && <div className="sub">{[text.subtitle, text.remaining].filter(Boolean).join(' · ')}</div>}
+          {(text.subtitle || text.remaining) && <div className="sub">{[text.subtitle, text.remaining].filter(Boolean).map(bidi).join(' · ')}</div>}
           {text.synopsis && <div className="sub sdui-synopsis sdui-clamp" style={clamp(view.lines?.synopsis)}>{text.synopsis}</div>}
         </>
       )}

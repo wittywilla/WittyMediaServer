@@ -8,7 +8,7 @@ import { IconCheck, IconEdit, IconTrash } from '../../icons'
 import { toast, useApp } from '../../state'
 import { Dialog, ask } from '../../ui/Overlay'
 import { Button } from '../../ui/Button'
-import { t, tn } from '../../i18n'
+import { t, tn, bidi } from '../../i18n'
 
 // What WittyShorts and WittyChannels share: a creator's picture, video tiles,
 // like buttons, a subscribe button and comments.
@@ -40,7 +40,7 @@ export function VideoTile({ v, to, showCreator = true, onClick }: { v: VideoCard
         <span className="cr-text">
           <b>{v.title}</b>
           {showCreator && <span className="muted">{v.creator}</span>}
-          <span className="muted">{[viewsOf(v) ? tn('{count} view', '{count} views', viewsOf(v), { count: fmtCount(viewsOf(v)) }) : '', timeAgo(v.uploadDate)].filter(Boolean).join(' · ')}</span>
+          <span className="muted">{[viewsOf(v) ? tn('{count} view', '{count} views', viewsOf(v), { count: fmtCount(viewsOf(v)) }) : '', timeAgo(v.uploadDate)].filter(Boolean).map(bidi).join(' · ')}</span>
         </span>
       </span>
     </Link>

@@ -5,6 +5,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"sort"
 	"strings"
@@ -111,9 +112,9 @@ func (s *Server) handleTVSummary(w http.ResponseWriter, r *http.Request) {
 		}
 		sc := s.loadBackupSchedule(ctx)
 		if sc.Frequency == "" || sc.Frequency == "off" {
-			out.Lines = append(out.Lines, "Automatic backups: off")
+			out.Lines = append(out.Lines, i18n.T("Automatic backups: off"))
 		} else {
-			out.Lines = append(out.Lines, fmt.Sprintf("Automatic backups: %s at %02d:00, keeping %d", sc.Frequency, sc.Hour, sc.Keep))
+			out.Lines = append(out.Lines, fmt.Sprintf(i18n.T("Automatic backups: %s at %02d:00, keeping %d"), sc.Frequency, sc.Hour, sc.Keep))
 		}
 	case "transcoding":
 		if !u.IsAdmin {
@@ -124,7 +125,7 @@ func (s *Server) handleTVSummary(w http.ResponseWriter, r *http.Request) {
 			hw = "any"
 		}
 		if hw == "" || hw == "none" {
-			out.Lines = append(out.Lines, "Graphics chip: not used")
+			out.Lines = append(out.Lines, i18n.T("Graphics chip: not used"))
 		} else {
 			out.Lines = append(out.Lines, "Graphics chip: "+hw)
 		}

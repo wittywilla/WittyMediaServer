@@ -12,6 +12,7 @@ import (
 	"compress/gzip"
 	_ "embed"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"sort"
 	"sync"
 )
@@ -34,11 +35,11 @@ type Group struct {
 
 // Groups says what each group means, in plain words.
 var Groups = []Group{
-	{GroupServer, "Built into the server", "Libraries compiled into WittyMediaServer and its helper programs."},
-	{GroupWeb, "Built into this web app", "Libraries your browser runs as part of this interface."},
-	{GroupPrograms, "Separate programs", "Programs the server starts and talks to, but which aren't part of it, so their licenses don't reach it."},
-	{GroupData, "Bundled data", "Files that come with the server."},
-	{GroupServices, "Online services", "Where information comes from, and the terms it comes with. Each is only asked if it's turned on, or has a key."},
+	{GroupServer, i18n.T("Built into the server"), i18n.T("Libraries compiled into WittyMediaServer and its helper programs.")},
+	{GroupWeb, i18n.T("Built into this web app"), i18n.T("Libraries your browser runs as part of this interface.")},
+	{GroupPrograms, "Separate programs", i18n.T("Programs the server starts and talks to, but which aren't part of it, so their licenses don't reach it.")},
+	{GroupData, "Bundled data", i18n.T("Files that come with the server.")},
+	{GroupServices, "Online services", i18n.T("Where information comes from, and the terms it comes with. Each is only asked if it's turned on, or has a key.")},
 }
 
 // A Library is one generated entry. Text is an index into File.Texts, as many share one.
@@ -78,9 +79,9 @@ var librariesGz []byte
 var written = []Component{
 	{Group: GroupPrograms, Name: "FFmpeg", License: "GPL-2.0-or-later", URL: "https://ffmpeg.org/legal.html",
 		Note: "Bundled with release downloads as bin/ffmpeg and bin/ffprobe, to convert video. Those builds include libx264 (GPL-2.0-or-later), LAME (LGPL-2.1) and Opus (BSD-3-Clause). Source: ffmpeg.org. The Docker image uses Debian's ffmpeg package instead (GPL-2.0-or-later, with x264 and x265). Set WMS_FFMPEG to use a different build."},
-	{Group: GroupPrograms, Name: "Graphics drivers in the Docker image", License: "MIT (Intel's encoding kernels: redistributable binaries, Debian non-free)", URL: "https://github.com/intel/media-driver",
+	{Group: GroupPrograms, Name: i18n.T("Graphics drivers in the Docker image"), License: i18n.T("MIT (Intel's encoding kernels: redistributable binaries, Debian non-free)"), URL: "https://github.com/intel/media-driver",
 		Note: "Only in the amd64 Docker image, from Debian, loaded by FFmpeg for hardware transcoding: Mesa's VA-API drivers (MIT, mesa3d.org), Intel's media driver with its encoding kernels (MIT; the kernels come without source, from Debian's non-free section), the i965 driver and its shaders (MIT), Intel's oneVPL runtime (MIT) and vainfo (MIT). Each package's copyright file is in the image under /usr/share/doc."},
-	{Group: GroupPrograms, Name: "Tdarr", License: "Proprietary (Tdarr's own EULA)", URL: "https://github.com/HaveAGitGat/Tdarr/blob/master/LICENSE.md",
+	{Group: GroupPrograms, Name: "Tdarr", License: i18n.T("Proprietary (Tdarr's own EULA)"), URL: "https://github.com/HaveAGitGat/Tdarr/blob/master/LICENSE.md",
 		Note: "Not bundled, downloaded or run. Library transcoding can connect to a copy someone installs themselves, over its HTTP API, if they turn that on. Whoever installs it agrees to its terms. No Tdarr code or plugin is included."},
 	{Group: GroupPrograms, Name: "Moonlight", License: "GPL-3.0", URL: "https://github.com/moonlight-stream",
 		Note: "WittyCouch Host, a separate program, is built on its code; its source is offered beside each release. Moonlight's own apps aren't bundled, and are only linked."},
@@ -88,9 +89,9 @@ var written = []Component{
 		Note: "Not bundled. WittyRigs uses a copy that someone installs themselves, and WittyCouch connects to it on a PC."},
 	{Group: GroupData, Name: "pdf.js's image decoders and colour profile: OpenJPEG, PDFium's JBIG2, qcms", License: "BSD-2-Clause, BSD-3-Clause and MIT (profile: CC0)", URL: "https://github.com/mozilla/pdf.js",
 		Note: "Compiled to WebAssembly by the pdf.js project. Fetched only when a PDF needs them."},
-	{Group: GroupData, Name: "Natural Earth 1:110m land, via world-atlas", License: "Public domain (world-atlas: ISC)", URL: "https://www.naturalearthdata.com",
+	{Group: GroupData, Name: i18n.T("Natural Earth 1:110m land, via world-atlas"), License: i18n.T("Public domain (world-atlas: ISC)"), URL: "https://www.naturalearthdata.com",
 		Note: "The outline of the world on the photo map."},
-	{Group: GroupServices, Name: "The Movie Database (TMDB)", License: "TMDB's terms", URL: "https://www.themoviedb.org/terms-of-use",
+	{Group: GroupServices, Name: i18n.T("The Movie Database (TMDB)"), License: "TMDB's terms", URL: "https://www.themoviedb.org/terms-of-use",
 		Note: "Used with your own key. This product uses the TMDB API but is not endorsed or certified by TMDB."},
 	{Group: GroupServices, Name: "TheTVDB", License: "TheTVDB's terms", URL: "https://thetvdb.com",
 		Note: "Used with your own key. TV information and images are provided by TheTVDB."},
@@ -99,14 +100,14 @@ var written = []Component{
 	{Group: GroupServices, Name: "Wikipedia", License: "CC BY-SA 4.0", URL: "https://en.wikipedia.org/wiki/Wikipedia:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License",
 		Note: "Plot summaries, credited where they're shown."},
 	{Group: GroupServices, Name: "AniList", License: "AniList's terms", URL: "https://anilist.co/terms", Note: "Anime information."},
-	{Group: GroupServices, Name: "Apple Podcasts search", License: "Apple's terms", URL: "https://www.apple.com/legal/internet-services/itunes/", Note: "Finding podcasts to add."},
-	{Group: GroupServices, Name: "Free Dictionary API", License: "The service's terms", URL: "https://dictionaryapi.dev", Note: "Looking up a word while reading."},
+	{Group: GroupServices, Name: i18n.T("Apple Podcasts search"), License: "Apple's terms", URL: "https://www.apple.com/legal/internet-services/itunes/", Note: "Finding podcasts to add."},
+	{Group: GroupServices, Name: i18n.T("Free Dictionary API"), License: i18n.T("The service's terms"), URL: "https://dictionaryapi.dev", Note: "Looking up a word while reading."},
 	{Group: GroupServices, Name: "MusicBrainz", License: "CC0 (core data)", URL: "https://musicbrainz.org/doc/About/Data_License", Note: "Album and track names for audio CD images."},
-	{Group: GroupServices, Name: "Cover Art Archive", License: "Each picture's own", URL: "https://coverartarchive.org", Note: "Album covers for audio CD images."},
-	{Group: GroupServices, Name: "LRCLIB", License: "A free, open database; each song's words belong to its writers", URL: "https://lrclib.net", Note: "Timed lyrics, only if the owner turns online lyrics on. Kept in this server's cache, never shared."},
+	{Group: GroupServices, Name: i18n.T("Cover Art Archive"), License: i18n.T("Each picture's own"), URL: "https://coverartarchive.org", Note: "Album covers for audio CD images."},
+	{Group: GroupServices, Name: "LRCLIB", License: i18n.T("A free, open database; each song's words belong to its writers"), URL: "https://lrclib.net", Note: "Timed lyrics, only if the owner turns online lyrics on. Kept in this server's cache, never shared."},
 	{Group: GroupServices, Name: "Musixmatch", License: "Musixmatch's terms", URL: "https://developer.musixmatch.com", Note: "Used with your own key, if you add one. Lyrics."},
-	{Group: GroupServices, Name: "Wikipedia and Wikimedia Commons", License: "CC BY-SA 4.0 (text); each picture's own", URL: "https://en.wikipedia.org/wiki/Wikipedia:Copyrights", Note: "Artist biographies and photos, only if the owner turns online music information on."},
-	{Group: GroupServices, Name: "Radio Browser", License: "Public domain data", URL: "https://www.radio-browser.info", Note: "Finding internet radio stations. The stations themselves belong to whoever runs them."},
+	{Group: GroupServices, Name: i18n.T("Wikipedia and Wikimedia Commons"), License: i18n.T("CC BY-SA 4.0 (text); each picture's own"), URL: "https://en.wikipedia.org/wiki/Wikipedia:Copyrights", Note: "Artist biographies and photos, only if the owner turns online music information on."},
+	{Group: GroupServices, Name: "Radio Browser", License: i18n.T("Public domain data"), URL: "https://www.radio-browser.info", Note: "Finding internet radio stations. The stations themselves belong to whoever runs them."},
 }
 
 var (

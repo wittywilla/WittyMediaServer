@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"strconv"
 	"strings"
@@ -214,12 +215,12 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 	}
 	o := library.ConvertOptions{Subtitles: b.Subtitles, Retire: b.Retire, Beside: s.saveInfoBeside(r), Author: author, Tool: "WittyMediaServer", ToolVersion: s.Version, Format: b.Format}
 	titles := map[string]string{
-		"gather/":           "Gathering NFO files, pictures and lyrics into .wittyinfo and .wittyaudio files",
-		"gather/wittyinfo":  "Gathering NFO files and pictures into .wittyinfo files",
-		"gather/wittyaudio": "Gathering lyrics, covers and album details into .wittyaudio files",
-		"spread/":           "Writing NFO files, pictures and lyrics from .wittyinfo and .wittyaudio files",
-		"spread/wittyinfo":  "Writing NFO files and pictures from .wittyinfo files",
-		"spread/wittyaudio": "Writing lyrics, covers and album details from .wittyaudio files",
+		"gather/":           i18n.T("Gathering NFO files, pictures and lyrics into .wittyinfo and .wittyaudio files"),
+		"gather/wittyinfo":  i18n.T("Gathering NFO files and pictures into .wittyinfo files"),
+		"gather/wittyaudio": i18n.T("Gathering lyrics, covers and album details into .wittyaudio files"),
+		"spread/":           i18n.T("Writing NFO files, pictures and lyrics from .wittyinfo and .wittyaudio files"),
+		"spread/wittyinfo":  i18n.T("Writing NFO files and pictures from .wittyinfo files"),
+		"spread/wittyaudio": i18n.T("Writing lyrics, covers and album details from .wittyaudio files"),
 	}
 	title := titles[b.Direction+"/"+b.Format]
 	stopped, stop := context.WithCancel(context.Background())
@@ -238,7 +239,7 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 		defer context.AfterFunc(stopped, c)()
 		// A library still being scanned has titles yet to come: wait for it (setup starts this
 		// while the first scans run).
-		task.Item("Waiting for the libraries to be scanned", "")
+		task.Item(i18n.T("Waiting for the libraries to be scanned"), "")
 		for waited := 0; waited < 6*3600; waited += 5 {
 			busy := false
 			if all, err := s.Store.Libraries(ctx); err == nil {

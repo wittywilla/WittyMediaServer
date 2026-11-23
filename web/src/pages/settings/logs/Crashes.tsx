@@ -42,7 +42,7 @@ export function CrashBanner({ crashes, onSeen }: { crashes: Crash[]; onSeen: (id
     <div className="lg-banner bad" role="alert">
       <div className="lg-banner-text">
         <b>{bannerTitle(c)}</b>
-        {c.summary && <p>{c.summary}</p>}
+        {c.summary && <p>{tx(c.summary)}</p>}
         {unseen.length > 1 && <p>{tn('There is {count} more report you haven’t looked at.', 'There are {count} more reports you haven’t looked at.', unseen.length - 1)}</p>}
       </div>
       <div className="lg-banner-actions">
@@ -104,7 +104,7 @@ export default function Crashes({ crashes, reload, onSeen }: { crashes: Crash[];
                     <span>{fmtDate(c.time)}{c.version ? ' · ' + t('version {version}', { version: c.version }) : ''} · {fmtSize(c.size)}</span>
                   </div>
                 </div>
-                {c.summary && <p className="lg-crash-summary">{c.summary}</p>}
+                {c.summary && <p className="lg-crash-summary">{tx(c.summary)}</p>}
                 <div className="lg-actions">
                   <button type="button" className="btn sm" aria-expanded={open === c.id} onClick={() => show(open === c.id ? '' : c.id)}>{open === c.id ? t('Hide') : t('View')}</button>
                   <DownloadButton path={crashDownload(c.id)} name={c.id + '.txt'}>{t('Download')}</DownloadButton>

@@ -5,6 +5,7 @@ package library
 
 import (
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"path/filepath"
 	"strings"
 	"time"
@@ -86,7 +87,7 @@ var tagJobs = map[string]struct{ role, job string }{
 	"executive_producer":      {RoleCrew, "Executive Producer"},
 	"coproducer":              {RoleCrew, "Co-Producer"},
 	"composer":                {RoleCrew, "Composer"},
-	"director_of_photography": {RoleCrew, "Director of Photography"},
+	"director_of_photography": {RoleCrew, i18n.T("Director of Photography")},
 	"edited_by":               {RoleCrew, "Editor"},
 	"production_designer":     {RoleCrew, "Production Design"},
 	"costume_designer":        {RoleCrew, "Costume Design"},

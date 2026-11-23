@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"log/slog"
 	"os"
@@ -751,7 +752,7 @@ func (m *Manager) startDue(ctx context.Context) {
 			var status, msg string
 			_ = m.DB.QueryRow(`SELECT status, error FROM recordings WHERE id = ?`, r.ID).Scan(&status, &msg)
 			if status == "failed" {
-				task.Fail("The recording failed. "+msg, "See the recordings page.", nil)
+				task.Fail(i18n.F("The recording failed. {msg}", "msg", msg), i18n.T("See the recordings page."), nil)
 			} else {
 				task.Finish(nil)
 			}
@@ -915,9 +916,9 @@ func (m *Manager) record(r *Recording) {
 // gapNote says that a recording that finished has holes, where its stream dropped.
 func gapNote(gaps int) string {
 	if gaps == 1 {
-		return "The stream dropped once during the recording, so a moment may be missing."
+		return i18n.T("The stream dropped once during the recording, so a moment may be missing.")
 	}
-	return fmt.Sprintf("The stream dropped %d times during the recording, so moments may be missing.", gaps)
+	return i18n.F("The stream dropped {gaps} times during the recording, so moments may be missing.", "gaps", gaps)
 }
 
 // How soon a recording whose stream dropped tries again, and at most how long it waits between tries.

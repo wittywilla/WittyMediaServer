@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strings"
 	"sync"
 	"time"
@@ -309,12 +310,12 @@ func (n *Node) handleJoin(s network.Stream) {
 	}
 	var hello joinHello
 	if err := readMessage(s, &hello); err != nil || hello.V != 1 {
-		refuse("wrong", "That isn't a code this server understands.")
+		refuse("wrong", i18n.T("That isn't a code this server understands."))
 		return
 	}
 	deviceNonce, err := base64.StdEncoding.DecodeString(hello.Nonce)
 	if err != nil || len(deviceNonce) != joinNonceLen {
-		refuse("wrong", "That isn't a code this server understands.")
+		refuse("wrong", i18n.T("That isn't a code this server understands."))
 		return
 	}
 	n.joins.mu.Lock()
@@ -325,12 +326,12 @@ func (n *Node) handleJoin(s network.Stream) {
 	}
 	n.joins.mu.Unlock()
 	if proofKey == nil || n.cfg.Enrol == nil {
-		refuse("wrong", "No such code is waiting on this server.")
+		refuse("wrong", i18n.T("No such code is waiting on this server."))
 		return
 	}
 	serverNonce := make([]byte, joinNonceLen)
 	if _, err := rand.Read(serverNonce); err != nil {
-		refuse("refused", "The server couldn't answer.")
+		refuse("refused", i18n.T("The server couldn't answer."))
 		return
 	}
 	me := n.host.ID()

@@ -5,6 +5,7 @@ package logging
 
 import (
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"runtime"
 	"strings"
@@ -61,10 +62,10 @@ type SessionKind struct {
 // SessionKinds are what the viewer's "Follow" offers.
 var SessionKinds = []SessionKind{
 	{"game", "A game", "game", []string{"games", "emulators"}},
-	{"party", "A watch party", "party", nil},
-	{"rc", "A remote-control command", "rc", nil},
-	{"p2p", "A peer-to-peer connection", "p2p", []string{"p2p"}},
-	{"sep", "A karaoke separation", "sep", []string{"extras"}},
+	{"party", i18n.T("A watch party"), "party", nil},
+	{"rc", i18n.T("A remote-control command"), "rc", nil},
+	{"p2p", i18n.T("A peer-to-peer connection"), "p2p", []string{"p2p"}},
+	{"sep", i18n.T("A karaoke separation"), "sep", []string{"extras"}},
 	{"audit", "Audit records", "", nil},
 }
 

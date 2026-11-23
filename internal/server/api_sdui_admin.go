@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"sort"
@@ -64,18 +65,18 @@ func (s *Server) writeUIStoreErr(w http.ResponseWriter, r *http.Request, action 
 	ctx := r.Context()
 	switch {
 	case errors.As(err, &mc):
-		s.Log.InfoContext(ctx, "UI configuration change refused: both sides changed the same items", "cat", "sdui", "action", action, "by", adminName(r), "conflicts", len(mc.Items), "baseRevision", mc.Base, "currentRevision", mc.Current)
+		s.Log.InfoContext(ctx, i18n.T("UI configuration change refused: both sides changed the same items"), "cat", "sdui", "action", action, "by", adminName(r), "conflicts", len(mc.Items), "baseRevision", mc.Base, "currentRevision", mc.Current)
 		writeJSON(w, 409, map[string]any{"error": mc.Error() + ": reload the draft and the published configuration, then publish again preferring one side (prefer=draft or prefer=published) or change the draft",
 			"conflicts": mc.Items, "baseRevision": mc.Base, "currentRevision": mc.Current})
 	case errors.Is(err, errNoSuchPage):
 		writeErr(w, 404, err.Error())
 	case errors.Is(err, sduistore.ErrConflict):
-		s.Log.InfoContext(ctx, "UI configuration change refused: it changed since it was read", "cat", "sdui", "action", action, "by", adminName(r))
+		s.Log.InfoContext(ctx, i18n.T("UI configuration change refused: it changed since it was read"), "cat", "sdui", "action", action, "by", adminName(r))
 		writeErr(w, 412, err.Error()+": read it again and redo the change")
 	case errors.Is(err, sduistore.ErrNoRevision):
 		writeErr(w, 404, err.Error())
 	case errors.As(err, &inv):
-		s.Log.WarnContext(ctx, "UI configuration change refused as invalid", "cat", "sdui", "action", action, "by", adminName(r), "issues", len(inv.Issues))
+		s.Log.WarnContext(ctx, i18n.T("UI configuration change refused as invalid"), "cat", "sdui", "action", action, "by", adminName(r), "issues", len(inv.Issues))
 		writeJSON(w, 400, map[string]any{"error": inv.Error(), "issues": inv.Issues})
 	default:
 		s.Log.ErrorContext(ctx, "could not save the UI configuration", "cat", "sdui", "action", action, "by", adminName(r), "err", err)
@@ -169,7 +170,7 @@ func (s *Server) sduiMutate(w http.ResponseWriter, r *http.Request, action strin
 	if draft {
 		where = "draft"
 	}
-	s.Log.InfoContext(r.Context(), "UI configuration changed", append([]any{"cat", "sdui", "action", action, "by", adminName(r), "target", where, "revision", saved.Revision}, attrs...)...)
+	s.Log.InfoContext(r.Context(), i18n.T("UI configuration changed"), append([]any{"cat", "sdui", "action", action, "by", adminName(r), "target", where, "revision", saved.Revision}, attrs...)...)
 	writeJSONTagged(w, 200, saved.ETag, saved)
 }
 
@@ -402,7 +403,7 @@ func (s *Server) handleSDUIRollback(w http.ResponseWriter, r *http.Request) {
 		s.writeUIStoreErr(w, r, "rollback", err)
 		return
 	}
-	logging.Audit(r.Context(), s.Log, "UI configuration rolled back", "cat", "sdui", "by", adminName(r), "to", rev, "revision", saved.Revision)
+	logging.Audit(r.Context(), s.Log, i18n.T("UI configuration rolled back"), "cat", "sdui", "by", adminName(r), "to", rev, "revision", saved.Revision)
 	writeJSONTagged(w, 200, saved.ETag, saved)
 }
 
@@ -735,7 +736,7 @@ func (s *Server) handleSDUIDraftPut(w http.ResponseWriter, r *http.Request) {
 		s.writeUIStoreErr(w, r, "draft saved", err)
 		return
 	}
-	s.Log.InfoContext(r.Context(), "UI draft saved", "cat", "sdui", "by", adminName(r), "revision", saved.Revision)
+	s.Log.InfoContext(r.Context(), i18n.T("UI draft saved"), "cat", "sdui", "by", adminName(r), "revision", saved.Revision)
 	writeJSONTagged(w, 200, saved.ETag, saved)
 }
 
@@ -751,7 +752,7 @@ func (s *Server) handleSDUIDraftDelete(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	s.Log.InfoContext(r.Context(), "UI draft discarded", "cat", "sdui", "by", adminName(r))
+	s.Log.InfoContext(r.Context(), i18n.T("UI draft discarded"), "cat", "sdui", "by", adminName(r))
 	s.sdui.mu.Lock()
 	s.sdui.preview = nil
 	s.sdui.mu.Unlock()
@@ -784,7 +785,7 @@ func (s *Server) handleSDUIDraftPublish(w http.ResponseWriter, r *http.Request) 
 	s.sdui.mu.Lock()
 	s.sdui.preview = nil
 	s.sdui.mu.Unlock()
-	logging.Audit(r.Context(), s.Log, "UI draft published", "cat", "sdui", "by", adminName(r), "revision", saved.Revision, "prefer", prefer)
+	logging.Audit(r.Context(), s.Log, i18n.T("UI draft published"), "cat", "sdui", "by", adminName(r), "revision", saved.Revision, "prefer", prefer)
 	writeJSONTagged(w, 200, saved.ETag, saved)
 }
 

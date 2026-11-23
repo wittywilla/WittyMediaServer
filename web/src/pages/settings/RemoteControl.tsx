@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useState } from 'react'
 import { api, profileName } from '../../api'
-import { t, tk, tx } from '../../i18n'
+import { t, tk, tx, bidi } from '../../i18n'
 import { toast } from '../../state'
 import { Row, Section, Switch } from './ui'
 
@@ -25,7 +25,7 @@ function Accounts({ dim }: { dim: boolean }) {
   return (
     <>
       {accounts?.map((a) => (
-        <Row key={a.id} dim={dim} label={profileName(a)} desc={[a.isAdmin ? t('Administrator') : tx(KIND[a.kind]), a.controlOthers ? t('Can control devices signed in as anyone') : t('Controls only their own devices')].filter(Boolean).join(' · ')}>
+        <Row key={a.id} dim={dim} label={profileName(a)} desc={[a.isAdmin ? t('Administrator') : tx(KIND[a.kind]), a.controlOthers ? t('Can control devices signed in as anyone') : t('Controls only their own devices')].filter(Boolean).map(bidi).join(' · ')}>
           <Switch label={t('{name} can control other people\'s devices', { name: profileName(a) })} checked={a.controlOthers} disabled={dim} onChange={(v) => change(a, v)} />
         </Row>
       ))}

@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -95,14 +96,14 @@ func (s *Server) dataTarget(r *http.Request, b dataLocationBody) (string, string
 	case config.ChoiceCustom:
 		p := strings.TrimSpace(b.Path)
 		if p == "" || !filepath.IsAbs(p) {
-			return "", "Type the folder's full path."
+			return "", i18n.T("Type the folder's full path.")
 		}
 		if err := s.checkAdminPaths(r, []string{p}, nil); err != nil {
 			return "", err.Error()
 		}
 		return filepath.Clean(p), ""
 	}
-	return "", "Choose Documents, the install folder or a folder of your own."
+	return "", i18n.T("Choose Documents, the install folder or a folder of your own.")
 }
 
 // POST /api/data-location/check (admin) {choice, path}: what choosing it would mean, before it's chosen.

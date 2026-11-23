@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"sync"
 	"time"
@@ -297,7 +298,7 @@ func (s *Server) handleRepairRemap(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 409, "a check or repair is already running")
 		return
 	}
-	st.running, st.phase = "fix", "Moving the folder"
+	st.running, st.phase = "fix", i18n.T("Moving the folder")
 	st.mu.Unlock()
 	defer func() {
 		st.mu.Lock()

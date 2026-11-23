@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import type { PlaybackOutput, QualityLimits, QualityPreset, QualityView, StreamWork } from '../api'
+import { bidi } from '../i18n'
 
 // The viewer's choice of picture size and data rate (docs/CLIENT-API.md, Quality). The same
 // short string the server reads: '' is Auto (the profile's saved default for home or away),
@@ -95,7 +96,7 @@ export function describe(choice: string, presets: QualityPreset[]): string {
   if (e === 'original') return t('Original')
   if (e !== 'custom') return e
   const c = parseChoice(choice)!
-  return [c.maxHeight ? sizeName(c.maxHeight) : '', c.maxKbps ? rate(c.maxKbps) : ''].filter(Boolean).join(' · ') || t('Custom')
+  return [c.maxHeight ? sizeName(c.maxHeight) : '', c.maxKbps ? rate(c.maxKbps) : ''].filter(Boolean).map(bidi).join(' · ') || t('Custom')
 }
 
 // The highest the menu may offer.
@@ -160,7 +161,7 @@ export function streamLines(decision: string | undefined, out: PlaybackOutput | 
   if (kbps) lines.push(decision === 'transcode' && !seen?.kbps ? t('{rate} at most', { rate: rate(kbps) }) : rate(kbps))
   const v = out?.videoCodec ? codecName(out.videoCodec) : ''
   const a = out?.audioCodec ? [codecName(out.audioCodec), out.audioChannels ? channelName(out.audioChannels) : '', out.audioKbps ? rate(out.audioKbps) : ''].filter(Boolean).join(' ') : ''
-  if (v || a) lines.push([v, a].filter(Boolean).join(' · '))
+  if (v || a) lines.push([v, a].filter(Boolean).map(bidi).join(' · '))
   const mode = decision === 'direct' ? t('Direct play') : decision === 'remux' ? t('Direct stream (rewrapped)') : decision === 'transcode' ? t('Converting') : decision === 'live' ? t('Live') : ''
   if (mode) lines.push(mode)
   const work = workLine(out?.work)

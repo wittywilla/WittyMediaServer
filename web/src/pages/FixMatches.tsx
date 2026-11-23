@@ -17,7 +17,7 @@ import { detailSpec, tabsSpec, toolsSpec } from '../spec/specs/fixMatches'
 
 import { undoBatch, type EpisodeMap, type EpisodeRow, type HistoryEntry, type MatchCandidate, type MatchPreview, type MatchRule, type QueueResult, type QueueRow, type RuleTry, type SearchResult, type Target } from '../metadata'
 import { toast, useApp } from '../state'
-import { date, t, tk, tn, tx } from '../i18n'
+import { date, t, tk, tn, tx, bidi } from '../i18n'
 import BulkEdit from './library/BulkEdit'
 import './library/library.css'
 import './fixmatches.css'
@@ -405,7 +405,7 @@ function RulesPage({ library }: { library: number }) {
               <h3>{tried.length ? tn('{count} file fits', '{count} files fit', tried.length) : t('No file fits')}</h3>
               <p className="muted">{t('Nothing has changed. This is what each would become on its next scan.')}</p>
               <ul>{tried.slice(0, 50).map((one) => (
-                <li key={one.file}><span className="mono">{one.file}</span><span>{[one.result.title, one.result.year, one.result.source && `${one.result.source} ${one.result.id}`, one.result.lookup === 'none' && t('not looked up'), one.result.extra && extraWords(one.result.extra), one.result.tags?.join(', ')].filter(Boolean).join(' · ')}</span></li>
+                <li key={one.file}><span className="mono">{one.file}</span><span>{[one.result.title, one.result.year, one.result.source && `${one.result.source} ${one.result.id}`, one.result.lookup === 'none' && t('not looked up'), one.result.extra && extraWords(one.result.extra), one.result.tags?.join(', ')].filter(Boolean).map(bidi).join(' · ')}</span></li>
               ))}</ul>
             </div>
           )}

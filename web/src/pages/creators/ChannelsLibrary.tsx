@@ -18,7 +18,7 @@ import LibraryHeader from '../../components/LibraryHeader'
 import { Dialog } from '../../ui/Overlay'
 import { Button } from '../../ui/Button'
 import { WebLink } from '../../components/WebLink'
-import { t, tk, tn, tx } from '../../i18n'
+import { t, tk, tn, tx, bidi } from '../../i18n'
 
 // WittyChannels: the owner's archive of creator videos, laid out the way people
 // expect from a video site: a home of recommendations, subscriptions, a page per
@@ -179,7 +179,7 @@ export function CreatorPage() {
         <Avatar id={c.id} name={c.name} has={c.hasAvatar} size={88} v={c.updatedAt} />
         <div className="ch-head-text">
           <h1>{c.name}</h1>
-          <p className="muted">{[c.handle, tn('{count} video', '{count} videos', c.videos, { count: fmtCount(c.videos) }), c.subscribers ? tn('{count} subscriber here', '{count} subscribers here', c.subscribers) : '', c.platform].filter(Boolean).join(' · ')}</p>
+          <p className="muted">{[c.handle, tn('{count} video', '{count} videos', c.videos, { count: fmtCount(c.videos) }), c.subscribers ? tn('{count} subscriber here', '{count} subscribers here', c.subscribers) : '', c.platform].filter(Boolean).map(bidi).join(' · ')}</p>
         </div>
         <SubscribeButton c={c} onChange={(on) => setC({ ...c, subscribed: on })} />
         {user?.isAdmin && <button className="btn sm ghost" onClick={() => setEditing(true)}><IconEdit /> {t('Edit')}</button>}

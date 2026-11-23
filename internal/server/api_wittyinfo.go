@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -500,7 +501,7 @@ func (s *Server) handleInfoImport(w http.ResponseWriter, r *http.Request) {
 		want = wittyinfo.ScopeSong
 	}
 	if x.ScopeOr() != want {
-		writeErr(w, 400, "This file is for a "+x.ScopeOr()+", not a "+want+".")
+		writeErr(w, 400, i18n.F("This file is for a {scopeOr}, not a {want}.", "scopeOr", x.ScopeOr(), "want", want))
 		return
 	}
 	if !s.saveInfo(w, r, t, it, x) {

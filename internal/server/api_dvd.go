@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"strconv"
 	"strings"
@@ -368,7 +369,7 @@ func (s *Server) handleBDJStatus(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, bdsession.ErrJavaCantRun):
 		// What a program printed stays in the log.
-		out["error"], out["path"] = "This Java can't run Blu-ray menus. The log says why.", where
+		out["error"], out["path"] = i18n.T("This Java can't run Blu-ray menus. The log says why."), where
 		s.Log.WarnContext(r.Context(), "BD-J is on, but this Java can't run it", "cat", "discs", "err", err)
 	case err != nil:
 		out["error"] = err.Error()

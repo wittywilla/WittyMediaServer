@@ -423,7 +423,7 @@ input[type=range] { accent-color: var(--accent); }
 .meta { display: flex; flex-wrap: wrap; align-items: center; color: var(--fg-2); font-size: var(--text-md); gap: 2px var(--sp-4); overflow: hidden; }
 /* A dot before each item, in the gap: the one starting a line falls outside the clip. */
 .meta > * { position: relative; }
-.meta > *::before { content: '·'; position: absolute; left: -10px; color: var(--fg-3); }
+.meta > *::before { content: '·'; position: absolute; inset-inline-start: -10px; color: var(--fg-3); }
 .meta .star { display: inline-flex; align-items: center; gap: 3px; }
 .meta .star svg { width: 14px; height: 14px; color: var(--warn); }
 .pill { display: inline-flex; align-items: center; min-height: 20px; padding: 0 var(--sp-2); border: 1px solid var(--border-strong); border-radius: var(--r-xs); font-size: var(--text-2xs); font-weight: 600; letter-spacing: .02em; color: var(--fg-2); white-space: nowrap; }

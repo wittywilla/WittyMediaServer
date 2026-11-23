@@ -19,7 +19,7 @@ const BROWSERS = [
   '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge', '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
 ].filter(Boolean)
 
-export async function launch({ software = false, width = 1280, height = 720, args = [], tmp } = {}) {
+export async function launch({ software = false, width = 1280, height = 720, args = [], tmp, startMs = 20000 } = {}) {
   const exe = BROWSERS.find(existsSync)
   if (!exe) throw new Error('no Chromium browser found; set WV_BROWSER')
   const dir = mkdtempSync(join(tmp || tmpdir(), 'wv-browser-'))
@@ -37,7 +37,7 @@ export async function launch({ software = false, width = 1280, height = 720, arg
   for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.once(sig, () => { kill(); process.exit(130) })
   const ws = await new Promise((resolve, reject) => {
     let err = ''
-    const t = setTimeout(() => reject(new Error('the browser did not start: ' + err)), 20000)
+    const t = setTimeout(() => reject(new Error('the browser did not start: ' + err)), startMs)
     proc.stderr.on('data', (d) => {
       err += d
       const m = /DevTools listening on (ws:\/\/\S+)/.exec(err)

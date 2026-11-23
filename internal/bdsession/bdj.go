@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -324,7 +325,7 @@ func (s *Session) bdjEvent(st *bdjState, e JavaEvent) {
 		// A title whose applications will not run is what happens without
 		// Java, so it ends the same way: the disc plays from its playlists.
 		if st.obj != nil && st.failed >= len(st.obj.Autostart()) && st.host.Version() == 0 {
-			s.bdjFallback(ctx, st, "This disc's menu could not run ("+shortReason(e.Args)+"). Playing the main feature.")
+			s.bdjFallback(ctx, st, i18n.F("This disc's menu could not run ({shortReason}). Playing the main feature.", "shortReason", shortReason(e.Args)))
 		}
 	case "appdestroyed":
 		st.ended++
@@ -338,9 +339,9 @@ func (s *Session) bdjEvent(st *bdjState, e JavaEvent) {
 		st.active = false
 		s.bd = nil
 		if s.current != nil && s.current.BDJ != nil {
-			why := "This disc's menu stopped unexpectedly. Playing the main feature."
+			why := i18n.T("This disc's menu stopped unexpectedly. Playing the main feature.")
 			if st.limit != "" {
-				why = "This disc's menu was stopped because " + st.limit + ". Playing the main feature."
+				why = i18n.F("This disc's menu was stopped because {limit}. Playing the main feature.", "limit", st.limit)
 			}
 			s.log.Warn("BD-J stopped while it was on screen: playing the main feature", "limit", st.limit)
 			s.bdjFallbackStep(ctx, why)
@@ -372,7 +373,7 @@ func (s *Session) bdjAppsEnded(ctx context.Context, st *bdjState) {
 	}
 	st.menuExits = append(kept, now)
 	if len(st.menuExits) > bdjMenuExits {
-		s.bdjFallback(ctx, st, "This disc's menu keeps closing. Playing the main feature.")
+		s.bdjFallback(ctx, st, i18n.T("This disc's menu keeps closing. Playing the main feature."))
 		return
 	}
 	s.show(ctx, s.nav.MenuCall())

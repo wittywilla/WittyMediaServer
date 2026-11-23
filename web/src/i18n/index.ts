@@ -2,7 +2,9 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useSyncExternalStore } from 'react'
 import { UI_LANGUAGES, uiLanguageFor } from '../languages'
-import { fill, formatNumber, isRtl, lookup, pickForm, templateMatcher, type Catalogue, type Message, type Vars } from './core'
+import { fill, formatNumber, isolate, isRtl, lookup, pickForm, templateMatcher, type Catalogue, type Message, type Vars } from './core'
+// The server's counted words (i18n.N in Go): its English for one, to the catalogue key, its English for more.
+import plurals from './server-plurals.json'
 
 // The app's words in the language the server is set to (the uiLanguage setting, chosen on setup's first screen).
 //
@@ -62,6 +64,16 @@ export function txc(context: string, text: string | undefined | null): string {
   return key in catalogue ? lookup(catalogue, key) : tx(text)
 }
 
+/**
+ * A part of a line put together from several ("Spice 2 · 2019 Hits · 3:20"), as text: in a right-to-left language it is
+ * isolated (U+2068 … U+2069), so a Latin title or "2 hr 10 min" keeps its own order and its place in the line. Use it as
+ * parts.map(bidi).join(' · '). In other languages the text is as it was. See bidi.css for whole elements.
+ */
+export const bidi = (part: unknown): string => {
+  const s = part === null || part === undefined || part === false ? '' : String(part)
+  return isRtl(current) ? isolate(s) : s
+}
+
 /** Marks English text to be translated later, where it's shown, with t(). */
 export const tk = <S extends string>(english: S): S => english
 
@@ -82,7 +94,7 @@ const seen = new Map<string, string>()
 function fromServer(text: string): string {
   const known = seen.get(text)
   if (known !== undefined) return known
-  matcher ??= templateMatcher(serverCat, current)
+  matcher ??= templateMatcher(serverCat, current, plurals, catalogue)
   const out = matcher(text) ?? text
   if (seen.size > 5000) seen.clear()
   seen.set(text, out)

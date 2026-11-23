@@ -5,7 +5,7 @@ package server
 
 import (
 	"errors"
-	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net"
 	"net/http"
 	"os"
@@ -102,11 +102,11 @@ func (s *Server) nextPort(running int) int {
 // lockedWhy says where the port is set when it's somewhere this page can't change.
 func (s *Server) lockedWhy() string {
 	if inDocker() {
-		return "In Docker, the port is the one published in docker-compose.yml, under ports: change the first number of \"9797:9797\" and run docker compose up -d. The port inside the container stays 9797."
+		return i18n.T("In Docker, the port is the one published in docker-compose.yml, under ports: change the first number of \"9797:9797\" and run docker compose up -d. The port inside the container stays 9797.")
 	}
 	switch s.Cfg.ListenFrom {
 	case config.FromFlag:
-		return "The server was started with -listen " + s.Cfg.Listen + ", which wins over this setting. Remove -listen where it's started to choose the port here."
+		return i18n.F("The server was started with -listen {listen}, which wins over this setting. Remove -listen where it's started to choose the port here.", "listen", s.Cfg.Listen)
 	case config.FromEnv:
 		return "WMS_LISTEN=" + s.Cfg.Listen + " is set where the server starts, which wins over this setting. Remove it to choose the port here: on Linux with sudo systemctl edit wittymediaserver, on FreeBSD with sysrc -x wittymediaserver_listen."
 	case config.FromConfig:
@@ -151,24 +151,24 @@ func (s *Server) checkPort(port int) portCheck {
 	host, running := s.runningPort()
 	switch {
 	case port < config.MinPort || port > config.MaxPort:
-		c.Problems = append(c.Problems, fmt.Sprintf("A port is a number from %d to %d.", config.MinPort, config.MaxPort))
+		c.Problems = append(c.Problems, i18n.F("A port is a number from {minPort} to {maxPort}.", "minPort", config.MinPort, "maxPort", config.MaxPort))
 		return c
 	case port == running:
 		c.OK, c.Current = true, true
 		return c
 	}
 	if slices.Contains(browserBlocked, port) {
-		c.Problems = append(c.Problems, fmt.Sprintf("Browsers refuse to open port %d, as it belongs to another kind of service, so this page couldn't open any more. Choose another.", port))
+		c.Problems = append(c.Problems, i18n.F("Browsers refuse to open port {port}, as it belongs to another kind of service, so this page couldn't open any more. Choose another.", "port", port))
 	}
 	if st := s.state(); st.cfg.HTTPSPort == port {
 		if st.on && st.cfg.HTTPSMode != "off" {
-			c.Problems = append(c.Problems, fmt.Sprintf("Port %d is Remote Access's HTTPS port. Choose another, or change that one in Settings → Remote Access first.", port))
+			c.Problems = append(c.Problems, i18n.F("Port {port} is Remote Access's HTTPS port. Choose another, or change that one in Settings → Remote Access first.", "port", port))
 		} else {
-			c.Warnings = append(c.Warnings, fmt.Sprintf("Port %d is the HTTPS port Remote Access would use. If you turn its HTTPS on later, choose another there.", port))
+			c.Warnings = append(c.Warnings, i18n.F("Port {port} is the HTTPS port Remote Access would use. If you turn its HTTPS on later, choose another there.", "port", port))
 		}
 	}
 	if port < 1024 {
-		c.Warnings = append(c.Warnings, "Ports below 1024 are usually kept for the system's own services, and on Linux and BSD a server needs extra rights to use them. 8096 to 9999 is a good range for a media server.")
+		c.Warnings = append(c.Warnings, i18n.T("Ports below 1024 are usually kept for the system's own services, and on Linux and BSD a server needs extra rights to use them. 8096 to 9999 is a good range for a media server."))
 	}
 	if len(c.Problems) == 0 {
 		if why := portBusy(host, port); why != "" {
@@ -192,14 +192,14 @@ func portBusy(host string, port int) string {
 		if err != nil {
 			switch {
 			case errors.Is(err, syscall.EADDRINUSE) || isAddrInUse(err):
-				return fmt.Sprintf("Something else on this computer is using port %d. Choose another, or stop that program first.", port)
+				return i18n.F("Something else on this computer is using port {port}. Choose another, or stop that program first.", "port", port)
 			case errors.Is(err, syscall.EACCES) || isAccessDenied(err):
 				if port < 1024 {
-					return fmt.Sprintf("This computer doesn't let the server use port %d: ports below 1024 need extra rights. Choose one from 1024 up.", port)
+					return i18n.F("This computer doesn't let the server use port {port}: ports below 1024 need extra rights. Choose one from 1024 up.", "port", port)
 				}
-				return fmt.Sprintf("This computer doesn't let the server use port %d. Windows keeps some ranges for itself; choose another.", port)
+				return i18n.F("This computer doesn't let the server use port {port}. Windows keeps some ranges for itself; choose another.", "port", port)
 			}
-			return fmt.Sprintf("The server couldn't use port %d: %v", port, err)
+			return i18n.F("The server couldn't use port {port}: {error}", "port", port, "error", err)
 		}
 		_ = ln.Close()
 	}

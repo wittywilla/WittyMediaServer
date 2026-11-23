@@ -5,6 +5,7 @@ package uninstall
 
 import (
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"strings"
@@ -114,7 +115,7 @@ func planWindows(e *Env, pl *Plan) {
 	// The installer takes out what it put in, first: its database has to agree.
 	for _, hive := range []string{"HKLM", "HKCU"} {
 		if code, ok := e.Sys.RegValue(hive, UninstallKey, "ProductCode"); ok && strings.HasPrefix(code, "{") {
-			pl.add(Item{Kind: "Windows Installer product", Name: code, Group: GroupProgram, Admin: hive == "HKLM", step: stepInstaller,
+			pl.add(Item{Kind: i18n.T("Windows Installer product"), Name: code, Group: GroupProgram, Admin: hive == "HKLM", step: stepInstaller,
 				remove: func() error {
 					_, err := e.Sys.Run(tool("msiexec.exe"), "/x", code, "/qn", "/norestart")
 					// 3010: done, and a restart will finish it.
@@ -147,7 +148,7 @@ func planWindows(e *Env, pl *Plan) {
 				gone:   func() bool { _, ok := e.Sys.RegValue(hive, runKey, winName); return !ok }})
 		}
 		if e.Sys.RegKeyExists(hive, UninstallKey) {
-			pl.add(Item{Kind: "Installed apps entry", Name: hive + `\` + UninstallKey, Group: GroupProgram, Admin: hive == "HKLM", step: stepFiles,
+			pl.add(Item{Kind: i18n.T("Installed apps entry"), Name: hive + `\` + UninstallKey, Group: GroupProgram, Admin: hive == "HKLM", step: stepFiles,
 				remove: func() error { return e.Sys.RegDeleteKey(hive, UninstallKey) },
 				gone:   func() bool { return !e.Sys.RegKeyExists(hive, UninstallKey) }})
 		}

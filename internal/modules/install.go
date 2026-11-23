@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"net/url"
@@ -389,7 +390,7 @@ func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm,
 			return
 		}
 		if err != nil {
-			task.Fail(sentence(err.Error()), "Nothing changed: the version in use is still in use. Settings, Modules has the details.", err)
+			task.Fail(sentence(err.Error()), i18n.T("Nothing changed: the version in use is still in use. Settings, Modules has the details."), err)
 		} else {
 			task.Result(e.builtin.Name + " " + rel.version + " is installed.")
 			task.Finish(nil)
@@ -419,7 +420,7 @@ func (m *Manager) setPhase(e *entry, p string) {
 }
 
 // phaseWords are the install's steps, for the activity panel.
-var phaseWords = map[string]string{PhaseDownloading: "Downloading", PhaseVerifying: "Checking its signature", PhaseInstalling: "Installing"}
+var phaseWords = map[string]string{PhaseDownloading: "Downloading", PhaseVerifying: i18n.T("Checking its signature"), PhaseInstalling: "Installing"}
 
 // install does the work. Until the state is saved, the version in use is
 // untouched, so a failure at any step, or the power going, changes nothing.

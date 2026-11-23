@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"os"
 	"path"
@@ -318,7 +319,7 @@ func (s *damageScan) readAll(h io.ReaderAt, start, end int64, onData func(off in
 
 // scanDamage reads the whole disc and reports what it found.
 func scanDamage(ctx context.Context, j *Job, src *discSource, o damageOptions) {
-	j.Step("Reading the whole disc to look for damage", o.from)
+	j.Step(i18n.T("Reading the whole disc to look for damage"), o.from)
 	s := &damageScan{ctx: ctx, j: j, o: o, buf: make([]byte, scanChunk), zero: make([]byte, scanSector)}
 	began := time.Now()
 	var short int64
@@ -352,7 +353,7 @@ func scanDamage(ctx context.Context, j *Job, src *discSource, o damageOptions) {
 	} else {
 		h, err := os.Open(src.Path)
 		if err != nil {
-			j.Add(Finding{Severity: SevProblem, Title: "The disc image can't be opened for reading", What: "The server got this answer: " + plainErr(err) + "."})
+			j.Add(Finding{Severity: SevProblem, Title: "The disc image can't be opened for reading", What: i18n.F("The server got this answer: {plainErr}.", "plainErr", plainErr(err))})
 			return
 		}
 		defer h.Close()
@@ -376,23 +377,23 @@ func scanDamage(ctx context.Context, j *Job, src *discSource, o damageOptions) {
 		s.endZeroRun()
 	}
 	if ctx.Err() != nil {
-		j.Add(Finding{Severity: SevInfo, Title: "The damage scan stopped early", What: fmt.Sprintf("You stopped it after reading %s of %s. Nothing can be said about the rest.", bytesText(s.done), bytesText(s.total)), Details: s.damageDetails()})
+		j.Add(Finding{Severity: SevInfo, Title: "The damage scan stopped early", What: i18n.F("You stopped it after reading {bytesText} of {bytesText2}. Nothing can be said about the rest.", "bytesText", bytesText(s.done), "bytesText2", bytesText(s.total)), Details: s.damageDetails()})
 		return
 	}
 	bad := false
 	if short > 0 {
 		bad = true
 		j.Add(Finding{Severity: SevProblem, Title: "This disc image is incomplete",
-			What: fmt.Sprintf("Its own file system says it has %s, but the file holds only %s. The copy stopped early, or the file was cut short.", bytesText(claim*scanSector), bytesText(src.Size)),
+			What: i18n.F("Its own file system says it has {bytesText}, but the file holds only {bytesText2}. The copy stopped early, or the file was cut short.", "bytesText", bytesText(claim*scanSector), "bytesText2", bytesText(src.Size)),
 			Fix:  "Make a new copy of the disc, and check there's room for all of it on the drive."})
 	}
 	if len(past) > 0 {
 		bad = true
 		sev := SevWarn
-		what := "These files run past the end of the image. Files with impossible sizes are sometimes added on purpose as copy protection; if the disc plays, ignore this."
+		what := i18n.T("These files run past the end of the image. Files with impossible sizes are sometimes added on purpose as copy protection; if the disc plays, ignore this.")
 		if short > 0 {
 			sev = SevProblem
-			what = "These files run past the end of the image, because the copy is incomplete. They won't play right."
+			what = i18n.T("These files run past the end of the image, because the copy is incomplete. They won't play right.")
 		}
 		list, more := clip(past, len(past), maxSpots)
 		j.Add(Finding{Severity: sev, Title: plural(len(past), "file runs past the end of the image", "files run past the end of the image"), What: what, Details: list, More: more})
@@ -434,7 +435,7 @@ func scanDamage(ctx context.Context, j *Job, src *discSource, o damageOptions) {
 		if took > time.Second {
 			det = append(det, fmt.Sprintf("Read at %.0f MB/s", float64(s.bytesRead)/(1<<20)/took.Seconds()))
 		}
-		j.Add(Finding{Severity: SevOK, Title: "No damage found", What: "Every sector could be read, and the video has the structure it should.", Details: det})
+		j.Add(Finding{Severity: SevOK, Title: "No damage found", What: i18n.T("Every sector could be read, and the video has the structure it should."), Details: det})
 	}
 }
 

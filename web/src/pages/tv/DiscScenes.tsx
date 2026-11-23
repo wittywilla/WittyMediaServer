@@ -9,7 +9,7 @@ import { Button, Dialog, IconButton } from '../../ui'
 import { Section } from '../settings/ui'
 import { fmtTimecode, parseTimecode, type DiscClip, type DiscOption, type DiscPage, type DiscTitle, type Rules } from './tvApi'
 import './tveditor.css'
-import { t, tk, tn } from '../../i18n'
+import { t, tk, tn, bidi } from '../../i18n'
 
 // Discs on a channel: a whole main feature in one click, or any scenes from any
 // title, picked by chapter from pictures and fine-tuned to the second. Encrypted
@@ -78,7 +78,7 @@ export default function DiscScenes({ rules, set, id }: { rules: Rules; set: (p: 
               </div>
               <div className="tve-disc-text">
                 <b>{d.title}</b>
-                <span>{[d.year, fmtRuntime(d.runtimeSec)].filter(Boolean).join(' · ')}</span>
+                <span>{[d.year, fmtRuntime(d.runtimeSec)].filter(Boolean).map(bidi).join(' · ')}</span>
                 {d.scrambled ? <p className="tve-refused">{refusal}</p> : (
                   <div className="tve-disc-actions">
                     <Button size="sm" variant={main ? 'primary' : 'default'} aria-pressed={main} onClick={() => toggleMain(d)}>{main ? t('✓ Main feature') : t('Main feature')}</Button>

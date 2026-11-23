@@ -8,7 +8,7 @@ import { AddToPlaylist, Like, Seek, Volume } from './controls'
 import { musicCatalogue } from '../sdui/catalogue'
 import { IconKaraoke, IconList, IconRepeat, IconRepeatOne, IconShuffle } from './icons'
 import type { PlayerView } from './types'
-import { t } from '../i18n'
+import { t, bidi } from '../i18n'
 import ArtView from './ArtView'
 import { lookFor, useLookState } from './look'
 import { useCanvas } from '../canvas/useCanvas'
@@ -33,7 +33,7 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
   const listed = musicCatalogue()?.miniPlayer
   const wants = (id: string) => !listed || listed.includes(id)
   const sing = p.mode === 'music' && !p.cdActive && !p.live && !p.books
-  const sub = p.live ? (p.retrying ? t('Reconnecting…') : p.stationNow || t('Live')) : [it.artist || it.albumArtist, it.album].filter(Boolean).join(' · ')
+  const sub = p.live ? (p.retrying ? t('Reconnecting…') : p.stationNow || t('Live')) : [it.artist || it.albumArtist, it.album].filter(Boolean).map(bidi).join(' · ')
   // A song's cover in its look (look.ts), the Canvas video in its place when that's chosen: the same as the full player.
   const art = sing && look.art !== 'square'
     ? <ArtView look={{ art: look.art, pulse: false }} src={it.poster ? sized(posterUrl(it), fitWidth(96)) : ''} size="bar" playing={p.playing}

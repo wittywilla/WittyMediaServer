@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -204,10 +205,10 @@ var redeemFailures = map[string]struct {
 	status int
 	msg    string
 }{
-	redeemWrong:   {400, "That code isn't right. Check the number on your phone or computer and try again."},
-	redeemExpired: {410, "That code has expired. Codes last five minutes: get a new one on your phone or computer."},
-	redeemUsed:    {410, "That code has already been used. Get a new one on your phone or computer."},
-	redeemTooMany: {429, "Too many wrong codes. Wait a few minutes and try again."},
+	redeemWrong:   {400, i18n.T("That code isn't right. Check the number on your phone or computer and try again.")},
+	redeemExpired: {410, i18n.T("That code has expired. Codes last five minutes: get a new one on your phone or computer.")},
+	redeemUsed:    {410, i18n.T("That code has already been used. Get a new one on your phone or computer.")},
+	redeemTooMany: {429, i18n.T("Too many wrong codes. Wait a few minutes and try again.")},
 }
 
 func redeemFailed(w http.ResponseWriter, reason string, wait time.Duration) {

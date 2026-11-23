@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -230,34 +231,34 @@ func Writable(p string) error {
 // is how much room the data takes, 0 to leave room out of it.
 func CheckTarget(data, to string, need int64) string {
 	if to == "" || !filepath.IsAbs(to) {
-		return "Type the folder's full path, such as " + example() + "."
+		return i18n.F("Type the folder's full path, such as {example}.", "example", example())
 	}
 	to = filepath.Clean(to)
 	if filepath.Dir(to) == to {
-		return "Choose a folder, not the top of a drive."
+		return i18n.T("Choose a folder, not the top of a drive.")
 	}
 	rd, rt := real(data), real(to)
 	switch {
 	case Same(rd, rt):
-		return "Your data is already in this folder."
+		return i18n.T("Your data is already in this folder.")
 	case within(rd, rt):
-		return "That folder is inside the current data folder. Choose one outside it."
+		return i18n.T("That folder is inside the current data folder. Choose one outside it.")
 	case within(rt, rd):
-		return "The current data folder is inside that folder. Choose an empty folder of its own."
+		return i18n.T("The current data folder is inside that folder. Choose an empty folder of its own.")
 	}
 	// An installed package's folder is the program's: only its data folder may be in it. A program
 	// built from source, or one file run from anywhere, has no folder of its own to keep clear.
 	prog := real(config.ProgramDir())
 	if within(rt, prog) || (layout.Current().Kind != layout.KindSource && within(prog, rt) && !Same(rt, real(config.InstallDataDir()))) {
-		return "That's the program's own folder. Choose the install folder option, or a folder outside it."
+		return i18n.T("That's the program's own folder. Choose the install folder option, or a folder outside it.")
 	}
 	if st, err := os.Stat(to); err == nil {
 		if !st.IsDir() {
-			return "There's a file with that name. Choose a folder."
+			return i18n.T("There's a file with that name. Choose a folder.")
 		}
 		ents, err := os.ReadDir(to)
 		if err != nil {
-			return "That folder can't be read: " + err.Error()
+			return i18n.F("That folder can't be read: {error}", "error", err.Error())
 		}
 		ours := false
 		for _, e := range ents {
@@ -267,17 +268,17 @@ func CheckTarget(data, to string, need int64) string {
 		}
 		if len(ents) > 0 && !ours {
 			if _, err := os.Stat(filepath.Join(to, "wms.db")); err == nil {
-				return "That folder already holds a WittyMediaServer data folder. Choose an empty folder, or a new one."
+				return i18n.T("That folder already holds a WittyMediaServer data folder. Choose an empty folder, or a new one.")
 			}
-			return "That folder has files in it. Choose an empty folder, or type a new one to make."
+			return i18n.T("That folder has files in it. Choose an empty folder, or type a new one to make.")
 		}
 	}
 	if err := Writable(to); err != nil {
-		return "The server can't write there: " + plainErr(err)
+		return i18n.F("The server can't write there: {plainErr}", "plainErr", plainErr(err))
 	}
 	if need > 0 {
 		if free := FreeBytes(to); free > 0 && free < need+need/10+64<<20 {
-			return fmt.Sprintf("There isn't room there: your data needs about %s, and %s is free.", Size(need), Size(free))
+			return i18n.F("There isn't room there: your data needs about {size}, and {size2} is free.", "size", Size(need), "size2", Size(free))
 		}
 	}
 	return ""

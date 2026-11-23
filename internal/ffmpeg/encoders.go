@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"regexp"
 	"runtime"
@@ -30,7 +31,7 @@ type HWEncoder struct {
 // HWEncoders in default preference order.
 var HWEncoders = []HWEncoder{
 	{"h264_nvenc", "NVIDIA NVENC", "nvidia"},
-	{"h264_qsv", "Intel Quick Sync", "intel"},
+	{"h264_qsv", i18n.T("Intel Quick Sync"), "intel"},
 	{"h264_videotoolbox", "Apple VideoToolbox", "apple"},
 	{"h264_amf", "AMD AMF (VCE/VCN)", "amd"},
 	{"h264_vaapi", "VAAPI (Linux: Intel/AMD)", "vaapi"},
@@ -163,7 +164,7 @@ func missingDevice(vendor string, gpus []GPUDevice, container bool) string {
 			}
 		}
 		if container {
-			return "No NVIDIA device is in the container: run it with the NVIDIA Container Toolkit (gpus: all)."
+			return i18n.T("No NVIDIA device is in the container: run it with the NVIDIA Container Toolkit (gpus: all).")
 		}
 		return "No NVIDIA device (/dev/nvidia0) was found."
 	case "amd":
@@ -231,7 +232,7 @@ func (t *Tools) testEncoder(ctx context.Context, log *slog.Logger, st *HWStatus,
 		// A driver "missing" for a chip that has none here, such as WSL's own device.
 		for _, d := range GPUs() {
 			if d.Path == st.Device && d.Vendor != "" && d.Vendor != "intel" && d.Vendor != "amd" {
-				st.Reason = "The graphics device " + d.Path + " isn't Intel's or AMD's (its driver is " + cmp.Or(d.Driver, "unknown") + "): VA-API here has drivers for those only."
+				st.Reason = i18n.F("The graphics device {path} isn't Intel's or AMD's (its driver is {or}): VA-API here has drivers for those only.", "path", d.Path, "or", cmp.Or(d.Driver, "unknown"))
 			}
 		}
 	}

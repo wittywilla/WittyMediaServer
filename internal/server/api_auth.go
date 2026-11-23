@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"slices"
 	"strconv"
@@ -270,7 +271,7 @@ func (s *Server) loginSlot(w http.ResponseWriter, r *http.Request) (release func
 
 func tooManyTries(w http.ResponseWriter, d time.Duration) {
 	w.Header().Set("Retry-After", strconv.Itoa(int(d.Seconds())+1))
-	writeErr(w, 429, fmt.Sprintf("Too many wrong tries. Try again in %s.", waitText(d)))
+	writeErr(w, 429, i18n.F("Too many wrong tries. Try again in {waitText}.", "waitText", waitText(d)))
 }
 
 func waitText(d time.Duration) string {
@@ -337,7 +338,7 @@ func browserName(ua string) string {
 		system = "iOS"
 	case has("Windows"):
 		system = "Windows"
-	case has("Mac OS X"):
+	case has(i18n.T("Mac OS X")):
 		system = "macOS"
 	case has("Linux"):
 		system = "Linux"

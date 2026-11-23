@@ -6,6 +6,7 @@ package diagnose
 import (
 	"context"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strings"
 	"time"
 )
@@ -120,22 +121,22 @@ func (e *DoctorEnv) features(ctx context.Context) *FeatureState {
 
 func notRunning(key, what string) []Issue {
 	return []Issue{{Key: key, Severity: SevInfo, Safety: SafetyManual, NotChecked: true, Title: what + " wasn't checked",
-		What: "This is only known to a running server. Run Repair from Settings to check it."}}
+		What: i18n.T("This is only known to a running server. Run Repair from Settings to check it.")}}
 }
 
 func checkP2P(ctx context.Context, e *DoctorEnv) []Issue {
 	f := e.features(ctx)
 	if f == nil {
-		return notRunning("features", "Peer to peer, module overrides, emulators, karaoke and channel health")
+		return notRunning("features", i18n.T("Peer to peer, module overrides, emulators, karaoke and channel health"))
 	}
 	p := f.P2P
 	if p == nil || !p.On {
 		return nil
 	}
-	steps := []string{"Open Settings, Remote Access, Peer to peer, and press Test the connection.", "Read Settings, WittyLog, with Follow set to A peer-to-peer connection, for what each layer said."}
+	steps := []string{i18n.T("Open Settings, Remote Access, Peer to peer, and press Test the connection."), i18n.T("Read Settings, WittyLog, with Follow set to A peer-to-peer connection, for what each layer said.")}
 	if !p.Running {
 		return []Issue{{Key: "p2p-reach", Severity: SevProblem, Safety: SafetyManual, Title: "Peer-to-peer connections are on, but not running",
-			What: "They couldn't start: " + orWords(p.Error, "the reason wasn't recorded") + ". Devices away from home can't reach this server this way.", Steps: steps}}
+			What: i18n.F("They couldn't start: {orWords}. Devices away from home can't reach this server this way.", "orWords", orWords(p.Error, "the reason wasn't recorded")), Steps: steps}}
 	}
 	if p.Reachability == "public" {
 		return nil
@@ -155,7 +156,7 @@ func checkP2P(ctx context.Context, e *DoctorEnv) []Issue {
 			return nil
 		}
 		return []Issue{{Key: "p2p-reach", Severity: SevInfo, Safety: SafetyManual, Title: "Devices away from home reach this server only through a relay",
-			What: "It works, but more slowly: " + strings.Join(why, "; ") + ". " + fmt.Sprint(p.Relays) + " relay(s) hold a place for it.", Steps: steps}}
+			What: i18n.F("It works, but more slowly: {why}. {relays} relay(s) hold a place for it.", "why", strings.Join(why, "; "), "relays", fmt.Sprint(p.Relays)), Steps: steps}}
 	}
 	if p.Reachability != "private" {
 		return nil // still finding out
@@ -166,8 +167,8 @@ func checkP2P(ctx context.Context, e *DoctorEnv) []Issue {
 		why = append(why, "no relay holds a place for it")
 	}
 	return []Issue{{Key: "p2p-reach", Severity: SevProblem, Safety: SafetyManual, Title: "Devices away from home can't reach this server peer to peer",
-		What:  "Computers outside your network tried and couldn't connect: " + strings.Join(why, "; ") + ".",
-		Steps: append(steps, "Turn on Relays, or let the router map a port (UPnP or NAT-PMP), or forward the peer-to-peer port by hand.")}}
+		What:  i18n.F("Computers outside your network tried and couldn't connect: {why}.", "why", strings.Join(why, "; ")),
+		Steps: append(steps, i18n.T("Turn on Relays, or let the router map a port (UPnP or NAT-PMP), or forward the peer-to-peer port by hand."))}}
 }
 
 func checkOverrides(ctx context.Context, e *DoctorEnv) []Issue {
@@ -187,9 +188,8 @@ func checkOverrides(ctx context.Context, e *DoctorEnv) []Issue {
 		}
 		out = append(out, Issue{Key: "module-override-" + o.Module, Severity: SevWarn, Safety: SafetyManual,
 			Title: o.Module + " " + o.Version + " runs under a manual override",
-			What: "Checks it would normally have to pass were skipped" + who + when + ": " + strings.Join(o.Kinds, ", ") +
-				". It isn't updated by itself while overridden.",
-			Steps: []string{"Open Settings, Modules, " + o.Module + ", and remove the override when a version that passes the checks is out.",
+			What:  i18n.F("Checks it would normally have to pass were skipped{who}{when}: {kinds}. It isn't updated by itself while overridden.", "who", who, "when", when, "kinds", strings.Join(o.Kinds, ", ")),
+			Steps: []string{i18n.F("Open Settings, Modules, {module}, and remove the override when a version that passes the checks is out.", "module", o.Module),
 				"Settings, WittyLog, Follow: Audit records lists every override and who made it."}})
 	}
 	return out
@@ -205,8 +205,8 @@ func checkSeparator(ctx context.Context, e *DoctorEnv) []Issue {
 		return nil
 	}
 	return []Issue{{Key: "separator", Severity: SevWarn, Safety: SafetyManual, Title: "Karaoke can't separate vocals: no separator was found",
-		What:  fmt.Sprintf("None of Demucs, Spleeter or audio-separator was found in the %d places the server looks. Songs get an approximate instrumental, made by cancelling the centre of the mix, instead.", s.Looked),
-		Steps: []string{"Install Demucs (pip install demucs), Spleeter or audio-separator for the account that runs the server.", "Start the server again, or open Settings, Music, Karaoke, so it looks again."}}}
+		What:  i18n.F("None of Demucs, Spleeter or audio-separator was found in the {looked} places the server looks. Songs get an approximate instrumental, made by cancelling the centre of the mix, instead.", "looked", s.Looked),
+		Steps: []string{i18n.T("Install Demucs (pip install demucs), Spleeter or audio-separator for the account that runs the server."), i18n.T("Start the server again, or open Settings, Music, Karaoke, so it looks again.")}}}
 }
 
 func checkModuleHealth(ctx context.Context, e *DoctorEnv) []Issue {
@@ -217,23 +217,23 @@ func checkModuleHealth(ctx context.Context, e *DoctorEnv) []Issue {
 	var out []Issue
 	for _, m := range f.Modules {
 		name := orWords(m.Name, m.ID)
-		steps := []string{"Open Settings, Modules, " + name + ", for its state and what it last said.",
+		steps := []string{i18n.F("Open Settings, Modules, {name}, for its state and what it last said.", "name", name),
 			"Settings, WittyLog, Module: " + name + " shows its lines; turn on its options there for more."}
 		switch {
 		case m.State == "fallback":
 			out = append(out, Issue{Key: "module-health-" + m.ID, Severity: SevProblem, Safety: SafetyManual, Title: name + " isn't running the version it should",
-				What: orWords(m.Notice, "A version was refused") + ".", Steps: steps})
+				What: orWords(m.Notice, i18n.T("A version was refused")) + ".", Steps: steps})
 			continue
 		case m.State == "disabled":
 			continue
 		case m.Delivery == "helper" && !m.Running && m.LastFail != "":
 			out = append(out, Issue{Key: "module-health-" + m.ID, Severity: SevProblem, Safety: SafetyManual, Title: name + " isn't running",
-				What: "Its helper stopped: " + m.LastFail + ".", Steps: steps})
+				What: i18n.F("Its helper stopped: {lastFail}.", "lastFail", m.LastFail), Steps: steps})
 			continue
 		}
 		if len(m.Checks) > 0 && m.AskError != "" {
 			out = append(out, Issue{Key: "module-health-" + m.ID, Severity: SevWarn, Safety: SafetyManual, Title: name + "'s own checks couldn't run",
-				What: "It was asked and didn't answer: " + m.AskError + ".", Steps: steps})
+				What: i18n.F("It was asked and didn't answer: {askError}.", "askError", m.AskError), Steps: steps})
 		}
 		for _, fd := range m.Findings {
 			sev := SevInfo

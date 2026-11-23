@@ -4,6 +4,7 @@
 package separator
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,7 +43,7 @@ var cpuAccel = Accel{ID: "cpu", Name: "the processor", Device: "cpu", Index: tor
 
 // dmlAccel is an Intel or AMD card on Windows, through DirectML: PyTorch's processor build,
 // and ONNX Runtime's DirectML build on top (about 40 MB more).
-var dmlAccel = Accel{ID: "dml", Name: "DirectX 12 graphics (DirectML)", Device: "cpu", Index: torchIndex + "cpu", DownloadMB: 1150}
+var dmlAccel = Accel{ID: "dml", Name: i18n.T("DirectX 12 graphics (DirectML)"), Device: "cpu", Index: torchIndex + "cpu", DownloadMB: 1150}
 
 // DirectMLOn says whether ONNX Runtime's DirectML build is made for a system: 64-bit Windows on
 // Intel or AMD processors only (none for Windows on ARM).
@@ -91,11 +92,11 @@ func pickAccel(p probe) Accel {
 	switch {
 	case p.goos == "darwin" && p.goarch == "arm64":
 		// The ordinary build already has Metal; nothing more to download.
-		return Accel{ID: "mps", Name: "Apple graphics (Metal)", Device: "mps", Index: torchIndex + "cpu", DownloadMB: 900}
+		return Accel{ID: "mps", Name: i18n.T("Apple graphics (Metal)"), Device: "mps", Index: torchIndex + "cpu", DownloadMB: 900}
 	case p.nvidia && p.goarch == "amd64" && (p.goos == "windows" || p.goos == "linux"):
-		return Accel{ID: "cuda", Name: "NVIDIA graphics (CUDA)", Device: "cuda", Index: torchIndex + "cu121", DownloadMB: 3200}
+		return Accel{ID: "cuda", Name: i18n.T("NVIDIA graphics (CUDA)"), Device: "cuda", Index: torchIndex + "cu121", DownloadMB: 3200}
 	case p.rocm && p.goos == "linux" && p.goarch == "amd64":
-		return Accel{ID: "rocm", Name: "AMD graphics (ROCm)", Device: "cuda", Index: torchIndex + "rocm6.2", DownloadMB: 4200}
+		return Accel{ID: "rocm", Name: i18n.T("AMD graphics (ROCm)"), Device: "cuda", Index: torchIndex + "rocm6.2", DownloadMB: 4200}
 	case p.otherGPU != "" && DirectMLOn(p.goos, p.goarch):
 		a := dmlAccel
 		a.Name = p.otherGPU + " graphics (DirectML)"

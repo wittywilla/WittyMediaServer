@@ -6,6 +6,7 @@ package sdui
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"reflect"
 	"strings"
 	"time"
@@ -40,7 +41,7 @@ func JSONSchema() []byte {
 	schema := map[string]any{
 		"$schema":           "https://json-schema.org/draft/2020-12/schema",
 		"$id":               "urn:wittymediaserver:sdui:schema:1",
-		"title":             "WittyMediaServer server-driven UI, schema version 1, catalogue revision 2",
+		"title":             i18n.T("WittyMediaServer server-driven UI, schema version 1, catalogue revision 2"),
 		"description":       "What the /api/v1/sdui routes answer and accept. Unknown properties must be ignored, and an unknown node type drawn as a plain column of its children. The component, card style and data source reference is GET /api/v1/sdui/catalog (the Catalogue definition here), which is also printed in docs/SDUI.md.",
 		"x-schemaVersion":   SchemaVersion,
 		"x-catalogRevision": CatalogRevision,
@@ -150,7 +151,7 @@ func ModuleJSONSchema() []byte {
 	schema := map[string]any{
 		"$schema":           "https://json-schema.org/draft/2020-12/schema",
 		"$id":               "urn:wittymediaserver:sdui:module:1",
-		"title":             "A WittyMediaServer module's SDUI file (sdui.json), format version 1",
+		"title":             i18n.T("A WittyMediaServer module's SDUI file (sdui.json), format version 1"),
 		"description":       "What a module adds to every app: pages, sections, components, data sources, views, menu entries, settings and its theme scope. Checked by the server against its catalogue (GET /api/v1/sdui/catalog) before the module is used. docs/SDUI-MODULES.md describes it.",
 		"x-format":          ModuleFormat,
 		"x-formatVersion":   ModuleFormatVersion,

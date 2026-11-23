@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"log/slog"
 	"os"
@@ -169,13 +170,13 @@ func (e *Engine) Blocked(ctx context.Context, lib *library.Library, r Rule) stri
 	s := LoadSettings(ctx, e.DB)
 	switch {
 	case !Eligible(lib.Type):
-		return "This kind of library doesn't hold video files to convert."
+		return i18n.T("This kind of library doesn't hold video files to convert.")
 	case !s.Enabled:
-		return "Library transcoding is off. Read the warning and turn it on first."
+		return i18n.T("Library transcoding is off. Read the warning and turn it on first.")
 	case lib.ReadOnly:
-		return "This library is set to read-only, so its files can't be changed."
+		return i18n.T("This library is set to read-only, so its files can't be changed.")
 	case e.SaveMeta != nil && !e.SaveMeta() && !r.AllowWrites:
-		return "This server is set to keep metadata out of media folders (Save next to media, in Metadata settings). To convert here anyway, allow it for this library on this page. Trying a file and checking the library still work."
+		return i18n.T("This server is set to keep metadata out of media folders (Save next to media, in Metadata settings). To convert here anyway, allow it for this library on this page. Trying a file and checking the library still work.")
 	}
 	return ""
 }
@@ -227,7 +228,7 @@ func (e *Engine) Start(ctx context.Context, q RunRequest) (int64, error) {
 	e.mu.Unlock()
 	title := "Converting " + lib.Name
 	if q.Auto {
-		title = "Converting new files in " + lib.Name
+		title = i18n.F("Converting new files in {name}", "name", lib.Name)
 	}
 	if q.Dry {
 		title = "Checking " + lib.Name + " for conversion"
@@ -236,7 +237,7 @@ func (e *Engine) Start(ctx context.Context, q RunRequest) (int64, error) {
 	if q.Dry {
 		unit = "files"
 	}
-	t := e.Tasks.Queue(tasks.Spec{Type: TaskType, Title: title, Phase: "Waiting for its turn", LibraryID: lib.ID, LibraryName: lib.Name, Unit: unit,
+	t := e.Tasks.Queue(tasks.Spec{Type: TaskType, Title: title, Phase: i18n.T("Waiting for its turn"), LibraryID: lib.ID, LibraryName: lib.Name, Unit: unit,
 		By: q.By, Cancel: cancel, Pausable: true, RetryKey: itoa(id), Quiet: q.Dry || q.Auto})
 	sid := logging.NewID("convert")
 	rctx = logging.WithSession(rctx, sid)
@@ -426,7 +427,7 @@ func (e *Engine) planItem(ctx context.Context, lib *library.Library, it library.
 		if library.IsDiscKind(it.Kind) || strings.Contains(it.Kind, "cd") {
 			return refused(it.Path, reasonDisc), nil
 		}
-		return refused(it.Path, "This isn't a video file, so it's left as it is."), nil
+		return refused(it.Path, i18n.T("This isn't a video file, so it's left as it is.")), nil
 	}
 	if it.Missing {
 		return refused(it.Path, reasonMissing), nil
@@ -454,7 +455,7 @@ func (e *Engine) planItem(ctx context.Context, lib *library.Library, it library.
 			if Detect(path, nil) {
 				return refused(path, ProtectedReason), nil
 			}
-			return refused(path, "This file couldn't be read as a video. It may be damaged."), nil
+			return refused(path, i18n.T("This file couldn't be read as a video. It may be damaged.")), nil
 		}
 		if Detect(path, probe) {
 			protected = true
@@ -490,10 +491,10 @@ func (e *Engine) planItem(ctx context.Context, lib *library.Library, it library.
 		}
 		pl := Decide(src, p, env, PlanOptions{ForceVideo: force})
 		if len(srcs) > 1 && (pl.Verdict == VerdictConvert || pl.Verdict == VerdictRemux) {
-			pl.Notes = append(pl.Notes, fmt.Sprintf("This is one of %d parts of a split film. The parts are converted together with the same settings and stay separate files.", len(srcs)))
+			pl.Notes = append(pl.Notes, i18n.F("This is one of {len} parts of a split film. The parts are converted together with the same settings and stay separate files.", "len", len(srcs)))
 		}
 		if pl.Verdict == VerdictRefuse && len(srcs) > 1 {
-			return refused(src.Path, "One part of this split film can't be converted, so all its parts are left alone. "+pl.Reason), nil
+			return refused(src.Path, i18n.F("One part of this split film can't be converted, so all its parts are left alone. {reason}", "reason", pl.Reason)), nil
 		}
 		if e.recall(ctx, src.Path, p, st.Size(), st.ModTime().Unix()) == FileNotWorth && (pl.Verdict == VerdictConvert) {
 			pl.Verdict, pl.Reason = VerdictSkip, "Last time this recipe was tried on this file it came out no smaller, so it isn't tried again."
@@ -779,7 +780,7 @@ func (e *Engine) isPlaying(item int64) bool { return e.Playing != nil && e.Playi
 // holdWords says why work is being held, "" when it can go ahead.
 func (e *Engine) holdWords(s Settings) string {
 	if !s.inHours(e.now().Hour()) {
-		return fmt.Sprintf("Waiting for the hours it's allowed to run (%02d:00 to %02d:00)", s.HoursFrom, s.HoursTo)
+		return fmt.Sprintf(i18n.T("Waiting for the hours it's allowed to run (%02d:00 to %02d:00)"), s.HoursFrom, s.HoursTo)
 	}
 	if s.PauseWhileStreaming && e.Busy != nil && e.Busy() > 0 {
 		return "Waiting: someone is streaming"
@@ -871,7 +872,7 @@ func (e *Engine) convertUnit(ctx context.Context, run int64, lib *library.Librar
 			if errors.As(err, &nr) {
 				return fail(FileFailed, nr.Error(), noRoomDetail)
 			}
-			words := "FFmpeg couldn't convert this file, so the old one stays as it was. It may be damaged. The log has the details."
+			words := i18n.T("FFmpeg couldn't convert this file, so the old one stays as it was. It may be damaged. The log has the details.")
 			detail := err.Error()
 			if strings.Contains(strings.ToLower(detail), "drm protected") || strings.Contains(strings.ToLower(detail), "encrypted") {
 				words = ProtectedReason
@@ -888,12 +889,12 @@ func (e *Engine) convertUnit(ctx context.Context, run int64, lib *library.Librar
 		}
 		for _, sup := range f.sups {
 			if st, err := os.Stat(sup); err != nil || st.Size() == 0 {
-				return fail(FileFailed, "A subtitle file that had to be saved beside the video came out empty, so the old file stays.", "")
+				return fail(FileFailed, i18n.T("A subtitle file that had to be saved beside the video came out empty, so the old file stays."), "")
 			}
 		}
 		// Someone may have replaced the file while this ran.
 		if st, err := os.Stat(f.src.Path); err != nil || st.Size() != f.size || st.ModTime().Unix() != f.mtime {
-			return fail(FileChanged, "This file changed while it was being converted, so the new version was thrown away. It'll be looked at again next time.", "")
+			return fail(FileChanged, i18n.T("This file changed while it was being converted, so the new version was thrown away. It'll be looked at again next time."), "")
 		}
 	}
 	// Worth it?
@@ -961,7 +962,7 @@ func (e *Engine) prepare(ctx context.Context, f *part, output string, s Settings
 	floor := int64(s.MinFreeGB) << 30
 	need := max(f.plan.EstBytes, f.size/4)
 	if free := sysinfo.FreeBytes(dir); free >= 0 && free-need < floor {
-		return &noRoom{fmt.Sprintf("Not enough free space: %s is free here, this file may need about %s, and you asked to keep %d GB free.", sizeWords(free), sizeWords(need), s.MinFreeGB)}
+		return &noRoom{i18n.F("Not enough free space: {sizeWords} is free here, this file may need about {sizeWords2}, and you asked to keep {minFreeGB} GB free.", "sizeWords", sizeWords(free), "sizeWords2", sizeWords(need), "minFreeGB", s.MinFreeGB)}
 	}
 	work := filepath.Join(dir, library.WorkFolder)
 	if err := os.MkdirAll(work, 0o755); err != nil {
@@ -1503,10 +1504,10 @@ func sizeWords(n int64) string {
 
 func summarize(dry bool, s Summary) string {
 	if dry {
-		return fmt.Sprintf("Looked at %d files: %d to convert, %d to tidy, %d already fine, %d left alone. Nothing was changed.", s.Files, s.Convert, s.Remux, s.Skip, s.Refuse)
+		return i18n.F("Looked at {files} files: {convert} to convert, {remux} to tidy, {skip} already fine, {refuse} left alone. Nothing was changed.", "files", s.Files, "convert", s.Convert, "remux", s.Remux, "skip", s.Skip, "refuse", s.Refuse)
 	}
 	var parts []string
-	parts = append(parts, fmt.Sprintf("Converted %d of %s", s.Done, countFiles(s.Convert+s.Remux)))
+	parts = append(parts, i18n.F("Converted {done} of {countFiles}", "done", s.Done, "countFiles", countFiles(s.Convert+s.Remux)))
 	if s.BytesAfter > 0 {
 		parts = append(parts, "now taking "+sizeWords(s.BytesAfter))
 	}

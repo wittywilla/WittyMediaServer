@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net"
 	"net/http"
 	"strconv"
@@ -120,14 +121,14 @@ func classify(pattern string) routeClass {
 
 // What someone is told when a feature is off for their profile.
 var featureRefusal = map[string]string{
-	library.FeatureGames:         "Games are turned off for this profile.",
-	library.FeatureRecordings:    "Recording is turned off for this profile.",
-	library.FeatureSharing:       "Share links are turned off for this profile.",
-	library.FeatureComments:      "Comments are turned off for this profile.",
-	library.FeatureDownloads:     "Downloads are turned off for this profile.",
-	library.FeatureRemote:        "This profile can only be used at home.",
-	library.FeatureSyncplay:      "Watch parties are turned off for this profile.",
-	library.FeatureRemoteControl: "Playing on other devices is turned off for this profile.",
+	library.FeatureGames:         i18n.T("Games are turned off for this profile."),
+	library.FeatureRecordings:    i18n.T("Recording is turned off for this profile."),
+	library.FeatureSharing:       i18n.T("Share links are turned off for this profile."),
+	library.FeatureComments:      i18n.T("Comments are turned off for this profile."),
+	library.FeatureDownloads:     i18n.T("Downloads are turned off for this profile."),
+	library.FeatureRemote:        i18n.T("This profile can only be used at home."),
+	library.FeatureSyncplay:      i18n.T("Watch parties are turned off for this profile."),
+	library.FeatureRemoteControl: i18n.T("Playing on other devices is turned off for this profile."),
 }
 
 // parentalState is what the server remembers between requests.

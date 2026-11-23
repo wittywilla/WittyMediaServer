@@ -6,6 +6,7 @@ package logging
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,9 +94,9 @@ func resetStop() {
 
 // Words for each reason, for the line that starts the next run and for people.
 var stopWords = map[string]string{
-	StopTrayQuit:       "Quit was chosen in the tray icon",
-	StopTrayStop:       "Stop server was chosen in the tray icon",
-	StopTrayRestart:    "Restart server was chosen in the tray icon",
+	StopTrayQuit:       i18n.T("Quit was chosen in the tray icon"),
+	StopTrayStop:       i18n.T("Stop server was chosen in the tray icon"),
+	StopTrayRestart:    i18n.T("Restart server was chosen in the tray icon"),
 	StopTrayClosed:     "the desktop closed the tray app",
 	StopTrayGone:       "the tray app ended without saying why",
 	StopService:        "the service was stopped",

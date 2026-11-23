@@ -19,7 +19,7 @@ import {
 } from './party'
 import { declineInvite, refreshInvites, useInvites } from './invites'
 import { partyKind, queueAdd, queueEditable, queueMove, queuePlayNow, queueRemove, seasonQueue, tidyCode, type QueueEdit } from './partyLogic'
-import { t, tn, tx } from '../i18n'
+import { t, tn, tx, bidi } from '../i18n'
 import './remote.css'
 import './party.css'
 
@@ -106,14 +106,14 @@ function Start({ item, onDone }: { item?: PartyItem; onDone: () => void }) {
             {seats.map((r) => (
               <li key={r.id} className="rc-device">
                 <span className="rc-icon" aria-hidden="true"><IconUsers /></span>
-                <div className="rc-what"><div className="rc-name">{r.name}</div><div className="rc-state">{[r.hostName && t('Started by {name}', { name: r.hostName }), tn('{count} there', '{count} there', r.members), t('your place is kept')].filter(Boolean).join(' · ')}</div></div>
+                <div className="rc-what"><div className="rc-name">{r.name}</div><div className="rc-state">{[r.hostName && t('Started by {name}', { name: r.hostName }), tn('{count} there', '{count} there', r.members), t('your place is kept')].filter(Boolean).map(bidi).join(' · ')}</div></div>
                 <Button size="sm" disabled={!!busy} onClick={() => join({ roomId: r.id })}>{t('Go back in')}</Button>
               </li>
             ))}
             {invites.map((r) => (
               <li key={r.id} className="rc-device">
                 <span className="rc-icon" aria-hidden="true"><IconUsers /></span>
-                <div className="rc-what"><div className="rc-name">{r.name}</div><div className="rc-state">{[r.hostName && t('{name} invited you', { name: r.hostName }), tn('{count} there', '{count} there', r.members)].filter(Boolean).join(' · ')}</div></div>
+                <div className="rc-what"><div className="rc-name">{r.name}</div><div className="rc-state">{[r.hostName && t('{name} invited you', { name: r.hostName }), tn('{count} there', '{count} there', r.members)].filter(Boolean).map(bidi).join(' · ')}</div></div>
                 <div className="pp-pair">
                   <Button size="sm" variant="primary" disabled={!!busy} onClick={() => join({ roomId: r.id })}>{t('Accept')}</Button>
                   <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => declineInvite(r.id)}>{t('Decline')}</Button>

@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"os"
@@ -252,7 +253,7 @@ func (in *Inspection) Stage(ctx context.Context, f Folders, o StageOptions) (*Re
 	}
 	if hasDB {
 		if o.Progress != nil {
-			o.Progress(Step{Phase: "Preparing the database"})
+			o.Progress(Step{Phase: i18n.T("Preparing the database")})
 		}
 		if _, err := os.Stat(filepath.Join(in.workDir, "clean", "wms.db")); err != nil {
 			return fail(errors.New("this backup holds no database to restore those from"))
@@ -802,10 +803,10 @@ func Apply(f Folders) *Result {
 	if name, err := recoverInterrupted(f); name != "" {
 		res.Mode = "recovery"
 		if err != nil {
-			res.Error = "A restore was cut off, and not everything could be put back: " + err.Error() + ". What was there is in the backups folder, " + name + "."
+			res.Error = i18n.F("A restore was cut off, and not everything could be put back: {error}. What was there is in the backups folder, {name}.", "error", err.Error(), "name", name)
 		} else {
 			res.OK = true
-			res.Notes = append(res.Notes, "A restore was cut off last time, so everything was put back as it was.")
+			res.Notes = append(res.Notes, i18n.T("A restore was cut off last time, so everything was put back as it was."))
 		}
 		writeResult(f, res)
 	}
@@ -908,12 +909,12 @@ func Apply(f Folders) *Result {
 	}
 	j.State = "done"
 	if serr := saveJournal(safety, j); serr != nil {
-		res.Notes = append(res.Notes, "The safety copy's list couldn't be saved: "+serr.Error())
+		res.Notes = append(res.Notes, i18n.F("The safety copy's list couldn't be saved: {serr}", "serr", serr.Error()))
 	}
 	res.Safety = name
 	if req.Mode == "undo" {
 		_ = os.RemoveAll(filepath.Join(f.Dir(), req.Copy))
-		res.Notes = append(res.Notes, "What the restore replaced is back, and what it brought is kept as a safety copy.")
+		res.Notes = append(res.Notes, i18n.T("What the restore replaced is back, and what it brought is kept as a safety copy."))
 	}
 	pruneSafety(f)
 	// A folder a part held may have gone with it, and the server expects these.

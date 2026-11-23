@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"math"
@@ -79,7 +80,7 @@ func (s *Scanner) scanModule(kind string) (ScanModule, bool) {
 		return ScanModule{}, false
 	}
 	if m.Name == "" {
-		m.Name = "The module that scans " + kind + " libraries"
+		m.Name = i18n.F("The module that scans {kind} libraries", "kind", kind)
 	}
 	m.On = false
 	return m, true
@@ -173,7 +174,7 @@ func (s *Scanner) scanByModule(ctx context.Context, lib *Library, mod ScanModule
 		// empty folder) is not the same as every file having been deleted.
 		if entries, err := os.ReadDir(root); err != nil || len(entries) == 0 {
 			s.Log.WarnContext(ctx, "library folder is empty or can't be reached; keeping its items", "library", lib.Name, "dir", root, "err", err)
-			task.Problem(root, "This folder is empty or can't be reached, so what it held is being kept for now. If it's on a drive or a share, check that it's connected.")
+			task.Problem(root, i18n.T("This folder is empty or can't be reached, so what it held is being kept for now. If it's on a drive or a share, check that it's connected."))
 			offline = append(offline, root)
 			continue
 		}
@@ -184,14 +185,14 @@ func (s *Scanner) scanByModule(ctx context.Context, lib *Library, mod ScanModule
 		if found == nil && err != nil {
 			s.Log.WarnContext(ctx, "could not read a library folder; keeping its items", "library", lib.Name, "dir", root, "err", err)
 			words, fix := tasks.Explain(err)
-			task.Problem(root, "This folder couldn't be read, so what it held is being kept for now. "+words+" "+fix)
+			task.Problem(root, i18n.F("This folder couldn't be read, so what it held is being kept for now. {words} {fix}", "words", words, "fix", fix))
 			offline = append(offline, root)
 			continue
 		}
 		if err != nil {
 			s.Log.WarnContext(ctx, "could not read all of a library folder", "library", lib.Name, "dir", root, "err", err)
 			words, fix := tasks.Explain(err)
-			task.Problem(root, "Some of this folder couldn't be read. "+words+" "+fix)
+			task.Problem(root, i18n.F("Some of this folder couldn't be read. {words} {fix}", "words", words, "fix", fix))
 		}
 		files = append(files, found...)
 	}

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"os"
@@ -306,7 +307,7 @@ func (s *Server) startCreate(parts []string, password string, key *backup.Key, a
 				log.Info("old scheduled backups were removed", "count", len(removed))
 			}
 		}
-		result := fmt.Sprintf("Backed up %d files.", len(man.Files))
+		result := i18n.F("Backed up {len} files.", "len", len(man.Files))
 		t.Result(result)
 		t.Finish(nil)
 		s.endBackup(func(j *backupJob) { j.File, j.Result, j.Problems = name, result, problems })
@@ -600,7 +601,7 @@ func (s *Server) StartBackupSchedule(ctx context.Context) {
 				key = &backup.Key{}
 				if err := json.Unmarshal([]byte(v), key); err != nil {
 					s.Log.Error("the scheduled backup's password can't be read: no backup was made", "cat", "server", "err", err)
-					s.setBackupSetting(backupLastErrSetting, "The saved password can't be read. Set it again.")
+					s.setBackupSetting(backupLastErrSetting, i18n.T("The saved password can't be read. Set it again."))
 					s.setBackupSetting(backupLastSetting, strconv.FormatInt(time.Now().Unix(), 10))
 					continue
 				}

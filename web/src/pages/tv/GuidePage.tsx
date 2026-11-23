@@ -34,7 +34,7 @@ import './tvsets.css'
 import LegalNote from '../../components/LegalNote'
 import { Dialog } from '../../ui/Overlay'
 import { useTvMode } from '../../tvmode/mode'
-import { date, t, tn, tx } from '../../i18n'
+import { date, t, tn, tx, bidi } from '../../i18n'
 
 // The programme guide. A real ARIA grid under any of WittyTV's themes (tvThemes.ts). At the
 // top, the highlighted channel: its programme, what's next, what can be done with it and a
@@ -850,7 +850,7 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
           const wide = pxPerSec ? (end - start) * pxPerSec : 200
           const tiny = wide < 34
           const small = wide < 96
-          const details = [p.kind === 'none' || small ? '' : fmtClock(p.start), p.year ? String(p.year) : '', p.genre || ''].filter(Boolean).join(' · ')
+          const details = [p.kind === 'none' || small ? '' : fmtClock(p.start), p.year ? String(p.year) : '', p.genre || ''].filter(Boolean).map(bidi).join(' · ')
           return (
             <button key={p.start + '-' + p.end} type="button" role="gridcell" aria-colindex={colStart + 2} aria-colspan={colSpan}
               aria-label={programmeLabel(ch, p, now)} aria-selected={focused} tabIndex={focused ? 0 : -1} data-focused={focused ? '1' : undefined} data-nav-skip={focused ? undefined : ''}

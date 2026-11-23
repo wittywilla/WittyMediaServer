@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"github.com/wittywilla/wittymodule"
 	"os"
 	"path/filepath"
@@ -320,9 +321,9 @@ func (m *Manager) whyNoVersion(e *entry) string {
 	case e.noBuild():
 		return noBuildWords(e)
 	case m.cat == nil && m.cfg.CatalogURL != "":
-		return "This server hasn't been able to read the list of modules yet, so it can't install " + e.builtin.Name + ". Check for updates, or check its internet connection."
+		return i18n.F("This server hasn't been able to read the list of modules yet, so it can't install {name}. Check for updates, or check its internet connection.", "name", e.builtin.Name)
 	}
-	return "No version of " + e.builtin.Name + " for this server is published yet."
+	return i18n.F("No version of {name} for this server is published yet.", "name", e.builtin.Name)
 }
 
 // noBuild: versions are listed, and none has a build for this system. Call with m.mu held.

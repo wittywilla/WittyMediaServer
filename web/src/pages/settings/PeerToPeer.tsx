@@ -11,7 +11,7 @@ import { devicesSpec, optionsSpec } from '../../spec/specs/peerToPeer'
 import { ConfirmOwner, type OwnerAsk } from './ConfirmOwner'
 import { HelpLink } from '../../components/HelpLink'
 import { ask } from '../../ui/Overlay'
-import { t, tk, tn } from '../../i18n'
+import { t, tk, tn, tx } from '../../i18n'
 
 // Settings → Remote Access → Peer-to-peer connections: reaching the server
 // from away with nothing set up on the router. Off until the owner turns it
@@ -43,7 +43,7 @@ function VerdictCard({ v }: { v: Verdict }) {
   return (
     <div className={`p2p-verdict ${v.state}`} role="status" aria-live="polite">
       <b>{v.title}</b>
-      <p>{v.detail}</p>
+      <p>{tx(v.detail)}</p>
       {v.todo.length > 0 && <ul>{v.todo.map((x) => <li key={x}>{x}</li>)}</ul>}
     </div>
   )
@@ -133,7 +133,7 @@ const ago = (at?: number) => {
 function Steps({ steps }: { steps: Step[] }) {
   return (
     <ul className="rem-check" aria-live="polite">
-      {steps.map((c) => <li key={c.name} className={c.state}><b>{c.name}</b><span>{c.detail}</span></li>)}
+      {steps.map((c) => <li key={c.name} className={c.state}><b>{tx(c.name)}</b><span>{tx(c.detail)}</span></li>)}
     </ul>
   )
 }
@@ -173,7 +173,7 @@ export default function PeerToPeer() {
       <Section id="p2p" title={tk('Peer-to-peer connections')} desc={<>{t('Reach this server from away with nothing set up on your router and nothing rented: the app and this server find a way to each other, and what passes between them is encrypted to a key only this server holds. Only devices you have paired can connect.')} <HelpLink to="remote#peer-to-peer-connections">{t('How it works, and how safe it is')}</HelpLink></>}>
         <p className="muted">{t('It’s off. Turning it on contacts computers outside your home, which nothing else on this page does without being asked. These are all of them:')}</p>
         <ul className="rem-check">
-          {v.thirdParties.map((p) => <li key={p.layer} className="off"><b>{p.who}</b><span>{t('They see: {what}', { what: p.sees })}</span></li>)}
+          {v.thirdParties.map((p) => <li key={p.layer} className="off"><b>{tx(p.who)}</b><span>{t('They see: {what}', { what: tx(p.sees) })}</span></li>)}
         </ul>
         <p className="rem-note">{t('None of them is run by this project, and none sees your media, your passwords or anything you watch. Each can be turned off separately once this is on.')}</p>
         <label className="check-row rem-accept"><input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} /> <span>{t('I’ve read who is contacted, and I want this on.')}</span></label>

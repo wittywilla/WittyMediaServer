@@ -27,6 +27,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import './styles.css'
 import './design2.css'
 import './finish.css'
+import './bidi.css'
 
 // After the server is updated, a page that was already open asks for parts of the old app that are gone. Load the new app
 // instead, once (a second failure within a minute is a real fault, and the error page says so).

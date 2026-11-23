@@ -13,7 +13,7 @@ import { errorText, remoteControls, statusWords, stepWords, watchingTv, type Nav
 import type { RemoteCommand } from './device'
 import { partDone, positionNow, seekTarget } from './position'
 import { sendCommand, type RemoteDevice, type ServerClock } from './useDevices'
-import { t, tk, tx } from '../i18n'
+import { t, tk, tx, bidi } from '../i18n'
 
 // The speeds the protocol carries (0.25 to 4), as the players offer them.
 const RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4]
@@ -41,7 +41,7 @@ function useItem(id: number): Item | null {
   return it
 }
 
-const itemLine = (it: Item) => (it.showTitle ? [it.showTitle, episodeLabel(it)].filter(Boolean).join(' · ') : it.artist || it.albumArtist || (it.year ? String(it.year) : ''))
+const itemLine = (it: Item) => (it.showTitle ? [it.showTitle, episodeLabel(it)].filter(Boolean).map(bidi).join(' · ') : it.artist || it.albumArtist || (it.year ? String(it.year) : ''))
 
 // The latest value, sent at most every so often, and once more when the hand lets go:
 // a slider being dragged mustn't run into the server's limit on commands.
@@ -109,7 +109,7 @@ function Queue({ d, send, open, setOpen }: { d: RemoteDevice; send: (cmd: Remote
       while (on && next < todo.length) {
         const id = todo[next++]
         const it = await lookUp(id)
-        if (on && it) setTitles((t) => (t[id] ? t : { ...t, [id]: [it.title, itemLine(it)].filter(Boolean).join(' · ') }))
+        if (on && it) setTitles((t) => (t[id] ? t : { ...t, [id]: [it.title, itemLine(it)].filter(Boolean).map(bidi).join(' · ') }))
       }
     }
     for (let i = 0; i < 4; i++) void one()
@@ -191,7 +191,7 @@ export default function DeviceRemote({ d, serverNow }: { d: RemoteDevice; server
         <div className="rr-what">
           {title && <div className="rr-title">{title}</div>}
           {line && <div className="rr-line">{line}</div>}
-          <div className="rr-status" role="status" aria-live="polite">{[status, part != null ? t('{percent}% through', { percent: part }) : ''].filter(Boolean).join(' · ')}{d.hidden ? '. ' + t('What it is isn’t shown to this account.') : ''}</div>
+          <div className="rr-status" role="status" aria-live="polite">{[status, part != null ? t('{percent}% through', { percent: part }) : ''].filter(Boolean).map(bidi).join(' · ')}{d.hidden ? '. ' + t('What it is isn’t shown to this account.') : ''}</div>
         </div>
       </div>
       {problem && <p className="rr-problem" role="alert">{problem}</p>}

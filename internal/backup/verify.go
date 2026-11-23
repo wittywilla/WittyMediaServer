@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"os"
 	"path"
@@ -53,9 +54,9 @@ type Refusal struct {
 
 func (r *Refusal) Error() string {
 	if r.File != "" {
-		return "This backup can't be used: " + r.File + ": " + r.Reason + "."
+		return i18n.F("This backup can't be used: {file}: {reason}.", "file", r.File, "reason", r.Reason)
 	}
-	return "This backup can't be used: " + r.Reason + "."
+	return i18n.F("This backup can't be used: {reason}.", "reason", r.Reason)
 }
 
 // Refused makes one.
@@ -430,7 +431,7 @@ func Inspect(ctx context.Context, archive, password string, f Folders, progress 
 		if password == "" {
 			return in, ErrPasswordNeeded
 		}
-		say("Opening with the password", 0, int64(payload.UncompressedSize64))
+		say(i18n.T("Opening with the password"), 0, int64(payload.UncompressedSize64))
 		rc, err := payload.Open()
 		if err != nil {
 			return in, Refused(PayloadName, "it can't be read")
@@ -447,7 +448,7 @@ func Inspect(ctx context.Context, archive, password string, f Folders, progress 
 		var done int64
 		openErr := openPayload(out, ctxReader(ctx, rc), man.Crypt, password, maxTotalSize, func(n int64) {
 			done += n
-			say("Opening with the password", done, int64(payload.UncompressedSize64))
+			say(i18n.T("Opening with the password"), done, int64(payload.UncompressedSize64))
 		})
 		if cerr := out.Close(); openErr == nil {
 			openErr = cerr
@@ -627,7 +628,7 @@ func verifyContents(ctx context.Context, in *Inspection, files []*zip.File, say 
 		if got != limit {
 			return Refused(printableName(name), "it isn't the size the archive says")
 		}
-		say("Checking every file", done, total)
+		say(i18n.T("Checking every file"), done, total)
 		sum := hex.EncodeToString(h.Sum(nil))
 		if listed && sum != entry.SHA256 && !hand {
 			return Refused(printableName(name), "it's been changed or damaged since the backup was made")

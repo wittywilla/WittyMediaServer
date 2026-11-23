@@ -26,6 +26,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net"
 	"net/http"
@@ -122,7 +123,7 @@ func main() {
 		// Nobody reads this app's standard error: a data folder on a drive that isn't connected
 		// is said on the screen.
 		if !desktop.Headless() {
-			_, _ = desktop.Ask("WittyMediaServer can't start", err.Error(), []string{"OK"})
+			_, _ = desktop.Ask(i18n.T("WittyMediaServer can't start"), err.Error(), []string{"OK"})
 		}
 		os.Exit(2)
 	}
@@ -225,23 +226,23 @@ func (l *launcher) onReady() {
 	l.setIcon(false)
 	systray.SetTitle("")
 	systray.SetTooltip("WittyMediaServer")
-	l.mStatus = systray.AddMenuItem("WittyMediaServer — starting…", "")
+	l.mStatus = systray.AddMenuItem(i18n.T("WittyMediaServer — starting…"), "")
 	l.mStatus.Disable()
-	l.mRemote = systray.AddMenuItem("Remote Access", "Who can connect, and from where. Click to change it.")
+	l.mRemote = systray.AddMenuItem("Remote Access", i18n.T("Who can connect, and from where. Click to change it."))
 	l.mRemote.Hide()
-	l.mUpdate = systray.AddMenuItem("Update WittyMediaServer…", "See what's new and how to update")
+	l.mUpdate = systray.AddMenuItem("Update WittyMediaServer…", i18n.T("See what's new and how to update"))
 	l.mUpdate.Hide()
 	systray.AddSeparator()
-	l.mOpen = systray.AddMenuItem("Open WittyMediaServer", "Open the web app in your browser")
+	l.mOpen = systray.AddMenuItem("Open WittyMediaServer", i18n.T("Open the web app in your browser"))
 	l.mToggle = systray.AddMenuItem("Stop server", "")
 	l.mRestart = systray.AddMenuItem("Restart server", "")
 	systray.AddSeparator()
-	l.mData = systray.AddMenuItem("Open data folder", l.dataDir)
+	l.mData = systray.AddMenuItem(i18n.T("Open data folder"), l.dataDir)
 	l.mLog = systray.AddMenuItem("View log", l.logPath)
-	l.mAuto = systray.AddMenuItemCheckbox("Start at login", "Launch this tray app when you sign in", autostartEnabled())
+	l.mAuto = systray.AddMenuItemCheckbox(i18n.T("Start at login"), i18n.T("Launch this tray app when you sign in"), autostartEnabled())
 	systray.AddSeparator()
 	l.mAbout = systray.AddMenuItem("About WittyMediaServer "+version, "")
-	l.mQuit = systray.AddMenuItem("Quit (stops the server)", "")
+	l.mQuit = systray.AddMenuItem(i18n.T("Quit (stops the server)"), "")
 
 	go l.loop()
 	go l.health()
@@ -748,11 +749,11 @@ func (l *launcher) refreshLocked() {
 	if l.attached {
 		if l.healthy {
 			l.mStatus.SetTitle("● Running at " + l.url() + ", started outside this app")
-			systray.SetTooltip("WittyMediaServer — running at " + l.url())
+			systray.SetTooltip(i18n.F("WittyMediaServer — running at {url}", "url", l.url()))
 			l.mOpen.Enable()
 		} else {
 			l.mStatus.SetTitle("○ The server started outside this app isn't answering")
-			systray.SetTooltip("WittyMediaServer — not answering")
+			systray.SetTooltip(i18n.T("WittyMediaServer — not answering"))
 			l.mOpen.Disable()
 		}
 		l.setIcon(l.healthy)
@@ -764,17 +765,17 @@ func (l *launcher) refreshLocked() {
 	switch {
 	case l.running && l.healthy:
 		l.mStatus.SetTitle("● Running at " + l.url())
-		systray.SetTooltip("WittyMediaServer — running at " + l.url())
+		systray.SetTooltip(i18n.F("WittyMediaServer — running at {url}", "url", l.url()))
 		l.mToggle.SetTitle("Stop server")
 	case l.running && l.answered:
 		// Not "starting": a server that stops answering looks crashed from a browser, and
 		// someone looking here should see that it's still running, and can be restarted.
 		l.mStatus.SetTitle("◌ Running, but not answering")
-		systray.SetTooltip("WittyMediaServer — not answering")
+		systray.SetTooltip(i18n.T("WittyMediaServer — not answering"))
 		l.mToggle.SetTitle("Stop server")
 	case l.running:
 		l.mStatus.SetTitle("◐ Starting…")
-		systray.SetTooltip("WittyMediaServer — starting")
+		systray.SetTooltip(i18n.T("WittyMediaServer — starting"))
 		l.mToggle.SetTitle("Stop server")
 	default:
 		msg := "○ Stopped"
@@ -782,7 +783,7 @@ func (l *launcher) refreshLocked() {
 			msg += " — " + truncate(l.lastErr, 60)
 		}
 		l.mStatus.SetTitle(msg)
-		systray.SetTooltip("WittyMediaServer — stopped")
+		systray.SetTooltip(i18n.T("WittyMediaServer — stopped"))
 		l.mToggle.SetTitle("Start server")
 	}
 	l.setIcon(l.running)

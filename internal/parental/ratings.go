@@ -3,6 +3,8 @@
 
 package parental
 
+import "github.com/wittywilla/wittymediaserver/internal/i18n"
+
 // Rating systems, as a parent knows them. A limit is kept as an age in years,
 // because that is the one thing every board's ratings can be turned into; these
 // tables let someone choose "PG-13" or "FSK 12" and see what else that allows.
@@ -49,7 +51,7 @@ func ValidKind(k string) bool {
 // Systems are the boards Settings offers.
 var Systems = []System{
 	{ID: "mpa", Name: "MPA", Country: "US", Kinds: []string{KindFilm}, Ratings: []Rating{{"G", 0}, {"PG", 10}, {"PG-13", 13}, {"R", 17}, {"NC-17", 18}}},
-	{ID: "tvpg", Name: "TV Parental Guidelines", Country: "US", Kinds: []string{KindTV}, Ratings: []Rating{{"TV-Y", 0}, {"TV-G", 0}, {"TV-Y7", 7}, {"TV-PG", 10}, {"TV-14", 14}, {"TV-MA", 17}}},
+	{ID: "tvpg", Name: i18n.T("TV Parental Guidelines"), Country: "US", Kinds: []string{KindTV}, Ratings: []Rating{{"TV-Y", 0}, {"TV-G", 0}, {"TV-Y7", 7}, {"TV-PG", 10}, {"TV-14", 14}, {"TV-MA", 17}}},
 	{ID: "bbfc", Name: "BBFC", Country: "GB", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"U", 0}, {"PG", 10}, {"12A", 12}, {"12", 12}, {"15", 15}, {"18", 18}}},
 	{ID: "fsk", Name: "FSK", Country: "DE", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"FSK 0", 0}, {"FSK 6", 6}, {"FSK 12", 12}, {"FSK 16", 16}, {"FSK 18", 18}}},
 	{ID: "kijkwijzer", Name: "Kijkwijzer", Country: "NL", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"AL", 0}, {"6", 6}, {"9", 9}, {"12", 12}, {"14", 14}, {"16", 16}, {"18", 18}}},

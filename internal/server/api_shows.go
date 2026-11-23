@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"math"
 	"net/http"
@@ -341,7 +342,7 @@ func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		} else {
-			warn = "Online TV artwork is off. Add a TheTVDB key or turn on TVmaze in Settings."
+			warn = i18n.T("Online TV artwork is off. Add a TheTVDB key or turn on TVmaze in Settings.")
 		}
 	} else {
 		it, err := s.Store.Item(ctx, id)
@@ -384,12 +385,12 @@ func (s *Server) handleArtwork(w http.ResponseWriter, r *http.Request) {
 				add(artCandidate{URL: u, Source: "tmdb"})
 			}
 		} else if it.ShowID == nil {
-			warn = "Add a TMDB API key in Settings for online artwork."
+			warn = i18n.T("Add a TMDB API key in Settings for online artwork.")
 			// A film matched through Wikidata may have a free poster on Wikimedia Commons.
 			if !backdrop && it.Provider == "wikidata" {
 				if p := library.WikidataPoster(ctx, &library.Wikidata{}, it.ProviderID); p != "" {
 					add(artCandidate{URL: p, Source: "wikimedia"})
-					warn = "Add a TMDB API key in Settings for more online artwork."
+					warn = i18n.T("Add a TMDB API key in Settings for more online artwork.")
 				}
 			}
 		}

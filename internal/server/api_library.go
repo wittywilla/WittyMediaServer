@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"net/url"
@@ -587,7 +588,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			id := l.ID
-			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: []*library.Item{}, Shows: shows})
+			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: i18n.F("Recently added in {name}", "name", l.Name), Library: &id, Items: []*library.Item{}, Shows: shows})
 			continue
 		}
 		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc, NoTotal: true, Brief: true})
@@ -597,7 +598,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		recent = append(recent, items...)
 		hidePaths(r, items...)
 		id := l.ID
-		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: items})
+		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: i18n.F("Recently added in {name}", "name", l.Name), Library: &id, Items: items})
 	}
 	// In pages: past 500 titles AttachProgress reads everything this account has played.
 	for page := range slices.Chunk(recent, 500) {

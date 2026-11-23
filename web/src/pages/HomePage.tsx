@@ -11,7 +11,7 @@ import { IconDown, IconGrip, IconInfo, IconPause, IconPlay, IconPlus, IconRefres
 import { toast, useApp } from '../state'
 import { emptyHomeWords } from '../profileWords'
 import { useOpenItem } from '../openItem'
-import { num, t, tx } from '../i18n'
+import { num, t, tx, bidi } from '../i18n'
 import { useTvMode } from '../tvmode/mode'
 
 // The home page is a column of widgets. Everyone can reorder and hide them
@@ -265,7 +265,7 @@ function Shuffle() {
         <img className="shuffle-poster" src={sized(posterUrl(it), fitWidth(240))} alt="" loading="lazy" />
         <div className="shuffle-info">
           <h3>{it.title}</h3>
-          <div className="muted">{[it.year, fmtRuntime(it.runtimeSec), it.genres.slice(0, 2).join(', ')].filter(Boolean).join(' · ')}</div>
+          <div className="muted">{[it.year, fmtRuntime(it.runtimeSec), it.genres.slice(0, 2).join(', ')].filter(Boolean).map(bidi).join(' · ')}</div>
           <div className="actions">
             <button className="btn primary" onClick={() => opener.open(it)}>{opener.icon(it)} {opener.label(it)}</button>
             <Link className="btn" to={`/item/${it.id}`}><IconInfo /> {t('Details')}</Link>

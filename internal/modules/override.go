@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -55,22 +56,13 @@ var overrideKinds = map[string]int{
 // OverrideWarnings say what each override bypasses and what could go wrong. The server says
 // them, so every app that offers an override says the same thing.
 var OverrideWarnings = map[string]string{
-	OverrideIncomplete: "Its publisher says it isn't finished, or what it adds to the apps doesn't fit this server. " +
-		"Parts of it may be missing or not work, and whatever doesn't fit isn't shown in any app.",
-	OverrideOutOfRange: "It wasn't made for this version of the server. It speaks a module API this server knows, so it may work, " +
-		"but nobody has tried it here: pages, libraries or playback that depend on it may break, and updating the server may break it further.",
-	OverrideLocalFile: "It comes from a file you chose, not from a store this server checks for updates and withdrawals. " +
-		"You'll be told about nothing that goes wrong with this version later.",
-	OverrideCustom: "This server doesn't know this module. Nothing about it has been checked by this project: " +
-		"it runs with the strict sandbox and no permissions you don't tick, and what it adds to the apps is its own.",
-	OverrideUntrustedKey: "It is signed, but by a key this server doesn't trust for it. The signature proves only that whoever holds that key made it, " +
-		"not who they are or that it is safe. Compare the key's fingerprint with its publisher, somewhere other than where you got the file.",
-	OverrideWeakSandbox: "This system's sandbox for modules from other publishers is Apple's sandbox-exec, which Apple has deprecated. " +
-		"The module is refused if it won't start inside it, but it can still read anything this server's account can read, " +
-		"which may include your media and this server's database.",
-	OverrideUnsigned: "It isn't signed at all. Nothing proves who made it or that it wasn't changed on its way to you. " +
-		"It runs with the strict sandbox and no permissions you don't tick, but it is someone's code running on your server. " +
-		"Only install it if you made it yourself or got it from someone you trust, by a route nobody else could change.",
+	OverrideIncomplete:   i18n.T("Its publisher says it isn't finished, or what it adds to the apps doesn't fit this server. Parts of it may be missing or not work, and whatever doesn't fit isn't shown in any app."),
+	OverrideOutOfRange:   i18n.T("It wasn't made for this version of the server. It speaks a module API this server knows, so it may work, but nobody has tried it here: pages, libraries or playback that depend on it may break, and updating the server may break it further."),
+	OverrideLocalFile:    i18n.T("It comes from a file you chose, not from a store this server checks for updates and withdrawals. You'll be told about nothing that goes wrong with this version later."),
+	OverrideCustom:       i18n.T("This server doesn't know this module. Nothing about it has been checked by this project: it runs with the strict sandbox and no permissions you don't tick, and what it adds to the apps is its own."),
+	OverrideUntrustedKey: i18n.T("It is signed, but by a key this server doesn't trust for it. The signature proves only that whoever holds that key made it, not who they are or that it is safe. Compare the key's fingerprint with its publisher, somewhere other than where you got the file."),
+	OverrideWeakSandbox:  i18n.T("This system's sandbox for modules from other publishers is Apple's sandbox-exec, which Apple has deprecated. The module is refused if it won't start inside it, but it can still read anything this server's account can read, which may include your media and this server's database."),
+	OverrideUnsigned:     i18n.T("It isn't signed at all. Nothing proves who made it or that it wasn't changed on its way to you. It runs with the strict sandbox and no permissions you don't tick, but it is someone's code running on your server. Only install it if you made it yourself or got it from someone you trust, by a route nobody else could change."),
 }
 
 // forkLikeKinds are the overrides that make a module someone else's code: held to a fork's rules.
@@ -147,7 +139,7 @@ type ErrNeedsOverride struct {
 }
 
 func (e *ErrNeedsOverride) Error() string {
-	return "Installing it needs your go-ahead past what this server would refuse: " + strings.Join(e.Kinds, ", ") + "."
+	return i18n.F("Installing it needs your go-ahead past what this server would refuse: {kinds}.", "kinds", strings.Join(e.Kinds, ", "))
 }
 
 func needsOverride(ver string, kinds []string, man *wittymodule.Manifest) *ErrNeedsOverride {
@@ -505,11 +497,11 @@ func (m *Manager) signLocally(dir string, man *wittymodule.Manifest) (string, er
 func overrideRefusal() string {
 	switch {
 	case os.Getenv(LockForks) == "1":
-		return "Whoever runs this machine has kept modules from other publishers off with " + LockForks + "."
+		return i18n.F("Whoever runs this machine has kept modules from other publishers off with {lockForks}.", "lockForks", LockForks)
 	case sandboxAvailable, weakSandboxForOthers():
 		return ""
 	}
-	return "This system has no way to box in a module from another publisher, so it can't be installed here, whatever is overridden."
+	return i18n.T("This system has no way to box in a module from another publisher, so it can't be installed here, whatever is overridden.")
 }
 
 // othersNeedWeakSandbox: on this system a module from another publisher also needs the

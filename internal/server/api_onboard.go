@@ -10,6 +10,7 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net"
 	"net/http"
 	"os"
@@ -126,7 +127,7 @@ func (s *Server) handlePickFolder(w http.ResponseWriter, r *http.Request) {
 	defer pickMu.Unlock()
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
 	defer cancel()
-	p, err := desktop.PickFolder(ctx, "Choose a folder with your media")
+	p, err := desktop.PickFolder(ctx, i18n.T("Choose a folder with your media"))
 	switch {
 	case errors.Is(err, desktop.ErrCancelled):
 		writeJSON(w, 200, map[string]any{"cancelled": true})
@@ -166,9 +167,9 @@ func (s *Server) handleMetadataTest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		msg := err.Error()
 		if strings.Contains(msg, "401") || strings.Contains(msg, "403") {
-			msg = "The key was not accepted. Check that you copied all of it."
+			msg = i18n.T("The key was not accepted. Check that you copied all of it.")
 		} else if errors.Is(err, context.DeadlineExceeded) {
-			msg = "No answer from the service. Is this server online?"
+			msg = i18n.T("No answer from the service. Is this server online?")
 		}
 		writeJSON(w, 200, map[string]any{"ok": false, "error": msg})
 		return

@@ -13,7 +13,7 @@ import LegalNote from '../components/LegalNote'
 import { ActivityDialog, AvatarPicker, CollectionRules, FeatureSwitches, KindLimits, ParentPin, TagRules, TimeRulesEditor, useParentalLists } from './settings/ParentalControls'
 import './profiles.css'
 import { StreamLimitsDialog } from './settings/StreamQuality'
-import { t, tk, tn, tx } from '../i18n'
+import { t, tk, tn, tx, bidi } from '../i18n'
 
 // Settings → Users: your account, the profiles you may manage, and their
 // limits. The admin manages everyone; adults manage Kids profiles unless the
@@ -280,7 +280,7 @@ function summary(u: UserView): string {
   const off = (a.off || []).filter((f) => f !== 'editProfile')
   if (off.length) parts.push(tn('{count} thing turned off', '{count} things turned off', off.length))
   if (!u.hasPassword) parts.push(t('no password'))
-  return parts.join(' · ')
+  return parts.map(bidi).join(' · ')
 }
 
 // AddProfile creates an adult, Kids or Guest profile (adults: Kids only).

@@ -3,6 +3,7 @@
 import { Cc, R, mk, secP, secR } from '../model.ts'
 import type { SpecChip, SpecPageData, SpecRow, SpecSection } from '../types.ts'
 import { t } from '../../sdui/words.ts'
+import { bidi } from '../../i18n'
 
 // Panels of media pages: a creator video's chapters and autoplay (canvas "videopage"), a photo's details (canvas
 // "photoview") and a book's actions and formats (canvas "bookpage"). The pages keep their picture, player and cover.
@@ -25,7 +26,7 @@ export interface PhotoFacts { takenAt?: number; fileName: string; width?: number
 
 // A photo's details: what the file is, when and where it was taken, with what. Id: original (the download).
 export function photoDetailsSpec(f: PhotoFacts): SpecPageData {
-  const rows: SpecRow[] = [R(t('Taken'), f.taken), R(t('File'), f.fileName, false, [f.width && f.height ? `${f.width} × ${f.height}` : '', f.size || ''].filter(Boolean).join(' · '))]
+  const rows: SpecRow[] = [R(t('Taken'), f.taken), R(t('File'), f.fileName, false, [f.width && f.height ? `${f.width} × ${f.height}` : '', f.size || ''].filter(Boolean).map(bidi).join(' · '))]
   if (f.folder) rows.push(R(t('Folder'), f.folder))
   if (f.camera) rows.push(R(t('Camera'), f.camera, false, f.lens))
   if (f.exposure) rows.push(R(t('Exposure'), f.exposure))

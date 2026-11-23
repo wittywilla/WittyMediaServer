@@ -19,6 +19,7 @@ package logging
 import (
 	"context"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"log"
 	"log/slog"
@@ -43,27 +44,27 @@ type Category struct {
 // of every category are written unless the owner lowers it; the ones that name
 // what you watch or who signs in say so, and stay quiet until asked.
 var Categories = []Category{
-	{"playback", "Playback", "What is played and how: direct play or transcoding, codecs, resolution, the chosen audio and subtitle tracks. Includes titles of what you watch.", "warn"},
+	{"playback", "Playback", i18n.T("What is played and how: direct play or transcoding, codecs, resolution, the chosen audio and subtitle tracks. Includes titles of what you watch."), "warn"},
 	{"transcode", "Transcoding", "FFmpeg: what it was asked to do, including file paths, and what it said when it stopped.", "info"},
-	{"discs", "Discs", "Every step the DVD and Blu-ray navigators take: menus, buttons pressed, program chains and cells. Useful when a disc misbehaves.", "warn"},
-	{"games", "Games", "Game sessions: the runner, emulator cores, controllers and the stream to the browser. Includes game titles.", "info"},
+	{"discs", "Discs", i18n.T("Every step the DVD and Blu-ray navigators take: menus, buttons pressed, program chains and cells. Useful when a disc misbehaves."), "warn"},
+	{"games", "Games", i18n.T("Game sessions: the runner, emulator cores, controllers and the stream to the browser. Includes game titles."), "info"},
 	{"tv", "Live TV", "Tuners, channels, the guide and recordings.", "info"},
 	{"library", "Library scans", "Scans, metadata lookups and how files were matched. At the most detailed level, each file and folder name.", "info"},
-	{"modules", "Modules", "Module helpers starting and stopping, checks for module updates and installing them.", "info"},
-	{"update", "Server updates", "Checks for a new version, downloading and installing it.", "info"},
-	{"remote", "Remote access", "HTTPS certificates, your router's port mapping, finding the server on the network.", "info"},
-	{"auth", "Sign-ins", "Each sign-in and failed sign-in: account name, address and whether it came from home or away. Lock-outs are always recorded.", "warn"},
-	{"clients", "App errors", "Errors in the web app and the apps on your devices, sent to this server: crashes, failed requests, and player and game stream errors.", "warn"},
-	{"http", "Web requests", "Each request to the server: address, page, result and time taken. Sign-in tokens are removed. Failed requests are always recorded.", "warn"},
-	{"sdui", "Pages and themes", "Server-driven pages: publishing and rolling back in the page editor, pages a client could not show, themes and layouts, and each profile's own changes.", "info"},
+	{"modules", "Modules", i18n.T("Module helpers starting and stopping, checks for module updates and installing them."), "info"},
+	{"update", "Server updates", i18n.T("Checks for a new version, downloading and installing it."), "info"},
+	{"remote", "Remote access", i18n.T("HTTPS certificates, your router's port mapping, finding the server on the network."), "info"},
+	{"auth", "Sign-ins", i18n.T("Each sign-in and failed sign-in: account name, address and whether it came from home or away. Lock-outs are always recorded."), "warn"},
+	{"clients", "App errors", i18n.T("Errors in the web app and the apps on your devices, sent to this server: crashes, failed requests, and player and game stream errors."), "warn"},
+	{"http", "Web requests", i18n.T("Each request to the server: address, page, result and time taken. Sign-in tokens are removed. Failed requests are always recorded."), "warn"},
+	{"sdui", i18n.T("Pages and themes"), "Server-driven pages: publishing and rolling back in the page editor, pages a client could not show, themes and layouts, and each profile's own changes.", "info"},
 	{"modules-store", "Module store", "Installing, updating and removing modules from the store or a file, and every manual override, which is always recorded with who made it.", "info"},
-	{"emulators", "Emulators", "WittyPlay's emulators: installing and checking them, the sandbox, Docker or native host, screen capture and its stream, input and settings written, BIOS and keys present, crashes with the emulator's last words, and macOS permissions.", "info"},
-	{"p2p", "Peer to peer", "Direct connections between your devices and this server: the node starting and stopping, how it is reached (NAT type, port mapping, relays), devices enrolled or revoked, path changes and connection tests. Keys and invites are never written.", "info"},
-	{"remotectl", "Remote control and watch parties", "Devices taking control of a player, the commands they send, watch-party rooms, how far apart the players drift and waits that timed out.", "info"},
-	{"profiles", "Profiles and parental controls", "Switching profiles, what parental controls refused, screen time used and extra time given. Includes profile names.", "warn"},
-	{"extras", "Karaoke, canvases and intros", "Jobs that separate vocals for karaoke, make canvases and find intros: when each starts, finishes or fails, and why.", "info"},
-	{"storage", "Storage", "WittyDiagnoser's storage checks and problems reading or writing folders.", "info"},
-	{"server", "Everything else", "Starting and stopping, the database, settings and anything without an area of its own.", "info"},
+	{"emulators", "Emulators", i18n.T("WittyPlay's emulators: installing and checking them, the sandbox, Docker or native host, screen capture and its stream, input and settings written, BIOS and keys present, crashes with the emulator's last words, and macOS permissions."), "info"},
+	{"p2p", i18n.T("Peer to peer"), i18n.T("Direct connections between your devices and this server: the node starting and stopping, how it is reached (NAT type, port mapping, relays), devices enrolled or revoked, path changes and connection tests. Keys and invites are never written."), "info"},
+	{"remotectl", i18n.T("Remote control and watch parties"), i18n.T("Devices taking control of a player, the commands they send, watch-party rooms, how far apart the players drift and waits that timed out."), "info"},
+	{"profiles", i18n.T("Profiles and parental controls"), i18n.T("Switching profiles, what parental controls refused, screen time used and extra time given. Includes profile names."), "warn"},
+	{"extras", "Karaoke, canvases and intros", i18n.T("Jobs that separate vocals for karaoke, make canvases and find intros: when each starts, finishes or fails, and why."), "info"},
+	{"storage", "Storage", i18n.T("WittyDiagnoser's storage checks and problems reading or writing folders."), "info"},
+	{"server", "Everything else", i18n.T("Starting and stopping, the database, settings and anything without an area of its own."), "info"},
 }
 
 // CatDefault is the category of a message that doesn't name one.

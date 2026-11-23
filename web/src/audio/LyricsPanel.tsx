@@ -7,7 +7,7 @@ import { toast } from '../state'
 import { ownTiming, useLineIndex, type LyricLine, type useLyrics } from './lyrics'
 import type { PlayerView } from './types'
 import { WebLink } from '../components/WebLink'
-import { num, t } from '../i18n'
+import { num, t, bidi } from '../i18n'
 
 // Lyrics that follow the music: the line being sung stays in the middle, and pressing any
 // line goes to it. Scrolling by hand holds the view still for a few seconds. Words without
@@ -153,7 +153,7 @@ function FixLyrics({ p, text, lines, source, online, onClose, onSaved }: { p: Pl
               return (
                 <li key={f.provider + f.id}>
                   <button type="button" disabled={busy} onClick={() => void run(async () => { await api.put(url, { provider: f.provider, id: f.id }); toast(t('Lyrics changed')); onSaved() })}>
-                    <b>{f.title}</b><small>{[f.artist, f.album].filter(Boolean).join(' · ')}</small>
+                    <b>{f.title}</b><small>{[f.artist, f.album].filter(Boolean).map(bidi).join(' · ')}</small>
                     <small>{f.instrumental ? t('No words') : f.hasSynced ? t('Timed') : t('Words only')}{off !== null ? ` · ${off < 3 ? t('same length') : t('{n} s different', { n: Math.round(off) })}` : ''}</small>
                   </button>
                 </li>

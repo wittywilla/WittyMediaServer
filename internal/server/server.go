@@ -125,6 +125,7 @@ type Server struct {
 	stream      streamTokens
 	radio       radioLive
 	pair        pairings
+	connect     connectOffers       // a code and a link for one device: api_connect.go
 	introJob    introJob            // finding intros by ear: one run at a time
 	convertJobs convertJobs         // converting to and from .wittyinfo and .wittyaudio: one run of each at a time
 	mediaJobs   mediaJobs           // stems and canvases being made: one at a time
@@ -255,6 +256,8 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("POST /api/pair/start", s.handlePairStart)
 	m.HandleFunc("POST /api/pair/poll", s.handlePairPoll)
 	m.HandleFunc("POST /api/pair/redeem", s.handlePairRedeem)
+	m.HandleFunc("POST /api/connect/hello", s.handleConnectHello)
+	m.HandleFunc("POST /api/connect/answer", s.handleConnectAnswer)
 	m.HandleFunc("POST /api/auth/pair", s.handleAuthPairStart)
 	m.HandleFunc("GET /api/auth/pair/{session}", s.handleAuthPairPoll)
 	m.HandleFunc("GET /api/auth/pair/{session}/pin", s.handleAuthPairPIN)
@@ -370,6 +373,9 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/approve", a(s.handlePairApprove))
 	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
+	m.Handle("GET /api/connect", a(s.handleConnectStatus))
+	m.Handle("POST /api/connect/offer", a(s.handleConnectOffer))
+	m.Handle("DELETE /api/connect/offer", a(s.handleConnectCancel))
 	m.Handle("GET /api/auth/pair/{session}/info", a(s.handleAuthPairInfo))
 	m.Handle("POST /api/auth/pair/{session}/approve", a(s.handleAuthPairApprove))
 	m.Handle("POST /api/auth/pair/{session}/deny", a(s.handleAuthPairDeny))

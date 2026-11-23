@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useCallback, useEffect, useState } from 'react'
-import { api, ApiError } from '../../api'
+import { api } from '../../api'
 import { IconCheck, IconInfo } from '../../icons'
 import { toast } from '../../state'
-import QrCode from './QrCode'
 import { Row, Section } from './ui'
 import SpecPage from '../../spec/SpecPage'
 import { handledIds } from '../../spec/model'
@@ -131,9 +130,6 @@ export default function PeerToPeer() {
   const [accept, setAccept] = useState(false)
   const [test, setTest] = useState<{ steps: Step[]; verdict?: Verdict } | null>(null)
   const [testing, setTesting] = useState(false)
-  const [invite, setInvite] = useState<{ link: string; until: number } | null>(null)
-  const [joinCode, setJoinCode] = useState('')
-  const [joined, setJoined] = useState('')
   const [owner, setOwner] = useState<OwnerAsk | null>(null)
   const [relays, setRelays] = useState<string | null>(null)
   const load = useCallback(() => api.get<View>('/p2p/settings').then(setV).catch(() => {}), [])
@@ -178,37 +174,6 @@ export default function PeerToPeer() {
     setTesting(true); setTest(null)
     try { setTest(await api.post<{ steps: Step[]; verdict?: Verdict }>('/p2p/test')); load() } catch (e: any) { toast(e.message) } finally { setTesting(false) }
   }
-  // An invite signs the device in as you; for an administrator that takes your password
-  // again, as approving a TV at home does (the server answers password-required).
-  const invited = (r: { link: string; expiresInSec: number }) => setInvite({ link: r.link, until: Date.now() + r.expiresInSec * 1000 })
-  const makeInvite = async () => {
-    try {
-      invited(await api.post<{ link: string; expiresInSec: number }>('/p2p/invite', {}))
-    } catch (e: any) {
-      if (e instanceof ApiError && e.status === 403 && e.data?.reason === 'password-required') {
-        setOwner({
-          title: t('Invite a device as you?'),
-          body: <p>{t('The invite signs a device in as you, an administrator, wherever it is. Only send it to a device of your own.')}</p>,
-          action: t('Make the invite'),
-          run: async (password, code) => { invited(await api.post<{ link: string; expiresInSec: number }>('/p2p/invite', { password, otp: code })) },
-        })
-        return
-      }
-      toast(e.message)
-    }
-  }
-  // A TV away from home can't take a link in, so it shows a short code instead, and that is typed here.
-  // It signs the TV in as the owner, which takes the owner's password again, as approving a TV at home does.
-  const codeTyped = joinCode.replace(/[\s-]/g, '')
-  const takeCode = () => setOwner({
-    title: t('Sign that device in as you?'),
-    body: <p>{t('The device showing')} <b>{joinCode.trim().toUpperCase()}</b> {t('is put on the list above and signed in as you, wherever it is. Only type in a code you can see on your own device: whoever is showing it gets in.')}</p>,
-    action: t('Add the device'),
-    run: async (password, code) => {
-      await api.post('/p2p/join', { code: joinCode, password, otp: code })
-      setJoined(joinCode.trim().toUpperCase()); setJoinCode('')
-    },
-  })
   const remove = async (d: Device) => {
     if (!await ask({ title: t('Remove {name}?', { name: d.name }), body: t('It can’t connect from away any more, and is cut off now if it is connected. It stays signed in, so it still works at home; sign it out under Sign-in & security to stop that too.'), confirm: t('Remove'), danger: true })) return
     try { await api.del(`/p2p/devices/${d.id}`); toast(t('Removed')); load() } catch (e: any) { toast(e.message) }
@@ -223,7 +188,7 @@ export default function PeerToPeer() {
   }
   const rotate = () => setOwner({
     title: t('Give this server a new connection ID?'),
-    body: <p>{t('Use this if the ID has got to someone it shouldn’t have. Every device then has to learn the new ID before it can connect from away again: the apps do that by themselves the next time they are at home, or you can send an invite.')}</p>,
+    body: <p>{t('Use this if the ID has got to someone it shouldn’t have. Every device then has to learn the new ID before it can connect from away again: the apps do that by themselves the next time they are at home, or you can connect them again with Connect a device.')}</p>,
     action: t('Make a new ID'),
     run: async (password, code) => { setV(await api.post<View>('/p2p/rotate', { password, code })); toast(t('This server has a new connection ID')) },
   })
@@ -250,28 +215,7 @@ export default function PeerToPeer() {
       {s.layers.relay && <OwnRelays s={s} status={v.status?.ownRelays || []} busy={busy} save={save} />}
 
       <h4 className="p2p-head">{t('Devices that may connect')}</h4>
-      <SpecPage embedded bare page={devicesPage} handled={devicesHandled} onAction={(id) => { if (id === 'invite') void makeInvite(); else { const d = v.devices.find((x) => x.id === id.slice(7)); if (d) void remove(d) } }} />
-      {invite && (
-        <div className="rem-test">
-          <QrCode text={invite.link} label={t('QR code holding the invite')} size={200} />
-          <div>
-            <p>{t('In the app on the other device, choose')} <b>{t('Connect with an invite')}</b> {t('and scan this, or send the link below. It signs the device in as you.')}</p>
-            <span className="rem-copy"><code>{invite.link}</code><button type="button" className="btn sm ghost" onClick={() => copy(invite.link)} aria-label={t('Copy the invite link')}>{t('Copy')}</button></span>
-            <small className="muted">{t('Works once, for fifteen minutes, and only while you stay signed in here. Treat it like a password until then: whoever has it gets in as you.')}</small>
-            <div><button type="button" className="btn sm ghost" onClick={() => setInvite(null)}>{t('Hide')}</button></div>
-          </div>
-        </div>
-      )}
-
-      {s.layers.dht && (
-        <Row label={t('A TV that shows a code')} desc={t('A TV that isn’t at home has no way to take an invite in. In its app, choose Join from away: it shows a code of eight letters and digits. Type it here.')} stack>
-          <form className="rem-actions" onSubmit={(e) => { e.preventDefault(); if (codeTyped.length === 8) takeCode() }}>
-            <input className="input p2p-code" value={joinCode} onChange={(e) => { setJoinCode(e.target.value); setJoined('') }} placeholder="K7QM-2XHD" maxLength={12} autoCapitalize="characters" autoComplete="off" spellCheck={false} aria-label={t('The code the device shows')} />
-            <button type="submit" className="btn sm" disabled={codeTyped.length !== 8}>{t('Add the device…')}</button>
-          </form>
-          {joined && <small className="muted" role="status">{t('This server is now looking out for the device showing {code}. It joins within a minute or so and appears in the list above; the code works once, for fifteen minutes.', { code: joined })}</small>}
-        </Row>
-      )}
+      <SpecPage embedded bare page={devicesPage} handled={devicesHandled} onAction={(id) => { const d = v.devices.find((x) => x.id === id.slice(7)); if (d) void remove(d) }} />
 
       <SpecPage embedded bare page={optionsPage} onField={(id, val) => {
         if (busy) return

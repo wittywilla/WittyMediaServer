@@ -5,11 +5,11 @@ import { api, fitWidth, sized, type Album, type Artist, type Item, type Library 
 import { useAudio } from '../../audio/player'
 import { EmptyState } from '../../components/common'
 import { IconAudio, IconPlay } from '../../icons'
-import { emptyLibraryWords } from '../../profileWords'
+import { LibraryEmpty } from '../../components/LibraryEmpty'
 import { toast, useApp } from '../../state'
 import { musicTab } from './musicRoute'
 import { albumLink, coverUrl, shuffledCopy } from './parts'
-import { useMusic } from './store'
+import { forget, prefetch, useMusic } from './store'
 import { AlbumCard, Art, ArtistCard, ListCard, PageShape, PlayButton, Shelf, tracksUrl } from './ui'
 import { hasMusicVideos } from './MusicVideos'
 import { num, t, tk, tx } from '../../i18n'
@@ -43,12 +43,12 @@ const VIEWS: { view: string; name: string; sub: string; hue: number }[] = [
 ]
 
 export default function MusicHome({ lib }: { lib: Library }) {
-  const { user, libraries } = useApp()
+  const { libraries } = useApp()
   const audio = useAudio()
   const { data: home, failed } = useMusic<Home>(`/music/home?library=${lib.id}`)
   if (failed) return <EmptyState icon={<IconAudio />} title={t('Music wouldn’t load')} text={t('The server didn’t answer. Try again in a moment.')} />
   if (!home) return <PageShape kind="shelves" />
-  if (!home.hero.length && !home.albums.length) return <div className="mus-page"><EmptyState icon={<IconAudio />} title={t('Nothing here yet')} text={emptyLibraryWords(user, t('Add music to this library’s folders and scan it.'))} /></div>
+  if (!home.hero.length && !home.albums.length) return <div className="mus-page"><LibraryEmpty lib={lib} icon={<IconAudio />} forOwner={t('Add music to this library’s folders and scan it.')} onScanned={() => { forget('/music/'); prefetch(`/music/home?library=${lib.id}`) }} /></div>
   const playView = async (view: string, shuffle?: boolean) => {
     const items = await api.get<Item[]>(`/music/songs?library=${lib.id}&view=${view}&limit=500`)
     if (!items.length) { toast(t('Nothing there yet')); return }

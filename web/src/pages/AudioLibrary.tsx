@@ -10,7 +10,7 @@ import { BackLink, EmptyState, Placeholder, ScanButton, SkeletonGrid, Spinner } 
 import { IconAudio, IconCheck, IconDisc, IconPlay } from '../icons'
 import { PlayOnButton, queueOf } from '../remote/PlayOnButton'
 import { toast, useApp } from '../state'
-import { emptyLibraryWords } from '../profileWords'
+import { LibraryEmpty } from '../components/LibraryEmpty'
 import { AddPodcast, DownloadButton, PodcastAdmin, PodcastFinder, PodcastWays } from './Podcasts'
 import LegalNote from '../components/LegalNote'
 import LibraryHeader, { type SortOption } from '../components/LibraryHeader'
@@ -105,7 +105,7 @@ function HomeTab({ lib, reload, onReload }: { lib: Library; reload: number; onRe
         </div>
       )
     }
-    return <EmptyState icon={<IconAudio />} title={t('Nothing here yet')} text={tx(emptyLibraryWords(user, t('Add audio files to this library’s folders and scan it.')))} />
+    return <LibraryEmpty lib={lib} icon={<IconAudio />} forOwner={t('Add audio files to this library’s folders and scan it.')} onScanned={onReload} />
   }
   const mode: AudioMode = pods ? 'podcasts' : books ? 'audiobooks' : 'music'
   const playAll = async () => {
@@ -236,7 +236,7 @@ function AlbumsTab({ lib, params, set, reload, onReload }: { lib: Library; param
           <PodcastWays />
           {user?.isAdmin ? <PodcastFinder libraryId={lib.id} onAdded={onReload} /> : <p className="muted">{t('Ask whoever runs this server to follow some shows.')}</p>}
         </div>
-      ) : <EmptyState icon={<IconAudio />} title={t('Nothing here')} text={genre ? t('Nothing in this genre.') : tx(emptyLibraryWords(user, t('Add audio files to this library’s folders and scan it.')))} />) : (
+      ) : genre ? <EmptyState icon={<IconAudio />} title={t('Nothing here')} text={t('Nothing in this genre.')} /> : <LibraryEmpty lib={lib} icon={<IconAudio />} forOwner={t('Add audio files to this library’s folders and scan it.')} onScanned={onReload} />) : (
         <div className="album-grid">
           {(shown || []).map((a) => <AlbumTile key={a.artist + '|' + a.title} libId={lib.id} a={a} book={books} />)}
         </div>

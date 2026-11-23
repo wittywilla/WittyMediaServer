@@ -414,7 +414,7 @@
       "hosts": [],
       "gets": "Playlist, stream and guide addresses, which can include sign-in details, sent to the provider or source an administrator set. A channel logo named in a playlist is fetched by this server and kept here, so that site sees this server’s address, not a viewer’s.",
       "when": "Guides every 12 hours. Streams while someone watches or records. A logo the first time the guide or a channel shows it.",
-      "control": "Settings, Channels & tuners; the guide’s Channel logos option",
+      "control": "Settings, Library channels & WittyTV; the guide’s Channel logos option",
       "setting": "/settings/channels"
     },
     {

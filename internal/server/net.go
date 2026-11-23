@@ -131,6 +131,17 @@ func (s *Server) notePlainSession(r *http.Request, token string) {
 	}
 }
 
+// noteP2PSession ties a sign-in used over a peer-to-peer connection to the
+// device it came from: taking that device off the list signs it out too.
+func (s *Server) noteP2PSession(r *http.Request, token string) {
+	if token == "" || auth.IsStreamToken(token) {
+		return
+	}
+	if c := clientFrom(r); c.P2P && c.P2PDevice != "" {
+		s.Auth.MarkP2PDevice(r.Context(), token, c.P2PDevice)
+	}
+}
+
 func (s *Server) refuse(w http.ResponseWriter, r *http.Request, msg string) {
 	if strings.HasPrefix(r.URL.Path, "/api/") {
 		writeErr(w, 403, msg)
@@ -152,6 +163,7 @@ func (s *Server) touchSession(r *http.Request, token string) {
 	streaming := strings.HasPrefix(p, "/api/hls/") || strings.HasSuffix(p, "/file") || strings.HasSuffix(p, "/stream")
 	s.Auth.Touch(r.Context(), token, c.IP.String(), c.Where.String(), viaName(c, r), streaming)
 	s.notePlainSession(r, token)
+	s.noteP2PSession(r, token)
 }
 
 func viaName(c remote.Client, r *http.Request) string {

@@ -326,6 +326,7 @@ func (s *Server) handlePairRedeem(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Log.InfoContext(r.Context(), "device signed in with a code", "cat", "auth", "device", device, "user", u.Name, "from", ipOf(r))
 	s.notePlainSession(r, tok)
+	s.noteP2PSession(r, tok) // a device that joined by invite or code signs in here
 	writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 }
 

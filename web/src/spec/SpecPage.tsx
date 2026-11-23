@@ -50,7 +50,7 @@ export default function SpecPage({ page: raw, onAction, onField, handled, after,
     <article className={'spec-page' + (embedded ? ' embedded' : '') + (bare ? ' bare' : '') + (className ? ' ' + className : '')} data-spec={page.key}>
       {!embedded && !bare && (
         <header className="spec-head">
-          <p className="spec-eyebrow">{page.eyebrow}</p>
+          {page.eyebrow && <p className="spec-eyebrow">{page.eyebrow}</p>}
           <h1>{page.title}</h1>
           {page.lead && <p className="spec-lead">{page.lead}</p>}
         </header>

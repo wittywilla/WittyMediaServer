@@ -42,7 +42,9 @@ const tagAll = () => page.eval(`(() => {
   const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
   const seen = []
   let n = window.__n || 0
-  for (const el of document.querySelectorAll(FOCUSABLE)) {
+  // A dialog that's open is all a remote can reach; the page behind it waits.
+  const scope = document.querySelector('.ui-dialog') || document
+  for (const el of scope.querySelectorAll(FOCUSABLE)) {
     const r = el.getBoundingClientRect()
     if (r.width < 2 || r.height < 2 || (el.closest('details:not([open])') && !el.closest('summary'))) continue
     if (!el.dataset.t) el.dataset.t = String(++n)
@@ -72,7 +74,7 @@ async function map(label) {
   const reached = new Set([all[0]]); const q = [all[0]]
   while (q.length) for (const t of Object.values(graph.get(q.shift()) || {})) if (t && !reached.has(t) && graph.has(t)) { reached.add(t); q.push(t) }
   for (const a of all) if (!reached.has(a)) problems.add(`${label}: the arrows can't reach "${await nameOf(a)}"`)
-  const small = await page.eval(`[...document.querySelectorAll('main button, main select, main textarea, main input:not([type=hidden])')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 && r.height < 48 }).map((e) => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 40))`)
+  const small = await page.eval(`[...(document.querySelector('.ui-dialog') ? document.querySelectorAll('.ui-dialog button, .ui-dialog select, .ui-dialog input:not([type=hidden])') : document.querySelectorAll('main button, main select, main textarea, main input:not([type=hidden])'))].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 && r.height < 48 }).map((e) => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 40))`)
   for (const s of small) problems.add(`${label}: under 48px: "${s}"`)
   if (await page.eval(`document.documentElement.scrollWidth > document.documentElement.clientWidth + 1`)) problems.add(`${label}: sideways scroll`)
   return { all, graph }

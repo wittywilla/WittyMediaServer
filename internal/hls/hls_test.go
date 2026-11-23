@@ -664,10 +664,13 @@ func TestStreamThreads(t *testing.T) {
 	if got := line(copied); !strings.Contains(got, "-ss 120.000 -noaccurate_seek") || strings.Index(got, "-noaccurate_seek") > strings.Index(got, "-i in.mkv") {
 		t.Errorf("a copy picked up at 2 min should start its sound at the keyframe too, before the input:\n%s", got)
 	}
+	if got := line(copied); strings.Contains(got, "first_pts=0") {
+		t.Errorf("the sound read from the keyframe mustn't be cut back to the place:\n%s", got)
+	}
 	converted := copied
 	converted.CopyVideo = false
-	if got := line(converted); strings.Contains(got, "-noaccurate_seek") {
-		t.Errorf("a converted picture starts at the place itself:\n%s", got)
+	if got := line(converted); strings.Contains(got, "-noaccurate_seek") || !strings.Contains(got, "first_pts=0") {
+		t.Errorf("a converted picture starts at the place itself, and so does its sound:\n%s", got)
 	}
 }
 

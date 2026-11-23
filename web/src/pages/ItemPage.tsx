@@ -22,6 +22,7 @@ import { IconDevices, IconDisc, IconEdit, IconFilm, IconImage, IconInfo, IconMen
 import { IconButton, RowSheet, Rows, SheetRow } from '../ui'
 import { useMedia } from '../shell/useNav'
 import { useApp } from '../state'
+import { fileSizeText } from '../sizeText'
 import LegalNote from '../components/LegalNote'
 import { num, t, tn, tx } from '../i18n'
 
@@ -68,7 +69,7 @@ export default function ItemPage() {
   const disc = isDisc(it)
   const resume = it.progress?.resumeSec ? it.progress : null
   const main = it.disc?.titles.find((x) => x.number === it.disc?.mainTitle)
-  const sizeGB = it.sizeBytes ? t('{size} GB', { size: num(it.sizeBytes / 1e9, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }) : ''
+  const sizeGB = it.sizeBytes ? fileSizeText(it.sizeBytes) : ''
   const start = dvdStartMode(it)
   const fx = insertFxOn(it)
   const playable = !(disc && it.disc?.scrambled)

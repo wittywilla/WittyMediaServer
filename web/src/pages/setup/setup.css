@@ -171,6 +171,8 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .oobe-step.now i { background: var(--accent); color: var(--accent-fg); }
 .oobe-col { min-width: 0; display: grid; gap: var(--sp-3); }
 .oobe-skip { margin: 0; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; font-size: var(--text-sm); }
+/* While modules are installing or installed, the step has its own Continue: no second way out under it. */
+main:has(.su-going) ~ .oobe-skip { display: none; }
 @media (max-width: 900px) { .oobe-body { grid-template-columns: 1fr; } .oobe-steps { display: none; } }
 .su-req { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr); gap: var(--sp-3); align-items: center; margin-top: var(--sp-3); }
 @media (max-width: 700px) { .su-req { grid-template-columns: 1fr; } }

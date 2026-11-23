@@ -14,3 +14,7 @@
   .set-back + .set-help > * { pointer-events: auto; }
   .set-main:has(.st-page > .back-link) > .set-back + .set-help { height: auto; padding-top: 0; margin: 0 0 calc(var(--sp-2) * -1); pointer-events: auto; }
 }
+/* On a phone the row it shares is the top bar's, whose far end is the activity button: stop short of it. */
+@media (max-width: 700px) {
+  .set-back + .set-help { padding-inline-end: calc(var(--control-h) + var(--sp-3)); }
+}

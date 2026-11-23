@@ -110,7 +110,7 @@ export default function SetupWizard() {
           <div className="brand"><BrandMark /><Brand name={tryName?.name ?? brandName} parts={tryName?.parts} /></div>
           <div className="su-progress">
             <div className="su-progress-line">
-              <p className="su-progress-words" id="su-where">{t('Step {at} of {of}', { at: number.at, of: number.of })}<span className="su-where-name"> · {tx(DRAWN.find((x) => x.id === drawnId(step.id))?.label || step.label)}</span>{number.page && <span className="su-where-page"> · {t('part {at} of {of}: {name}', { at: number.page.at, of: number.page.of, name: tx(step.label) })}</span>}</p>
+              <p className="su-progress-words" id="su-where">{t('Step {at} of {of}', { at: number.at, of: number.of })}<span className="su-where-name"> · {tx(DRAWN.find((x) => x.id === drawnId(step.id))?.label || step.label)}</span>{number.page && <span className="su-where-page"> · {step.label === DRAWN.find((x) => x.id === step.drawn)?.label ? t('part {at} of {of}', { at: number.page.at, of: number.page.of }) : t('part {at} of {of}: {name}', { at: number.page.at, of: number.page.of, name: tx(step.label) })}</span>}</p>
               <HelpLink to="getting-started#what-first-time-setup-asks" newTab>{t('Help with setup')}</HelpLink>
             </div>
             <Progress label={t('How far through setup')} value={number.at} max={number.of} />

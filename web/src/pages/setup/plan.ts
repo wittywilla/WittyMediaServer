@@ -17,7 +17,7 @@ export const DRAWN: { id: DrawnId; label: string }[] = [
   { id: 'modules', label: tk('Modules') },
   { id: 'media', label: tk('Your media') },
   { id: 'look', label: tk('Look') },
-  { id: 'ready', label: tk('Ready') },
+  { id: 'ready', label: tk('Finish') },
 ]
 
 // What the steps depend on. kinds is null until it's known, which it can't be before there's an
@@ -90,7 +90,10 @@ export const drawnId = (id: StepId): DrawnId => STEPS.find((s) => s.id === id)?.
 export function drawnNumber(steps: StepInfo[], id: StepId): { at: number; of: number; page?: { at: number; of: number } } {
   const d = drawnId(id)
   const n = { at: Math.max(0, DRAWN.findIndex((x) => x.id === d)) + 1, of: DRAWN.length }
+  // Once the account is made its page is gone from the list, but it's still the first page of its step, so the count
+  // doesn't change under someone ("part 2 of 3" on the page after it, as before).
   const pages = steps.filter((s) => s.drawn === d)
+  if (d === 'account' && !pages.some((s) => s.id === 'account')) pages.unshift(STEPS.find((s) => s.id === 'account')!)
   return pages.length > 1 ? { ...n, page: { at: pages.findIndex((s) => s.id === id) + 1, of: pages.length } } : n
 }
 

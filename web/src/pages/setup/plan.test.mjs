@@ -97,6 +97,8 @@ test('the step number counts the six steps, and the pages of one step share its 
   assert.deepEqual(drawnNumber(steps, 'tv'), { at: 4, of: 6, page: { at: 2, of: 8 } })
   assert.deepEqual(drawnNumber(steps, 'colours'), { at: 5, of: 6, page: { at: 2, of: 3 } })
   assert.deepEqual(drawnNumber(steps, 'done'), { at: 6, of: 6, page: { at: 3, of: 3 } })
+  assert.deepEqual(drawnNumber(planSteps(advanced({ signedIn: false, kinds: null })), 'account'), { at: 2, of: 6, page: { at: 1, of: 3 } })
+  assert.deepEqual(drawnNumber(planSteps(advanced()), 'name'), { at: 2, of: 6, page: { at: 2, of: 3 } }, 'the account still counts once it is made')
 })
 
 test('the games line is word for word what was asked for', () => {

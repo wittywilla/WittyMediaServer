@@ -17,6 +17,7 @@ import '../modules.css'
 import './store.css'
 import { OverrideTags } from './overrideParts'
 import { itemReleaseStatus } from './overrides'
+import { hasNews, splitNotes } from './changeNotes'
 
 // ------------------------------------------------------------------- staying up to date
 
@@ -113,9 +114,25 @@ export function StateTags({ item }: { item: StoreItem }) {
 
 // A version's changelog, as text. Nothing in it can become markup: it's only ever text nodes.
 // With nothing in it but headings, such as the version's number, there's no news either.
-export function ChangeNotes({ text }: { text?: string }) {
-  const blocks = changelogBlocks(text || '')
-  if (!blocks.some((b) => b.kind !== 'h')) return <p className="st-notes-none">{tx(NOTHING_NOTABLE)}</p>
+// People see the plain part; file names, API paths and the like are developer notes (#549),
+// folded away on a module's page (developer) and left out of the overview.
+export function ChangeNotes({ text, developer }: { text?: string; developer?: boolean }) {
+  const split = splitNotes(text)
+  return (
+    <>
+      {hasNews(split) ? <NoteBlocks text={split.people} /> : <p className="st-notes-none">{tx(NOTHING_NOTABLE)}</p>}
+      {developer && split.developer && (
+        <details className="ms-more st-dev-notes">
+          <summary>{t('Developer notes')}</summary>
+          <NoteBlocks text={split.developer} />
+        </details>
+      )}
+    </>
+  )
+}
+
+function NoteBlocks({ text }: { text: string }) {
+  const blocks = changelogBlocks(text)
   return (
     <div className="st-notes">
       {blocks.map((b, i) => b.kind === 'ul'
@@ -128,8 +145,9 @@ export function ChangeNotes({ text }: { text?: string }) {
 // The latest news across what's installed, newest first, with an update's news first of all.
 export function WhatsNew({ view, limit = 5 }: { view: StoreView; limit?: number }) {
   const installed = view.items.filter((i) => i.status?.installed && i.kind !== 'server')
-  // An update is news even when it says nothing about itself.
-  const withNews = installed.filter((i) => i.status?.latest || (i.changelog || '').trim())
+  // An update is news even when it says nothing about itself. A release that only retook the
+  // README's pictures, or has only developer notes, isn't (#553).
+  const withNews = installed.filter((i) => i.status?.latest || hasNews(splitNotes(i.changelog)))
   const order = (i: StoreItem) => (i.status?.latest ? 1 : 0)
   const shown = [...withNews].sort((a, b) => order(b) - order(a) || (b.released || '').localeCompare(a.released || '')).slice(0, limit)
   return (
@@ -348,7 +366,9 @@ export function UpdateAllPanel({ view, onChanged }: { view: StoreView; onChanged
           <b className="st-updateall-count">{running ? t('Updating…') : n > 0 ? tn('{count} update available', '{count} updates available', n) : view.checkedAt ? t('Every module is up to date') : t('No updates known yet')}</b>
           {view.checkedAt ? <span className="muted"> {t('Last checked {when}.', { when: date(view.checkedAt, { dateStyle: 'medium', timeStyle: 'short' }) })}</span> : <span className="muted"> {t('The server hasn’t looked yet.')}</span>}
         </div>
-        <Button variant={n > 0 && !running ? 'primary' : 'default'} className={idle ? 'st-idle' : undefined} aria-busy={starting || running || undefined} aria-disabled={idle || undefined} onClick={go}>{n > 0 ? t('Update All Modules ({count})', { count: n }) : t('Update All Modules')}</Button>
+        {/* Every module up to date and no run to show: no button that does nothing (#553). After a run it
+            stays, quiet, so the focus a remote left on it isn't dropped. */}
+        {(n > 0 || running || showsRun(view.run)) && <Button variant={n > 0 && !running ? 'primary' : 'default'} className={idle ? 'st-idle' : undefined} aria-busy={starting || running || undefined} aria-disabled={idle || undefined} onClick={go}>{n > 0 ? t('Update All Modules ({count})', { count: n }) : t('Update All Modules')}</Button>}
       </div>
       {showsRun(view.run) && <RunPanel run={view.run!} onChanged={onChanged} repairRoute={view.repairRoute} />}
       {failure && <FailureDialog failure={failure} name={t('Update All')} repairRoute={view.repairRoute} onClose={() => setFailure(null)} />}

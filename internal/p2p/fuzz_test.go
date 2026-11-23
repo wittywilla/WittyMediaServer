@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/netip"
+	"reflect"
 	"testing"
 	"time"
 
@@ -239,6 +240,8 @@ func FuzzCleanName(f *testing.F) {
 }
 
 func FuzzRelayOffer(f *testing.F) {
+	f.Add([]byte(`{"health":{"state":"busy","load":87}}`))
+	f.Add([]byte(`{"health":{"state":"<b>","load":-9223372036854775808}}`))
 	f.Add([]byte(`{"v":1,"name":"Mine","access":"key","kbps":4000,"maxHeight":720,"dataMiB":4096,"minutes":180}`))
 	f.Add([]byte(`{"kbps":-1,"totalKbps":99999999999,"dataMiB":-5,"note":"\u202eevil"}`))
 	f.Fuzz(func(t *testing.T, b []byte) {
@@ -250,8 +253,11 @@ func FuzzRelayOffer(f *testing.F) {
 		if c.Kbps < 0 || c.TotalKbps < 0 || c.DataMiB < 0 || c.Minutes < 0 || (c.MaxHeight != 0 && (c.MaxHeight < 144 || c.MaxHeight > 4320)) {
 			t.Fatalf("%+v cleaned to %+v", o, c)
 		}
-		if c.Clean() != c {
+		if !reflect.DeepEqual(c.Clean(), c) {
 			t.Fatalf("cleaning twice changed %+v", c)
+		}
+		if h := c.Health; h != nil && (h.Load < 0 || h.Load > 100 || h.Load%10 != 0) {
+			t.Fatalf("health %+v", h)
 		}
 		if w := c.Words(); w == "" {
 			t.Fatal("no words")

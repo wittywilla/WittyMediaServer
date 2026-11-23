@@ -636,7 +636,16 @@ func TestReconnectsWhenTheServerComesBack(t *testing.T) {
 	if code, _, err := get(t, c, "/hello"); err != nil || code != 200 {
 		t.Fatalf("after the server came back: %d %v", code, err)
 	}
-	// The app was told about each change, in order.
+	// The app was told about each change, in order. The keeper wakes its waiters before it
+	// calls OnState, so the last call may still be on its way when waitPath returns.
+	for end := time.Now().Add(patience); ; time.Sleep(20 * time.Millisecond) {
+		mu.Lock()
+		last := len(paths) > 0 && paths[len(paths)-1] == PathLocal
+		mu.Unlock()
+		if last || time.Now().After(end) {
+			break
+		}
+	}
 	mu.Lock()
 	defer mu.Unlock()
 	joined := strings.Join(paths, " ")

@@ -20,3 +20,9 @@ export function commercialsSwitchText(on: boolean): string {
     ? tk('On: it shows in the menus and on Home, and plays on the channels you choose it for.')
     : tk('Off: only channels use it, on the channels you choose it for.')
 }
+
+// nfoSwitchShown: the kinds of library whose scan the switch changes: films and other videos read
+// movie.nfo and <name>.nfo, shows and anime tvshow.nfo and each episode's. Music, books,
+// audiobooks, photos and the rest never read another program's .nfo, so it isn't offered there.
+const NFO_KINDS = new Set(['movies', 'shows', 'anime', 'discs', 'videos', 'commercials'])
+export const nfoSwitchShown = (type: string): boolean => NFO_KINDS.has(type)

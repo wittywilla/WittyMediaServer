@@ -16,7 +16,7 @@ import { t, tk, tn } from '../../i18n'
 
 // WittyTV's channels from your library, on a page of their own: the list, the
 // channels it suggests, and an editor per channel at /tv/channels/<id>. Tuners,
-// guide data and the options stay in Settings, Channels & tuners.
+// guide data and the options stay in Settings, Library channels & WittyTV.
 
 export default function ChannelsPage() {
   const { user } = useApp()
@@ -134,7 +134,7 @@ function ChannelList() {
           </button>
         </Row>
         <Row label={t('Tuners, IPTV and guide data')} desc={t("Live TV sources, their channels, XMLTV listings and WittyTV's options are in Settings.")}>
-          <Link className="btn sm" to="/settings/channels"><IconSettings /> {t('Open Channels & tuners')}</Link>
+          <Link className="btn sm" to="/settings/channels"><IconSettings /> {t('Open Library channels & WittyTV')}</Link>
         </Row>
       </Section>
     </>

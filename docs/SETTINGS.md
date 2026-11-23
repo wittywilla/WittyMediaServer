@@ -22,8 +22,8 @@ Open Settings from your account menu, the picture at the top right. On a TV or a
 | Save posters and info files beside my media | [Metadata agents](#metadata-agents), **Saving information** |
 | Skip disc menus, or change the disc region | [DVDs and Blu-rays](#dvds-and-blu-rays) |
 | Allow faster playback speeds | [Playback](#playback) |
-| Add a TV tuner, an IPTV list or guide data | [Channels and tuners](#channels-and-tuners) |
-| Make a channel from my library | [Channels and tuners](#channels-and-tuners) |
+| Add a TV tuner, an IPTV list or guide data | [Library channels and WittyTV](#library-channels-and-wittytv), then **Live TV & tuners** |
+| Make a channel from my library | [Library channels and WittyTV](#library-channels-and-wittytv) |
 | Install what a console needs to play | [Games and emulators](#consoles-and-cores) |
 | Change how my games look and sound | [My game settings](#my-game-settings) |
 | Make conversion easier on my computer | [Live transcoding](#live-transcoding) |
@@ -126,12 +126,12 @@ The page is called **DVDs and Blu-rays**, and it's WittyDisc's: it's there with 
 
 More: [DVDs](DVD.md), [Blu-rays](BLURAY.md).
 
-### Channels and tuners
+### Library channels and WittyTV
 
-The page is called **Channels & tuners**.
+The page is called **Library channels & WittyTV**.
 
-![The Channels and tuners page in Settings](images/settings-channels.webp)
-*Settings, Channels & tuners.*
+![The Library channels and WittyTV page in Settings](images/settings-channels.webp)
+*Settings, Library channels & WittyTV.*
 
 - **Channels from your library** run all the time, like real TV. You tune in and join the show part-way through. They're made and changed on a page of their own, **Channels** (**Open the channel list**, or **Edit channels** in the guide), with the channels suggested from your library and **Network facts**, which fills in the network and original day and time of shows.
 - **Tuners and IPTV** adds tuners and internet TV lists. **Add live TV** goes a step at a time, from what you have to its channels and guide data, finding devices where it can and taking the rest by hand. No channel lists or stream addresses come with the server. Encrypted channels are shown as encrypted and are never decrypted.

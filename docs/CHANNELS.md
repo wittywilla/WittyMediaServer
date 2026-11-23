@@ -28,7 +28,7 @@ Use this guide to make always-on TV channels from your own library, add live TV 
 
 ## Your first channel
 
-1. Open **TV guide** in the menu and press **Edit channels**, or go to **Settings → Channels & tuners** and press **Open the channel list**. Either way you reach **Channels**, the page for channels from your library (its address is `/tv/channels`).
+1. Open **TV guide** in the menu and press **Edit channels**, or go to **Settings → Library channels & WittyTV** and press **Open the channel list**. Either way you reach **Channels**, the page for channels from your library (its address is `/tv/channels`).
 2. Under **Add with one click**, press **Add** on anything suggested. It's on the air straight away.
 3. Open **TV guide** in the menu. Move with the arrow keys or a remote, press Enter or OK to watch, and dial a channel with the number keys.
 
@@ -116,7 +116,7 @@ WittyTV has themes of its own, apart from the app's theme. Press **Look** on the
 | **Compact** | Small type and tight rows, with the top reduced to a strip, for seeing the most channels at once | From your app theme |
 | **Custom** | Your own: choose the layout from any of the above, the type and the colours. It starts from what was on your screen, and it stays as you left it if you try another theme | Your choice |
 
-**Which wins.** Your own choice comes first. Then what your [app theme](THEMES.md#wittytv-themes) suggests. Then the theme the server's owner chose for new viewers, under **Options** in **Settings → Channels & tuners**. **Look** always says which of these you're seeing. **Stop choosing, and use the default** goes back down that list, and **Back to how it started** undoes all your choices. Custom is each viewer's own, so an owner or an app theme can't set it. Looks saved before there were themes moved over as they were: anything that wasn't one of the themes became that theme's overrides, or Custom.
+**Which wins.** Your own choice comes first. Then what your [app theme](THEMES.md#wittytv-themes) suggests. Then the theme the server's owner chose for new viewers, under **Options** in **Settings → Library channels & WittyTV**. **Look** always says which of these you're seeing. **Stop choosing, and use the default** goes back down that list, and **Back to how it started** undoes all your choices. Custom is each viewer's own, so an owner or an app theme can't set it. Looks saved before there were themes moved over as they were: anything that wasn't one of the themes became that theme's overrides, or Custom.
 
 **Colours.** Under **Colours**, choose **Background**, **Programmes**, **On now**, **Highlight**, **Accent** or **Text**, and pick one of the swatches, any colour, or type its code. A colour you pick overrides that one for this theme only, and **Back to following the app theme** or **Back to its own colours** undoes them. Text is always worked out to be readable on what it's on, and a colour that can't be read is moved until it can, whatever you choose, and it says so when that happens.
 
@@ -396,7 +396,7 @@ These need the **WittyTuner** module. No channel lists or stream addresses come 
 **No tuner yet?** **Add a demo tuner** (or **Try a demo tuner** in first-time setup) adds pretend channels and a guide made on the server itself, to try the guide, recording and WittyTV with no hardware and no internet. See [the demo tuner](LIVE-TV.md#try-it-with-no-tuner-the-demo-tuner).
 
 ![The Channels and tuners page in Settings](images/settings-channels.webp)
-*Settings, Channels & tuners, on a server with no tuner attached.*
+*Settings, Library channels & WittyTV, on a server with no tuner attached.*
 
 1. Go to **Settings → Live TV & tuners**, which WittyTuner adds once it is installed (Settings → Modules). Its tuners, their channels and the guide sources are WittyTuner's own, kept in its own data; the guide and recordings stay the server's. On a TV or phone app, the same is an administrator's page from WittyTuner: the tuners, what's on this network to add with a press, each tuner's channels, and the guide sources.
 2. Press **Add live TV**. It goes a step at a time:

@@ -26,7 +26,7 @@ import { ConsolePicker } from '../components/ConsolePicker'
 import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import { jumpWhenReady } from './settings/jump'
-import { commercialsSwitchText, nfoOn, nfoSwitchText } from './settings/librarySwitches'
+import { commercialsSwitchText, nfoOn, nfoSwitchShown, nfoSwitchText } from './settings/librarySwitches'
 import { SettingsResults, SettingsSearch } from './settings/SettingsSearch'
 import TranscodeSettings from './TranscodeSettings'
 import LanguageSettings from './settings/Language'
@@ -95,7 +95,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'pages', label: tk('Pages & menu'), icon: <IconSidebar />, admin: true, hint: tk('What Home, the libraries and the menu hold, for everyone') },
     { to: 'metadata', label: tk('Metadata agents'), icon: <IconTag />, admin: true, hint: tk('Where posters and plots come from') },
     { to: 'playback', label: tk('Playback'), icon: <IconPlay />, admin: true, hint: tk('Player, skipping and streaming') },
-    { to: 'channels', label: tk('Channels & tuners'), icon: <IconChannels />, admin: true, hint: tk('Library channels and WittyTV options') },
+    { to: 'channels', label: tk('Library channels & WittyTV'), icon: <IconChannels />, admin: true, hint: tk('Library channels and WittyTV options') },
     { to: 'transcoding', label: tk('Live transcoding'), icon: <IconFilm />, admin: true, hint: tk('While someone watches: quality, hardware and formats') },
     { to: 'library-transcoding', label: tk('Library transcoding'), icon: <IconFilm />, admin: true, hint: tk('Convert files ahead of time, and connect Tdarr') },
     { to: 'network', label: tk('Network'), icon: <IconNetwork />, admin: true, hint: tk('The port this server answers on at home') },
@@ -396,7 +396,7 @@ export function Libraries() {
               </div>
               <ul className="set-lib-paths">{l.paths.map((p) => <li key={p} title={p}><IconFolder size={14} /><span><bdi>{p}</bdi></span></li>)}</ul>
               {l.type === 'commercials' && <CommercialsSwitch library={l} />}
-              {l.type !== 'radio' && l.type !== 'podcasts' && <NfoSwitch library={l} />}
+              {nfoSwitchShown(l.type) && <NfoSwitch library={l} />}
               {l.type !== 'radio' && l.paths.length > 0 && <ReadOnlySwitch library={l} />}
               <div className="set-lib-actions">
                 <ScanControl lib={l} scanning={l.scanning} progress={l.scanning ? { mode: l.scanMode } : null} size="sm" variant="default" onStarted={() => setTimeout(refreshLibraries, 1000)} />

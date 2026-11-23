@@ -14,7 +14,7 @@ import './tvsettings.css'
 import LegalNote from '../../components/LegalNote'
 import { t, tk, tn } from '../../i18n'
 
-// Settings → Channels & tuners: library channels and WittyTV's options. Tuners, IPTV and guide data
+// Settings → Library channels & WittyTV: library channels and WittyTV's options. Tuners, IPTV and guide data
 // are WittyTuner's own section (Settings → Live TV & tuners).
 // Channels from the library are made and changed on their own page, /tv/channels.
 
@@ -34,7 +34,7 @@ export default function TvSettings() {
 function Overview() {
   return (
     <>
-      <PageHead title={t('Channels & tuners')} desc={t("Channels from your library and WittyTV's options. Tuners and IPTV, with their guide data, are under Live TV & tuners, and sit beside these in one guide.")}
+      <PageHead title={t('Library channels & WittyTV')} desc={t("Channels from your library and WittyTV's options. Tuners and IPTV, with their guide data, are under Live TV & tuners, and sit beside these in one guide.")}
         actions={<Link className="btn" to="/tv"><IconTv /> {t('Open the guide')}</Link>} />
       <LibraryChannels />
       <TunersElsewhere />

@@ -251,6 +251,23 @@ A page has one `h1`, which the announcer reads aloud on every page change: `.too
 `PageHead` in Settings. One main action gets the `primary` button. A page over a backdrop is
 `.detail-hero` + `.detail`; the top bar runs over it by itself.
 
+### Centring
+
+One rule for every page, here and in the apps (WittyMediaClient's docs/APP-DESIGN.md says the same, #609):
+
+- **The page's column is centred in the window.** Nothing leaves an empty band on one side only. Settings centres its
+  menu and page together, and the page alone where the menu is a page of its own.
+- **Headings, lead text, single buttons, notices and footers are centred**: `PageHead`, a setup step's title and lead,
+  a spec page's head, From away, the general legal note at a page's foot.
+- **Things side by side are centred as a group**: a code beside its QR code, a row of buttons (a spec page's dock), the
+  words on a bar and their button (the bars under the top bar run the window's width, their contents in the middle).
+- **Long reading text, lists and forms read from the start** inside the centred column, where centring would make them
+  harder to read: settings sections and rows, the settings menu, a form's labels and fields. A narrow form is centred
+  as a block in its card.
+- **Two kinds of row keep their ends**: a setup step's foot (Back at the start, Continue at the end, like any step-by-step
+  guide) and a settings row (what a setting is at the start, its control at the end).
+- TV mode follows the same rule at ten feet.
+
 ### Navigation
 
 - **Wide screens**: a side menu, a top bar, or both, chosen per device under *Settings, Appearance*.

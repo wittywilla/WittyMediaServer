@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Copyright (C) 2026 WittyWilla and contributors */
-/* Settings → Channels & tuners. These pages follow the server's theme. */
+/* Settings → Library channels & WittyTV. These pages follow the server's theme. */
 .tvs-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
 .tvs-item { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 8px 10px; background: var(--bg-3); border-radius: var(--r-md); }
 .tvs-item-text { flex: 1; min-width: 180px; display: grid; }

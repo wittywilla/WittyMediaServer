@@ -221,7 +221,7 @@ html[data-app] { --overlay-foot: var(--tabbar-space); }
 .ts-text b { font-size: var(--text-xs); }
 .ts-text small { color: var(--fg-2); font-size: var(--text-2xs); white-space: nowrap; }
 .ts-text .btn.sm { height: 1.25rem; min-height: 0; padding: 0 var(--sp-2); margin-top: var(--sp-1); font-size: var(--text-2xs); }
-.theme-scene-pair { display: grid; grid-template-columns: 1fr 1fr; }
+.theme-scene-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .theme-scene-pair .ts-posters i:nth-child(n + 2), .theme-scene-pair .ts-link:not(.on), .theme-scene-pair small { display: none; }
 .theme-maker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
 .theme-maker-colours { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
@@ -244,8 +244,12 @@ html[data-app] { --overlay-foot: var(--tabbar-space); }
 .theme-scene.big .ts-text small { font-size: var(--text-xs); }
 .theme-scene.big .ts-text .btn.sm { height: 1.6rem; padding: 0 var(--sp-3); font-size: var(--text-xs); }
 .theme-scene-pair.big .theme-scene { height: 13rem; }
-.theme-scene-pair.big .ts-posters i:nth-child(-n + 3), .theme-scene-pair.big small, .theme-scene-pair.big .ts-link { display: block; }
-.theme-scene-pair.big .ts-posters i:nth-child(n + 4) { display: none; }
+.theme-scene-pair.big .ts-posters i:nth-child(-n + 2), .theme-scene-pair.big small, .theme-scene-pair.big .ts-link { display: block; }
+/* Each half is half as wide as one scene: two posters, and the words wrap, so the light half's right
+   edge isn't cut off (#553). */
+.theme-scene-pair.big .ts-posters i:nth-child(n + 3) { display: none; }
+.theme-scene-pair.big .ts-body { gap: var(--sp-3); padding-inline: var(--sp-3); }
+.theme-scene-pair.big .ts-text small { white-space: normal; }
 @media (max-width: 1000px) { .theme-scene.big .ts-posters i:nth-child(n + 4) { display: none; } }
 .theme-maker-preview .theme-scene.big .ts-posters i:nth-child(n + 3) { display: none; }
 @media (max-width: 600px) { .theme-scene.big, .theme-scene-pair.big .theme-scene { height: 10rem; } .theme-scene.big .ts-body { gap: var(--sp-3); padding: var(--sp-3); } .theme-scene.big .ts-posters i { width: 3rem; } .theme-scene.big .ts-posters i:nth-child(n + 3) { display: none; } }

@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "Cambia la chiave di {name}",
+  "Keep the saved key": "Tieni la chiave salvata",
+  "Address copied": "Indirizzo copiato",
+  "Couldn’t copy it: select the address and copy it": "Impossibile copiarlo: seleziona l’indirizzo e copialo",
+  "Right now this server only answers on this computer, at:": "Al momento questo server risponde solo su questo computer, a:",
+  "Copy the address {url}": "Copia l’indirizzo {url}",
+  "It also answers at {url}.": "Risponde anche a {url}.",
+  "QR code holding the address {url}": "Codice QR con l’indirizzo {url}",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "Per usarlo dalla TV o dal telefono, imposta {listen} su {port} dove è configurato (il suo file di configurazione, {flag} o {env}) e riavvialo.",
+  "Then other devices at home can open it at {url}.": "Poi gli altri dispositivi di casa potranno aprirlo a {url}.",
+  "Write {standard} from {ext} files: there are none yet": "Scrivi {standard} da file {ext}: non ce ne sono ancora",
+  "{done} of {count} films and episodes converted": "Film ed episodi convertiti: {done} di {count}",
+  "{done} of {count} shows": "Serie: {done} di {count}",
+  "{done} of {count} albums converted": "Album convertiti: {done} di {count}",
+  "lyrics for {done} of {count} songs": "Testi: {done} brani su {count}",
+  "{count} old files renamed to .bak": "Vecchi file rinominati in .bak: {count}",
+  "{count} couldn’t be converted (see the log)": "Non convertiti (vedi il registro): {count}",
+  "{done} of {count} films, episodes and shows": "Film, episodi e serie: {done} di {count}",
+  "{done} of {count} songs": "Brani: {done} di {count}",
+  "{done} of {count} games": "Giochi: {done} di {count}"
+}

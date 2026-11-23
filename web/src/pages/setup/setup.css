@@ -10,7 +10,10 @@
 
 /* The foot of a step. */
 .su-actions-go { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--sp-3); margin-left: auto; }
-.su-later { margin: var(--sp-5) 0 0; color: var(--fg-3); font-size: var(--text-sm); }
+.su-later { margin: var(--sp-5) 0 0; color: var(--fg-3); font-size: var(--text-sm); text-align: center; }
+/* A step's narrow form sits in the middle of the card, under its centred title; its labels and fields still read from
+   the start (docs/DESIGN.md, Centring, #609). */
+.oobe-card :is(.su-form, .oobe-form, .su-net, .su-start-note) { margin-inline: auto; }
 .su-gap { margin-top: var(--sp-4); }
 .su-gap-under { margin-bottom: var(--sp-4); }
 .su-plain { list-style: none; margin: 0; padding: 0; }
@@ -293,3 +296,19 @@ main:has(.su-going) ~ .oobe-skip { display: none; }
    top and bottom space, so the card adds the sides, and the first row has no line above it. */
 .set-card.su-separator { padding: var(--sp-1) var(--sp-4); }
 .su-separator > .set-row:first-child { border-top: 0; }
+
+/* A key saved already (#534): the provider says so, with Change, instead of asking again. */
+.oobe-provider .op-head-static { cursor: default; }
+.oobe-provider .op-saved { margin-top: var(--sp-2); }
+
+/* The server's address on the last page (#536): always there, with Copy, and a QR code when other devices can open it. */
+.su-address { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); justify-self: stretch; }
+.su-address-text { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); flex: 1 1 14rem; min-width: 0; }
+.su-address-text small { flex-basis: 100%; overflow-wrap: anywhere; }
+.su-address-url { font-size: var(--text-md); font-weight: 600; padding: 4px 8px; border-radius: var(--r-sm); background: var(--bg-2); border: 1px solid var(--border); overflow-wrap: anywhere; }
+.su-address .qr { inline-size: 8.5rem; block-size: 8.5rem; flex: none; border-radius: var(--r-sm); }
+.su-address .qr-paper { fill: #ffffff; } /* design-ok: a QR code is dark on light whatever the theme, as cameras read nothing else */
+.su-address .qr-ink { fill: #000000; } /* design-ok: as above */
+html.tv-mode .su-address .qr { inline-size: 11rem; block-size: 11rem; }
+/* Short names in a sentence (listen, -listen, WMS_LISTEN) break between words, not inside them. */
+.oobe-next-card span code { overflow-wrap: normal; white-space: nowrap; }

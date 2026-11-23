@@ -7,6 +7,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 Released 2026-11-19.
 
+- **TV mode's guide fits a TV.** At 1080p and 720p the guide shows at least five whole channels, never one cut in
+  half, and moves a whole row at a time; the preview starts smaller and the programme's details take less room. The
+  bar of guide buttons and keys along the foot is behind a **Shortcuts** button beside the channel set (closed at
+  first, remembered on the device; the remote's Menu opens it and Back closes it; letters and colour buttons work
+  either way), and a **Help** button lists what the remote does and the full legal words, which otherwise sit on one
+  line. As in the Android TV app (WittyMediaClient #84).
 - **Readable titles and text on every theme (#444).** Words over a picture (Home's billboard, a title's page) now sit on a scrim in the theme's own page colour, so a light theme puts dark words on a light wash and a dark one the reverse, and a test checks the drawn page's contrast on every bundled theme. The web app's icons (favicon, home-screen and install icons) are redrawn in the themes' new colours, so a browser or phone that kept the old icon shows the new one once it fetches it again.
 - **TV mode keeps to what a remote does well (#469).** Editors with many fields, typing, files or drag handles (libraries, pages and menu, channels and bumpers, transcoding, network, remote access, logs, modules, backups, the theme maker, the layout editor and more) show a card in TV mode instead, with what is set now. On a TV device (the TV apps, Plasma Bigscreen, a TV's own browser) it says to use the WittyMediaClient app on a Windows or Mac computer, or a web browser, with the page's address and a QR code; on a computer in TV mode it says to leave TV mode, and its Leave TV mode button opens the same page in the normal layout, with Back to TV mode there. Playback, profiles, security and sharing show their values without changing them. Browsing, playing, Live TV, WittyTV, karaoke, music and every console and controller setting stay as they were. One table (`pkg/sdui/data/tvlevels.json`, in the SDUI catalogue as `tvLevels`) decides it for the web app and the TV apps; pages, module settings pages and their rows can say `tv` themselves. `GET /api/sdui/tv-summary/{id}` gives the card its lines. Settings on a television opens on its menu. See docs/TV-MODE.md.
 - **Live TV check-up** (#472, with WittyTuner 0.5.0):

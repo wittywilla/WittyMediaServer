@@ -25,10 +25,11 @@
       { "id": "watchParty", "key": "rowWatchParty", "title": "Watch party", "icon": { "android": "groups", "apple": "person.3", "web": "Users" }, "tint": "#bd2f85", "native": "watchParty", "path": "/settings/sharing#watch-parties", "when": ["parties", "notOff:syncplay"] }
     ] },
     { "id": "modules", "key": "groupModules", "title": "Modules", "rows": [
-      { "id": "moduleSettings", "key": "rowModuleSettings", "title": "Modules", "icon": { "android": "extension", "apple": "puzzlepiece.extension", "web": "Plug" }, "tint": "#7f46b8", "native": "modules", "path": "/settings/module-settings", "when": ["moduleSettings"] }
+      { "id": "moduleSettings", "key": "rowModuleSettings", "title": "Module settings", "icon": { "android": "extension", "apple": "puzzlepiece.extension", "web": "Plug" }, "tint": "#7f46b8", "native": "modules", "path": "/settings/module-settings", "when": ["moduleSettings"] },
+      { "id": "moduleStore", "key": "rowModuleStore", "title": "Module store", "icon": { "android": "download", "apple": "bag", "web": "Download" }, "tint": "#7f46b8", "path": "/settings/modules", "when": ["admin"], "summary": "modules" }
     ] },
     { "id": "device", "key": "groupDevice", "title": "On this device", "rows": [
-      { "id": "look", "key": "rowLook", "title": "Look", "icon": { "android": "toolbar", "apple": "rectangle.3.group", "web": "Sidebar" }, "tint": "#0e7c6f", "native": "look", "path": "/settings/appearance#look", "when": ["looks"] },
+      { "id": "look", "key": "rowLayout", "title": "Layout", "icon": { "android": "toolbar", "apple": "rectangle.3.group", "web": "Sidebar" }, "tint": "#0e7c6f", "native": "look", "path": "/settings/appearance#look", "when": ["looks"] },
       { "id": "editLayout", "key": "rowEditLayout", "title": "Edit layout", "icon": { "android": "toolbar", "apple": "rectangle.3.group", "web": "Edit" }, "tint": "#7f46b8", "native": "editLayout", "part": "app.layout-editor", "path": "/settings/appearance#look", "when": ["layoutEditor"] },
       { "id": "theme", "key": "rowTheme", "title": "Theme", "icon": { "android": "palette", "apple": "paintpalette", "web": "Palette" }, "tint": "#0e7c6f", "native": "theme", "path": "/settings/appearance#theme", "value": "theme" },
       { "id": "topMenu", "key": "rowTopMenu", "title": "Top menu", "icon": { "android": "toolbar", "apple": "menubar.rectangle", "web": "Sidebar" }, "tint": "#bd2f85", "native": "topMenu", "when": ["tv", "app"], "value": "topMenu" },
@@ -57,7 +58,6 @@
     { "id": "maintenance", "key": "groupMaintenance", "title": "Maintenance", "rows": [
       { "id": "logs", "key": "rowLogs", "title": "WittyLog", "icon": { "android": "article", "apple": "doc.text.magnifyingglass", "web": "File" }, "tint": "#5d6474", "path": "/settings/logs", "when": ["admin"] },
       { "id": "diagnoser", "key": "rowDiagnoser", "title": "WittyDiagnoser", "icon": { "android": "stethoscope", "apple": "stethoscope", "web": "Tune" }, "tint": "#5d6474", "path": "/settings/diagnoser", "when": ["admin"] },
-      { "id": "modules", "key": "rowModules", "title": "Modules", "icon": { "android": "extension", "apple": "puzzlepiece.extension", "web": "Plug" }, "tint": "#5d6474", "path": "/settings/modules", "when": ["admin"], "summary": "modules" },
       { "id": "backup", "key": "rowBackup", "title": "Backup", "icon": { "android": "backup", "apple": "externaldrive", "web": "Download" }, "tint": "#5d6474", "path": "/settings/backup", "when": ["admin"], "summary": "backup" },
       { "id": "repair", "key": "rowRepair", "title": "Repair", "icon": { "android": "build", "apple": "wrench.and.screwdriver", "web": "Wrench" }, "tint": "#5d6474", "path": "/settings/repair", "when": ["admin"] },
       { "id": "reset", "key": "rowReset", "title": "Reset", "icon": { "android": "restart_alt", "apple": "arrow.counterclockwise", "web": "Refresh" }, "tint": "danger", "path": "/settings/reset", "when": ["admin"] }

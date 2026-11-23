@@ -555,6 +555,9 @@ var migrations = []string{
 	   item_id INTEGER PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
 	   library_id INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE);
 	 CREATE INDEX IF NOT EXISTS scan_describe_library ON scan_describe(library_id);`,
+	// 40: the peer-to-peer devices a session has been used from, comma-separated, so that taking a
+	// device off the list signs it out as well.
+	`ALTER TABLE sessions ADD COLUMN p2p_devices TEXT;`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

@@ -608,6 +608,13 @@ func (s *Server) p2pRemoveDevice(ctx context.Context, id string) error {
 		node.Kick(id)
 	}
 	s.p2pDevicesChanged()
+	// The device's sign-ins go with it: revoked means out, not out until it
+	// finds another way to send the same token.
+	if n, err := s.Auth.EndP2PDevice(ctx, id); err != nil {
+		s.Log.WarnContext(ctx, "a device was taken off the peer-to-peer list, but its sign-ins couldn't be ended", "cat", "p2p", "device", p2p.ShortID(id), "err", err)
+	} else if n > 0 {
+		logging.Audit(ctx, s.Log, "the sign-ins of a device taken off the peer-to-peer list were ended", "cat", "p2p", "session", p2p.ConnSession(id), "device", p2p.ShortID(id), "sessions", n)
+	}
 	return nil
 }
 

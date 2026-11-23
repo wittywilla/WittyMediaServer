@@ -10733,6 +10733,15 @@
           "schemaVersion": {
             "type": "integer"
           },
+          "settingsMenu": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "sources": {
             "items": {
               "$ref": "#/components/schemas/SDUISourceSpec"
@@ -10807,6 +10816,7 @@
           "revision",
           "routes",
           "schemaVersion",
+          "settingsMenu",
           "sources",
           "spacing",
           "tvLevels",

@@ -1083,7 +1083,7 @@ func buildCatalogue() *Catalogue {
 		Commands:      commandSpecs(),
 		NativeScreens: append([]NativeScreenSpec(nil), nativeScreenSpecs...),
 		TVThemes:      dataFile("tvthemes.json"), Remote: dataFile("remote.json"), Music: dataFile("music.json"),
-		TVLevels:    dataFile("tvlevels.json"),
+		TVLevels: dataFile("tvlevels.json"), SettingsMenu: dataFile("settingsmenu.json"),
 		NativeViews: opts("guide|TV guide grid", "photoTimeline|Photo timeline", "photoMap|Photo map", "coverFlow|Album cover flow"),
 		Icons:       append([]string(nil), Icons...),
 		Placeholders: opts("{user}|The profile's name", "{server}|The server's name", "{greeting}|Good morning, afternoon or evening", "{library}|The page's library",

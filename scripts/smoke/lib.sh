@@ -39,6 +39,7 @@ fail() {
   echo "FAIL  $_step: $*" | tee -a "$SMOKE_OUT/summary.txt"
   echo "::error title=Smoke: $_step::$* (log: $(basename "$LOG"))"
   tail -40 "$LOG" 2>/dev/null | sed 's/^/    /'
+  if [ -s "$SMOKE_OUT/server.log" ]; then echo "    the server's output, last lines:"; tail -15 "$SMOKE_OUT/server.log" | sed 's/^/    /'; fi
   _fails=$((_fails + 1))
   _step=
   [ "${SMOKE_KEEP_GOING:-}" = 1 ] || finish

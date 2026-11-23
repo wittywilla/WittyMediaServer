@@ -33,7 +33,7 @@ teardown() {
   for n in $NS; do ip netns pids "$n" 2>/dev/null | xargs -r kill -9 2>/dev/null; ip netns del "$n" 2>/dev/null; done
   true
 }
-trap teardown EXIT
+trap 'teardown; chmod -R a+rX "$SMOKE_OUT" 2>/dev/null' EXIT
 
 step "Two homes and an internet between them"
 teardown

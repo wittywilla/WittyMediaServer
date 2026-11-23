@@ -120,7 +120,7 @@ jobs:
         run: |
           chmod +x "$RUNNER_TEMP"/smoke-build/bin/*
           go build -o "$RUNNER_TEMP/smoke-build/bin/p2p-netsim" ./scripts/p2p-netsim
-          sudo -E env "PATH=$PATH" bash scripts/smoke/remote.sh "$RUNNER_TEMP/smoke-build"
+          sudo env "PATH=$PATH" "SMOKE_OUT=$SMOKE_OUT" bash scripts/smoke/remote.sh "$RUNNER_TEMP/smoke-build"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:

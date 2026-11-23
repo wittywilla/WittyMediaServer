@@ -7,13 +7,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 )
 
 // A run ending cancels the read: that once stopped a good conversion for the default 10 GB limit,
 // on a server asked to keep 1 GB.
 func TestSettingsNowKeepsThemWhenTheReadFails(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestSettingsNowKeepsThemWhenTheReadFails(t *testing.T) {
 	if s, err := readSettings(ctx, d); err != nil || s.MinFreeGB != 2 {
 		t.Fatalf("%+v %v", s, err)
 	}
-	empty, err := db.Open(t.TempDir())
+	empty, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

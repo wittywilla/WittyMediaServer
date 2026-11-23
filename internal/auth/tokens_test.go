@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 )
 
 // A browser can send another server's (or an expired) cookie beside the
@@ -68,7 +68,7 @@ func TestQueryTokenOnlyOnMediaRoutes(t *testing.T) {
 
 func testService(t *testing.T) *Service {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

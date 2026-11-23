@@ -16,7 +16,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 )
 
 // allocated says how much a function allocates in all, whatever it gives back.
@@ -117,7 +117,7 @@ func TestFilesCantSayInfinity(t *testing.T) {
 	if err := os.WriteFile(p, []byte("<movie><title>Bad</title><rating>Inf</rating></movie>"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	d, derr := db.Open(t.TempDir())
+	d, derr := dbtest.Open(t.TempDir())
 	if derr != nil {
 		t.Fatal(derr)
 	}

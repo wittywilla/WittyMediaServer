@@ -17,7 +17,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/config"
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
@@ -71,7 +71,7 @@ var routeRe = regexp.MustCompile(`m\.Handle(?:Func)?\("((?:GET|POST|PUT|PATCH|DE
 
 func routeServer(t *testing.T) (*Server, *auth.Service) {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

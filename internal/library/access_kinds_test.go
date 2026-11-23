@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/parental"
 )
 
@@ -17,7 +17,7 @@ import (
 // walks every title of a small library through both for each kind of limit,
 // and fails when they disagree or when either lets through what it shouldn't.
 func TestLimitsInSQLAndInGoAgree(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

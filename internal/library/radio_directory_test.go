@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 )
 
 const (
@@ -213,7 +213,7 @@ func TestServersComeFromItsOwnDomainOnly(t *testing.T) {
 
 func openRadioStore(t *testing.T) (*Store, *Library) {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

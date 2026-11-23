@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 )
 
@@ -60,7 +60,7 @@ func fakeTMDB(t *testing.T) string {
 
 func matchFixture(t *testing.T) (*Scanner, *Library, string) {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -573,7 +573,7 @@ func TestSavedYearCountsWhenScoring(t *testing.T) {
 // browseFixture is a library with something to sort: no scan, just rows.
 func browseFixture(t *testing.T) (*Store, *Library) {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

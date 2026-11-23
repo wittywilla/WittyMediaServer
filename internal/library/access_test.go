@@ -10,13 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 )
 
 // Lists are filtered in SQL, single items in Go; both must give one answer.
 // An episode of a blocked-genre show was listed while refusing to play.
 func TestItemClauseCountsShowGenres(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestItemClauseCountsShowGenres(t *testing.T) {
 
 // The home page's next episodes: the same choice as NextUp over full rows.
 func TestNextUpItems(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestNextUpItems(t *testing.T) {
 // Lists leave a disc's titles out, but the field stays a list: a native app's
 // decoder fails on null where it expects an array.
 func TestBriefListsKeepDiscShape(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +153,7 @@ func TestAgeFor(t *testing.T) {
 }
 
 func TestAccessQueries(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

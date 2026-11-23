@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 )
 
 type peopleFixture struct {
@@ -22,7 +22,7 @@ type peopleFixture struct {
 
 func newPeopleFixture(t *testing.T) *peopleFixture {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

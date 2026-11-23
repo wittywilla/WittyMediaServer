@@ -112,6 +112,20 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
   /* Room under the page for the bar, so the last row is never hidden. */
   .app:has(~ .audio-bar) .content, .app:has(~ .np) .content { padding-bottom: 128px; }
 }
+/* A television (#568): the bar at ten-foot sizes, with what a remote needs from across the room (previous, play,
+   next, the full player, stop) and the rest (shuffle, repeat, queue, add to a playlist, more) in the full player. */
+html.tv-mode .audio-bar:not(.collapsed) { width: min(1600px, calc(100% - 2 * var(--sp-12))); padding: var(--sp-4) var(--sp-6); gap: var(--sp-6); }
+html.tv-mode .audio-bar .extra { display: none; }
+html.tv-mode .audio-bar .ab-art { --ab-art: 88px; }
+html.tv-mode .audio-bar .ab-title { font-size: var(--text-xl); }
+html.tv-mode .audio-bar .ab-sub { font-size: var(--text-lg); }
+html.tv-mode .audio-bar .mp-ibtn { width: 64px; height: 64px; }
+html.tv-mode .audio-bar .mp-ibtn svg { width: 32px; height: 32px; }
+html.tv-mode .audio-bar .ab-ctl .mp-ibtn.big { width: 80px; height: 80px; }
+html.tv-mode .audio-bar .ab-ctl { gap: var(--sp-4); }
+html.tv-mode .audio-bar .ab-time { font-size: var(--text-md); }
+html.tv-mode:has(.audio-bar:not(.full, .collapsed)) { --dock-space: 160px; }
+html.tv-mode .app:has(~ .audio-bar:not(.collapsed)) .content { padding-bottom: calc(var(--dock-space) + var(--sp-8)); }
 /* Collapsed: a small round button in the corner, keeping the play button to hand. */
 .audio-bar.collapsed { left: auto; right: 16px; transform: none; width: auto; display: flex; gap: 6px; padding: 5px 8px 5px 5px; border-radius: var(--r-full); grid-template-columns: none; }
 .audio-bar.collapsed .ab-art { --ab-art: 48px; margin: 0; border-radius: 50%; }

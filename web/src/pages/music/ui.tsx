@@ -138,6 +138,8 @@ export function ListCard({ to, name, sub, coverId, hue, onPlay }: { to: string; 
 
 // The list of songs: number (a play button on hover or focus), title and artist, the album
 // where they come from many, a heart, the length, and the menu. Arrow keys move between rows.
+// On a television a song is one stop going down (#567): the title, artist and album links are
+// for a pointer, and the row's menu reaches the artist and the album.
 export function TrackTable({ items, onPlay, showAlbum, showArt, numbers = 'track', discs, label }: {
   items: Item[]; onPlay: (i: number) => void; showAlbum?: boolean; showArt?: boolean; numbers?: 'track' | 'index'; discs?: boolean; label: string
 }) {
@@ -179,11 +181,11 @@ export function TrackTable({ items, onPlay, showAlbum, showArt, numbers = 'track
             <span className="mus-tr-main">
               {showArt && <span className="mus-tr-art"><Art src={tr.poster ? sized(posterUrl(tr), fitWidth(48)) : ''} /></span>}
               <span className="mus-tr-words">
-                <button type="button" tabIndex={-1} className="mus-tr-title" onClick={() => onPlay(i)}>{tr.title}</button>
-                {artist && <Link tabIndex={-1} className="mus-tr-sub" to={artistLink(tr.libraryId, tr.albumArtist || artist)}>{artist}</Link>}
+                <button type="button" tabIndex={-1} data-nav-skip={tv || undefined} className="mus-tr-title" onClick={() => onPlay(i)}>{tr.title}</button>
+                {artist && <Link tabIndex={-1} data-nav-skip={tv || undefined} className="mus-tr-sub" to={artistLink(tr.libraryId, tr.albumArtist || artist)}>{artist}</Link>}
               </span>
             </span>
-            {showAlbum && <span className="mus-tr-album">{tr.album && <Link tabIndex={-1} to={albumLink(tr.libraryId, { artist: tr.albumArtist || artist, title: tr.album })}>{tr.album}</Link>}</span>}
+            {showAlbum && <span className="mus-tr-album">{tr.album && <Link tabIndex={-1} data-nav-skip={tv || undefined} to={albumLink(tr.libraryId, { artist: tr.albumArtist || artist, title: tr.album })}>{tr.album}</Link>}</span>}
             <button type="button" className={'mus-tr-heart' + (hearted ? ' liked' : '')} aria-pressed={hearted} aria-label={hearted ? t('Remove {title} from liked songs', { title: tr.title }) : t('Like {title}', { title: tr.title })} onClick={() => toggleLike(tr.id)}>
               {hearted ? <IconHeartOn size={18} /> : <IconHeart size={18} />}
             </button>

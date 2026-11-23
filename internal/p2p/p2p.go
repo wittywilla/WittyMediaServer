@@ -21,6 +21,7 @@ import (
 	"net/netip"
 	"net/url"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -169,9 +170,7 @@ func ParseInvite(link string) (Invite, error) {
 	if len(in.Secret) < 16 || len(in.Secret) > 64 {
 		return Invite{}, errors.New("not an invite link")
 	}
-	if len(in.Name) > 80 {
-		in.Name = in.Name[:80]
-	}
+	in.Name = CleanName(in.Name, 80)
 	for _, a := range q["a"] {
 		if len(in.Addrs) >= maxInviteAddrs {
 			break
@@ -181,6 +180,32 @@ func ParseInvite(link string) (Invite, error) {
 		}
 	}
 	return in, nil
+}
+
+// CleanName makes a name that came from elsewhere fit to show: valid UTF-8,
+// no control characters, none of the invisible ones that turn text around
+// (so "Home" can't be made to read as something else beside it), and at most
+// max bytes, cut between characters.
+func CleanName(s string, max int) string {
+	s = strings.ToValidUTF8(s, "")
+	s = strings.Map(func(r rune) rune {
+		switch {
+		case r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0):
+			return ' '
+		case r == 0x061c, r == 0x200e, r == 0x200f, r >= 0x202a && r <= 0x202e, r >= 0x2066 && r <= 0x2069, r == 0xfeff:
+			return -1
+		}
+		return r
+	}, s)
+	s = strings.TrimSpace(s)
+	if len(s) > max {
+		s = s[:max]
+		for !utf8.ValidString(s) {
+			s = s[:len(s)-1]
+		}
+		s = strings.TrimSpace(s)
+	}
+	return s
 }
 
 // ---------------------------------------------------------------- addresses

@@ -98,6 +98,13 @@ func testHandler() http.Handler {
 			}
 		}
 	})
+	// /hold answers one line and then holds the response open until the
+	// request ends: a request that is certainly in flight.
+	mux.HandleFunc("/hold", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "holding"+string(rune(10)))
+		w.(http.Flusher).Flush()
+		<-r.Context().Done()
+	})
 	mux.HandleFunc("/upgrade", func(w http.ResponseWriter, r *http.Request) {
 		conn, buf, err := w.(http.Hijacker).Hijack()
 		if err != nil {
@@ -293,12 +300,19 @@ func TestOnlyListedDevicesMayOpenStreams(t *testing.T) {
 		t.Fatal("a revoked device got an answer")
 	}
 
-	// A key let in for a moment (the connection test) is let in for that moment only.
+	// A key let in for a moment (the connection test) is let in for that
+	// moment only. The moment is judged by a clock of the test's own, so a
+	// slow reconnect after the kick can't use it up.
+	var clock atomic.Int64
+	clock.Store(time.Now().UnixNano())
+	n.mu.Lock()
+	n.tempNow = func() time.Time { return time.Unix(0, clock.Load()) }
+	n.mu.Unlock()
 	n.AllowBriefly(c.ID(), 300*time.Millisecond)
 	if code, body, err := get(t, c, "/hello"); err != nil || code != 200 || !strings.Contains(body, "known=false") {
 		t.Fatalf("briefly allowed: %d %q %v", code, body, err)
 	}
-	time.Sleep(350 * time.Millisecond)
+	clock.Add(int64(350 * time.Millisecond))
 	c.Transport().CloseIdleConnections()
 	if _, _, err := get(t, c, "/hello"); err == nil {
 		t.Fatal("the moment passed, and it was still let in")
@@ -710,18 +724,32 @@ func TestCloseIsPromptAndFinal(t *testing.T) {
 	devs := newDevList(testID(t, 2))
 	n := startNode(t, 1, devs)
 	c := startClient(t, 2, n)
-	// A request in flight when the node closes ends; nothing hangs.
+	// A request in flight when the node closes ends; nothing hangs. "In
+	// flight" is waited for, not guessed at: closing before the app has even
+	// connected tests something else (and the app then waits for the server).
+	waitPath(t, c, PathLocal)
 	done := make(chan error, 1)
+	started := make(chan struct{})
 	go func() {
-		req, _ := http.NewRequest("GET", "http://server/events", nil)
+		req, _ := http.NewRequest("GET", "http://server/hold", nil)
 		res, err := c.Transport().RoundTrip(req)
 		if err == nil {
-			_, err = io.ReadAll(res.Body)
+			buf := make([]byte, 8)
+			if _, err = io.ReadFull(res.Body, buf); err == nil {
+				close(started)
+				_, err = io.ReadAll(res.Body)
+			}
 			res.Body.Close()
 		}
 		done <- err
 	}()
-	time.Sleep(40 * time.Millisecond)
+	select {
+	case <-started:
+	case err := <-done:
+		t.Fatalf("the request ended before the node closed: %v", err)
+	case <-time.After(patience):
+		t.Fatal("the request never got under way")
+	}
 	start := time.Now()
 	n.Close()
 	if d := time.Since(start); d > 8*time.Second {

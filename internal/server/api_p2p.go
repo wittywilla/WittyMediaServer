@@ -578,7 +578,8 @@ func (s *Server) p2pAddDevice(ctx context.Context, userID int64, id, name, platf
 		return p2pDevice{}, err
 	}
 	defer s.p2pDevicesChanged() // after d.mu is let go: deferred calls run last first
-	name, platform = cleanLabel(name, 60), cleanLabel(platform, 24)
+	// Names come from the device itself, by invite or code: shown as text, never as anything else.
+	name, platform = p2p.CleanName(name, 60), p2p.CleanName(platform, 24)
 	if name == "" {
 		name = "A device"
 	}
@@ -740,7 +741,7 @@ func (s *Server) p2pEnrol(ctx context.Context, id string, req p2p.EnrolRequest, 
 	if !s.stillSignedIn(ctx, in.session, in.by) {
 		return fail("expired", "Whoever made that invite has signed out. Ask for a new one.")
 	}
-	name := cleanLabel(req.Name, 60)
+	name := p2p.CleanName(req.Name, 60)
 	dev, err := s.p2pAddDevice(ctx, in.userID, id, name, req.Platform, "invite")
 	if err != nil {
 		return fail("refused", err.Error())

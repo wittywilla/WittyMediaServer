@@ -262,13 +262,12 @@ func (n *Node) joinWaiting(name string) bool {
 // until its proof has been checked.
 func (n *Node) handleJoin(s network.Stream) {
 	defer s.Close()
-	_ = s.SetDeadline(time.Now().Add(20 * time.Second))
+	_ = s.SetDeadline(time.Now().Add(n.talkWait(joinWait)))
 	device := s.Conn().RemotePeer()
 	addr := n.remoteOf(s, false)
 	refuse := func(reason, msg string) { _ = writeMessage(s, joinChallenge{Reason: reason, Error: msg}) }
 	// The same counters as invites: a stranger gets no more tries by asking another way.
-	okAll, okPeer, okAddr := n.enrolAll.allow("all"), n.enrolPeer.allow(device.String()), n.enrolAddr.allow(addr.IP.String())
-	if !okAll || !okPeer || !okAddr {
+	if !n.allowTry(device.String(), addr.IP) {
 		n.noteRefused(s, "too many tries at a code")
 		refuse("too-many-tries", "Too many tries. Wait a minute and try again.")
 		return

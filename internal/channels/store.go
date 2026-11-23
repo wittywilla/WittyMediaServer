@@ -10,6 +10,7 @@ import (
 	"errors"
 	"math/rand/v2"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -280,6 +281,7 @@ func (c *Channel) GuideCategories() []string {
 
 // Create saves a new channel.
 func (s *Store) Create(ctx context.Context, c *Channel, userID int64) error {
+	c.Definition.CompileClone(s.loc())
 	if err := c.Check(); err != nil {
 		return err
 	}
@@ -335,6 +337,7 @@ const keepHistory = 20
 // Update saves changes. The definition a save replaces goes to the history,
 // and a changed definition takes effect after whatever is on now.
 func (s *Store) Update(ctx context.Context, c *Channel) error {
+	c.Definition.CompileClone(s.loc())
 	if err := c.Check(); err != nil {
 		return err
 	}
@@ -443,7 +446,17 @@ func (s *Store) Restore(ctx context.Context, id, historyID int64) (*Channel, err
 const maxSimulate = 400
 
 func (s *Store) loader(ctx context.Context) PoolLoader {
-	return func(r Rules, minSec int64) ([]Entry, error) { return s.LoadPool(ctx, r, minSec) }
+	return func(r Rules, minSec int64) ([]Entry, error) {
+		out, err := s.LoadPool(ctx, r, minSec)
+		// A cloned station's slot plays one title: its natural break points are worth the
+		// lookup. Larger pools go without.
+		if err == nil && len(out) <= 4 && onlyItems(&r) {
+			for i := range out {
+				out[i].Breaks = s.naturalBreaks(ctx, out[i].itemID())
+			}
+		}
+		return out, err
+	}
 }
 
 // Rebuild throws away the schedule after what is on now and starts again from
@@ -752,10 +765,22 @@ func (s *Store) Find(ctx context.Context, c *Channel, from, to time.Time, needle
 func (d *Definition) allRules() []Rules {
 	out := []Rules{d.Rules}
 	if d.Mode != "simple" && d.Mode != "" {
+		// A cloned station has a block a programme, each naming one title: they are
+		// checked together, in one set.
+		var items []int64
 		for i := range d.Blocks {
-			if r := d.Blocks[i].Rules; r != nil {
+			r := d.Blocks[i].Rules
+			switch {
+			case r == nil:
+			case d.Blocks[i].Once && onlyItems(r):
+				items = append(items, r.Items...)
+			default:
 				out = append(out, *r)
 			}
+		}
+		if len(items) > 0 {
+			slices.Sort(items)
+			out = append(out, Rules{Items: slices.Compact(items)})
 		}
 	}
 	if d.Filler.Rules != nil {
@@ -775,6 +800,17 @@ func (d *Definition) allRules() []Rules {
 		}
 	}
 	return out
+}
+
+// onlyItems: the rules name titles and say nothing else.
+func onlyItems(r *Rules) bool {
+	if len(r.Items) == 0 {
+		return false
+	}
+	c := *r
+	c.Items = nil
+	b, _ := json.Marshal(c)
+	return string(b) == "{}"
 }
 
 // Visible says whether an account may see a channel. Viewers of a channel

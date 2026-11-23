@@ -23,7 +23,11 @@ const api = async (path) => {
   return r.json()
 }
 
-const b = await launch({ software: true, width: 1280, height: 800, tmp: process.env.SMOKE_TMP, args: ['--disable-dev-shm-usage'] })
+// A busy runner sometimes takes longer than the driver waits for the browser to start: try again.
+let b
+for (let i = 1; !b; i++) {
+  try { b = await launch({ software: true, width: 1280, height: 800, tmp: process.env.SMOKE_TMP, args: ['--disable-dev-shm-usage'] }) } catch (e) { if (i === 3) throw e; console.log('the browser did not start, trying again: ' + e.message.slice(0, 200)) }
+}
 const p = await b.open()
 await p.send('Network.enable')
 const failed = []

@@ -430,3 +430,31 @@ func TestTidyTwoAtOnce(t *testing.T) {
 		t.Fatalf("got %+v", out)
 	}
 }
+
+// A stand-in far shorter than its slot plays its series on to the slot's end; filler takes turns
+// between series.
+func TestCloneLongSlotsAndFillerTurns(t *testing.T) {
+	d := cloneDef(RepeatDaily,
+		CloneSlot{Wall: "2026-11-23 19:45", Dur: 7200, Title: "A Film", Item: 201, ItemDur: 24 * 60, Show: 2, Rule: RuleSimilar},
+		CloneSlot{Wall: "2026-11-23 21:45", Dur: 7200, Title: "Exact But Short", Item: 101, ItemDur: 22 * 60, Show: 1, Rule: RuleExact},
+	)
+	d.CompileClone(time.UTC)
+	if b := d.Blocks[0]; b.Once || b.Fit != "fill" || len(b.Rules.Shows) != 1 || b.Rules.Shows[0] != 2 {
+		t.Fatalf("a short stand-in in a long slot: %+v", b)
+	}
+	if b := d.Blocks[1]; !b.Once || b.Rules.Items[0] != 101 {
+		t.Fatalf("the programme itself plays once, however short: %+v", b)
+	}
+	var slots []CloneSlot
+	for range 4 {
+		slots = append(slots, CloneSlot{Gap: true, Dur: 23 * 60})
+	}
+	cloneLib().Match(slots, CloneOptions{})
+	shows := map[int64]bool{}
+	for _, s := range slots {
+		shows[s.Show] = true
+	}
+	if len(shows) < 2 {
+		t.Fatalf("filler always from one series: %+v", slots)
+	}
+}

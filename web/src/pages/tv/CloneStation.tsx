@@ -33,6 +33,8 @@ export const RULES: Record<CloneRule, { label: string; hint: string; tone: 'exac
 
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const mins = (sec?: number) => Math.round((sec || 0) / 60)
+// A stand-in far shorter than its slot: its series plays on to the slot's end (clone.go, longSlot).
+const playsOn = (s: CloneSlot) => !!s.show && !!s.itemDur && RULES[s.rule]?.tone === 'stand' && s.dur - s.itemDur >= 900 && (s.dur - s.itemDur) * 3 >= s.dur
 const epLabel = (s: CloneSlot) => (s.season != null && s.episode != null ? `S${s.season}E${s.episode}` : '')
 
 type ImportAnswer = { clone: Clone; commercials: number[]; counts: Record<string, number> }
@@ -201,7 +203,7 @@ function ClonePreview({ clone, set, restart }: { clone: Clone; set: (c: Clone) =
   const choose = (i: number, c: CloneCandidate | null) => {
     const slots = clone.slots.slice()
     const s = { ...slots[i] }
-    if (c) Object.assign(s, { item: c.item, itemTitle: c.title, itemSub: c.sub, itemDur: c.dur, rule: 'manual' as CloneRule, confidence: 100, why: t('Chosen by you'), pinned: true })
+    if (c) Object.assign(s, { item: c.item, itemTitle: c.title, itemSub: c.sub, itemDur: c.dur, show: c.show, rule: 'manual' as CloneRule, confidence: 100, why: t('Chosen by you'), pinned: true })
     else Object.assign(s, { pinned: false, item: 0 })
     slots[i] = s
     set({ ...clone, slots })
@@ -240,7 +242,7 @@ function ClonePreview({ clone, set, restart }: { clone: Clone; set: (c: Clone) =
                     <span>{[epLabel(s), s.sub].filter(Boolean).join(' · ')}</span>
                   </div>
                   <div className="clone-plays">
-                    {s.item ? <><b>{s.itemTitle}</b><span>{[s.itemSub, s.itemDur ? t('{n} min', { n: mins(s.itemDur) }) : ''].filter(Boolean).join(' · ')}</span></>
+                    {s.item ? <><b>{s.itemTitle}</b><span>{playsOn(s) ? t('From {episode}, then more of the series', { episode: s.itemSub || '' }) : [s.itemSub, s.itemDur ? t('{n} min', { n: mins(s.itemDur) }) : ''].filter(Boolean).join(' · ')}</span></>
                       : <span className="muted">{t('Nothing in your library fits')}</span>}
                   </div>
                   <span className={'clone-chip ' + r.tone} title={s.why || t(r.hint)}>{t(r.label)}{s.rule !== 'none' && s.rule !== 'manual' ? ` ${s.confidence}%` : ''}</span>

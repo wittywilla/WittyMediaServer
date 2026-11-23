@@ -74,6 +74,9 @@ type Candidate struct {
 	Rule       string `json:"rule"`
 	Confidence int    `json:"confidence"`
 	Why        string `json:"why,omitempty"`
+	// Show is the series it is an episode of, if any: a stand-in much shorter than its slot
+	// plays that series on until the slot ends.
+	Show int64 `json:"show,omitempty"`
 }
 
 // Prepare indexes the library; call it once after filling Shows and Titles.
@@ -102,15 +105,16 @@ func (l *CloneLibrary) Prepare() {
 
 // matcher keeps what one import has used, so stand-ins don't repeat while others are free.
 type matcher struct {
-	lib  *CloneLibrary
-	o    CloneOptions
-	used map[int64]int
-	next map[int64]int // each show's rotation
+	lib   *CloneLibrary
+	o     CloneOptions
+	used  map[int64]int
+	next  map[int64]int // each show's rotation
+	shows map[int64]int // how often each series stood in, so filler takes turns between them
 }
 
 // Match fills in every slot that wasn't chosen by hand.
 func (l *CloneLibrary) Match(slots []CloneSlot, o CloneOptions) {
-	m := &matcher{lib: l, o: o, used: map[int64]int{}, next: map[int64]int{}}
+	m := &matcher{lib: l, o: o, used: map[int64]int{}, next: map[int64]int{}, shows: map[int64]int{}}
 	for i := range slots {
 		if slots[i].Pinned && slots[i].Item > 0 {
 			m.used[slots[i].Item]++
@@ -123,10 +127,13 @@ func (l *CloneLibrary) Match(slots []CloneSlot, o CloneOptions) {
 		}
 		c := m.best(s)
 		s.Item, s.Rule, s.Confidence, s.Why = c.Item, c.Rule, c.Confidence, c.Why
-		s.ItemTitle, s.ItemSub, s.ItemDur = c.Title, c.Sub, c.Dur
+		s.ItemTitle, s.ItemSub, s.ItemDur, s.Show = c.Title, c.Sub, c.Dur, c.Show
 		s.Pinned = false
 		if c.Item > 0 {
 			m.used[c.Item]++
+		}
+		if c.Show > 0 && !Exact(c.Rule) {
+			m.shows[c.Show]++
 		}
 	}
 }
@@ -134,7 +141,7 @@ func (l *CloneLibrary) Match(slots []CloneSlot, o CloneOptions) {
 // Candidates lists up to n things a slot could play instead, best first.
 func (l *CloneLibrary) Candidates(slot CloneSlot, o CloneOptions, n int) []Candidate {
 	s := &slot
-	m := &matcher{lib: l, o: o, used: map[int64]int{}, next: map[int64]int{}}
+	m := &matcher{lib: l, o: o, used: map[int64]int{}, next: map[int64]int{}, shows: map[int64]int{}}
 	var out []Candidate
 	seen := map[int64]bool{}
 	add := func(c Candidate) {
@@ -513,6 +520,8 @@ func (m *matcher) filler(s *CloneSlot) Candidate {
 		if m.used[c.Item] > 0 {
 			diff += 1e7
 		}
+		// A minute's difference for each time the series already stood in: filler takes turns.
+		diff += 60 * m.shows[c.Show]
 		if bestDiff < 0 || diff < bestDiff {
 			best, bestDiff = c, diff
 		}
@@ -533,7 +542,7 @@ func episodeCandidate(sh *LibShow, e *LibEpisode, rule string, conf int, why str
 	if e.Season >= 0 && e.Episode > 0 {
 		sub = fmt.Sprintf("S%dE%d · %s", e.Season, e.Episode, e.Title)
 	}
-	return Candidate{Item: e.Item, Title: sh.Title, Sub: sub, Dur: e.Dur, Rule: rule, Confidence: max(0, min(conf, 100)), Why: why}
+	return Candidate{Item: e.Item, Title: sh.Title, Sub: sub, Dur: e.Dur, Rule: rule, Confidence: max(0, min(conf, 100)), Why: why, Show: sh.ID}
 }
 
 func titleCandidate(t *LibTitle, rule string, conf int, why string) Candidate {

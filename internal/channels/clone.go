@@ -121,6 +121,7 @@ type CloneSlot struct {
 	ItemTitle  string `json:"itemTitle,omitempty"` // what plays, for the preview
 	ItemSub    string `json:"itemSub,omitempty"`
 	ItemDur    int    `json:"itemDur,omitempty"`
+	Show       int64  `json:"show,omitempty"`   // the series of what plays, if any
 	Pinned     bool   `json:"pinned,omitempty"` // chosen by hand: a re-import keeps it
 }
 
@@ -262,7 +263,14 @@ func (d *Definition) CompileClone(loc *time.Location) {
 			b.Days = []int{int(at.Weekday())}
 			b.FromDate, b.ToDate = at.Format("01-02"), at.Format("01-02")
 		}
-		if s.Item > 0 {
+		switch {
+		case s.Item > 0 && s.Show > 0 && !Exact(s.Rule) && longSlot(s):
+			// A stand-in far shorter than its slot: its series plays on, an episode after
+			// another, rather than leave the rest of the slot to commercials.
+			b.Rules = &Rules{Shows: []int64{s.Show}}
+			b.Order = &Order{Mode: "sequential"}
+			b.Once, b.Fit = false, "fill"
+		case s.Item > 0:
 			b.Rules = &Rules{Items: []int64{s.Item}}
 			b.Order = &Order{Mode: "sequential"}
 		}
@@ -278,6 +286,12 @@ func (d *Definition) CompileClone(loc *time.Location) {
 	if c.Options.AdsOff {
 		d.Filler.BreakEveryMin, d.Filler.BreakAds = 0, 0
 	}
+}
+
+// longSlot: what plays leaves at least a quarter of an hour, and a third of the slot, unfilled.
+func longSlot(s *CloneSlot) bool {
+	spare := s.Dur - s.ItemDur
+	return s.ItemDur > 0 && spare >= 15*60 && spare*3 >= s.Dur
 }
 
 // breaksPerHalfHour is how many breaks a density puts in each half hour of a slot.

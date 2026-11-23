@@ -88,10 +88,10 @@ export type CloneOptions = {
 export type CloneSlot = {
   start: number; dur: number; wall: string; title: string; sub?: string; season?: number; episode?: number; year?: number; aired?: string
   genres?: string[]; network?: string; rating?: string; movie?: boolean; imdb?: string; tvdb?: string; tvmaze?: string; tmdb?: string; gap?: boolean
-  item?: number; rule: CloneRule; confidence: number; why?: string; itemTitle?: string; itemSub?: string; itemDur?: number; pinned?: boolean
+  item?: number; rule: CloneRule; confidence: number; why?: string; itemTitle?: string; itemSub?: string; itemDur?: number; show?: number; pinned?: boolean
 }
 export type Clone = { source: CloneSource; station: string; from: string; days: number; credit?: string; options: CloneOptions; slots: CloneSlot[]; importedAt?: number }
-export type CloneCandidate = { item: number; title: string; sub?: string; dur: number; rule: CloneRule; confidence: number; why?: string }
+export type CloneCandidate = { item: number; title: string; sub?: string; dur: number; rule: CloneRule; confidence: number; why?: string; show?: number }
 export type Station = { id: string; name: string; country?: string; tz?: string; count?: number }
 export type CommercialPick = { library: number; only?: boolean; items?: number[] }
 export type Visibility = { mode: '' | 'adults' | 'only'; users?: number[] }

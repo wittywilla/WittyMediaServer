@@ -87,6 +87,29 @@ func PresetsFor(width, height int) []Preset {
 	return out
 }
 
+// PresetsForSource is PresetsFor with the source's own rate as well (kbps, 0 = not known). A
+// preset is never held to more than the original carries: one at the original's size that
+// would take as much or more is left out (it would only be a bigger copy of the same picture,
+// and Original is in the menu already), and a smaller one is held to the original's rate.
+func PresetsForSource(width, height, kbps int) []Preset {
+	all := PresetsFor(width, height)
+	if kbps <= 0 {
+		return all
+	}
+	h := SizeClass(width, height)
+	out := all[:0]
+	for _, p := range all {
+		if p.Kbps >= kbps {
+			if h > 0 && p.Height >= h-h/20 {
+				continue
+			}
+			p.Kbps = kbps
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
 // SizeClass is the picture's size as people name it: its height, or for a picture wider
 // than 16:9, the height a 16:9 picture of the same width would have. Upright (phone)
 // videos count by their shorter side.

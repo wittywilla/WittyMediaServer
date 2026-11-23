@@ -92,7 +92,9 @@
 .tvs-logo-field { display: grid; gap: var(--sp-1); font-size: var(--text-sm); }
 
 /* The channel list and editor, a page of their own outside Settings. */
-.tvc-page { max-width: 860px; margin: 12px auto 0; }
+/* It starts where every page starts (#438 R7b): at the top of the page, on the page column's left edge, as Settings
+   does (settings-page.css .set-shell), not 12 px lower in a column of its own in the middle. */
+.tvc-page { max-width: 860px; margin: 0 auto 0 max(0px, calc((100% - var(--page-max)) / 2)); }
 .tvc-back { margin-bottom: var(--sp-2); }
 
 /* Add live TV, a step at a time (TunerSetup.tsx). */

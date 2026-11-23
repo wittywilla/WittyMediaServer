@@ -55,6 +55,13 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
      gets the page's own colour under it, so the page's words never read through the song's (#551). */
   background: linear-gradient(var(--bg-2), var(--bg-2)) var(--bg); }
 @keyframes toast-bar-in { from { opacity: 0; } }
+/* On a computer the bar floats a little above the bottom edge: the page's own colour fills in behind its lower half
+   and the gap under it, so a page scrolled under it doesn't show its words there (#470). Under the bar's layer, and
+   a computer has no other bar along the bottom for it to cover. (The page itself is a layer of its own, container-type,
+   so a bar that lives inside a page, as Music's tabs on a phone do, would be covered: hence a computer only.) */
+@media (min-width: 900px) {
+  html:has(.audio-bar) body::before { content: ""; position: fixed; inset-inline: 0; bottom: 0; height: calc(var(--sp-2) + var(--sp-8)); z-index: calc(var(--z-dock) - 1); pointer-events: none; background: linear-gradient(to bottom, transparent, var(--bg) var(--sp-3)); }
+}
 /* While the account menu is open, it comes first. */
 /* Always a square that keeps its size: the bar squeezes its words, never the art (#522). One size, --ab-art, set per layout. */
 .ab-art { --ab-art: 52px; position: relative; flex: none; width: var(--ab-art); height: var(--ab-art); aspect-ratio: 1; border-radius: var(--r-md); overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); cursor: pointer; transition: transform var(--dur-2) var(--ease-out); box-shadow: var(--e-1); }

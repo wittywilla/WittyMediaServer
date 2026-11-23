@@ -152,3 +152,22 @@ func TestChoiceDecision(t *testing.T) {
 		t.Errorf("stereo chosen: 5.1 sound is folded down: %+v", d)
 	}
 }
+
+// A 1080p film of 6.4 Mbps isn't offered "1080p at 8 Mbps" (#470); smaller sizes are held to its rate.
+func TestPresetsForSource(t *testing.T) {
+	got := PresetsForSource(1920, 1080, 6400)
+	if len(got) == 0 || got[0].Name != "720p" || got[0].Kbps != 4000 {
+		t.Fatalf("1080p at 6.4 Mbps: %+v", got)
+	}
+	got = PresetsForSource(1920, 1080, 3000)
+	if got[0].Name != "720p" || got[0].Kbps != 3000 {
+		t.Fatalf("1080p at 3 Mbps: 720p should be held to 3000: %+v", got)
+	}
+	got = PresetsForSource(1920, 1080, 30000)
+	if got[0].Name != "1080p" || got[0].Kbps != 8000 {
+		t.Fatalf("a 30 Mbps film keeps 1080p at 8 Mbps: %+v", got)
+	}
+	if n := len(PresetsForSource(0, 0, 0)); n != len(Presets) {
+		t.Fatalf("unknown source: %d presets", n)
+	}
+}

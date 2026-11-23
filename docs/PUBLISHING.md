@@ -57,14 +57,14 @@ A tag with a suffix such as `-alpha` is published as a pre-release, and its Dock
 
 ## The website, after a release
 
-wittymediaserver.com lists the newest server and client. Its build runs on a schedule, but GitHub can start scheduled builds hours late, so a published release of the server or the client starts the site's build itself. For that, both repositories need one secret, made once:
+wittymediaserver.com lists the newest server, client, player and reader, and the modules in the catalogue. Its build runs on a schedule, but GitHub can start scheduled builds hours late, so a published release, or a published catalogue, starts the site's build itself. For that, each of those repositories needs the same secret, made once:
 
 1. On github.com, click your picture, then **Settings**, **Developer settings**, **Personal access tokens** and **Fine-grained tokens**. Click **Generate new token**.
 2. Name it `Website rebuild`. Under **Repository access**, choose **Only select repositories** and pick **wittywilla/WittyMediaServer.com**. Under **Permissions**, set **Actions** to **Read and write**, and leave everything else as it is. Click **Generate token** and copy it.
 3. In **wittywilla/WittyMediaServer**, open **Settings**, **Secrets and variables**, **Actions**, and click **New repository secret**. Name it `SITE_BUILD_TOKEN`, paste the token, and click **Add secret**.
-4. Do the same in **wittywilla/WittyMediaClient**.
+4. Do the same, with the same token, in **wittywilla/WittyMediaClient**, **wittywilla/WittyMediaPlayer**, **wittywilla/WittyReader** and **wittywilla/WittyModuleCatalog**. The modules don't need it: their new versions reach the site through the catalogue.
 
-The token can only start the website's builds, nothing else. Without it, or once it has expired, a release still publishes: its **website** job says so, and the site catches up on its own schedule. To rebuild the site now, open **Actions** in wittywilla/WittyMediaServer.com, then **Build and publish**, **Run workflow**.
+The token can only start the website's builds, nothing else. GitHub makes you pick an expiry date; when you make a new token, replace the secret in all five repositories. Without it, or once it has expired, a release still publishes: its **website** job says so, and the site catches up on its own schedule. To rebuild the site now, open **Actions** in wittywilla/WittyMediaServer.com, then **Build and publish**, **Run workflow**.
 
 ## Version tags
 

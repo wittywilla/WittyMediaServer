@@ -123,6 +123,14 @@
 720,
 405
 ],
+"hdhomerun-channels.webp": [
+720,
+405
+],
+"hdhomerun-details.webp": [
+720,
+405
+],
 "help-setup-guide.webp": [
 720,
 405
@@ -140,6 +148,18 @@
 405
 ],
 "home-videos.webp": [
+720,
+405
+],
+"karaoke-mix.webp": [
+720,
+405
+],
+"karaoke-voice-advanced.webp": [
+720,
+405
+],
+"karaoke-voice-presets.webp": [
 720,
 405
 ],
@@ -224,6 +244,10 @@
 405
 ],
 "photos.webp": [
+720,
+405
+],
+"player-quality.webp": [
 720,
 405
 ],
@@ -347,69 +371,109 @@
 720,
 405
 ],
-"setup-01-welcome.webp": [
+"setup-account.webp": [
 720,
-405
+671
 ],
-"setup-02-account.webp": [
+"setup-details.webp": [
 720,
-549
+991
 ],
-"setup-03-data-folder.webp": [
+"setup-discs.webp": [
 720,
-540
+520
 ],
-"setup-04-modules-chosen.webp": [
+"setup-done.webp": [
 720,
-1508
+867
 ],
-"setup-05-modules-installing.webp": [
+"setup-games.webp": [
 720,
-873
+2116
 ],
-"setup-06-modules-ready.webp": [
+"setup-karaoke.webp": [
 720,
-903
+423
 ],
-"setup-07-media.webp": [
+"setup-language.webp": [
 720,
-1398
+485
 ],
-"setup-08-media-movies.webp": [
+"setup-listings.webp": [
 720,
-458
+396
 ],
-"setup-09-media-added.webp": [
+"setup-logos.webp": [
 720,
-1523
+539
 ],
-"setup-10-games.webp": [
+"setup-look.webp": [
 720,
-708
+1308
 ],
-"setup-11-discs.webp": [
+"setup-media-added.webp": [
 720,
-542
+1389
 ],
-"setup-12-details.webp": [
+"setup-media-movies.webp": [
 720,
-769
+432
 ],
-"setup-14-logos.webp": [
+"setup-media.webp": [
 720,
-587
+1271
 ],
-"setup-15-music.webp": [
+"setup-modules-chosen.webp": [
 720,
-426
+1422
 ],
-"setup-16-listings.webp": [
+"setup-modules-installing.webp": [
 720,
-420
+882
 ],
-"setup-18-done.webp": [
+"setup-modules-ready.webp": [
 720,
-837
+911
+],
+"setup-music.webp": [
+720,
+402
+],
+"setup-name.webp": [
+720,
+937
+],
+"setup-network.webp": [
+720,
+537
+],
+"setup-people.webp": [
+720,
+564
+],
+"setup-remote.webp": [
+720,
+989
+],
+"setup-storage.webp": [
+720,
+363
+],
+"setup-theme.webp": [
+720,
+924
+],
+"setup-tv.webp": [
+720,
+376
+],
+"setup-welcome.webp": [
+720,
+579
+],
+"setup-wittytv.webp": [
+720,
+923
 ],
 "shorts.webp": [
 720,
@@ -443,6 +507,14 @@
 720,
 405
 ],
+"tv-album.webp": [
+720,
+405
+],
+"tv-guide-shortcuts.webp": [
+720,
+405
+],
 "tv-mode.webp": [
 720,
 405
@@ -452,6 +524,10 @@
 405
 ],
 "tv-shows.webp": [
+720,
+405
+],
+"wittyinfo-editor.webp": [
 720,
 405
 ],

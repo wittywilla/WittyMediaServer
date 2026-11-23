@@ -63,6 +63,8 @@ const scenes = {
     await openLib('Movies', 5000)
     await shot('movies')
     const it = await item('Movies', /Sintel/)
+    // Earlier runs played it: the page is pictured as before anyone has.
+    await call('DELETE', `/items/${it.id}/progress`)
     await go(`/item/${it.id}`, 3000)
     await shot('film-page')
     await press(/^\s*Play/); await wait(1500)
@@ -145,6 +147,9 @@ const scenes = {
         await page.eval(`[...document.querySelectorAll('.np-more-styles button, [role=menu] button, [role=dialog] button, [role=option], [role=menuitem]')].find((b) => b.textContent.trim() === ${JSON.stringify(name)})?.click()`)
       }
       await wait(1000)
+      await press(/^\s*Turn on\s*$/)
+      // A style with flashes asks once more, the first time it's chosen.
+      await wait(1500)
       await press(/^\s*Turn on\s*$/)
       await wait(9000)
       n++
@@ -346,7 +351,7 @@ const scenes = {
   },
   async play() {
     const games = await items('Games')
-    const want = [['gameplay-ucity', /City/, [13, 13]], ['gameplay-thwaite', /Thwaite/, [13, 13]], ['gameplay-libbet', /Libbet/, [13]], ['gameplay-dragon-blaster', /Dragon Blaster/, [13]], ['gameplay-datastorm', /Data ?Storm/, [13]], ['gameplay-rhde', /RHDE/, [13]], ['gameplay-super-tilt-bro', /Super Tilt/, [13]]]
+    const want = [['gameplay-ucity', /City/, [13, 13]], ['gameplay-thwaite', /Thwaite/, [13, 13]], ['gameplay-libbet', /Libbet/, [13]], ['gameplay-dragon-blaster', /dragon ?blaster/i, [13]], ['gameplay-datastorm', /Data ?Storm/, [13]], ['gameplay-rhde', /RHDE/, [13]], ['gameplay-super-tilt-bro', /Super Tilt/, [13]]]
     for (const [name, rx, keys] of want) {
       const g = games.find((x) => rx.test(x.title))
       if (!g) { console.log('no game', rx); continue }
@@ -403,6 +408,15 @@ const scenes = {
     await press(/Add library/); await wait(1500)
     await press(/^\s*Movies|Movies/, '[role=dialog]'); await wait(800)
     await press(/Browse folders|Browse folder/); await wait(2500)
+    // Opened where the pictured media is (WMS_MEDIA), and a drive's own label (this computer's name for
+    // it) left off: just its letter.
+    if (process.env.WMS_MEDIA) {
+      await page.eval(`[...document.querySelectorAll('[role=dialog]')].pop().querySelector('.fx-crumb')?.click()`); await wait(500)
+      await page.eval(`[...[...document.querySelectorAll('[role=dialog]')].pop().querySelectorAll('input')].find((i) => !/Filter/.test(i.placeholder || ''))?.select()`)
+      await page.send('Input.insertText', { text: process.env.WMS_MEDIA })
+      await key('Enter', 'Enter', 13); await wait(2500)
+    }
+    await page.eval(`(() => { const w = document.createTreeWalker([...document.querySelectorAll('[role=dialog]')].pop() || document.body, NodeFilter.SHOW_TEXT); for (let n = w.nextNode(); n; n = w.nextNode()) n.nodeValue = n.nodeValue.replace(/^\\s*[^()\\n]+ \\(([A-Z]:)\\)\\s*$/, '$1') })()`)
     await shot('folder-browser')
     await go('/settings/modules', 2500)
     await press(/Browse the store/); await wait(3500)
@@ -439,12 +453,138 @@ const scenes = {
     await go(`/library/${m.id}`, 3500); await shot('phone-music')
     await size(1920, 1080)
   },
-  // TV mode: the website as the TV apps are (?tv=1). The docs show its Libraries tab.
+  // Karaoke's Mix panel and Voice settings presets, at a computer's size and a phone's, and the README's
+  // karaoke over a visualizer.
+  async karaoke() {
+    const l = await lib('Music')
+    const r = await call('GET', `/items?library=${l.id}&limit=3000&search=${encodeURIComponent('Take Me Out')}`)
+    const song = (r.items || r)[0]
+    const start = async () => {
+      await go(`/album/${l.id}?album=${encodeURIComponent(song.album)}&artist=${encodeURIComponent(song.albumArtist || song.artist || '')}`, 3000)
+      await press(/Play Take Me Out/); await wait(4000)
+      await press(/Show the full player/); await wait(1500)
+      await page.eval(`(() => { const a = document.querySelector('audio'); if (a) a.currentTime = 42 })()`)
+      await press(/Karaoke \(K\)|^\s*Karaoke\s*$/); await wait(5000)
+    }
+    await start()
+    await move()
+    // M opens Mix, as the karaoke bar's Mix button does.
+    await key('m', 'KeyM', 77); await wait(1800)
+    console.log('mix open', await page.eval(`!!document.querySelector('.kar-mixp')`))
+    await shot('karaoke-mix')
+    await key('m', 'KeyM', 77); await wait(800)
+    await move()
+    await press(/Voice settings/, '.kar-bar'); await wait(1800)
+    await press(/^\s*Presets\s*$/, '.kar'); await wait(800)
+    await shot('karaoke-voice-presets')
+    await press(/^\s*Advanced\s*$/, '.kar'); await wait(1200)
+    await shot('karaoke-voice-advanced')
+    await press(/^\s*Presets\s*$/, '.kar'); await wait(500)
+    await press(/Voice settings/, '.kar-bar'); await wait(800)
+    // Behind the words: the visualizer, for the README.
+    await move()
+    await press(/^\s*Visualizer\s*$/, '.kar'); await wait(1500)
+    await press(/^\s*Turn on\s*$/); await wait(1000)
+    // Northern Veil is under More (its button shows the style's name once it's chosen).
+    if (!(await page.eval(`[...document.querySelectorAll('.kar .np-more-styles')].some((b) => /Northern Veil/.test(b.textContent))`))) {
+      await press(/More visualizer styles/, '.kar'); await wait(800)
+      await page.eval(`[...document.querySelectorAll('[role=menuitemradio]')].find((b) => b.textContent.trim() === 'Northern Veil')?.click()`)
+    }
+    await wait(1000); await press(/^\s*Turn on\s*$/)
+    await wait(1500); await press(/^\s*Turn on\s*$/)
+    await move(1, 1); await wait(9000)
+    await shot('karaoke')
+    await playerGone()
+    await size(390, 844, true, 2)
+    await start()
+    await page.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 195, y: 300 }] }).catch(() => {})
+    await page.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }).catch(() => {})
+    await wait(1500)
+    await shot('phone-karaoke')
+    await key('m', 'KeyM', 77); await wait(1800)
+    await shot('phone-karaoke-mix')
+    await size(1920, 1080)
+    await playerGone()
+  },
+  // The player's quality menu (Q), and the .wittyinfo editor from a film's ⋯ menu.
+  async quality() {
+    const it = await item('Movies', /Sintel/)
+    await go(`/item/${it.id}`, 3000)
+    await press(/^\s*Play/); await wait(1500)
+    await hasVideo()
+    await seek(330)
+    await wait(6000)
+    await move()
+    await key('q', 'KeyQ', 81); await wait(1800)
+    await shot('player-quality')
+    await key('Escape', 'Escape', 27); await wait(600)
+    await playerGone()
+  },
+  async wittyinfo() {
+    const it = await item('Movies', /Sintel/)
+    await go(`/item/${it.id}`, 3500)
+    await press(/Manage this title/, 'main'); await wait(800)
+    console.log('editor', await press(/Edit scenes and skips/)); await wait(3500)
+    // An intro row, to show what a part looks like. Nothing is saved.
+    await press(/^\s*Add\s*$/, '[role=dialog]'); await wait(800)
+    await shot('wittyinfo-editor')
+    // Nothing is saved: the editor is left with Escape.
+    await key('Escape', 'Escape', 27); await wait(500)
+  },
+  // WittyTuner's HDHomeRun setup, against a stand-in for the device at WMS_HDHR (an address on this computer,
+  // such as 127.0.0.2: see WittyTuner's tests). The pictures show 192.168.1.50, the guides' example.
+  async hdhomerun() {
+    const addr = process.env.WMS_HDHR
+    if (!addr) { console.log('WMS_HDHR not set: skipped'); return }
+    const mask = () => page.eval(`(() => {
+      const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+      for (let n = w.nextNode(); n; n = w.nextNode()) n.nodeValue = n.nodeValue.split(${JSON.stringify(addr)}).join('192.168.1.50')
+      document.querySelectorAll('input').forEach((i) => { if (i.value.includes(${JSON.stringify(addr)})) i.value = i.value.split(${JSON.stringify(addr)}).join('192.168.1.50') })
+    })()`)
+    const dialog = () => page.eval(`document.querySelector('[role=dialog]')?.innerText.replace(/\s+/g, ' ').slice(0, 500) || ''`)
+    await go('/settings/tuners', 3500)
+    // A notice left by an earlier test server stopping isn't part of this page.
+    await page.eval(`(() => { let e = [...document.querySelectorAll('main *')].find((x) => x.children.length === 0 && /stopped unexpectedly/.test(x.textContent)); for (let i = 0; e && i < 5; i++, e = e.parentElement) { const b = [...e.querySelectorAll('button')].find((x) => !/stopped/.test(x.textContent)); if (b) { b.click(); return } } })()`); await wait(500)
+    await press(/Add live TV/); await wait(1500)
+    await press(/A tuner box on your network/, '[role=dialog]'); await wait(600)
+    await press(/^\s*Next\s*$/, '[role=dialog]'); await wait(2500)
+    await page.eval(`(() => { const l = [...document.querySelectorAll('[role=dialog] label')].find((x) => /^Address/.test(x.textContent.trim())); const i = (l && (l.htmlFor ? document.getElementById(l.htmlFor) : l.querySelector('input'))) || [...document.querySelectorAll('[role=dialog] input')][1]; i.focus() })()`)
+    await page.send('Input.insertText', { text: addr })
+    await wait(300)
+    await press(/^\s*Check it\s*$/, '[role=dialog]'); await wait(5000)
+    console.log('checked:', await dialog())
+    await mask()
+    await shot('hdhomerun-details')
+    for (let step = 3; step <= 6; step++) {
+      if (!(await press(/^\s*(Add and read its channels|Next|Try it|Done|Finish)\s*$/, '[role=dialog]'))) break
+      await wait(7000)
+      console.log('step', step, await dialog())
+      await mask()
+      if (step === 3) await shot('hdhomerun-channels')
+      if (!(await page.eval(`!!document.querySelector('[role=dialog]')`))) break
+    }
+    await key('Escape', 'Escape', 27); await wait(800)
+  },
+  // TV mode: the website as the TV apps are (?tv=1). The docs show its Libraries tab, the guide with its
+  // Shortcuts open, and an album's page.
   async tvmode() {
     await go('/?tv=1', 4000)
     await go('/libraries', 5000)
     await move(1, 1)
     await shot('tv-mode')
+    await go('/tv', 6000)
+    await press(/^\s*Shortcuts\s*$/); await wait(1500)
+    await move(1, 1)
+    await shot('tv-guide-shortcuts')
+    await press(/^\s*Shortcuts\s*$/); await wait(500)
+    const l = await lib('Music')
+    const albums = await call('GET', `/music/albums?library=${l.id}&sort=title`)
+    const album = (albums.albums || albums).find((a) => a.title === 'Collide') || (albums.albums || albums)[0]
+    await go(`/album/${l.id}?album=${encodeURIComponent(album.title)}&artist=${encodeURIComponent(album.artist)}`, 5000)
+    await move(1, 1)
+    await shot('tv-album')
+    await page.eval(`localStorage.setItem('wms.tvmode', '0')`)
+    await go('/?tv=0', 2000)
   },
   async big() {
     await go('/big/', 5000)

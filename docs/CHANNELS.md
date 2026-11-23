@@ -366,9 +366,15 @@ An HDHomeRun is found by a search of the home network: **Settings → Live TV & 
 
 If the search finds nothing, add it by its address instead, such as `192.168.1.50` or `hdhomerun.local`. The HDHomeRun app shows the address, and so does your router's list of devices. Adding by address works whatever the firewall says about the search.
 
+![Add live TV, step 2: the address of the tuner box, and what it answered: its model and how many channels it lists](images/hdhomerun-details.webp)
+*Checked before anything is saved. A stand-in for the device, at the guides' example address.*
+
 On Windows, the first search can make Windows Firewall ask whether **wittytuner-module** may use the network. Choose **Allow** for private networks. If it was told no, or the server runs as the background service (which can't show the question), the search may hear no answer: add the device by its address, or allow `wittytuner-module.exe` in Windows Security → Firewall & network protection → Allow an app through firewall. Its folder is `modules\wittytuner\versions\<version>` in the [data folder](DATA-FOLDER.md).
 
 What works: the channel list (`lineup.json`), a scan for Antenna channels, watching, recording, and as many channels at once as the device has tuners. One more is refused with "all of this device's tuners are in use". ATSC 3.0 channels play when they aren't encrypted. A channel the device marks DRM is listed as encrypted and never tuned. Older models the maker calls legacy, without HTTP streaming, aren't supported yet and say so. The device's own guide is an online service of its maker's, so the guide comes from a guide source you add (see [Guide data](#guide-data)).
+
+![Add live TV, step 3: five channels found, four clear and one encrypted, with buttons to scan for channels or read the list again](images/hdhomerun-channels.webp)
+*Its channels. The encrypted one is listed, and never tuned.*
 
 **If it doesn't work,** send the person helping you:
 

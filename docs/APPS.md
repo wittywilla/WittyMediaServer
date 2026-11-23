@@ -198,6 +198,14 @@ The first connection trusts what it's shown, so comparing the fingerprint once i
 - To leave it, open **You** and choose **Leave TV mode**.
 - The apps on Android TV, Apple TV and Plasma Bigscreen are laid out this way by themselves.
 
+On a TV, keyboard keys aren't shown: a **Keys** button lists what the remote or controller does. The TV guide shows at least five whole channels, with its buttons behind **Shortcuts** beside the channel set (the remote's Menu opens it, Back closes it), and **Help** says what each key does. An album's page puts the cover beside its title, with **Play** and **Shuffle** under it and the songs below.
+
+![The TV guide in TV mode, with five channels and Shortcuts open along the foot: Look, Day, Channels, Filter, More info and Recordings](images/tv-guide-shortcuts.webp)
+*TV mode's guide, with Shortcuts open. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
+![An album's page in TV mode: a large cover, the title, Play and Shuffle, and the songs](images/tv-album.webp)
+*An album in TV mode. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
+
 **Couch mode** is for games on a sofa. It shows only your game libraries, full screen, with nothing that needs a mouse. Open it with **Couch mode** on a games library, or go to `/big` on your server. See [Games](GAMES.md).
 
 For moving around with a remote or a controller, see [TV remotes and controllers](PLAYING.md#tv-remotes-and-controllers).

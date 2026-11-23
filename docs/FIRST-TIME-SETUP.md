@@ -35,6 +35,9 @@ Install the server first: [Getting started](GETTING_STARTED.md#install-it-and-st
 
 ## 1. Language
 
+![Language and time zone: three lists, for the pages, for disc menus and sound tracks, and for the time zone](images/setup-language.webp)
+*Asked once, before anything else.*
+
 The very first page asks, once:
 
 - **Language:** the language of these pages, for everyone who uses this server. The page changes as you pick it.
@@ -45,7 +48,7 @@ They're saved as soon as the account is made. To change them later, use **Settin
 
 ## 2. Welcome
 
-![The welcome page: a button to set up a new server, a button to restore from a backup, and what the server does](images/setup-01-welcome.webp)
+![The welcome page: a button to set up a new server, a button to restore from a backup, and what the server does](images/setup-welcome.webp)
 *The welcome page. Back, at the foot, goes back to the language.*
 
 - **Set up a new server** carries on to the next page.
@@ -53,7 +56,7 @@ They're saved as soon as the account is made. To change them later, use **Settin
 
 ## 3. Your account
 
-![The account page: a name, a password typed twice, and a tick to say you understand](images/setup-02-account.webp)
+![The account page: a name, a password typed twice, and a tick to say you understand](images/setup-account.webp)
 *This account looks after the server: its libraries, people and settings.*
 
 Choose a **name to sign in with**, and optionally the **name people see** (what this profile is called around the app), and a **password** of at least 8 characters, typed twice. **Show what I'm typing** helps on a TV. Tick the box to say that the files you add are your own responsibility, then press **Create account**. On another device, the setup code goes here too.
@@ -68,7 +71,7 @@ Keep the password somewhere safe: [forgetting it is hard to undo](ACCOUNTS.md#if
 
 On a computer you use (the Windows tray app, the Mac app, a Linux desktop), the first page after the account asks **where WittyMediaServer should keep its settings and data**: its database, settings, artwork, modules and logs. Your media stays where it is.
 
-![Where data is kept: Documents chosen, the install folder beside it, and Somewhere else](images/setup-03-data-folder.webp)
+![Where data is kept: Documents chosen, the install folder beside it, and Somewhere else](images/setup-storage.webp)
 *Documents is chosen to begin with. The line under the choices says how much room there is.*
 
 - **Documents** is chosen to begin with: `Documents\WittyMediaServer`, or `~/Documents/WittyMediaServer`.
@@ -81,6 +84,9 @@ The page checks the place as you choose: free space, whether the server can writ
 
 The name appears in every app, so everyone at home knows which server they're on. The editor is the same one as **Settings → Appearance → Name and logo**, and the page's corner shows your name as you change it.
 
+![Name your server: the name, its letters and colours, presets and a mark, with a live preview of the name in the menu, the top bar and the sign-in page](images/setup-name.webp)
+*The same editor as Settings, Appearance, Name and logo.*
+
 - **Name:** type one, or leave it empty for “WittyMediaServer”.
 - **Letters or words to colour:** the letters are a row of buttons. Use the arrows to move, **Shift** and the arrows to select a range, **Space** to select a letter, or press one of the words listed under it.
 - **Colour for the selection:** a colour that **follows the theme** (text, accent, success, warning, danger), a **fixed colour** that stays the same in every theme (a swatch, **Any colour…** or a `#rrggbb`), or a **gradient** (two ready-made, or **Edit stops…** for two to four colours and a direction). Giving each letter its own colour is allowed.
@@ -92,6 +98,9 @@ When the server checks the name's fixed colours against the theme and finds word
 
 ### Finding this server at home
 
+![Finding this server at home: a switch to be found by name, and the address with its port](images/setup-network.webp)
+*The address here is an example.*
+
 - **Find this server automatically** lets apps on your home network find it by name, with no address to type.
 - **Its address:** what other devices at home open, in full, such as `http://192.168.1.20:9797`. The number at the end is its **port**, which you can change here if another program already uses it. Later, it's in **Settings → Network**.
 
@@ -99,15 +108,15 @@ When the server checks the name's fixed colours against the theme and finds word
 
 Movies, TV shows and music work straight away. Modules add the rest: discs, games, photos, books, live TV and more. Each is a separate program that downloads now, signed, from the official list, so this page needs an internet connection. What you don't tick isn't downloaded.
 
-![The list of modules, each with a tick box and what it lets you add](images/setup-04-modules-chosen.webp)
+![The list of modules, each with a tick box and what it lets you add](images/setup-modules-chosen.webp)
 *Tick what you want. The folder browser is ticked for you, as it's how you choose a folder from a TV or a phone.*
 
 Under the list, choose what happens when a module has a new version: tell you and let you choose, install it by itself, or look only when you ask. Then press **Download and install**.
 
-![Modules being installed, one at a time, each saying how far it has got](images/setup-05-modules-installing.webp)
+![Modules being installed, one at a time, each saying how far it has got](images/setup-modules-installing.webp)
 *Each module downloads, and its signature is checked before it goes in.*
 
-![Every module ticked off as ready](images/setup-06-modules-ready.webp)
+![Every module ticked off as ready](images/setup-modules-ready.webp)
 *If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Modules.*
 
 See [Modules and the store](MODULE-STORE.md).
@@ -118,10 +127,10 @@ Pick a kind of media, then the folder it's in. Each one becomes a library you ca
 
 Above the kinds is one question, asked before anything is scanned: **Save posters and details beside your files**. On, they stay with your media if you ever move it; your videos and music themselves are never changed. Off, your media folders are left exactly as they are, and it's all kept on this server. It's saved as you tick it, and can be changed later in **Settings → Metadata agents**.
 
-![Every kind of media to choose from: movies, TV, discs, music, books, photos, games and more](images/setup-07-media.webp)
+![Every kind of media to choose from: movies, TV, discs, music, books, photos, games and more](images/setup-media.webp)
 *Choose a kind. A kind you didn't add the module for isn't offered.*
 
-![The folder for a Movies library: its name, and three ways to give the folder](images/setup-08-media-movies.webp)
+![The folder for a Movies library: its name, and three ways to give the folder](images/setup-media-movies.webp)
 *Three ways to give the folder.*
 
 - **Choose folder…**, on the computer running the server, opens your computer's own folder window.
@@ -130,7 +139,7 @@ Above the kinds is one question, asked before anything is scanned: **Save poster
 
 Press the button that adds it, such as **Add Movies**, and it starts scanning in the background. Add as many as you like.
 
-![The list of libraries so far, with every kind still there to add another](images/setup-09-media-added.webp)
+![The list of libraries so far, with every kind still there to add another](images/setup-media-added.webp)
 *Add another kind, or press Continue.*
 
 How to name your files is in [Libraries](LIBRARIES.md#how-to-lay-out-and-name-your-files). A folder on another computer has [its own steps](LIBRARIES.md#network-shares), which this page lays out if you choose one from another device.
@@ -143,6 +152,9 @@ One page for each module you added that has something to set up, in turn. Going 
 
 With WittyTuner, this page is WittyTuner's own. On a TV or phone app, the server's "Finish setting up WittyTuner" notice on Home opens the same step.
 
+![The Live TV page: Add live TV, and a demo tuner to try the guide with](images/setup-tv.webp)
+*On a server that found no tuner. Skip for now leaves it for later.*
+
 It finds TV tuners on your network, each added with a press, and walks you through a provider's playlist or a single stream. **No tuner or playlist yet?** Add the **demo tuner**: a few channels the server makes itself, to try the guide, recording and the player with nothing to buy. Each tuner you add is listed with how many channels it has. Later, it's all in **Settings → Live TV & tuners**.
 
 No channel lists or stream addresses come with the server: you bring your own. Encrypted channels are shown as encrypted and never decrypted. See [Channels and live TV](CHANNELS.md).
@@ -151,7 +163,7 @@ No channel lists or stream addresses come with the server: you bring your own. E
 
 With WittyPlay.
 
-![The games page: a button to add a games folder, and four optional sources of details, each with a place for its key](images/setup-10-games.webp)
+![The games page: a button to add a games folder, then how game titles are shown, how games are pictured, how strong the server is, and console photos from Wikimedia](images/setup-games.webp)
 *Point it at your games folder and leave it.*
 
 It works out each game's console and name by itself, and lists anything it can't prove for you to look at. No games come with the server, and nothing is downloaded for you. The sources here are optional, and each needs a free key. See [Games](GAMES.md).
@@ -160,7 +172,7 @@ It works out each game's console and name by itself, and lists anything it can't
 
 With WittyDVD or WittyBluray.
 
-![Two choices for pressing play on a disc: show its menu, or play the movie straight away, and a switch for a disc animation](images/setup-11-discs.webp)
+![Two choices for pressing play on a disc: show its menu, or play the movie straight away, and a switch for a disc animation](images/setup-discs.webp)
 *The menu is still one button away if you choose to play straight away.*
 
 Discs with copy protection can't be played. They're listed with a plain reason, and nothing is ever unlocked. See [DVDs](DVD.md) and [Blu-rays](BLURAY.md).
@@ -172,6 +184,9 @@ After the modules, so the choices are about what's on your server.
 ### Layout
 
 A look is the layout, shapes, finish and type: how pages are arranged and how they feel. Fourteen come with the server, each tried on this very page as you pick it:
+
+![How should it be laid out: fourteen looks to choose from, and a picture of the chosen one on a desktop](images/setup-look.webp)
+*Lumen is chosen to begin with.*
 
 | Look | In a word | Wears, unless you choose |
 |---|---|---|
@@ -196,15 +211,24 @@ What you pick is where everyone starts, on every kind of device. People can pick
 
 Any theme goes with any look, and the page changes as you choose. **Start with the look's own theme** is on until you choose a theme, which then stays for everyone. Fifteen come with the server, among them Witty, Midnight, Cinema, Evergreen, True black, Light, Paper, High contrast, the four Aero themes, Cable blue, Satellite and Teletext. **Import a theme…** installs one from a ZIP file, and you can make your own later in **Settings → Appearance**. See [Themes](THEMES.md).
 
+![Choose colours: a picture of the look in the chosen theme, and fifteen themes to choose from](images/setup-theme.webp)
+*The page changes as you choose.*
+
 ### WittyTV
 
 Only if you added WittyTuner. WittyTV, the live TV guide, has a look of its own: how channels and programmes are laid out, and their colours. **Follow the look** uses what the look you chose brings; any other is used for everyone instead. People can still choose their own in the guide. Later, it's in **Settings → Appearance → WittyTV**.
+
+![How should the TV guide look: Follow the look, and eight guide layouts, with a picture of the chosen one](images/setup-wittytv.webp)
+*Follow the look is chosen to begin with.*
 
 Without WittyTuner, WittyTV's look and colours aren't offered here or in **Settings → Appearance**. Whenever WittyTuner is installed fresh (not updated), during setup or later, the server asks once: in setup it's this page; afterwards, **Settings → Modules** asks as soon as it's installed, and Home shows "Finish setting up WittyTuner" in every app until you choose or dismiss it. Removing WittyTuner forgets the answer, so installing it again asks again.
 
 ## 9. People
 
 Add profiles (an adult's, or a **Kids** profile that only shows titles for their age), listed with what each is. Then the **Rules**:
+
+![Who else watches: the profiles so far, buttons to add a profile or a Kids profile, and the rules for looks and themes](images/setup-people.webp)
+*Only the owner's profile so far.*
 
 - **Let people add their own themes:** anyone can add a theme of their own from a ZIP file, for their profile only.
 - A look, a theme or both **required** of **Everyone**, of **Kids profiles**, or of one profile. A required choice is shown locked, "Required by" your name, and that person can't change it; leave a row on "Free to choose" to let them pick. The most specific requirement wins: a profile's over the kids' over everyone's.
@@ -214,6 +238,9 @@ You can change all of this in **Settings → Profiles**, and under **Settings �
 ## 10. Away from home
 
 At home everything works already. This page is for using your server on a phone or laptop somewhere else.
+
+![Watch away from home: peer-to-peer connections, off, with every outside computer they would contact, then encrypted connections and adding an app](images/setup-remote.webp)
+*Off until you turn it on.*
 
 - **Peer-to-peer connections**: your device connects straight to this server, with nothing to change on your router; if a direct connection can't be made, a relay passes it along, encrypted. It's off until you turn it on, and before you do, the page lists every outside computer it would contact and what each one sees. Once on, **Test my connection** says in a sentence whether it works from away, and what to do if not.
 - **Encrypted connections** says whether HTTPS is on. A certificate needs a domain name, so it's set up in **Settings → Remote Access** if you want it.
@@ -227,7 +254,7 @@ A few extras, all optional. Each page has **Skip for now**, and the first has **
 
 ### Posters and details
 
-![The free sources that work with no setup, and two optional keys](images/setup-12-details.webp)
+![The free sources that work with no setup, and two optional keys](images/setup-details.webp)
 *TVmaze, Wikidata, Wikipedia, AniList and libretro work with no key.*
 
 Names taken from your files and folders are sent to these services to look things up. Your files stay on your computer. **Add a key**, for TMDB and TheTVDB, is optional: a key is a free code that lets your server ask them for things, and each takes about two minutes. See [Where details come from](METADATA.md).
@@ -236,7 +263,7 @@ Names taken from your files and folders are sent to these services to look thing
 
 ### Logos
 
-![What logos are, where they come from and who owns them, with a button for yes and a button for no](images/setup-14-logos.webp)
+![What logos are, where they come from and who owns them, with a button for yes and a button for no](images/setup-logos.webp)
 *Off unless you say yes. Nothing else changes if you say no.*
 
 Real logos for consoles, studios and networks aren't part of this software. They download from Wikimedia Commons one at a time, only if you agree, and they're still trademarks of their owners. Choosing **No thanks, use plain names** shows names in plain text.
@@ -245,7 +272,7 @@ Real logos for consoles, studios and networks aren't part of this software. They
 
 Where music can be added.
 
-![Two switches, both off: find lyrics online, and artist biographies and photos](images/setup-15-music.webp)
+![Two switches, both off: find lyrics online, and artist biographies and photos](images/setup-music.webp)
 *Both are free, with no account and no key, and both stay off unless you turn them on.*
 
 Lyrics beside your songs or inside their files work anyway, with nothing sent anywhere. These two add what they don't have, and the page says what's sent to each. See [Lyrics and karaoke](LYRICS-KARAOKE.md).
@@ -254,18 +281,21 @@ Lyrics beside your songs or inside their files work anyway, with nothing sent an
 
 Where music can be added. Karaoke works already: the quick version turns the singer down. **Install Demucs…** installs a free program that takes the voice out properly. The page says how much it downloads, from where, and under which licences before anything starts, and uses the graphics card when it can. It installs in the background while you carry on. Later, it's in **Settings → Metadata agents**, under Lyrics.
 
+![Separate voices for karaoke: what Demucs is, how much it downloads, and a button to install it](images/setup-karaoke.webp)
+*Karaoke works without it; Demucs makes it better.*
+
 ### Streaming lists
 
 Where movies or shows can be added.
 
-![What streaming lists do, and that nothing streams from those services, with a button to set it up and one to leave it off](images/setup-16-listings.webp)
+![What streaming lists do, and that nothing streams from those services, with a button to set it up and one to leave it off](images/setup-listings.webp)
 *Off unless you choose it.*
 
 This sorts your own titles by which streaming service lists them right now. Nothing streams from those services, and you don't need an account with any of them. To turn it on, you accept four statements and add a free TMDB key. **Leave it off and continue** is the usual choice.
 
 ## 12. Ready
 
-![A summary of every answer and where to change it, the address for other devices, and buttons to add a Kids profile and start watching](images/setup-18-done.webp)
+![A summary of every answer and where to change it, how other devices at home reach the server, and buttons to add a Kids profile and start watching](images/setup-done.webp)
 *The last page says what you chose, as the server has it now.*
 
 - **What you chose**, each with where to change it later, including whether the server can be reached away from home. Your libraries keep scanning in the background, and titles and posters appear as each one is found.

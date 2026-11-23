@@ -117,6 +117,9 @@ Save or undo your other changes first, because picking a time leaves the dialog.
 
 **⋯ → Edit scenes and skips** on a film's or an episode's page (or the player's ⋯ menu while it plays) edits the title's `.wittyinfo` ([the format](formats/wittyinfo.md)), which can say much more than the section above and wins over it:
 
+![The Scenes and skips editor over a film's page: a timeline of the film, tabs for skips, scenes, content, details, pictures, subtitles, languages and the file, and an intro being added](images/wittyinfo-editor.webp)
+*Editing a film's `.wittyinfo`. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
 - **Skips**: any number of parts, each an intro, recap, credits, preview, a scene after the credits, an advert break or any other part you name, with a **Skip button**, **Skip by itself** or **Only mark it**. Drag them on the timeline, or type exact times. **This video has no…** stops the season's or show's defaults and anything found by itself from adding a kind. The faint bands on the timeline, and **What plays now**, show what is in force and where it came from.
 - **Scenes**: titles and start times that take the place of the file's chapters in the player's Scenes; **Copy the video's chapters** starts from those.
 - **Content**: what some people may not want to see or hear, and how strong it is. Each profile chooses what to do about it.

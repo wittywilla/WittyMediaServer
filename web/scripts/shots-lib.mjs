@@ -51,7 +51,13 @@ export async function open(server, out, { width = 1920, height = 1080, path = '/
     })
   })()`)
   const until = (expression, ms = 30000, what) => page.until(expression, ms, what)
-  const go = async (path, settle = 1400) => { await page.go(server + path); await wait(settle) }
+  // A busy server (just after a scan) can take a while to send a page: wait out its loading skeleton too.
+  const go = async (path, settle = 1400) => {
+    await page.go(server + path)
+    await wait(settle)
+    await page.until(`!document.querySelector('.sdui-loading, [aria-busy="true"].skeleton-grid')`, 45000, `${path} to load`).catch((e) => console.log(e.message))
+    await wait(400)
+  }
   const words = () => page.eval(`document.body.innerText.slice(0, 1500)`)
   return { browser, page, size, shot, card, call, press, typeIn, until, go, words, maskAddresses }
 }

@@ -30,7 +30,7 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `dvd-tray.webp` | A disc in the tray. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
 | `film-page.webp` | Everything here came from files beside the film. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
 | `fix-matches.webp` | The Fix matches page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
-| `folder-browser.webp` | Choosing a folder. The folders are from a test server. |
+| `folder-browser.webp` | Choosing a folder. The drives are a test computer's, shown by letter only. |
 | `gameplay-datastorm.webp` | [DataStorm](https://github.com/haroldo-ok/datastorm), Haroldo de Oliveira Pinheiro, Apache-2.0. |
 | `gameplay-dragon-blaster.webp` | [Dragon Blaster](https://github.com/haroldo-ok/dragon-blaster), Haroldo de Oliveira Pinheiro, MIT, with open art from OpenGameArt. |
 | `gameplay-libbet.webp` | [Libbet and the Magic Floor](https://github.com/pinobatch/libbet), Damian Yerrick, zlib. |
@@ -39,16 +39,20 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `gameplay-thwaite.webp` | [Thwaite](https://github.com/pinobatch/thwaite-nes), Damian Yerrick, GPL-3.0-or-later. |
 | `gameplay-ucity.webp` | [µCity](https://github.com/AntonioND/ucity), Antonio Niño Díaz, GPL-3.0 and CC BY-SA 4.0, running on the server and streamed to a browser. |
 | `games.webp` | WittyPlay, with open-licence homebrew. Each is credited in [the list](CREDITS.md). |
-| `help-setup-guide.webp` | The first-time setup guide in the built-in Help. |
+| `hdhomerun-channels.webp` | The stand-in HDHomeRun's channels, with made-up names. No media is pictured. |
+| `hdhomerun-details.webp` | Adding an HDHomeRun, here a stand-in for one at the guides' example address. No media is pictured. |
 | `help.webp` | The built-in Help. |
+| `help-setup-guide.webp` | The first-time setup guide in the built-in Help. |
+| `home.webp` | The home page. Openly licensed and public-domain media, credited in [the list](CREDITS.md) |
 | `home-shelves.webp` | Every kind of media on one server. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `home-video-page.webp` | A home video's page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `home-videos.webp` | Home videos. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
-| `home.webp` | The home page. Openly licensed and public-domain media, credited in [the list](CREDITS.md) |
+| `karaoke.webp` | Karaoke over WittyVisualizer's Northern Veil. "Take Me Out to the Ball Game", 1908, public domain. |
+| `karaoke-mix.webp` | Karaoke, with Mix open. "Take Me Out to the Ball Game", 1908, public domain. |
+| `karaoke-voice-advanced.webp` | Karaoke, with Voice settings open on Advanced. "Take Me Out to the Ball Game", 1908, public domain. |
+| `karaoke-voice-presets.webp` | Karaoke, with Voice settings open on Presets. "Take Me Out to the Ball Game", 1908, public domain. |
 | `module-store.webp` | The module store, from the module catalogue. |
 | `movies.webp` | A Movies library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
-| `karaoke.webp` | Karaoke over WittyVisualizer's Northern Veil. "Take Me Out to the Ball Game", 1908, public domain. |
-| `phone-karaoke.webp` | Karaoke on a phone. "Take Me Out to the Ball Game", 1908, public domain. |
 | `music-album.webp` | An album's page. Credited in [the list](CREDITS.md). |
 | `music-albums.webp` | Albums. Credited in [the list](CREDITS.md). |
 | `music-artists.webp` | Artists. Credited in [the list](CREDITS.md). |
@@ -57,18 +61,20 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `music-karaoke.webp` | Karaoke. "Take Me Out to the Ball Game", 1908, public domain. |
 | `music-lyrics.webp` | "Take Me Out to the Ball Game", 1908, public domain. |
 | `music-videos.webp` | Music videos and concerts under open licences, credited in [the list](CREDITS.md). |
+| `music-visualizer.webp` | WittyVisualizer. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
 | `music-visualizer-2.webp` | A WittyVisualizer effect. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
 | `music-visualizer-3.webp` | A WittyVisualizer effect. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
-| `music-visualizer.webp` | WittyVisualizer. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
 | `phone-film.webp` | At phone width. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
 | `phone-guide.webp` | WittyTV at phone width. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `phone-home.webp` | At phone width. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
+| `phone-karaoke.webp` | Karaoke on a phone. "Take Me Out to the Ball Game", 1908, public domain. |
 | `phone-movies.webp` | At phone width. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `phone-music.webp` | Music at phone width. Credited in [the list](CREDITS.md). |
+| `photos.webp` | The timeline, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
 | `photos-map.webp` | The map, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
 | `photos-viewer.webp` | The viewer, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
-| `photos.webp` | The timeline, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
 | `player.webp` | The player. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
+| `player-quality.webp` | The player's quality menu. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
 | `podcasts.webp` | Podcasts under open licences, credited in [the list](CREDITS.md). |
 | `reader-comic.webp` | WittyComics. [Pepper&Carrot](https://www.peppercarrot.com/), David Revoy, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
 | `reader-epub.webp` | WittyEbook. covers and text from [Standard Ebooks](https://standardebooks.org/), [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
@@ -98,22 +104,32 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `settings-transcoding.webp` | Settings, Live transcoding. |
 | `settings-users.webp` | Settings, Profiles, with made-up names. |
 | `settings-wittyrigs.webp` | Settings, WittyRigs. |
-| `setup-01-welcome.webp` | The first page. Your server can have a name of its own here, and a logo. |
-| `setup-02-account.webp` | This account looks after the server. Everyone else gets a profile later. |
-| `setup-03-data-folder.webp` | Documents is chosen to begin with. The line under the choices says how much room there is. |
-| `setup-04-modules-chosen.webp` | Tick what you want. The folder browser is ticked for you, as it's how you choose a folder from a TV or a phone. |
-| `setup-05-modules-installing.webp` | Each module downloads, and its signature is checked before it goes in. |
-| `setup-06-modules-ready.webp` | If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Modules. |
-| `setup-07-media.webp` | Choose a kind. A kind you didn't add the module for isn't offered. |
-| `setup-08-media-movies.webp` | Three ways to give the folder. |
-| `setup-09-media-added.webp` | Add another kind, or press Continue. |
-| `setup-10-games.webp` | Point it at your games folder and leave it. |
-| `setup-11-discs.webp` | The menu is still one button away if you choose to play straight away. |
-| `setup-12-details.webp` | TVmaze, Wikidata, Wikipedia, AniList and libretro work with no key. |
-| `setup-14-logos.webp` | Off unless you say yes. Nothing else changes if you say no. |
-| `setup-15-music.webp` | Both are free, with no account and no key, and both stay off unless you turn them on. |
-| `setup-16-listings.webp` | Off unless you choose it. |
-| `setup-18-done.webp` | The last page says what you chose, as the server has it now. |
+| `setup-account.webp` | The account page, with a made-up name. No media is pictured. |
+| `setup-details.webp` | TVmaze, Wikidata, Wikipedia, AniList and libretro work with no key. |
+| `setup-discs.webp` | The menu is still one button away if you choose to play straight away. |
+| `setup-done.webp` | The last page of setup. No media is pictured. |
+| `setup-games.webp` | WittyPlay's page in setup. No media is pictured. |
+| `setup-karaoke.webp` | Separate voices for karaoke. No media is pictured. |
+| `setup-language.webp` | Language and time zone, the first page of setup. No media is pictured. |
+| `setup-listings.webp` | Off unless you choose it. |
+| `setup-logos.webp` | Off unless you say yes. Nothing else changes if you say no. |
+| `setup-look.webp` | Choosing a look. The pictures of each look are drawings, not media. |
+| `setup-media.webp` | Choose a kind. A kind you didn't add the module for isn't offered. |
+| `setup-media-added.webp` | Add another kind, or press Continue. |
+| `setup-media-movies.webp` | Three ways to give the folder. |
+| `setup-modules-chosen.webp` | Tick what you want. The folder browser is ticked for you, as it's how you choose a folder from a TV or a phone. |
+| `setup-modules-installing.webp` | Each module downloads, and its signature is checked before it goes in. |
+| `setup-modules-ready.webp` | If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Modules. |
+| `setup-music.webp` | Both are free, with no account and no key, and both stay off unless you turn them on. |
+| `setup-name.webp` | Naming the server. No media is pictured. |
+| `setup-network.webp` | Finding this server at home. No media is pictured. |
+| `setup-people.webp` | Profiles and rules. No media is pictured. |
+| `setup-remote.webp` | Watching away from home. No media is pictured. |
+| `setup-storage.webp` | Where data is kept. The folders shown are examples. No media is pictured. |
+| `setup-theme.webp` | Choosing colours. The pictures of each theme are drawings, not media. |
+| `setup-tv.webp` | WittyTuner's Live TV page in setup. No media is pictured. |
+| `setup-welcome.webp` | The welcome page. No media is pictured. |
+| `setup-wittytv.webp` | Choosing the TV guide's look. The pictures are drawings, not media. |
 | `shorts.webp` | Clips cropped from open films, credited in [the list](CREDITS.md). |
 | `stats.webp` | WittyStats. |
 | `store-module.webp` | A module's page in the store. |
@@ -122,12 +138,15 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `theme-light-home.webp` | The Light theme. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `theme-midnight-home.webp` | The Midnight theme. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `theme-paper-movies.webp` | The Paper theme. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
+| `tv-album.webp` | An album in TV mode. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The playlists beside it are credited in [the list](CREDITS.md). |
+| `tv-guide-shortcuts.webp` | TV mode's guide with Shortcuts open, the preview playing [The Cabinet of Dr. Caligari](https://commons.wikimedia.org/wiki/File:The_Cabinet_of_Dr._Caligari.webm), Robert Wiene, 1920, public domain. Other titles in the guide are credited in [the list](CREDITS.md). |
 | `tv-mode.webp` | TV mode's Libraries. No media is pictured. |
 | `tv-show-page.webp` | A show's page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `tv-shows.webp` | A TV shows library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
+| `wittyinfo-editor.webp` | The Scenes and skips editor, with nothing saved. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
 | `wittytv-bigpicture.webp` | The Big picture look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
 | `wittytv-classic.webp` | The Classic look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
-| `wittytv-guide.webp` | WittyTV, with channels made from a library in one press, and the preview playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. Other titles in the guide are in [the list](CREDITS.md). |
+| `wittytv-guide.webp` | WittyTV, with channels made from a library in one press, and the preview playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. Other titles in the guide are credited in [the list](CREDITS.md). |
 | `wittytv-listings.webp` | The Newspaper look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
 | `wittytv-miniguide.webp` | The mini guide over a channel, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
 | `wittytv-modern.webp` | The Modern look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |

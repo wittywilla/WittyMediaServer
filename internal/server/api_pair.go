@@ -674,6 +674,7 @@ func (s *Server) writePoll(w http.ResponseWriter, r *http.Request, state int, p 
 		}
 		s.Log.InfoContext(r.Context(), "device signed in by pairing", "cat", "auth", "session", p.id, "device", p.device, "user", u.Name)
 		s.notePlainSession(r, tok)
+		s.cookieForPage(w, r, tok) // a browser on this server's own page: its pictures then need no token
 		writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 	default:
 		writeJSON(w, 200, map[string]any{"status": "pending", "intervalSec": int(pairInterval.Seconds())})

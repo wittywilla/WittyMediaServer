@@ -65,7 +65,8 @@ async function map(label) {
     for (const k of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
       await page.eval(`document.querySelector('[data-t="${id}"]')?.focus({ preventScroll: true })`)
       await press(k)
-      await wait(30)
+      // A group of choices moves its focus on the next frame (ui/Choice.tsx), so the map waits for it.
+      await page.eval(`new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(0))))`)
       edges[k] = await active()
     }
     graph.set(id, edges)

@@ -10,7 +10,7 @@ import { ScanControl, scanProgressText, useScanProgress } from '../components/Sc
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { ModuleSettingsView, useModuleSettingsTabs, type ModuleSettingsTab } from '../moduleRegistry'
-import { IconHelp, IconActivity, IconChannels, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
+import { IconHelp, IconActivity, IconChannels, IconCheck, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { settingsPageHidden } from '../profileWords'
 import { useMyLimits } from '../myLimits'
@@ -57,6 +57,7 @@ const LegalSettings = lazy(() => import('./settings/Legal'))
 const ResetSettings = lazy(() => import('./settings/Reset'))
 const BackupSettings = lazy(() => import('./settings/Backup'))
 const RepairSettings = lazy(() => import('./settings/Repair'))
+const LibraryHealth = lazy(() => import('./settings/LibraryHealth'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const NetworkSettings = lazy(() => import('./settings/Network'))
 const DataFolderSettings = lazy(() => import('./settings/DataFolder'))
@@ -116,6 +117,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'diagnoser', label: tk('WittyDiagnoser'), icon: <IconTune />, admin: true, hint: tk('The disk diagnoser: checks your discs and your drives, and changes nothing') },
     { to: 'modules', label: tk('Modules'), icon: <IconPlug />, admin: true, hint: tk('What this server can do: add, remove, update and choose versions') },
     { to: 'backup', label: tk('Backup'), icon: <IconDownload />, admin: true, hint: tk('A ZIP of your data and metadata, on demand or on a schedule, and bringing one back') },
+    { to: 'health', label: tk('Library health'), icon: <IconCheck />, admin: true, hint: tk('Missing files, titles with no match, duplicates, odd names, NFO files and artwork, with the fixes in one place') },
     { to: 'repair', label: tk('Repair'), icon: <IconWrench />, admin: true, hint: tk('Finds and fixes problems with metadata, the database, modules and this install') },
     { to: 'reset', label: tk('Reset'), icon: <IconRefresh />, admin: true, hint: tk('Back to a new install, with a copy kept if you want one') },
     { to: 'about', label: tk('About'), icon: <IconInfo />, hint: tk('Version, modules, licenses and credits') },
@@ -252,6 +254,7 @@ export default function SettingsPage() {
           <Route path="metadata-files" element={<Navigate to="/settings/repair?tab=files" replace />} />
           <Route path="backup" element={<Suspense fallback={null}><BackupSettings /></Suspense>} />
           <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
+          <Route path="health" element={<Suspense fallback={null}><LibraryHealth /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /><WittyTvLookDialog /></Suspense>} />
           <Route path="module-settings" element={<Suspense fallback={null}><ModuleSettingsList /></Suspense>} />

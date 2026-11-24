@@ -1,0 +1,29 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* Library health. Long paths wrap: nothing here may push the page wider than a phone. */
+
+.lh-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3); }
+.lh-bar .btn, .lh-bar select { min-height: max(var(--control-h), 44px); }
+.lh-summary { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0 var(--sp-2); }
+.lh-chip { display: inline-flex; align-items: baseline; gap: var(--sp-1); padding: var(--sp-1) var(--sp-3); min-height: 36px; border: 1px solid var(--border); border-radius: var(--r-pill, 999px); color: var(--fg-2); text-decoration: none; }
+.lh-chip b { color: var(--fg); font-variant-numeric: tabular-nums; }
+.lh-chip-some { border-color: var(--warn); }
+.lh-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.lh-quiet { color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.lh-none { margin: 0; }
+.lh-link { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
+.lh-section { scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.lh-rows { list-style: none; margin: 0 0 var(--sp-3); padding: 0; display: grid; gap: var(--sp-2); }
+.lh-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-2) var(--sp-3); padding: var(--sp-2) 0; border-top: 1px solid var(--border); min-width: 0; }
+.lh-row:first-child { border-top: 0; }
+.lh-row-text { display: grid; gap: 2px; flex: 1 1 320px; min-width: 0; overflow-wrap: anywhere; }
+.lh-row-text a { color: inherit; }
+.lh-path { color: var(--fg-2); font-size: var(--text-xs); overflow-wrap: anywhere; }
+.lh-members { list-style: none; margin: var(--sp-1) 0 0; padding: 0 0 0 var(--sp-3); border-left: 2px solid var(--border); display: grid; gap: var(--sp-1); }
+.lh-members li { display: grid; gap: 0; }
+.lh-row-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.lh-row-actions .btn { min-height: 44px; }
+
+@media (max-width: 520px) {
+  .lh-row-actions .btn { flex: 1 1 auto; }
+}

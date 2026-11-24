@@ -580,6 +580,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/system/metrics/history` | Signed-in | Administrators only, said in the handler. Known range, known series |
 | `GET /api/system/metrics/report` | Signed-in | By the owner's setting. Libraries the account may open, and its own record. The rest for administrators |
 | `GET /api/system/metrics/drives` | Admin | Nothing further |
+| `GET /api/health/library` | Admin | Known sections, a limit of 500 rows. Reads only the database and the last NFO check. Shows file paths, as the rest of Settings does to an administrator |
+| `POST /api/health/library/check` | Admin | One check at a time, with a time and file limit. Reads only files beside titles, in library folders that are there, and only up to the size an NFO may be. Changes nothing |
+| `DELETE /api/health/library/check` | Admin | Nothing further |
+| `POST /api/health/library/fix` | Admin | Known actions. Versions: films in one library, as the item editor allows. Forget: only a title marked gone whose file is still gone and whose library folder is there and not empty, logged with who did it. Probe: a video file of a title that's there, with a time limit. Set aside: a key of at most 2048 characters, at most 5000 kept. No media file is changed |
 | `GET /api/repair` | Admin | Nothing further |
 | `POST /api/repair/check` | Admin | Known checks. One job at a time. Nothing is changed |
 | `POST /api/repair/fix` | Admin | Keys from the last check, and fixes that can be made. Password and code for anything but what can't lose anything. Paths come only from the check |

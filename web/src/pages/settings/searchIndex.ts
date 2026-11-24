@@ -90,6 +90,10 @@ export const ENTRIES: Entry[] = [
   // System
   { page: 'backup', title: tk('Back up by itself'), section: tk('Back up by itself'), words: 'schedule automatic daily weekly' },
   { page: 'backup', title: tk('Restore a backup'), section: tk('Restore a backup'), words: 'bring back import zip' },
+  { page: 'health', title: tk('Possible duplicates'), section: tk('Possible duplicates'), words: 'duplicate twice copies versions merge library health' },
+  { page: 'health', title: tk('Files that have gone'), section: tk('Files that have gone'), words: 'missing deleted gone files library health' },
+  { page: 'health', title: tk('NFO files that can’t be read'), section: tk('NFO files that can’t be read'), words: 'nfo broken metadata xml sidecar' },
+  { page: 'health', title: tk('Files that can’t be read'), section: tk('Files that can’t be read'), words: 'unplayable corrupt probe ffprobe broken video' },
   { page: 'repair', title: tk('Moved a drive?'), section: tk('Moved a drive?'), words: 'folder path changed drive letter' },
   { page: 'about', title: tk('Updates'), section: tk('Updates'), words: 'check for updates version new' },
   { page: 'about', title: tk('Supported formats'), section: tk('Supported formats'), words: 'codecs file types containers' },

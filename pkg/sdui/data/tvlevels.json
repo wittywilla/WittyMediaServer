@@ -22,6 +22,7 @@
     { "id": "settings.modules", "path": "/settings/modules/*", "level": "desktopOnly", "title": "Modules", "summary": "modules" },
     { "id": "settings.backup", "path": "/settings/backup", "level": "desktopOnly", "title": "Backup", "summary": "backup" },
     { "id": "settings.repair", "path": "/settings/repair", "level": "desktopOnly", "title": "Repair" },
+    { "id": "settings.health", "path": "/settings/health", "level": "desktopOnly", "title": "Library health", "summary": "libraryhealth" },
     { "id": "settings.reset", "path": "/settings/reset", "level": "desktopOnly", "title": "Reset" },
     { "id": "manage", "path": "/manage/*", "level": "desktopOnly", "title": "Managing libraries", "summary": "libraries" },
     { "id": "fix-matches", "path": "/fix-matches", "level": "desktopOnly", "title": "Fix matches" },

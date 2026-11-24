@@ -131,13 +131,12 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
     else if (!busy) submit()
   }
   const field = (id: string, v: string | number | boolean | File) => { const t = String(v); if (id === 'name') setName(t); else if (id === 'password') setPassword(t); else if (id === 'code') setCode(t) }
-  // The logo above already names the server; over a profile's picture the page names it instead, once.
-  const named = profile ? brandName : ''
+  // The card's top line names the server once; the spec's eyebrow (its name too) is hidden in the card.
   const page = needCode
-    ? codeSpec(named, code, busy, err)
-    : signInSpec({ brand: named, profile: profile ? profileName(profile) : null, kind: profile?.kind, name, password, busy, error: err, plain: plainConnection, hasBack: !!onBack })
+    ? codeSpec(brandName, code, busy, err)
+    : signInSpec({ brand: brandName, profile: profile ? profileName(profile) : null, kind: profile?.kind, name, password, busy, error: err, plain: plainConnection, hasBack: !!onBack })
   return (
-    <div className="auth-spec" onKeyDown={(e) => { if (isSubmitKey(e)) { e.preventDefault(); if (!busy) submit() } }}>
+    <div className="sa-form" onKeyDown={(e) => { if (isSubmitKey(e)) { e.preventDefault(); if (!busy) submit() } }}>
       {head}
       <SpecPage page={page} handled={handledIds(page)} onAction={act} onField={field} />
     </div>

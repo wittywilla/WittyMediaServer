@@ -305,6 +305,7 @@ func (n *Node) handleJoin(s network.Stream) {
 	// The same counters as invites: a stranger gets no more tries by asking another way.
 	if !n.allowTry(device.String(), addr.IP) {
 		n.noteRefused(s, "too many tries at a code")
+		n.tries.note(refusal(device.String(), "", "code", "too-many-tries", ""))
 		refuse("too-many-tries", "Too many tries. Wait a minute and try again.")
 		return
 	}
@@ -326,6 +327,7 @@ func (n *Node) handleJoin(s network.Stream) {
 	}
 	n.joins.mu.Unlock()
 	if proofKey == nil || n.cfg.Enrol == nil {
+		n.tries.note(refusal(device.String(), hello.Name, "code", "wrong", ""))
 		refuse("wrong", i18n.T("No such code is waiting on this server."))
 		return
 	}
@@ -362,6 +364,7 @@ func (n *Node) handleJoin(s network.Stream) {
 	n.joins.mu.Unlock()
 	if !good {
 		n.noteRefused(s, "a wrong proof for a code")
+		n.tries.note(refusal(device.String(), hello.Name, "code", "wrong", ""))
 		_ = writeMessage(s, EnrolResponse{Reason: "wrong", Error: "That code isn't right."})
 		return
 	}
@@ -371,6 +374,7 @@ func (n *Node) handleJoin(s network.Stream) {
 	if res.OK {
 		res.Addrs = n.Addrs()
 	}
+	n.noteEnrolled(device.String(), hello.Name, "code", res)
 	_ = writeMessage(s, res)
 }
 

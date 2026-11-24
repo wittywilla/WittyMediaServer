@@ -29,6 +29,9 @@ Limits are set by whoever manages a profile. An administrator manages everyone. 
 
 On a device that's signed in, open the menu under your name and choose **Switch profile**. *Who's watching?* lists everyone. Press a profile:
 
+![Who's watching: a large tile for each profile, with Guest and Kids marked, and ways to sign in another way](images/signin.webp)
+*Who's watching?, with made-up profiles.*
+
 - **With a password or PIN:** type it, and press **Switch**. An account with two-factor sign-in asks for its code as well.
 - **With none:** it switches with a tap. This works on your home network only, as signing in with a tap does.
 
@@ -133,6 +136,9 @@ What plays on a device counts as the screen time of the profile that device is s
 
 ## Screen time
 
+![Limits for a Kids profile: an age for each kind of media, what it may do, and its screen time and bedtimes](images/profile-kids-limits.webp)
+*Limits for a Kids profile, a made-up one.*
+
 Under **Limits → Screen time**:
 
 | Setting | What it does |
@@ -175,6 +181,9 @@ A kids' profile made now starts kid-safe, and whoever makes it can change any of
 ## What a parent can see
 
 **Report** beside a profile you manage shows the last two weeks:
+
+![A Kids profile's report: today's time watched, the last two weeks, what they watched and a button for more time](images/profile-kids-report.webp)
+*A report, on a test server.*
 
 - **Today:** how much time is used, and buttons to give more.
 - **What they watched:** each day's titles and for how long, and the day's screen time.

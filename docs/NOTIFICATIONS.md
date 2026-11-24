@@ -24,6 +24,9 @@ The number on the bell is how many you haven't read. Open it to see the list, ne
 notification marks it read and takes you to what it's about. **Mark all read** clears the number;
 **Clear** forgets them. The server keeps the newest 200 for each profile, for 90 days at most.
 
+![The bell open beside Activity, with its list of notifications, here none yet](images/notifications.webp)
+*The bell, on a test server with nothing new yet.*
+
 On a TV, the bell is in the top bar like everything else: move to it with the remote and press OK.
 
 The WittyMediaClient apps show the same bell and list. On Android, the app can also show a notification in
@@ -34,6 +37,9 @@ the phone's own notification area while it's open; it asks first, and you can tu
 
 **Settings → Notifications** lists the kinds your profile can get. Turn off any you don't want. This only
 changes your own profile.
+
+![Settings, Notifications: a switch for each kind (new episodes, recordings, failed scans, module and server updates), then email and a webhook under Advanced](images/settings-notifications.webp)
+*Settings, Notifications.*
 
 ## Sending them on (Advanced)
 

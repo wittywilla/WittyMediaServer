@@ -206,7 +206,10 @@ Many video files can't play on every device. Each time you press play, your devi
 | **Rewrapped** | The picture and sound are fine, but the file's outer format isn't, so they're moved into one your device can open | Very little |
 | **Transcoding** | The picture or sound has to be converted while you watch. This is the only one that takes real work | A lot |
 
-There's no quality menu in the player. Quality comes from what the file is, what your device can play and the limits set by an administrator:
+![The player's quality menu: Auto (recommended), Original, and smaller sizes with how much data each uses, then Advanced](images/player-quality.webp)
+*The quality menu. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).*
+
+The size button in the player's controls (it shows what's playing, such as **1080p**), or Q, opens **Quality**, which chooses what you watch: **Auto**, which adjusts to your connection and settings, **Original**, the file as it is, or a smaller size, each saying about how much data it uses an hour. **Advanced…** sets the largest picture, the most data, the video format and the sound quality. The choice is remembered on this device, one for at home and one for away, and it always keeps within the limits set by an administrator:
 
 - **At home,** under [Live transcoding](SETTINGS.md#live-transcoding).
 - **Away from home,** under [Limits for viewers away from home](REMOTE.md#limits-for-viewers-away-from-home).

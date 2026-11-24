@@ -42,8 +42,11 @@ A browser can't search your network for servers, so you need the address. A brow
 
 The app for your server, on every platform: Windows, macOS, Linux, FreeBSD, Plasma Bigscreen, Android phones, tablets and TVs, iPhone, iPad and Apple TV. It finds your server at home by itself, signs in with a code, and connects from away with nothing set up on your router.
 
-![The desktop app showing the home page](images/client-home.webp)
-*WittyMediaClient on a desktop, connected to a test server. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![WittyMediaClient on Android TV: Home, with the menu along the top and a film to play](images/app-tv-home.webp)
+*WittyMediaClient 0.6.2 on Android TV, signed in to a test server as a made-up profile. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
+![WittyMediaClient on an Android phone: Home, with a film at the top, the libraries, and the menu along the bottom](images/app-phone-home.webp)
+*The same app on an Android phone.*
 
 Every app draws the same pages, which the server describes. New pages and modules arrive with the server, with no app update. The desktop app is a window around the server's own web app, so it has everything a browser has. If the Android or Apple app can't play something yet, it says so: use a browser on that device for it.
 
@@ -200,6 +203,14 @@ The first connection trusts what it's shown, so comparing the fingerprint once i
 - On a TV browser with no easy way to Settings, add `?tv=1` to the server's address. `?tv=0` turns it off.
 - To leave it, open **You** and choose **Leave TV mode**.
 - The apps on Android TV, Apple TV and Plasma Bigscreen are laid out this way by themselves.
+
+On a TV, keyboard keys aren't shown: a **Keys** button lists what the remote or controller does. The TV guide shows at least five whole channels, with its buttons behind **Shortcuts** beside the channel set (the remote's Menu opens it, Back closes it), and **Help** says what each key does. An album's page puts the cover beside its title, with **Play** and **Shuffle** under it and the songs below.
+
+![The TV guide in TV mode, with five channels and Shortcuts open along the foot: Look, Day, Channels, Filter, More info and Recordings](images/tv-guide-shortcuts.webp)
+*TV mode's guide, with Shortcuts open. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
+![An album's page in TV mode: a large cover, the title, Play and Shuffle, and the songs](images/tv-album.webp)
+*An album in TV mode. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 
 **Couch mode** is for games on a sofa. It shows only your game libraries, full screen, with nothing that needs a mouse. Open it with **Couch mode** on a games library, or go to `/big` on your server. See [Games](GAMES.md).
 

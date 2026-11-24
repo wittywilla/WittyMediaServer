@@ -237,6 +237,9 @@ Read this before turning it on. It's the honest list.
 4. **A device at home** can use the code shown beside it instead: **Add a server → Enter a code**.
 5. **[Test it](#testing-peer-to-peer-connections)**, or follow [Try it yourself](#try-it-yourself) step by step.
 
+![Connect a device: devices at home can connect, devices away from home can't yet, and a button to let them](images/away.webp)
+*The page a device away from home is sent to, before anything is set up.*
+
 You don't have to change the three choices at the top of the page. Peer-to-peer connections work with **Home network only** chosen, which keeps every other way in closed.
 
 ### What the page tells you

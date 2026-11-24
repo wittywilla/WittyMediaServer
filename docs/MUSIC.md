@@ -254,13 +254,13 @@ A link only ever shows what a profile may see: a Kids profile that can't watch a
 
 The visualizer draws moving shapes from the music behind the artwork in the full-screen player. It's on by default there, and **Visualizer** or **V** turns it off. It's part of the **WittyVisualizer** module: if its buttons aren't there, an admin can add it in **Settings → Modules**. **V** also opens it from anywhere the bar is showing.
 
-![A soft green effect filling the screen behind the player](images/music-visualizer-3.webp)
+![A faint green aurora filling the screen behind the player](images/music-visualizer-3.webp)
 *A WittyVisualizer effect. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 
 ![A colourful effect filling the screen behind the player](images/music-visualizer-2.webp)
 *A WittyVisualizer effect. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 
-![A light show filling the screen behind the player](images/music-visualizer.webp)
+![Streaks of light rushing past behind the player](images/music-visualizer.webp)
 *WittyVisualizer. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).*
 
 - **Bars, Waves and Drift** are soft shapes in the artwork's colour. They don't flash, so they come with no warning.

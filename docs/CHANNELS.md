@@ -41,7 +41,7 @@ A channel runs all the time, like real TV: tune in and you join the show part-wa
 The top of the guide says everything about the highlighted programme: channel, title, year and genre, start and end, how far in, and what's next. From there you can **Watch full screen**, **Start over** (the title from the beginning, on your own), open the film or show, make the channel a favourite, change channel, read more, and see the whole day.
 
 ![A TV guide with a row for each channel, and a film playing in the preview](images/wittytv-guide.webp)
-*WittyTV, with channels made from a library in one press, and the preview playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. Other titles in the guide are in [the list](images/CREDITS.md).*
+*WittyTV, with channels made from a library in one press, and the preview playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Other titles in the guide are in [the list](images/CREDITS.md).*
 
 Above the grid:
 
@@ -93,16 +93,16 @@ Sets need a server with this version; an app or a server from before shows the f
 WittyTV has themes of its own, apart from the app's theme. Press **Look** on the guide, or open **Settings → Appearance** and choose **WittyTV** under **On this page**. Each is drawn as a small picture of itself, and changes show straight away. A theme changes the guide, the player's banner and mini guide, recordings and the other TV pages, not only the grid.
 
 ![The guide in the Satellite look, with a film playing](images/wittytv-satellite.webp)
-*The Satellite look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
+*The Satellite look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 ![The guide in the Modern look, with a film playing](images/wittytv-modern.webp)
-*The Modern look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
+*The Modern look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 ![The guide in the Big picture look, with a large preview](images/wittytv-bigpicture.webp)
-*The Big picture look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
+*The Big picture look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 ![The same guide in the Classic look, like an old cable box](images/wittytv-classic.webp)
-*The Classic look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
+*The Classic look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 | Theme | What it is like | Colours |
 |---|---|---|
@@ -157,10 +157,10 @@ Tuning shows a banner with the channel number, name, times, a progress bar and w
 When nothing is scheduled, a channel shows a **We'll be right back** card with the channel's name and what's coming up, in the watch view and in the guide's preview alike, so the picture never looks broken. It goes when the next programme starts.
 
 ![A small list of channels over the picture](images/wittytv-miniguide.webp)
-*The mini guide over a channel, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
+*The mini guide over a channel, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 ![A channel playing full screen, with what's on along the bottom](images/wittytv-watching.webp)
-*A channel, full screen, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
+*A channel, full screen, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 | Key | While watching |
 |---|---|
@@ -181,6 +181,9 @@ When nothing is scheduled, a channel shows a **We'll be right back** card with t
 **Sound and subtitles.** When what's on has more than one sound track, or subtitles or broadcast captions, the player's **Audio** and **Subtitles** buttons (and A and S, and the remote's buttons) choose between them, as in the library player. Everyone on a channel shares one stream, so a choice only changes what your player plays, and the language you choose is kept for the next programme and channel. Today a library channel's stream carries the programme's main sound track and no subtitles, so the buttons appear mostly for tuner channels with captions; other languages ([#238](https://github.com/wittywilla/WittyMediaServer/issues/238)) and subtitles ([#239](https://github.com/wittywilla/WittyMediaServer/issues/239)) in the shared stream are planned.
 
 You can pause and rewind within what's kept: 5 minutes on library channels and 30 on tuner channels, unless you change **Pause buffer** under **Options**.
+
+![A library channel paused full screen, with the player's controls and Start over](images/wittytv-paused.webp)
+*A channel, paused. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
 
 **In the background.** A channel keeps playing, with its sound, when you switch to another tab or app or minimise the window, so you can leave it on while you work. To stop that on one device, turn off **Keep playing when this tab is in the background**, in **Look** (under **Playing**) or in the player's settings (the gear). Then a channel stops when you switch away, which frees a tuner, and starts again at what's on now when you come back. It's that device's choice: your other devices keep their own. An administrator chooses what new devices start with under **Options**, **Keep playing in the background, on new devices**. The apps offer the same choice.
 
@@ -311,7 +314,13 @@ A cloned channel follows a real TV station's schedule, played from your own file
 
 Editing is on a computer or in a web browser. In TV mode a cloned channel shows in the guide and plays like any other, and its editor shows the usual "change this on a computer" card.
 
+![Clone a station: where the guide comes from (a public schedule, a guide file or link, or this server's guide), which days, and Find stations](images/clone-source.webp)
+*A guide file chosen, for a made-up station.*
+
 ### The matched schedule
+
+![A cloned station's day: each programme with its time, what the guide says, what will play and how it was found, in colour](images/clone-schedule.webp)
+*A made-up station, "WDMO Demo 9", from a guide file, matched to a test server's library.*
 
 Each programme shows its time, what the guide says, what will play, and how it was found, with a colour and a word:
 
@@ -440,9 +449,15 @@ An HDHomeRun is found by a search of the home network: **Settings → Live TV & 
 
 If the search finds nothing, add it by its address instead, such as `192.168.1.50` or `hdhomerun.local`. The HDHomeRun app shows the address, and so does your router's list of devices. Adding by address works whatever the firewall says about the search.
 
+![Add live TV, step 2: the address of the tuner box, and what it answered: its model and how many channels it lists](images/hdhomerun-details.webp)
+*Checked before anything is saved. A stand-in for the device, at the guides' example address.*
+
 On Windows, the first search can make Windows Firewall ask whether **wittytuner-module** may use the network. Choose **Allow** for private networks. If it was told no, or the server runs as the background service (which can't show the question), the search may hear no answer: add the device by its address, or allow `wittytuner-module.exe` in Windows Security → Firewall & network protection → Allow an app through firewall. Its folder is `modules\wittytuner\versions\<version>` in the [data folder](DATA-FOLDER.md).
 
 What works: the channel list (`lineup.json`), a scan for Antenna channels, watching, recording, and as many channels at once as the device has tuners. One more is refused with "all of this device's tuners are in use". ATSC 3.0 channels play when they aren't encrypted. A channel the device marks DRM is listed as encrypted and never tuned. Older models the maker calls legacy, without HTTP streaming, aren't supported yet and say so. The device's own guide is an online service of its maker's, so the guide comes from a guide source you add (see [Guide data](#guide-data)).
+
+![Add live TV, step 3: five channels found, four clear and one encrypted, with buttons to scan for channels or read the list again](images/hdhomerun-channels.webp)
+*Its channels. The encrypted one is listed, and never tuned.*
 
 **If it doesn't work,** send the person helping you:
 

@@ -10,14 +10,18 @@ Licences were read from each work's source on the day it was fetched. This is a 
 |---|---|
 | `activity.webp` | The activity panel. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `anime.webp` | An Anime library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
+| `app-phone-home.webp` | WittyMediaClient 0.6.2 on an Android phone, in an emulator. [Wing It!](https://commons.wikimedia.org/wiki/File:WING_IT!_-_Blender_Open_Movie-full_movie.webm), Blender Studio, 2023, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
+| `app-tv-home.webp` | WittyMediaClient 0.6.2 on Android TV, in an emulator, signed in to a test server as a made-up profile. [Wing It!](https://commons.wikimedia.org/wiki/File:WING_IT!_-_Blender_Open_Movie-full_movie.webm), Blender Studio, 2023, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Other titles are credited in [the list](CREDITS.md). |
 | `audiobook-page.webp` | An audiobook's page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `audiobooks.webp` | Audiobooks, public-domain readings credited in [the list](CREDITS.md). |
+| `away.webp` | Connect a device, the page a device away from home is sent to. No media is pictured. |
 | `bluray-item.webp` | A Blu-ray image's page. [Sita Sings the Blues](https://archive.org/details/SitaSingsTheBlues_201812), Nina Paley, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
 | `bluray-menu.webp` | A Blu-ray image, in a browser. [Sita Sings the Blues](https://archive.org/details/SitaSingsTheBlues_201812), Nina Paley, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
 | `bluray-refused.webp` | A copy-protected pressing gets a plain message, and nothing unlocks it. [Big Buck Bunny](https://peach.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), from a disc pressed by Imagion AG. |
 | `books.webp` | A shelf of books, covers and text from [Standard Ebooks](https://standardebooks.org/), [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
 | `cd-player.webp` | The CD screen. An image authored for testing from Jazz Sampler, Kevin MacLeod, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
-| `client-home.webp` | WittyMediaClient on a desktop, connected to a test server. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
+| `clone-schedule.webp` | A made-up station, "WDMO Demo 9", matched to a test server's library. The titles are credited in [the list](CREDITS.md). |
+| `clone-source.webp` | Clone a station, with a guide file chosen. No media is pictured. |
 | `collection-page.webp` | A smart collection. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `collections.webp` | Collections. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `comics.webp` | A shelf of comics. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
@@ -39,16 +43,20 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `gameplay-thwaite.webp` | [Thwaite](https://github.com/pinobatch/thwaite-nes), Damian Yerrick, GPL-3.0-or-later. |
 | `gameplay-ucity.webp` | [µCity](https://github.com/AntonioND/ucity), Antonio Niño Díaz, GPL-3.0 and CC BY-SA 4.0, running on the server and streamed to a browser. |
 | `games.webp` | WittyPlay, with open-licence homebrew. Each is credited in [the list](CREDITS.md). |
-| `help-setup-guide.webp` | The first-time setup guide in the built-in Help. |
+| `hdhomerun-channels.webp` | The stand-in HDHomeRun's channels, with made-up names. No media is pictured. |
+| `hdhomerun-details.webp` | Adding an HDHomeRun, here a stand-in for one at the guides' example address. No media is pictured. |
 | `help.webp` | The built-in Help. |
+| `help-setup-guide.webp` | The first-time setup guide in the built-in Help. |
+| `home.webp` | The home page. Openly licensed and public-domain media, credited in [the list](CREDITS.md) |
 | `home-shelves.webp` | Every kind of media on one server. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `home-video-page.webp` | A home video's page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `home-videos.webp` | Home videos. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
-| `home.webp` | The home page. Openly licensed and public-domain media, credited in [the list](CREDITS.md) |
+| `karaoke.webp` | Karaoke over WittyVisualizer's Northern Veil. "Take Me Out to the Ball Game", 1908, public domain. |
+| `karaoke-mix.webp` | Karaoke, with Mix open. "Take Me Out to the Ball Game", 1908, public domain. |
+| `karaoke-voice-advanced.webp` | Karaoke, with Voice settings open on Advanced. "Take Me Out to the Ball Game", 1908, public domain. |
+| `karaoke-voice-presets.webp` | Karaoke, with Voice settings open on Presets. "Take Me Out to the Ball Game", 1908, public domain. |
 | `module-store.webp` | The module store, from the module catalogue. |
 | `movies.webp` | A Movies library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
-| `karaoke.webp` | Karaoke over WittyVisualizer's Northern Veil. "Take Me Out to the Ball Game", 1908, public domain. |
-| `phone-karaoke.webp` | Karaoke on a phone. "Take Me Out to the Ball Game", 1908, public domain. |
 | `music-album.webp` | An album's page. Credited in [the list](CREDITS.md). |
 | `music-albums.webp` | Albums. Credited in [the list](CREDITS.md). |
 | `music-artists.webp` | Artists. Credited in [the list](CREDITS.md). |
@@ -57,23 +65,30 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `music-karaoke.webp` | Karaoke. "Take Me Out to the Ball Game", 1908, public domain. |
 | `music-lyrics.webp` | "Take Me Out to the Ball Game", 1908, public domain. |
 | `music-videos.webp` | Music videos and concerts under open licences, credited in [the list](CREDITS.md). |
+| `music-visualizer.webp` | WittyVisualizer. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
 | `music-visualizer-2.webp` | A WittyVisualizer effect. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
 | `music-visualizer-3.webp` | A WittyVisualizer effect. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
-| `music-visualizer.webp` | WittyVisualizer. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
+| `notifications.webp` | The bell, with nothing new yet. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `phone-film.webp` | At phone width. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
 | `phone-guide.webp` | WittyTV at phone width. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `phone-home.webp` | At phone width. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
+| `phone-karaoke.webp` | Karaoke on a phone. "Take Me Out to the Ball Game", 1908, public domain. |
 | `phone-movies.webp` | At phone width. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `phone-music.webp` | Music at phone width. Credited in [the list](CREDITS.md). |
+| `phone-settings.webp` | Settings on a phone, as a made-up profile. No media is pictured. |
+| `photos.webp` | The timeline, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
 | `photos-map.webp` | The map, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
 | `photos-viewer.webp` | The viewer, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
-| `photos.webp` | The timeline, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
 | `player.webp` | The player. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
+| `player-quality.webp` | The player's quality menu. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
 | `podcasts.webp` | Podcasts under open licences, credited in [the list](CREDITS.md). |
+| `profile-kids-limits.webp` | Limits for a made-up Kids profile. No media is pictured. |
+| `profile-kids-report.webp` | A made-up Kids profile's report. No media is pictured. |
 | `reader-comic.webp` | WittyComics. [Pepper&Carrot](https://www.peppercarrot.com/), David Revoy, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
 | `reader-epub.webp` | WittyEbook. covers and text from [Standard Ebooks](https://standardebooks.org/), [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
 | `reader-library.webp` | WittyReader, with covers and text from [Standard Ebooks](https://standardebooks.org/), [CC0](https://creativecommons.org/publicdomain/zero/1.0/); Earth as Art, NASA, public domain; and [Pepper&Carrot](https://www.peppercarrot.com/), David Revoy, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). |
 | `reader-pdf.webp` | WittyPDF. Earth as Art, NASA, public domain. |
+| `search.webp` | Search, for "popeye". Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `settings-about.webp` | Settings, About. |
 | `settings-activity.webp` | Settings, Activity. |
 | `settings-appearance.webp` | Settings, Appearance. |
@@ -83,12 +98,14 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `settings-couch.webp` | Settings, Game PCs. |
 | `settings-diagnoser.webp` | Settings, WittyDiagnoser. |
 | `settings-games.webp` | Settings, My game settings. |
+| `settings-health.webp` | Settings, Library health. The titles are credited in [the list](CREDITS.md). |
 | `settings-legal.webp` | Settings, Legal. |
 | `settings-libraries.webp` | Settings, Libraries. |
 | `settings-library-transcoding.webp` | Settings, Library transcoding. |
 | `settings-logs.webp` | Settings, WittyLog. |
 | `settings-metadata.webp` | Settings, Metadata agents. |
 | `settings-modules.webp` | Settings, Modules. |
+| `settings-notifications.webp` | Settings, Notifications. No media is pictured. |
 | `settings-playback.webp` | Settings, Playback. |
 | `settings-remote.webp` | Settings, Remote Access. The address is an example. |
 | `settings-repair.webp` | Settings, Repair. |
@@ -118,6 +135,8 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `setup-25-advanced-details.webp` | Advanced setup: posters and details. |
 | `setup-32-advanced-remote.webp` | Advanced setup: connect a device, at home or away. |
 | `shorts.webp` | Clips cropped from open films, credited in [the list](CREDITS.md). |
+| `signin.webp` | Who's watching?, with made-up profiles. No media is pictured. |
+| `signin-phone.webp` | Sign in with your phone. No media is pictured. |
 | `stats.webp` | WittyStats. |
 | `store-module.webp` | A module's page in the store. |
 | `store-sources.webp` | Other stores, on a server using only this project's. |
@@ -125,20 +144,25 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `theme-light-home.webp` | The Light theme. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `theme-midnight-home.webp` | The Midnight theme. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `theme-paper-movies.webp` | The Paper theme. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
+| `tv-album.webp` | An album in TV mode. [Collide](https://archive.org/details/SRS08807), Aryll Fae, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The playlists beside it are credited in [the list](CREDITS.md). |
+| `tv-guide-shortcuts.webp` | TV mode's guide with Shortcuts open, the preview playing [Plan 9 from Outer Space](https://commons.wikimedia.org/wiki/File:Plan_9_from_Outer_Space_(1959_film).webm), Ed Wood, 1959, public domain. Other titles in the guide are credited in [the list](CREDITS.md). |
 | `tv-mode.webp` | TV mode's Libraries. No media is pictured. |
+| `tv-settings.webp` | Settings in TV mode. No media is pictured. |
 | `tv-show-page.webp` | A show's page. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
 | `tv-shows.webp` | A TV shows library. Openly licensed and public-domain media, credited in [the list](CREDITS.md). |
-| `wittytv-bigpicture.webp` | The Big picture look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
-| `wittytv-classic.webp` | The Classic look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
-| `wittytv-guide.webp` | WittyTV, with channels made from a library in one press, and the preview playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. Other titles in the guide are in [the list](CREDITS.md). |
-| `wittytv-listings.webp` | The Newspaper look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
-| `wittytv-miniguide.webp` | The mini guide over a channel, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
-| `wittytv-modern.webp` | The Modern look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
+| `wittyinfo-editor.webp` | The Scenes and skips editor, with nothing saved. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
+| `wittytv-bigpicture.webp` | The Big picture look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
+| `wittytv-classic.webp` | The Classic look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
+| `wittytv-guide.webp` | WittyTV, with channels made from a library in one press, and the preview playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Other titles in the guide are in [the list](CREDITS.md). |
+| `wittytv-listings.webp` | The Newspaper look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
+| `wittytv-miniguide.webp` | The mini guide over a channel, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
+| `wittytv-modern.webp` | The Modern look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
 | `wittytv-new-channel.webp` | Making a channel. |
+| `wittytv-paused.webp` | A channel, paused, playing [Plan 9 from Outer Space](https://commons.wikimedia.org/wiki/File:Plan_9_from_Outer_Space_(1959_film).webm), Ed Wood, 1959, public domain. |
 | `wittytv-recordings.webp` | Recordings, on a server with none yet. |
-| `wittytv-satellite.webp` | The Satellite look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
-| `wittytv-teletext.webp` | The Teletext look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
-| `wittytv-watching.webp` | A channel, full screen, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain. |
+| `wittytv-satellite.webp` | The Satellite look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
+| `wittytv-teletext.webp` | The Teletext look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
+| `wittytv-watching.webp` | A channel, full screen, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/). |
 
 ## Everything on the test server
 

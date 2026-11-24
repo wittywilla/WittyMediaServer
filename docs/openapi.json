@@ -37808,6 +37808,107 @@
         "x-wms-auth": "admin"
       }
     },
+  "/health/library": {
+    "get": {
+      "operationId": "getHealthLibrary",
+      "responses": {
+        "200": {
+          "description": "Success."
+        },
+        "default": {
+          "$ref": "#/components/responses/Error"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Library health: what needs a look in the libraries, a section each, with the fixes each row offers.",
+      "tags": [
+        "Server"
+      ],
+      "x-wms-auth": "admin"
+    }
+  },
+  "/health/library/check": {
+    "delete": {
+      "operationId": "deleteHealthLibraryCheck",
+      "responses": {
+        "200": {
+          "description": "Success."
+        },
+        "default": {
+          "$ref": "#/components/responses/Error"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Stop the NFO check.",
+      "tags": [
+        "Server"
+      ],
+      "x-wms-auth": "admin"
+    },
+    "post": {
+      "operationId": "postHealthLibraryCheck",
+      "responses": {
+        "200": {
+          "description": "Success."
+        },
+        "default": {
+          "$ref": "#/components/responses/Error"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Read the NFO and metadata files beside the media, in the background.",
+      "tags": [
+        "Server"
+      ],
+      "x-wms-auth": "admin"
+    }
+  },
+  "/health/library/fix": {
+    "post": {
+      "operationId": "postHealthLibraryFix",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "description": "Success."
+        },
+        "default": {
+          "$ref": "#/components/responses/Error"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "A fix from Library health: `{action, key, target, id, ids}`.",
+      "tags": [
+        "Server"
+      ],
+      "x-wms-auth": "admin"
+    }
+  },
     "/repair": {
       "get": {
         "operationId": "getRepair",

@@ -26,6 +26,7 @@ export const TV_LEVEL_WORDS = [
   tk('Modules'),
   tk('Backup'),
   tk('Repair'),
+  tk('Library health'),
   tk('Reset'),
   tk('Managing libraries'),
   tk('Fix matches'),

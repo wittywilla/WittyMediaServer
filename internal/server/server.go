@@ -92,6 +92,7 @@ type Server struct {
 	metaFolder metaFolderJob
 	repair     repairState // Settings, Repair
 	backup     backupState // Settings, Backup
+	health     healthState // Settings, Library health
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
@@ -630,6 +631,7 @@ func (s *Server) Handler() http.Handler {
 	s.repairRoutes(m)
 	s.networkRoutes(m)
 	s.backupRoutes(m)
+	s.healthRoutes(m)
 	s.sduiRoutes(m)
 	s.themeRoutes(m)
 	s.mediaExtrasRoutes(m)

@@ -115,6 +115,26 @@ await step('Sign in', async (log) => {
   log('signed in')
 })
 
+// Settings, Library health: every section is there, and the NFO check runs and finishes.
+await step('Library health', async (log) => {
+  const h = await api('/api/health/library')
+  if ((h.sections || []).length !== 7) throw new Error('the report: ' + JSON.stringify(h).slice(0, 300))
+  log(h.sections.map((s) => `${s.id} ${s.count}`).join(', '))
+  await p.go(server + '/settings/health')
+  await p.until(`/Library health/.test(document.querySelector('h1')?.textContent || '') && /Possible duplicates/.test(document.body.innerText)`, 20000, 'the Library health page')
+  const before = h.check?.at || 0
+  await click('^\\s*(Check NFO files|Check again)')
+  const end = Date.now() + 90000
+  for (let c = h.check; c.running || !c.at || c.at === before; c = (await api('/api/health/library')).check) {
+    if (c.error) throw new Error('the NFO check: ' + c.error)
+    if (Date.now() > end) throw new Error('the NFO check did not finish: ' + JSON.stringify(c))
+    await wait(500)
+  }
+  await p.until(`/Checked /.test(document.body.innerText)`, 15000, 'the page saying when it checked')
+  const crash = await p.eval(`document.body.innerText.match(/Something went wrong/i)?.[0] || ''`)
+  if (crash) throw new Error('the page shows: ' + crash)
+})
+
 await step('Play the film', async (log) => {
   const items = await api(`/api/items?library=${lib('movies').id}`)
   const film = (items.items || items)[0]

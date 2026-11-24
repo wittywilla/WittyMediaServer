@@ -34865,6 +34865,78 @@
         "x-wms-auth": "user"
       }
     },
+    "/p2p/attempts": {
+      "get": {
+        "operationId": "getP2pAttempts",
+        "parameters": [
+          {
+            "description": "One device's connection ID.",
+            "in": "query",
+            "name": "device",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Each device's recent tries at connecting from away, newest first, with the step that failed and why (pkg/connectsteps). Kept in memory only.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/p2p/check": {
+      "post": {
+        "operationId": "postP2pCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check connection: whether a device away from home can reach this server, line by line, from what the node already knows. Answers `{checks: [{id, title, state, detail, next}], verdict, at}`.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/p2p/devices": {
       "get": {
         "operationId": "getP2pDevices",

@@ -67,6 +67,8 @@ func (s *Server) p2pRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/p2p/test", adm(s.handleP2PTest))
 	m.Handle("POST /api/p2p/rotate", adm(s.handleP2PRotate))
 	m.Handle("POST /api/p2p/relay-check", adm(s.handleP2PRelayCheck))
+	m.Handle("POST /api/p2p/check", adm(s.handleP2PCheck))      // api_p2p_check.go
+	m.Handle("GET /api/p2p/attempts", adm(s.handleP2PAttempts)) // api_p2p_check.go
 }
 
 // ---------------------------------------------------------------- settings

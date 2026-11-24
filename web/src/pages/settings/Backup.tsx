@@ -294,7 +294,7 @@ function FolderForm({ view, reload, call }: { view: View; reload: () => void; ca
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  const changed = folder.trim() !== (view.chosenFolder || '')
+  const changed = folder.trim() !== (view.chosenFolder || '') || !!view.folderProblem // a folder that lost its marker is chosen again
   const save = async (to: string) => {
     setBusy(true); setErr('')
     try {
@@ -315,10 +315,9 @@ function FolderForm({ view, reload, call }: { view: View; reload: () => void; ca
           {view.twoFactor && <Field label={t('Code from your authenticator app')}><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
         </>}
         {err && <div role="alert"><Notice tone="danger" title={t('The folder wasn’t changed')}>{err}</Notice></div>}
-        <div className="bk-actions">
-          <Button type="submit" variant="primary" disabled={!changed || busy || current === '' || (view.twoFactor && code === '')}>{t('Use this folder')}</Button>
-          {view.chosenFolder && !changed && view.folderProblem && <Button onClick={() => void save(view.chosenFolder || '')} disabled={busy || current === ''}>{t('Check it again')}</Button>}
-        </div>
+        {changed && <div className="bk-actions">
+          <Button type="submit" variant="primary" disabled={busy || current === '' || (view.twoFactor && code === '')}>{t('Use this folder')}</Button>
+        </div>}
       </form>
     </Section>
   )

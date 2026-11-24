@@ -159,13 +159,13 @@ def tap(pattern, secs=30):
     press(wait(pattern, secs))
 
 
-def type_text(s):
+def type_text(s, piece=16):
     # In short pieces: a busy emulator's field drops characters typed faster than it redraws.
     # Inside single quotes nothing but the quote itself is special to the device's shell.
     s = s.replace("'", '')
-    for i in range(0, len(s), 24):
-        sh("input text '" + s[i:i + 24].replace(' ', '%s') + "'")
-        time.sleep(0.2)
+    for i in range(0, len(s), piece):
+        sh("input text '" + s[i:i + piece].replace(' ', '%s') + "'")
+        time.sleep(0.2 if piece > 8 else 0.4)
 
 
 def type_into(pattern, s):
@@ -177,10 +177,10 @@ def type_into(pattern, s):
     press(f)
     sh('input keyevent KEYCODE_MOVE_END')
     old = len(f['text']) + 2
-    for _ in range(3):
+    for piece in (16, 8, 4):
         sh('input keyevent KEYCODE_MOVE_END')
         sh('input keyevent ' + ' '.join(['KEYCODE_DEL'] * old), check=False)
-        type_text(s)
+        type_text(s, piece)
         now = next((x['text'] for x in nodes() if 'EditText' in x['cls'] and abs(x['b'][1] - f['b'][1]) < 60), '')
         if now == s or len(s) <= 20 or not now or 'assword' in pattern:
             return

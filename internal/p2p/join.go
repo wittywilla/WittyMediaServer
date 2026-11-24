@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"github.com/wittywilla/wittymediaserver/internal/i18n"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiformats/go-multihash"
+	msmux "github.com/multiformats/go-multistream"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/scrypt"
 )
@@ -182,6 +184,12 @@ type joinHello struct {
 	Nonce    string `json:"nonce"` // 16 random bytes, base64
 	Name     string `json:"name"`
 	Platform string `json:"platform"`
+	// Device and DeviceSig: shown from the code's own enrol key (JoinEnrolSeed),
+	// through the server's own relay, on behalf of the device's own key, as an
+	// invite can be (enrolkey.go). Empty when the key that shows the code is
+	// the one to list.
+	Device    string `json:"device,omitempty"`
+	DeviceSig string `json:"deviceSig,omitempty"`
 }
 
 type joinChallenge struct {
@@ -222,6 +230,45 @@ type pendingJoin struct {
 type joins struct {
 	mu   sync.Mutex
 	open map[string]*pendingJoin // by the lookup key, in hex
+}
+
+// A code from away reaches a server whose only way in is its own WittyRelay
+// the way an invite does (enrolkey.go): the relay admits only keys the server
+// lists, and the device's key isn't one until the code is shown. So a code
+// waiting on the server has a key of its own too, made from its lookup key
+// (never from the code), which the server lists with its relays while the
+// code waits. The device shows the code from that key, naming its own key,
+// signed. The lookup key is in the public address book, so whoever reads it
+// there can reach the server through its relay for as long as the code waits:
+// to be asked for a proof of the code they can't give, under the same limits
+// on tries as anyone else.
+
+// JoinEnrolSeed is a waiting code's own key, made from its lookup key.
+func JoinEnrolSeed(find []byte) []byte {
+	sum := sha256.Sum256(append([]byte("wittymedia relay join v1\n"), find...))
+	return sum[:]
+}
+
+// joinEnrolID is that key's ID, as the server lists it with its relays.
+func joinEnrolID(find []byte) string {
+	id, _ := IDFromSeed(JoinEnrolSeed(find))
+	return id
+}
+
+// joinEnrolIDs are the keys of the codes waiting here, for this node's relays.
+func (n *Node) joinEnrolIDs() []string {
+	n.joins.mu.Lock()
+	defer n.joins.mu.Unlock()
+	now := time.Now()
+	var ids []string
+	for name, v := range n.joins.open {
+		if now.Before(v.expires) {
+			if find, err := hex.DecodeString(name); err == nil {
+				ids = append(ids, joinEnrolID(find))
+			}
+		}
+	}
+	return ids
 }
 
 // OfferJoin makes the server findable by a device showing this code, for
@@ -279,6 +326,8 @@ func (n *Node) OfferJoinKeys(find string, proof []byte, secret string, expires t
 	}
 	n.joins.open[name] = &pendingJoin{proof: keys.proof, secret: secret, expires: expires}
 	n.joins.mu.Unlock()
+	n.DevicesChanged() // the code's own key goes on the list its relays hear
+	time.AfterFunc(time.Until(expires)+time.Second, n.DevicesChanged)
 
 	n.wg.Add(1)
 	Spawn("p2p join announce", func() {
@@ -299,12 +348,58 @@ func (n *Node) OfferJoinKeys(find string, proof []byte, secret string, expires t
 			err := n.host.DHT.Provide(ctx, joinCID(keys.find), true)
 			cancel()
 			if err == nil {
+				n.keepJoinAnnounced(name, keys)
 				return
 			}
 			n.log.Info("could not tell the address book about a code that is waiting; trying again", "err", err)
 		}
 	})
 	return nil
+}
+
+// joinReannounceEvery is how often a waiting code looks whether this server's
+// relayed addresses changed since it was announced.
+var joinReannounceEvery = 10 * time.Second
+
+// keepJoinAnnounced tells the address book about a waiting code again whenever
+// this server's relayed addresses change (#683): a code typed in just after a
+// start was announced with none, as no relay held a place for the server yet,
+// and a device behind its own router has no other way to reach it.
+func (n *Node) keepJoinAnnounced(name string, keys joinKeys) {
+	last := relayedKey(n.Addrs())
+	for {
+		select {
+		case <-n.ctx.Done():
+			return
+		case <-time.After(joinReannounceEvery):
+		}
+		if !n.joinWaiting(name) {
+			return
+		}
+		now := relayedKey(n.Addrs())
+		if now == last {
+			continue
+		}
+		ctx, cancel := context.WithTimeout(n.ctx, 90*time.Second)
+		err := n.host.DHT.Provide(ctx, joinCID(keys.find), true)
+		cancel()
+		if err == nil {
+			last = now
+			n.log.Info("told the address book again about a code that is waiting: this server's relays changed")
+		}
+	}
+}
+
+// relayedKey is the relayed addresses in a list, as one string.
+func relayedKey(addrs []string) string {
+	var out []string
+	for _, a := range addrs {
+		if strings.Contains(a, "/p2p-circuit") {
+			out = append(out, a)
+		}
+	}
+	sort.Strings(out)
+	return strings.Join(out, " ")
 }
 
 // TakesCodes says a device showing a code could find this server: the address
@@ -348,6 +443,12 @@ func (n *Node) handleJoin(s network.Stream) {
 		refuse("wrong", i18n.T("That isn't a code this server understands."))
 		return
 	}
+	// Shown from the code's own key, on behalf of the device's: only with its signature.
+	listID, err := checkJoinFor(hello, device.String(), n.host.ID().String())
+	if err != nil {
+		refuse("wrong", i18n.T("That code was shown on behalf of a device it couldn't speak for."))
+		return
+	}
 	n.joins.mu.Lock()
 	waiting := n.joins.open[hello.Find]
 	var proofKey []byte
@@ -378,7 +479,7 @@ func (n *Node) handleJoin(s network.Stream) {
 	n.joins.mu.Lock()
 	waiting = n.joins.open[hello.Find]
 	good := waiting != nil && time.Now().Before(waiting.expires) && hmac.Equal(got, joinProof(waiting.proof, "device", deviceNonce, serverNonce, me, device))
-	secret := ""
+	secret, gaveUp := "", false
 	switch {
 	case good:
 		secret = waiting.secret
@@ -388,9 +489,13 @@ func (n *Node) handleJoin(s network.Stream) {
 		// code is given up after a few, and its device shows another.
 		if waiting.wrong++; waiting.wrong >= maxJoinWrong {
 			delete(n.joins.open, hello.Find)
+			gaveUp = true
 		}
 	}
 	n.joins.mu.Unlock()
+	if good || gaveUp {
+		n.DevicesChanged() // a code taken or given up: its own key leaves the list its relays hear
+	}
 	if !good {
 		n.noteRefused(s, "a wrong proof for a code")
 		n.tries.note(refusal(device.String(), hello.Name, "code", "wrong", ""))
@@ -399,7 +504,7 @@ func (n *Node) handleJoin(s network.Stream) {
 	}
 	ctx, cancel := context.WithTimeout(n.ctx, 10*time.Second)
 	defer cancel()
-	res := n.cfg.Enrol(ctx, device.String(), EnrolRequest{V: 1, Secret: secret, Name: hello.Name, Platform: hello.Platform, FromJoin: true}, addr.IP)
+	res := n.cfg.Enrol(ctx, listID, EnrolRequest{V: 1, Secret: secret, Name: hello.Name, Platform: hello.Platform, FromJoin: true}, addr.IP)
 	if res.OK {
 		res.Addrs = n.Addrs()
 	}
@@ -452,6 +557,27 @@ func Join(ctx context.Context, cfg JoinConfig) (JoinResult, error) {
 	defer h.Close()
 	keys := deriveJoin(code)
 	key := joinCID(keys.find)
+	// The code's own key, for a server found but not reached with this device's own: one whose only way in
+	// is its own relay, which admits this device only once it is listed. Made when first wanted.
+	var eh *Host
+	defer func() {
+		if eh != nil {
+			_ = eh.Close()
+		}
+	}()
+	viaRelay := func(fctx context.Context, found peer.AddrInfo) (JoinResult, joinVerdict) {
+		if eh == nil {
+			el := layers
+			el.DHT = false // it only goes where the device's own node found the server
+			var err error
+			if eh, err = NewHost(HostConfig{Seed: JoinEnrolSeed(keys.find), Layers: el, StaticRelays: cfg.StaticRelays, Local: cfg.Local, Listen: cfg.Listen}); err != nil {
+				eh = nil
+				return JoinResult{}, joinLater
+			}
+		}
+		found.Addrs = append(found.Addrs, h.Peerstore().Addrs(found.ID)...)
+		return joinWith(fctx, eh, found, keys, cfg, cfg.Seed)
+	}
 	every := cfg.Every
 	if every <= 0 {
 		every = 4 * time.Second
@@ -465,7 +591,10 @@ func Join(ctx context.Context, cfg JoinConfig) (JoinResult, error) {
 			if liars[found.ID] {
 				continue
 			}
-			res, verdict := joinWith(fctx, h, found, keys, cfg)
+			res, verdict := joinWith(fctx, h, found, keys, cfg, nil)
+			if verdict == joinLater {
+				res, verdict = viaRelay(fctx, found)
+			}
 			switch verdict {
 			case joinDone:
 				cancel()
@@ -495,7 +624,9 @@ const (
 	joinLater                    // couldn't be reached or asked just now
 )
 
-func joinWith(ctx context.Context, h *Host, found peer.AddrInfo, keys joinKeys, cfg JoinConfig) (JoinResult, joinVerdict) {
+// joinWith asks one server whether it waits for this code. asDevice is the
+// device's own seed when h is the code's own key, speaking for it.
+func joinWith(ctx context.Context, h *Host, found peer.AddrInfo, keys joinKeys, cfg JoinConfig, asDevice []byte) (JoinResult, joinVerdict) {
 	cctx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
 	if len(found.Addrs) == 0 {
@@ -504,12 +635,19 @@ func joinWith(ctx context.Context, h *Host, found peer.AddrInfo, keys joinKeys, 
 		}
 	}
 	h.Peerstore().AddAddrs(found.ID, found.Addrs, peerstore.TempAddrTTL)
-	if err := h.Connect(cctx, peer.AddrInfo{ID: found.ID}); err != nil {
+	// A server behind its router is reached through a relay: a limited connection, which is all a code's
+	// four small messages need (#683). Without this, libp2p refuses to hand one over.
+	if err := h.Connect(network.WithAllowLimitedConn(cctx, "wittymedia"), peer.AddrInfo{ID: found.ID}); err != nil {
 		return JoinResult{}, joinLater
 	}
 	s, err := h.NewStream(network.WithAllowLimitedConn(cctx, "wittymedia"), found.ID, ProtoJoin)
-	if err != nil {
+	if errors.Is(err, msmux.ErrNotSupported[protocol.ID]{}) {
 		return JoinResult{}, joinNotIt // not a WittyMediaServer that takes codes
+	}
+	if err != nil {
+		// The connection went as the stream was asked for: the server's router closing what reached it
+		// directly, say, which a relay will carry instead. Not a reason never to ask it again.
+		return JoinResult{}, joinLater
 	}
 	defer s.Close()
 	_ = s.SetDeadline(time.Now().Add(20 * time.Second))
@@ -517,8 +655,20 @@ func joinWith(ctx context.Context, h *Host, found peer.AddrInfo, keys joinKeys, 
 	if _, err := rand.Read(deviceNonce); err != nil {
 		return JoinResult{}, joinLater
 	}
-	if err := writeMessage(s, joinHello{V: 1, Find: hex.EncodeToString(keys.find), Nonce: base64.StdEncoding.EncodeToString(deviceNonce),
-		Name: cfg.Name, Platform: cfg.Platform}); err != nil {
+	hello := joinHello{V: 1, Find: hex.EncodeToString(keys.find), Nonce: base64.StdEncoding.EncodeToString(deviceNonce),
+		Name: cfg.Name, Platform: cfg.Platform}
+	if asDevice != nil {
+		own, err := IDFromSeed(asDevice)
+		if err != nil {
+			return JoinResult{}, joinLater
+		}
+		sig, err := SignEnrolFor(asDevice, found.ID.String(), h.ID().String())
+		if err != nil {
+			return JoinResult{}, joinLater
+		}
+		hello.Device, hello.DeviceSig = own, sig
+	}
+	if err := writeMessage(s, hello); err != nil {
 		return JoinResult{}, joinLater
 	}
 	var challenge joinChallenge

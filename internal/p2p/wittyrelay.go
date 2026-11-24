@@ -301,6 +301,8 @@ func (n *Node) registerOnce(i int, r OwnRelay, renew bool) bool {
 	if n.cfg.DeviceIDs != nil {
 		devices = n.cfg.DeviceIDs()
 	}
+	// And the codes waiting here: a device away from home shows one through the relay (join.go).
+	devices = append(devices, n.joinEnrolIDs()...)
 	key := devicesKey(devices)
 	if !renew && n.ownRelay(i).State == "ok" {
 		n.mu.Lock()

@@ -5,6 +5,21 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+**Lighter on a small machine (#643)**
+
+- **An idle server on a small machine is about six times quieter.** Go's execution trace, kept for developers' crash
+  reports, woke it about 3,500 times a minute; it is now off by default on tiny and small machines (turn it on in
+  **Logs**). On two processors: 0.04 % of one while idle, down from 0.25 %.
+- **A server in a container held to two processors now counts two**, not every processor of the machine it's on, and
+  holds itself back to match.
+- **First scans of films are about a third quicker**: the next films' details are read while one is added.
+- **The web app fetches its font once**, not on every visit (a second visit to Home: 424 KB down to 24 KB), its first
+  download is smaller, and scrolling a big library no longer draws every card again (2,219 renders for 1,500 films,
+  down from 298,565).
+- **New page: Minimum hardware** (docs/MINIMUM-HARDWARE.md): what a Raspberry Pi, an old laptop and a NAS can do, and
+  what needs a graphics card, from measurements on a two-processor container. Budgets for the web app's download and
+  the server's memory, scans and pages are now checked on every change (docs/PERFORMANCE.md, "Budgets").
+
 **Clone a station (#622)**
 
 - **A channel can follow a real TV station's schedule, played from your own files.** On **Channels**, press

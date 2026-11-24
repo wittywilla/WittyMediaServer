@@ -69,18 +69,19 @@ On the two-core, 3 GB container, with no graphics card:
 
 | | Measured |
 |---|---|
-| Memory, idle, no libraries | 36 MB |
-| Memory, idle, after scanning the 2,000 items | 62 to 80 MB (52 to 71 MB once Go has handed back what it can) |
-| Memory at its highest while scanning | 60 to 80 MB |
-| Processor while idle | 0.25 to 0.4 % of one core |
+| Memory, idle, no libraries | 36 to 65 MB, depending on the run (about 60 MB most often) |
+| Memory, idle, after scanning the 2,000 items | 74 MB (68 MB once Go has handed back what it can); Go's own data, 10 MB |
+| Memory at its highest while scanning | 72 to 80 MB |
+| Processor while idle | 0.04 % of one core, waking about 400 times a minute |
 | Start-up | 0.16 s on a new data folder, 0.07 s after |
-| First scan: 1,500 films | About 3 minutes (8 films a second): most of it is FFmpeg reading each file and making its picture |
-| First scan: 500 songs | 17 seconds (30 songs a second) |
+| First scan: 1,500 films | 96 to 111 seconds (about 15 films a second): most of it is FFmpeg reading each file and making its picture |
+| First scan: 500 songs | 15 seconds (about 35 songs a second) |
 | A rescan with nothing changed | 0.3 s a library |
 | Home, as the apps ask for it | Half a millisecond for the page, 3 ms for its rows |
 | A library's page | Under a millisecond for the page; 2 to 5 ms for its titles and filters |
 | A search across the library | 4 ms |
-| The web app's first download | 328 KB of scripts and 69 KB of stylesheets for Home (compressed, once; kept by the browser after) |
+| The web app's first download | 328 KB of scripts and 69 KB of stylesheets for Home, and the 350 KB font (compressed, once); a visit after that fetches about 24 KB |
+| Scrolling a library of 1,500 films to the end | About 2,200 component draws in the browser, for 1,600 cards |
 
 ## Kept in check on every change
 

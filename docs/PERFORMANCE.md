@@ -177,6 +177,23 @@ The same, with #146, #199, #214, #218 and #273 merged locally. Linux, back to ba
 
 Totals of statements over a whole run don't compare between runs: the benchmark looks at a scan's progress every quarter of a second, so a scan that takes longer on a busy machine adds statements of its own.
 
+### 0.8.4-alpha, a small machine (#643)
+
+A Linux container held to **two processors and 3 GB, with no graphics card** (`docker run --cpus 2 --memory 3g`), on the same laptop, with a 2,000-item library from `scripts/perf/make-media.sh` (1,500 films, 500 songs) on WSL's own disk. Before is `v0.8.4-alpha` as it was (b724c3a5), after is #657. Scans were run before and after back to back, twice, as the machine's load moved them.
+
+| | Before | After |
+|---|---|---|
+| Idle, after the scans: processor | 0.22 to 0.32 % of one core | **0.044 %** |
+| Idle: wake-ups a minute | 3,720 to 3,990 | **400 to 465** |
+| Idle, after the scans: Go heap live / RSS | 13.5 / 80 MiB | 9.6 / 74 MiB |
+| First scan, 1,500 films | 150.6 s, 167.1 s | **100.4 s, 96.1 s** |
+| First scan, 500 songs | 15.8 s, 14.6 s | 14.8 s, 14.3 s |
+| `/api/browse/facets` on 1,500 films | 597 KiB, 28,277 objects a request | 505 KiB, 26,016 |
+| Web: a first visit to Home (scripts / stylesheets) | 349.1 / 72.7 KB | 327.9 / 69.3 KB |
+| Web: a second visit to Home | 424 KB (the 350 KB font again) | **24 KB** |
+| Web: scrolling the 1,500 films to the end | 298,565 component renders | **2,219** |
+| Transcode start, 1080p forced, to the first segment | 2.2 s | 2.2 s (libx264 on two processors; the GPU's job) |
+
 ## What was found, and where it went
 
 | What | Where it went |
@@ -193,6 +210,15 @@ Totals of statements over a whole run don't compare between runs: the benchmark 
 | Missing indexes | None found for the demo media; the benchmark's plan list is there to catch one in a later release. Browse's `(? = 0 OR …)` on shows is noted above, not changed |
 | Scans with nothing changed, on a slow drive | Up to 43 s a library on `/mnt/d` with under a second of processor: the time is in looking through the folders, as each unchanged file is passed over without reading it. Not changed |
 | Not measured yet | Libraries that need a module (books, comics, photos, discs, games), and how long module helpers take to start: the benchmark doesn't install modules. Next time, with `WMS_TEST_CATALOG` |
+| Go's execution trace (`logTrace`, on by default) woke an idle server about 3,500 times a minute and took four times its idle processor | #643: off by default on tiny and small machines |
+| A server in a container held to two processors counted the host's 20 | #643: `pace` counts `GOMAXPROCS` |
+| A scan ran ffprobe and the thumbnail one after the other, film after film | #643: the next films' details are read ahead (`scan_ahead.go`) |
+| Fonts and icons had no tag to ask again with, so every visit fetched them | #643: an ETag from their content |
+| A big grid drew every card again for each page of items | #643: card views kept by node, and a press context that stays the same |
+| The shell's first download carried the layout editor and the sign-in page | #643: fetched when they're needed |
+| The hang watchdog asks the server for `/api/health` every 2 s on a new connection: most of the remaining 400 wake-ups a minute | Left: finding a hang quickly is worth it |
+| Home's largest picture is drawn 9 to 12 s after the page (LCP) in the headless measurement, with the processor slowed four times | Not looked into: the hero picture, for a later pass |
+| Most of a facets request is SQLite's driver reading rows: 1,500 films, 505 KiB | Left; a cache by library would be the next step on a large library |
 
 ---
 

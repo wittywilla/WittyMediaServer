@@ -39,7 +39,16 @@ func TestTVSummary(t *testing.T) {
 	if got := get("backup", admin); len(got.Lines) != 1 || !strings.HasPrefix(got.Lines[0], "Automatic backups:") {
 		t.Errorf("backup for the owner: %v", got.Lines)
 	}
-	for _, id := range []string{"backup", "modules", "transcoding", "network"} {
+	if got := get("remote", admin); len(got.Lines) == 0 || (got.Lines[0] != "On" && got.Lines[0] != "Off") {
+		t.Errorf("remote for the owner: %v", got.Lines)
+	}
+	if got := get("data-folder", admin); len(got.Lines) != 1 || got.Lines[0] == "" {
+		t.Errorf("data-folder for the owner: %v", got.Lines)
+	}
+	if got := get("metadata", admin); len(got.Lines) != 1 || !strings.Contains(got.Lines[0], "agent") {
+		t.Errorf("metadata for the owner: %v", got.Lines)
+	}
+	for _, id := range []string{"backup", "modules", "transcoding", "network", "remote", "data-folder", "metadata"} {
 		if got := get(id, adult); len(got.Lines) != 0 {
 			t.Errorf("%s says %v to someone who isn't an administrator", id, got.Lines)
 		}

@@ -90,7 +90,7 @@ type ModuleUI struct {
 	// Navigation entries the module adds to the main menu.
 	Navigation []NavItem `json:"navigation,omitempty"`
 	// Settings describe the module's settings, which every app's own Settings
-	// draws in its own style under Settings, Modules. They are never SDUI pages.
+	// draws in its own style under Settings, Module store. They are never SDUI pages.
 	Settings []SettingsPage `json:"settings,omitempty"`
 }
 
@@ -161,7 +161,7 @@ type SettingsPage struct {
 	Icon  string `json:"icon,omitempty"`
 	// Admin pages are shown only to administrators.
 	Admin bool `json:"admin,omitempty"`
-	// Slot puts the page into a place of the hand-built Settings besides Settings, Modules: "you.games"
+	// Slot puts the page into a place of the hand-built Settings besides Settings, Module store: "you.games"
 	// (You, Games) or "people.profile" (Settings, People, a profile; administrators only, so the page
 	// must be Admin). The server lists the pages of a slot at GET /sdui/slots/{slot}, and every app's
 	// Settings draws them in its own style with the generic settings-page renderer.

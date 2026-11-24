@@ -21,6 +21,8 @@
     "test:contrast": "node scripts/test-contrast.mjs",
     "test:tv-levels": "node scripts/test-tv-levels.mjs",
     "test:tv-keys": "node scripts/test-tv-keys.mjs",
+    "test:clone": "node scripts/test-clone.mjs",
+    "test:settings-menu": "node scripts/test-settings-menu.mjs",
     "test:notifications": "node scripts/test-notifications.mjs"
   },
   "dependencies": {

@@ -490,6 +490,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/channels/suggestions` | Admin | Nothing further |
 | `GET /api/channels/options` | Admin | Nothing further |
 | `POST /api/channels/from-network` | Admin | Network name of up to 200 characters. Definition validated |
+| `POST /api/channels/clone/upload` | Admin | Body up to 200 MB, stored under a random name in the data folder, removed after a week |
+| `POST /api/channels/clone/stations` | Admin | Guide links fetched only from the internet (no local addresses), up to 200 MB; `{key}` filled from the masked guideKey setting, never stored in the channel. TVmaze country two capital letters |
+| `POST /api/channels/clone/import` | Admin | As stations. Body up to 4 MB, at most 1500 slots, 1 to 7 days |
+| `POST /api/channels/clone/candidates` | Admin | Nothing further |
 | `POST /api/channels/networks/refresh` | Admin | Nothing further |
 | `GET /api/channels/networks/refresh` | Admin | Nothing further |
 | `GET /api/channels/{id}` | Admin | Channel exists |

@@ -34,6 +34,9 @@ type Definition struct {
 	// Bumpers are what plays around programmes, and what may give way to keep
 	// to the timetable.
 	Bumpers BumperPlan `json:"bumpers,omitzero"`
+	// Clone is a real station's schedule this channel follows (mode "clone"); its blocks are
+	// made from it on every save. See clone.go.
+	Clone *Clone `json:"clone,omitempty"`
 }
 
 // Rules choose titles. Empty fields do not limit anything; lists mean "any of".
@@ -131,6 +134,11 @@ type Block struct {
 	// Marathon: programmes run straight on, with no commercials, no optional
 	// bumpers and no waiting for the time grid.
 	Marathon bool `json:"marathon,omitempty"`
+	// Once: one programme, then commercials to the end of the block, spread through the
+	// programme at its natural breaks. A cloned station's slots are blocks like this.
+	Once bool `json:"once,omitempty"`
+	// StandIn: what plays is in place of the programme the block is named after.
+	StandIn bool `json:"standIn,omitempty"`
 }
 
 // BumperPlan is one channel's bumpers and how it keeps to its timetable.
@@ -284,9 +292,16 @@ const (
 // message that says what to fix.
 func (d *Definition) Validate() error {
 	switch d.Mode {
-	case "", "simple", "rules", "timetable":
+	case "", "simple", "rules", "timetable", "clone":
 	default:
 		return errors.New("unknown channel mode")
+	}
+	if d.Clone != nil {
+		if err := d.Clone.validate(); err != nil {
+			return err
+		}
+	} else if d.Mode == "clone" {
+		return errors.New("a cloned channel needs its guide")
 	}
 	if err := d.Rules.validate(); err != nil {
 		return err

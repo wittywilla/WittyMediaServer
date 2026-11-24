@@ -85,7 +85,7 @@ function ChannelList() {
     <>
       <div className="tvc-back"><BackLink to="/tv" label={t('Guide')} /></div>
       <PageHead title={t('Channels')} desc={t('Always-on TV channels made from your library. They run all the time, like real TV: tune in and you join the show part-way through. FFmpeg only runs while someone is watching.')}
-        actions={<Link className="btn primary" to="new"><IconPlus /> {t('New channel')}</Link>} />
+        actions={<><Link className="btn" to="new" state={{ clone: true }}>{t('Clone a station')}</Link><Link className="btn primary" to="new"><IconPlus /> {t('New channel')}</Link></>} />
       <Section title={tk('Your channels')} desc={list && list.length > 0 ? tn('{count} channel, {on} on the air.', '{count} channels, {on} on the air.', list.length, { on: list.filter((c) => c.enabled).length }) : undefined}>
         {!list && <div className="center"><div className="spinner" /></div>}
         {list && list.length === 0 && <p className="muted">{t('No channels from your library yet. Press New channel, or add one of those below with one click.')}</p>}
@@ -95,7 +95,7 @@ function ChannelList() {
               <li key={c.id} className="tvs-item">
                 <span className="tvs-num">{c.number}</span>
                 {c.logo ? <img className="tvs-logo" src={mediaUrl(`/api/channels/${c.id}/logo?v=${c.logo}`)} alt="" /> : brandOf(c.definition, c.look) ? <span className="tvs-logo"><BrandLogo kind={brandOf(c.definition, c.look)!.kind} name={brandOf(c.definition, c.look)!.name} label={false} /></span> : null}
-                <div className="tvs-item-text"><b>{c.name}</b><span>{c.description || ({ simple: t('Simple'), rules: t('Rules'), timetable: t('Timetable') })[c.definition.mode]}</span></div>
+                <div className="tvs-item-text"><b>{c.name}</b><span>{c.description || ({ simple: t('Simple'), rules: t('Rules'), timetable: t('Timetable'), clone: c.definition.clone ? t('Clone of {station}', { station: c.definition.clone.station }) : t('Clone a station') })[c.definition.mode]}</span></div>
                 <Switch checked={c.enabled} label={t('{name} is on the air', { name: c.name })} onChange={(v) => void setOn(c, v)} />
                 <Link className="btn sm ghost" to={String(c.id)} aria-label={t('Edit {name}', { name: c.name })}><IconEdit /> {t('Edit')}</Link>
                 <button className="btn sm ghost" onClick={() => void remove(c)} aria-label={t('Delete {name}', { name: c.name })}><IconTrash /></button>

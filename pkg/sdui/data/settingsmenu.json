@@ -1,0 +1,75 @@
+{
+  "note": "The settings menu every client draws (docs/SETTINGS-MENU.md): the Android phone app's You page, in its groups, order and words. A client shows a row when every condition in `when` holds and it can open it (its own screen named by `native`, or the page at `path`). What a TV may change there is the TV table's (tvlevels.json), by `path` or `part`.",
+  "conditions": ["admin", "adult", "tv", "notTv", "twoStep", "games", "app", "servers", "fromAway", "looks", "layoutEditor", "moduleSettings", "remote", "parties", "notOff:sharing", "notOff:games", "notOff:remoteControl", "notOff:syncplay", "notOff:activity"],
+  "values": ["name", "twoStep", "devices", "theme", "topMenu", "servers", "away", "version", "summary"],
+  "groups": [
+    { "id": "account", "key": "groupAccount", "title": "Account", "rows": [
+      { "id": "names", "key": "rowNames", "title": "Name and username", "icon": { "android": "badge", "apple": "person.text.rectangle", "web": "Person" }, "tint": "#0a6fb8", "native": "names", "path": "/settings/users", "value": "name" },
+      { "id": "password", "key": "rowPassword", "title": "Password", "icon": { "android": "key", "apple": "key", "web": "Key" }, "tint": "#3e5bd0", "native": "password", "path": "/settings/users#your-account", "when": ["adult"] },
+      { "id": "twoStep", "key": "rowTwoStep", "title": "Two-step sign-in", "icon": { "android": "shield_lock", "apple": "lock.shield", "web": "Shield" }, "tint": "#2e7d3c", "native": "twoStep", "path": "/settings/security", "when": ["adult", "twoStep"], "value": "twoStep" },
+      { "id": "devices", "key": "rowDevices", "title": "Your devices", "icon": { "android": "devices", "apple": "ipad.and.iphone", "web": "Devices" }, "tint": "#7f46b8", "native": "devices", "path": "/settings/security", "value": "devices" }
+    ] },
+    { "id": "household", "key": "groupHousehold", "title": "Household", "rows": [
+      { "id": "signInTv", "key": "rowSignInTv", "title": "Sign in a TV", "icon": { "android": "tv", "apple": "tv", "web": "Tv" }, "tint": "#bd2f85", "native": "signInTv", "path": "/pair", "when": ["adult", "notTv"] },
+      { "id": "connectDevice", "key": "rowConnectDevice", "title": "Connect a device", "icon": { "android": "add_link", "apple": "link.badge.plus", "web": "Link" }, "tint": "#0a6fb8", "path": "/away", "when": ["adult", "notTv"] },
+      { "id": "profiles", "key": "rowProfiles", "title": "Profiles and parental limits", "icon": { "android": "family_restroom", "apple": "figure.2.and.child.holdinghands", "web": "Users" }, "tint": "#b8500d", "native": "profiles", "path": "/settings/users", "when": ["adult"] }
+    ] },
+    { "id": "yours", "key": "groupYours", "title": "Yours", "rows": [
+      { "id": "yourYear", "key": "rowYourYear", "title": "Your year", "icon": { "android": "auto_awesome", "apple": "sparkles", "web": "Sparkles" }, "tint": "#c9302f", "path": "/review" },
+      { "id": "collections", "key": "rowCollections", "title": "Collections and playlists", "icon": { "android": "library_books", "apple": "square.stack", "web": "Stack" }, "tint": "#0e7c6f", "path": "/collections" },
+      { "id": "quality", "key": "rowQuality", "title": "Video quality", "icon": { "android": "high_quality", "apple": "sparkles.tv", "web": "Tune" }, "tint": "#3e5bd0", "path": "/settings/quality" },
+      { "id": "shareLinks", "key": "rowShareLinks", "title": "Share links", "icon": { "android": "link", "apple": "link", "web": "Link" }, "tint": "#0a6fb8", "path": "/settings/sharing", "when": ["notOff:sharing"] },
+      { "id": "activity", "key": "rowActivity", "title": "Activity", "icon": { "android": "monitoring", "apple": "waveform.path.ecg", "web": "Activity" }, "tint": "#99690a", "path": "/settings/activity", "when": ["notOff:activity"] },
+      { "id": "notifications", "key": "rowNotifications", "title": "Notifications", "icon": { "android": "notifications", "apple": "bell", "web": "Bell" }, "tint": "#99690a", "path": "/settings/notifications" },
+      { "id": "gameSettings", "key": "rowGameSettings", "title": "Game settings", "icon": { "android": "sports_esports", "apple": "gamecontroller", "web": "Gamepad" }, "tint": "#7f46b8", "path": "/settings/games", "when": ["games", "notOff:games"] },
+      { "id": "controllers", "key": "rowControllers", "title": "Controllers", "icon": { "android": "gamepad", "apple": "dpad", "web": "Gamepad" }, "tint": "#3e5bd0", "path": "/controllers", "when": ["games", "notOff:games"] },
+      { "id": "remoteControl", "key": "rowRemoteControl", "title": "Remote control", "icon": { "android": "cast", "apple": "airplayvideo", "web": "Remote" }, "tint": "#3e5bd0", "native": "remoteControl", "path": "/settings/sharing#play-on-other-devices", "when": ["remote", "notOff:remoteControl"] },
+      { "id": "watchParty", "key": "rowWatchParty", "title": "Watch party", "icon": { "android": "groups", "apple": "person.3", "web": "Users" }, "tint": "#bd2f85", "native": "watchParty", "path": "/settings/sharing#watch-parties", "when": ["parties", "notOff:syncplay"] }
+    ] },
+    { "id": "modules", "key": "groupModules", "title": "Modules", "rows": [
+      { "id": "moduleSettings", "key": "rowModuleSettings", "title": "Module settings", "icon": { "android": "extension", "apple": "puzzlepiece.extension", "web": "Plug" }, "tint": "#7f46b8", "native": "modules", "path": "/settings/module-settings", "when": ["moduleSettings"] },
+      { "id": "moduleStore", "key": "rowModuleStore", "title": "Module store", "icon": { "android": "download", "apple": "bag", "web": "Download" }, "tint": "#7f46b8", "path": "/settings/modules", "when": ["admin"], "summary": "modules" }
+    ] },
+    { "id": "device", "key": "groupDevice", "title": "On this device", "rows": [
+      { "id": "look", "key": "rowLayout", "title": "Layout", "icon": { "android": "toolbar", "apple": "rectangle.3.group", "web": "Sidebar" }, "tint": "#0e7c6f", "native": "look", "path": "/settings/appearance#look", "when": ["looks"] },
+      { "id": "editLayout", "key": "rowEditLayout", "title": "Edit layout", "icon": { "android": "toolbar", "apple": "rectangle.3.group", "web": "Edit" }, "tint": "#7f46b8", "native": "editLayout", "part": "app.layout-editor", "path": "/settings/appearance#look", "when": ["layoutEditor"] },
+      { "id": "theme", "key": "rowTheme", "title": "Theme", "icon": { "android": "palette", "apple": "paintpalette", "web": "Palette" }, "tint": "#0e7c6f", "native": "theme", "path": "/settings/appearance#theme", "value": "theme" },
+      { "id": "topMenu", "key": "rowTopMenu", "title": "Top menu", "icon": { "android": "toolbar", "apple": "menubar.rectangle", "web": "Sidebar" }, "tint": "#bd2f85", "native": "topMenu", "when": ["tv", "app"], "value": "topMenu" },
+      { "id": "servers", "key": "rowServers", "title": "Servers on this device", "icon": { "android": "dns", "apple": "server.rack", "web": "Server" }, "tint": "#5d6474", "native": "servers", "when": ["servers"], "value": "servers" },
+      { "id": "away", "key": "rowAway", "title": "From away", "icon": { "android": "settings_input_antenna", "apple": "dot.radiowaves.left.and.right", "web": "Globe" }, "tint": "#0a6fb8", "native": "away", "when": ["fromAway"], "value": "away" },
+      { "id": "playingHere", "key": "rowPlayingHere", "title": "Playing on this device", "icon": { "android": "smart_display", "apple": "play.rectangle", "web": "Play" }, "tint": "#3e5bd0", "native": "playingHere", "path": "/settings/appearance#player" }
+    ] },
+    { "id": "server", "key": "groupServer", "title": "Server", "rows": [
+      { "id": "libraries", "key": "rowLibraries", "title": "Libraries", "icon": { "android": "video_library", "apple": "books.vertical", "web": "Library" }, "tint": "#5d6474", "sdui": true, "path": "/manage/libraries", "when": ["admin"], "summary": "libraries" },
+      { "id": "pages", "key": "rowPages", "title": "Pages and menu", "icon": { "android": "view_quilt", "apple": "rectangle.3.group", "web": "Sidebar" }, "tint": "#5d6474", "path": "/settings/pages", "when": ["admin"] },
+      { "id": "metadata", "key": "rowMetadata", "title": "Metadata and artwork", "icon": { "android": "image_search", "apple": "photo.on.rectangle", "web": "Image" }, "tint": "#5d6474", "path": "/settings/metadata", "when": ["admin"], "summary": "metadata" },
+      { "id": "fixMatches", "key": "rowFixMatches", "title": "Fix matches", "icon": { "android": "auto_fix_high", "apple": "wand.and.stars", "web": "Wand" }, "tint": "#5d6474", "path": "/fix-matches", "when": ["admin"] },
+      { "id": "playback", "key": "rowPlayback", "title": "Playback and discs", "icon": { "android": "smart_display", "apple": "play.rectangle", "web": "Play" }, "tint": "#5d6474", "path": "/settings/playback", "when": ["admin"] },
+      { "id": "liveTv", "key": "rowLiveTv", "title": "Live TV and tuners", "icon": { "android": "live_tv", "apple": "antenna.radiowaves.left.and.right", "web": "Channels" }, "tint": "#5d6474", "path": "/settings/channels", "when": ["admin"], "summary": "channels" },
+      { "id": "gaming", "key": "rowGaming", "title": "Consoles and cores", "icon": { "android": "sports_esports", "apple": "gamecontroller", "web": "Gamepad" }, "tint": "#5d6474", "path": "/settings/gaming", "when": ["admin"] },
+      { "id": "gamePcs", "key": "rowGamePcs", "title": "Game PCs", "icon": { "android": "computer", "apple": "desktopcomputer", "web": "Devices" }, "tint": "#5d6474", "path": "/settings/couch", "when": ["admin"] },
+      { "id": "transcoding", "key": "rowTranscoding", "title": "Live transcoding", "icon": { "android": "bolt", "apple": "bolt", "web": "Bolt" }, "tint": "#5d6474", "path": "/settings/transcoding", "when": ["admin"], "summary": "transcoding" },
+      { "id": "libraryTranscoding", "key": "rowLibraryTranscoding", "title": "Library transcoding", "icon": { "android": "autorenew", "apple": "arrow.triangle.2.circlepath", "web": "Refresh" }, "tint": "#5d6474", "path": "/settings/library-transcoding", "when": ["admin"] },
+      { "id": "network", "key": "rowNetwork", "title": "Network", "icon": { "android": "lan", "apple": "network", "web": "Network" }, "tint": "#5d6474", "path": "/settings/network", "when": ["admin"], "summary": "network" },
+      { "id": "dataFolder", "key": "rowDataFolder", "title": "Data folder", "icon": { "android": "folder", "apple": "externaldrive", "web": "Drive" }, "tint": "#5d6474", "path": "/settings/data-folder", "when": ["admin"], "summary": "data-folder" },
+      { "id": "remote", "key": "rowRemote", "title": "Remote access", "icon": { "android": "public", "apple": "globe", "web": "Globe" }, "tint": "#5d6474", "path": "/settings/remote", "when": ["admin"], "summary": "remote" },
+      { "id": "nameAndLogo", "key": "rowNameAndLogo", "title": "Name and logo", "icon": { "android": "badge", "apple": "textformat", "web": "Brush" }, "tint": "#7f46b8", "native": "nameAndLogo", "part": "app.brand-editor", "path": "/settings/appearance#name", "when": ["admin"] },
+      { "id": "appearance", "key": "rowAppearance", "title": "Appearance and branding", "icon": { "android": "brush", "apple": "paintbrush", "web": "Palette" }, "tint": "#5d6474", "path": "/settings/appearance", "when": ["admin"] },
+      { "id": "wittyRigs", "key": "rowWittyRigs", "title": "WittyRigs", "icon": { "android": "dns", "apple": "server.rack", "web": "Server" }, "tint": "#5d6474", "path": "/settings/wittyrigs", "when": ["admin"] }
+    ] },
+    { "id": "maintenance", "key": "groupMaintenance", "title": "Maintenance", "rows": [
+      { "id": "logs", "key": "rowLogs", "title": "WittyLog", "icon": { "android": "article", "apple": "doc.text.magnifyingglass", "web": "File" }, "tint": "#5d6474", "path": "/settings/logs", "when": ["admin"] },
+      { "id": "diagnoser", "key": "rowDiagnoser", "title": "WittyDiagnoser", "icon": { "android": "stethoscope", "apple": "stethoscope", "web": "Tune" }, "tint": "#5d6474", "path": "/settings/diagnoser", "when": ["admin"] },
+      { "id": "backup", "key": "rowBackup", "title": "Backup", "icon": { "android": "backup", "apple": "externaldrive", "web": "Download" }, "tint": "#5d6474", "path": "/settings/backup", "when": ["admin"], "summary": "backup" },
+      { "id": "repair", "key": "rowRepair", "title": "Repair", "icon": { "android": "build", "apple": "wrench.and.screwdriver", "web": "Wrench" }, "tint": "#5d6474", "path": "/settings/repair", "when": ["admin"] },
+      { "id": "reset", "key": "rowReset", "title": "Reset", "icon": { "android": "restart_alt", "apple": "arrow.counterclockwise", "web": "Refresh" }, "tint": "danger", "path": "/settings/reset", "when": ["admin"] }
+    ] },
+    { "id": "help", "key": "groupHelp", "title": "Help and about", "rows": [
+      { "id": "help", "key": "rowHelp", "title": "Help", "icon": { "android": "help", "apple": "questionmark.circle", "web": "Help" }, "tint": "#99690a", "path": "/help" },
+      { "id": "aboutServer", "key": "rowAboutServer", "title": "About this server", "icon": { "android": "info", "apple": "info.circle", "web": "Info" }, "tint": "#5d6474", "path": "/settings/about", "value": "version" },
+      { "id": "legal", "key": "rowLegal", "title": "Legal", "icon": { "android": "gavel", "apple": "doc.plaintext", "web": "Shield" }, "tint": "#5d6474", "path": "/legal" },
+      { "id": "licences", "key": "rowLicences", "title": "Licences", "icon": { "android": "menu_book", "apple": "text.book.closed", "web": "Book" }, "tint": "#5d6474", "native": "licences", "path": "/settings/about#licenses" },
+      { "id": "appLog", "key": "rowAppLog", "title": "This app's log", "icon": { "android": "receipt_long", "apple": "list.bullet.rectangle", "web": "File" }, "tint": "#5d6474", "native": "appLog", "when": ["app"] }
+    ] }
+  ]
+}

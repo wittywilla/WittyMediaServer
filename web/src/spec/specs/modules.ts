@@ -4,7 +4,7 @@ import { mk, secF, secN, secP } from '../model.ts'
 import type { SpecPageData, SpecSection } from '../types.ts'
 import { t, tk } from '../../sdui/words.ts'
 
-// Settings, Modules (canvas page "modupdates"): the update settings and the filter. The store's update-all panel, the
+// Settings, Module store (canvas page "modupdates"): the update settings and the filter. The store's update-all panel, the
 // policy note and the module rows themselves are the page's own, under the sections named below.
 // Field ids: autoCheck, autoInstall. Chip ids: check, filter:<id>.
 export interface ModulesTop {

@@ -1967,6 +1967,10 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /channels/suggestions` | admin | Channel suggestions. |
 | `GET /channels/options` | admin | Channel options. |
 | `POST /channels/from-network` | admin | Channel from network. |
+| `POST /channels/clone/upload` | admin | Upload an XMLTV guide (the body is the file, up to 200 MB). Answers `{url: "upload:<id>"}`, kept for a week. |
+| `POST /channels/clone/stations` | admin | Stations in a guide: `{source: {kind: xmltv\|guide\|tvmaze, url, country}, from, days}`. Answers `{stations, credit}`. |
+| `POST /channels/clone/import` | admin | Clone a station: `{source, station, from, days, options}` (or `slots` to match again). Answers `{clone, commercials, counts}`; save `clone` in the channel's definition, whose blocks the server then makes from it. |
+| `POST /channels/clone/candidates` | admin | What one cloned slot could play: `{slot, options}`. Answers `{candidates}`. |
 | `POST /channels/networks/refresh` | admin | Refresh networks. |
 | `GET /channels/networks/refresh` | admin | Refresh networks progress. |
 | `GET /channels/{id}` | admin | Channel. |

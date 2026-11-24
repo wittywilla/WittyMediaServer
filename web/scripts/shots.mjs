@@ -15,6 +15,10 @@ const { page, press, shot, call, go, until, size, maskAddresses } = s
 const login = await call('POST', '/login', { name: process.env.WMS_USER || 'owner', password: process.env.WMS_PASSWORD })
 await page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(login.token)})`)
 await call('POST', '/legal/acknowledge')
+// A notice left by an earlier test server stopping isn't part of any page: dismissed once.
+await go('/settings/about', 3000)
+await page.eval(`(() => { let e = [...document.querySelectorAll('main *')].find((x) => x.children.length === 0 && /stopped unexpectedly/.test(x.textContent)); for (let i = 0; e && i < 5; i++, e = e.parentElement) { const b = [...e.querySelectorAll('button')].find((x) => !/stopped/.test(x.textContent)); if (b) { b.click(); return } } })()`)
+await wait(500)
 
 const libs = async () => { const l = await call('GET', '/libraries'); return l.libraries || l }
 const lib = async (name) => (await libs()).find((l) => l.name === name)
@@ -49,6 +53,15 @@ const closeDialogs = async () => {
   }
   return closed
 }
+// WMS_SHOW_PATHS="<this computer's folder>=><the folder to show>;..." puts example folders in the pictures in place of
+// the test computer's own, as maskAddresses does for addresses.
+const PATHS = (process.env.WMS_SHOW_PATHS || '').split(';').filter(Boolean).map((p) => p.split('=>'))
+const maskPaths = () => PATHS.length && page.eval(`(() => {
+  const swaps = ${JSON.stringify(PATHS)}
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+  for (let n = w.nextNode(); n; n = w.nextNode()) for (const [from, to] of swaps) if (n.nodeValue.includes(from)) n.nodeValue = n.nodeValue.split(from).join(to)
+  document.querySelectorAll('input').forEach((i) => { for (const [from, to] of swaps) if (i.value.includes(from)) i.value = i.value.split(from).join(to) })
+})()`)
 const playerGone = async () => { await key('Escape', 'Escape', 27); await wait(400); await press(/Stop playing and close/); await wait(600) }
 
 const scenes = {
@@ -388,10 +401,11 @@ const scenes = {
       console.log('profile', name, JSON.stringify(await call('POST', '/users', body)).slice(0, 80))
     }
     await call('DELETE', '/sessions')
-    for (const path of ['libraries', 'metadata', 'playback', 'channels', 'couch', 'transcoding', 'library-transcoding', 'remote', 'users', 'security', 'games', 'activity', 'appearance', 'sharing', 'wittyrigs', 'logs', 'diagnoser', 'modules', 'backup', 'repair', 'reset', 'about', 'legal']) {
+    for (const path of ['libraries', 'pages', 'metadata', 'playback', 'channels', 'couch', 'transcoding', 'library-transcoding', 'network', 'data-folder', 'remote', 'users', 'security', 'quality', 'games', 'activity', 'appearance', 'notifications', 'sharing', 'wittyrigs', 'module-settings', 'logs', 'diagnoser', 'modules', 'backup', 'health', 'repair', 'reset', 'about', 'legal']) {
       await go(`/settings/${path}`, 3500)
       await closeDialogs()
       await maskAddresses()
+      await maskPaths()
       await shot(`settings-${path}`)
     }
     await go('/settings/logs', 3000)
@@ -452,6 +466,75 @@ const scenes = {
     const m = await lib('Music')
     await go(`/library/${m.id}`, 3500); await shot('phone-music')
     await size(1920, 1080)
+  },
+  // What 0.8.2 to 0.8.4 added: one search, the bell, a kids' profile's limits and report, the sign-in cards and the
+  // page for joining from away, pausing a channel, cloning a station (WMS_CLONE_GUIDE: an XMLTV file of a made-up
+  // station), and Settings on a phone and a TV.
+  async features() {
+    await go('/search?q=popeye', 4500); await shot('search')
+    await go('/', 3500)
+    await page.eval(`document.querySelector('.topbar .note-btn')?.click()`); await wait(2000)
+    await shot('notifications')
+    await key('Escape', 'Escape', 27); await wait(500)
+    await go('/settings/users', 3500)
+    if (await press(/Limits for Kids/)) { await wait(2000); await shot('profile-kids-limits'); await key('Escape', 'Escape', 27); await wait(600) }
+    if (await press(/Report for Kids/)) { await wait(2000); await shot('profile-kids-report'); await key('Escape', 'Escape', 27); await wait(600) }
+    // The cards a signed-out visitor sees, in a page of its own.
+    const other = await s.browser.open(`${server}/?tv=0`)
+    await other.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
+    const outShot = async (name) => { await wait(1500); (await import('node:fs')).writeFileSync((await import('node:path')).join(out, `${name}.png`), await other.shot()); console.log('shot', name) }
+    await other.eval(`localStorage.removeItem('wms.token')`)
+    await other.go(`${server}/?tv=0`); await wait(2500)
+    await outShot('signin')
+    await other.eval(`[...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Sign in with your phone')?.click()`); await wait(3000)
+    await outShot('signin-phone')
+    await other.go(`${server}/away?tv=0`); await wait(2500)
+    await outShot('away')
+    await other.send('Page.close').catch(() => {})
+    await page.send('Page.bringToFront')
+    // Pausing a channel: the guide's preview full screen, then paused.
+    await go('/tv', 5000)
+    await page.eval(`document.querySelector('.ctv-preview-bar button[title="Full screen"]')?.click()`)
+    await hasVideo(60000).catch((e) => console.log(e.message))
+    await wait(5000)
+    await page.eval(`(() => { const v = document.querySelector('video'); if (v) v.pause() })()`)
+    await move(); await wait(1500)
+    await shot('wittytv-paused')
+    await key('Escape', 'Escape', 27); await wait(800)
+    // Clone a station, from a guide file.
+    if (process.env.WMS_CLONE_GUIDE) {
+      await go('/tv/channels', 3000)
+      await press('Clone a station')
+      await until(`!!document.querySelector('#ch-clone')`, 20000, 'the clone section')
+      await press('Guide file or link'); await wait(400)
+      const { root } = await page.send('DOM.getDocument', { depth: -1, pierce: true })
+      const { nodeId } = await page.send('DOM.querySelector', { nodeId: root.nodeId, selector: '#ch-clone input[type=file]' })
+      await page.send('DOM.setFileInputFiles', { nodeId, files: [process.env.WMS_CLONE_GUIDE] })
+      await until(`/\.xml/.test(document.querySelector('#ch-clone')?.innerText || '')`, 20000, 'the upload')
+      if (process.env.WMS_CLONE_DAY) await page.eval(`(() => { const i = document.querySelector('#ch-clone input[type=date]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, ${JSON.stringify(process.env.WMS_CLONE_DAY)}); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+      await wait(500)
+      await shot('clone-source')
+      await press('Find stations')
+      await until(`document.querySelectorAll('.clone-station').length > 0`, 30000, 'stations')
+      await press(/^\s*WDMO Demo 9/)
+      await until(`document.querySelectorAll('.clone-slot').length > 0`, 60000, 'the matched schedule')
+      await wait(1500)
+      await page.eval(`document.querySelector('.clone-slot')?.scrollIntoView({ block: 'start' }); scrollBy(0, -120)`); await wait(800)
+      await shot('clone-schedule')
+      // Nothing is saved: the draft is left.
+      await page.eval(`localStorage.removeItem('wms.channelDraft.new')`)
+    }
+  },
+  // Settings on a phone and in TV mode: one menu on every device.
+  async settingsizes() {
+    await size(390, 844, true, 2)
+    await go('/settings', 3500); await shot('phone-settings')
+    await go('/settings/remote', 3500); await maskAddresses(); await shot('phone-settings-remote')
+    await size(1920, 1080)
+    await go('/settings?tv=1', 4000); await move(1, 1); await shot('tv-settings')
+    await go('/settings/remote?tv=1', 4000); await move(1, 1); await maskAddresses(); await shot('tv-settings-remote')
+    await page.eval(`localStorage.setItem('wms.tvmode', '0')`)
+    await go('/?tv=0', 2000)
   },
   // Karaoke's Mix panel and Voice settings presets, at a computer's size and a phone's, and the README's
   // karaoke over a visualizer.

@@ -42,8 +42,11 @@ A browser can't search your network for servers, so you need the address. A brow
 
 The app for your server, on every platform: Windows, macOS, Linux, FreeBSD, Plasma Bigscreen, Android phones, tablets and TVs, iPhone, iPad and Apple TV. It finds your server at home by itself, signs in with a code, and connects from away with nothing set up on your router.
 
-![The desktop app showing the home page](images/client-home.webp)
-*WittyMediaClient on a desktop, connected to a test server. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+![WittyMediaClient on Android TV: Home, with the menu along the top and a film to play](images/app-tv-home.webp)
+*WittyMediaClient 0.6.2 on Android TV, signed in to a test server as a made-up profile. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
+![WittyMediaClient on an Android phone: Home, with a film at the top, the libraries, and the menu along the bottom](images/app-phone-home.webp)
+*The same app on an Android phone.*
 
 Every app draws the same pages, which the server describes. New pages and modules arrive with the server, with no app update. The desktop app is a window around the server's own web app, so it has everything a browser has. If the Android or Apple app can't play something yet, it says so: use a browser on that device for it.
 

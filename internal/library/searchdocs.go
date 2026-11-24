@@ -33,13 +33,15 @@ func searchGroup(libType string) string {
 // SearchDocs lists what a search can find in one library: its titles, and in a
 // show library its shows, in a music library its albums and artists, in an
 // audiobook or podcast library its books and podcasts. Rows a search never shows
-// (missing files, extras attached to a title) are left out.
+// (missing files, extras attached to a title) are left out. A song is found by its
+// own title: its artist and album have groups of their own, and holding their names
+// again for every song would double what a music library costs.
 func (s *Store) SearchDocs(ctx context.Context, lib *Library) ([]search.Doc, error) {
 	var out []search.Doc
 	group := searchGroup(lib.Type)
 	albumsOnly := lib.Type == "audiobooks" || lib.Type == "podcasts"
 	if !albumsOnly {
-		rows, err := s.DB.QueryContext(ctx, `SELECT i.id, i.title, IFNULL(i.year, 0), IFNULL(i.show_id, 0), IFNULL(i.artist, ''), IFNULL(i.album, ''),
+		rows, err := s.DB.QueryContext(ctx, `SELECT i.id, i.title, IFNULL(i.year, 0), IFNULL(i.show_id, 0),
 			IFNULL(json_extract(i.alt_titles, '$.native'), ''), IFNULL(json_extract(i.alt_titles, '$.english'), ''), LOWER(SUBSTR(i.path, -4))
 			FROM items i WHERE i.library_id = ? AND i.missing = 0 AND `+hideLinked, lib.ID)
 		if err != nil {
@@ -48,8 +50,8 @@ func (s *Store) SearchDocs(ctx context.Context, lib *Library) ([]search.Doc, err
 		for rows.Next() {
 			var d search.Doc
 			var show int64
-			var artist, album, native, english, ext string
-			if err := rows.Scan(&d.ID, &d.Title, &d.Year, &show, &artist, &album, &native, &english, &ext); err != nil {
+			var native, english, ext string
+			if err := rows.Scan(&d.ID, &d.Title, &d.Year, &show, &native, &english, &ext); err != nil {
 				rows.Close()
 				return nil, err
 			}
@@ -57,8 +59,6 @@ func (s *Store) SearchDocs(ctx context.Context, lib *Library) ([]search.Doc, err
 			switch {
 			case group == "episodes" && show == 0:
 				d.Group = "films" // a film kept in a show library
-			case group == "songs":
-				d.Alt = artist + "\n" + album
 			case group == "books" && (ext == ".cbz" || ext == ".cbr" || ext == ".cb7" || ext == ".cbt"):
 				d.Group = "comics"
 			}

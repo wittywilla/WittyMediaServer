@@ -46,31 +46,73 @@ type Doc struct {
 	Count int // an album's tracks, an artist's albums, a person's titles: the better known first
 }
 
-// segment is one library's documents and the grams that find them.
+// doc is a Doc as the index keeps it: small, for a library of hundreds of
+// thousands on a computer with little memory. Its other names are kept only as
+// grams and, normalised, in segment.alt.
+type doc struct {
+	id    int64
+	key   string
+	title string
+	lib   int32
+	count int32
+	year  int16
+	group uint8
+}
+
+func (d *doc) Doc() Doc {
+	return Doc{Group: Groups[d.group], ID: d.id, Key: d.key, Lib: int64(d.lib), Title: d.title, Year: int(d.year), Count: int(d.count)}
+}
+
+// segment is one library's documents and the grams that find them. Every gram's
+// list of documents is a slice of one array, so a library costs four bytes for each
+// gram of each title and little more.
 type segment struct {
-	docs  []Doc
-	title []string // Normalize(Title)
-	alt   []string // Normalize(Alt)
+	docs  []doc
+	title []string         // each title, normalised
+	alt   map[int32]string // other names, normalised, for those that have them
 	post  map[gram][]int32
 }
 
-func build(docs []Doc) *segment {
-	sg := &segment{docs: docs, title: make([]string, len(docs)), alt: make([]string, len(docs)), post: map[gram][]int32{}}
-	seen := map[gram]struct{}{}
-	for i := range docs {
-		sg.title[i] = Normalize(docs[i].Title)
-		sg.alt[i] = Normalize(docs[i].Alt)
-		clear(seen)
-		add := func(g gram) {
-			if _, ok := seen[g]; ok {
-				return
-			}
-			seen[g] = struct{}{}
-			sg.post[g] = append(sg.post[g], int32(i))
+func build(in []Doc) *segment {
+	sg := &segment{docs: make([]doc, len(in)), title: make([]string, len(in)), alt: map[int32]string{}}
+	for i := range in {
+		d := &in[i]
+		g := slices.Index(Groups, d.Group)
+		if g < 0 {
+			g = slices.Index(Groups, "videos")
 		}
-		grams(sg.title[i], false, add)
-		grams(sg.alt[i], false, add)
+		sg.docs[i] = doc{id: d.ID, key: d.Key, title: d.Title, lib: int32(d.Lib), count: int32(min(d.Count, 1<<30)), year: int16(d.Year), group: uint8(g)}
+		sg.title[i] = Normalize(d.Title)
+		if a := Normalize(d.Alt); a != "" {
+			sg.alt[int32(i)] = a
+		}
 	}
+	// Twice over the grams: once to count them, once to fill the one array. Holding
+	// them all between the two would take more memory than the index itself.
+	seen := map[gram]struct{}{}
+	each := func(fn func(g gram, i int32)) {
+		for i := range sg.docs {
+			clear(seen)
+			add := func(g gram) {
+				if _, ok := seen[g]; !ok {
+					seen[g] = struct{}{}
+					fn(g, int32(i))
+				}
+			}
+			grams(sg.title[i], false, add)
+			grams(sg.alt[int32(i)], false, add)
+		}
+	}
+	counts := map[gram]int32{}
+	total := 0
+	each(func(g gram, _ int32) { counts[g]++; total++ })
+	arena := make([]int32, 0, total)
+	sg.post = make(map[gram][]int32, len(counts))
+	for g, n := range counts {
+		sg.post[g] = arena[len(arena) : len(arena) : len(arena)+int(n)]
+		arena = arena[:len(arena)+int(n)]
+	}
+	each(func(g gram, i int32) { sg.post[g] = append(sg.post[g], i) })
 	return sg
 }
 
@@ -286,7 +328,7 @@ func (x *Index) Search(q Query) Result {
 				continue
 			}
 			d := &sg.docs[i]
-			if !wantGroup(d.Group) || !yearOK(d.Year) {
+			if !wantGroup(Groups[d.group]) || !yearOK(int(d.year)) {
 				continue
 			}
 			if len(buckets[c]) < scoreBudget { // never scored past that
@@ -307,13 +349,13 @@ scoring:
 			}
 			scored++
 			s := sc.score(cd.sg.title[cd.i])
-			if s < 900 && cd.sg.alt[cd.i] != "" {
-				s = max(s, sc.score(cd.sg.alt[cd.i])-200)
+			if alt := cd.sg.alt[cd.i]; s < 900 && alt != "" {
+				s = max(s, sc.score(alt)-200)
 			}
 			if s <= 0 {
 				continue
 			}
-			d := cd.sg.docs[cd.i]
+			d := cd.sg.docs[cd.i].Doc()
 			g := byGroup[d.Group]
 			if g == nil {
 				g = &Group{Key: d.Group, Label: GroupLabels[d.Group]}
@@ -422,7 +464,7 @@ func (sc *scorer) score(name string) int {
 		return 650 - min(len(sc.nr)-len(sc.qs), 50)
 	}
 	// Each word typed near enough a word of the name: the last as the start of one.
-	edits, missed := 0, 0
+	edits, missed, meant := 0, 0, 0
 	for wi, w := range sc.qr {
 		last := wi == len(sc.qr)-1
 		lim := allowed(len(w))
@@ -449,12 +491,18 @@ func (sc *scorer) score(name string) int {
 			}
 			continue
 		}
+		if !little[sc.qw[wi]] {
+			meant++
+		}
 		edits += best
 	}
-	if missed == 0 {
+	switch {
+	case missed == 0:
 		return 600 - 60*edits
+	case meant >= 2: // one word of a longer search not found, but two that say what it's about were
+		return 300 - 30*edits
 	}
-	return 300 - 30*edits
+	return 0
 }
 
 // wordStarts says whether every word typed starts a different word of the name.

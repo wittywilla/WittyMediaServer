@@ -125,14 +125,20 @@ func distance(a, b []rune, limit int, rows *[3][]int) int {
 }
 
 // allowed is how many letters a word may have wrong and still match: none in a
-// short word (where one wrong letter makes another word), one from four letters,
-// two from eight.
+// short word (where one wrong letter makes another word: "love" and "lode"), one
+// from five letters, two from nine.
 func allowed(n int) int {
 	switch {
-	case n >= 8:
+	case n >= 9:
 		return 2
-	case n >= 4:
+	case n >= 5:
 		return 1
 	}
 	return 0
 }
+
+// little are words too common to say what a search is about: a title that matches
+// only these and one other word of a longer search isn't what was meant.
+var little = map[string]bool{"the": true, "a": true, "an": true, "of": true, "and": true, "to": true, "in": true,
+	"on": true, "at": true, "for": true, "la": true, "le": true, "les": true, "el": true, "los": true, "der": true,
+	"die": true, "das": true, "de": true, "du": true}

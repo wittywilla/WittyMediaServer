@@ -3,9 +3,7 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
-## 0.8.3-alpha
-
-Released 2026-11-24.
+## Unreleased
 
 **Sign-in and other standalone pages (#624)**
 
@@ -15,6 +13,10 @@ Released 2026-11-24.
   address only this computer can use (127.0.0.1), there's no QR code, which a phone couldn't open, and the code leads.
 - **The app's "this address is for the app" page** is no longer bare black text. It's the same card, with a line on
   what to open instead.
+
+## 0.8.3-alpha
+
+Released 2026-11-24.
 
 **Connecting another device (#605)**
 

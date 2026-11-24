@@ -2308,6 +2308,8 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `GET /p2p/status` | admin | Only how every layer is doing, for a page that stays open. |
 | `POST /p2p/test` | admin | Connect to this server as an app away from home would, from a second node, and say how far it got. |
 | `POST /p2p/relay-check` | admin | Ask a WittyRelay what it allows (speed, picture size, data and time per connection) before adding it: `{addr}`. Registers nothing. |
+| `POST /p2p/check` | admin | Check connection: whether a device away from home can reach this server, from what the node already knows (no network asked). Answers `{checks: [{id, title, state, detail, next}], verdict, at}`; `state` is ok, warn, fail or off. |
+| `GET /p2p/attempts` | admin | Each device's recent tries at connecting from away, newest first, kept in memory only: `?device=<ID>` for one. Answers `{attempts: [{at, device, short, name, listed, kind, ok, step, code, reason, title, path, count}], steps}`; `step` and `code` are pkg/connectsteps's. |
 | `POST /p2p/rotate` | admin | Give the server a new connection key and ID: `{password, code}`. Every device must learn the new ID. |
 | `GET /sessions` | user | Sessions. |
 | `DELETE /sessions` | user | End other sessions. |

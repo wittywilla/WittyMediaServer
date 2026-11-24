@@ -122,6 +122,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'DESIGN', title: tk('Design standards'), about: tk('The interface’s rules and shared parts.') },
     { file: 'UI-PLATFORMS', title: tk('One fix, every screen'), about: tk('How a change to the interface reaches every platform’s app.') },
     { file: 'TV-MODE', title: tk('TV mode'), about: tk('What a television shows, and what it leaves to a computer.') },
+    { file: 'SETTINGS-MENU', title: tk('The settings menu'), about: tk('One list of settings on every device, and what a TV leaves to a computer.') },
   ] },
 ]
 

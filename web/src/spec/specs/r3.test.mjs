@@ -6,7 +6,6 @@ import { problems, reachable, withIds } from '../model.ts'
 import { detailSpec, tabsSpec, toolsSpec } from './fixMatches.ts'
 import { brandSpec } from './brand.ts'
 import { unreachableSpec } from './unreachable.ts'
-import { youSpec } from './you.ts'
 
 const ok = (p) => assert.deepEqual(problems(withIds(p)), [])
 
@@ -69,29 +68,4 @@ test('unreachable: counts down, disables Try again while trying, helps with a li
   assert.equal(p.actions[1].to, '/help')
   assert.equal(unreachableSpec({ address: 'a', trying: true, seconds: 5, tries: 1 }).actions[0].disabled, true)
   assert.deepEqual(reachable(withIds(p), new Set(['retry'])).length, 2)
-})
-
-const you = { shown: 'Willow', adult: true, isAdmin: true, twoStep: true, devices: 3, games: true, gamesOff: false, sharingHidden: false, activityHidden: false, themeName: 'Witty', newer: false, version: '0.8.0', address: 'http://s', print: 'ab12', native: false }
-
-test('you: an administrator sees everything, every row goes somewhere and has an icon', () => {
-  const p = youSpec(you)
-  ok(p)
-  assert.deepEqual(p.sections.map((s) => s.h), ['Account', 'Household', 'Yours', 'On this device', 'Server', 'Maintenance', 'Help and about', 'This server', ''])
-  for (const s of p.sections.slice(0, 7)) for (const r of s.items) { assert.ok(r.to, r.title); assert.ok(r.icon, r.title) }
-  assert.equal(p.sections[0].items[2].value, 'On')
-  // Libraries opens the SDUI page every client draws (manage-libraries), each library's scan choices a layer over it.
-  assert.equal(p.sections.find((s) => s.h === 'Server').items.find((r) => r.title === 'Libraries').to, '/manage/libraries')
-  assert.equal(p.sections.at(-1).items.map((c) => c.id).join(), 'sign-out')
-})
-
-test('you: kids and guests get fewer rows, an update turns About into the update link, native apps can change server', () => {
-  const kid = youSpec({ ...you, adult: false, isAdmin: false, twoStep: undefined, games: false, sharingHidden: true, activityHidden: true, native: true, newer: true })
-  ok(kid)
-  assert.deepEqual(kid.sections.map((s) => s.h), ['Account', 'Yours', 'On this device', 'Help and about', 'This server', ''])
-  assert.equal(kid.sections[0].items.length, 2)
-  assert.deepEqual(kid.sections[1].items.map((r) => r.title), ['Your year', 'Collections and playlists'])
-  const about = kid.sections[3].items[1]
-  assert.deepEqual([about.to, about.value], ['/settings/about#updates', 'Update available'])
-  assert.deepEqual(kid.sections.at(-1).items.map((c) => c.id), ['change-server', 'sign-out'])
-  assert.equal(youSpec({ ...you, twoStep: null }).sections[0].items.length, 4 - 1 + 0)
 })

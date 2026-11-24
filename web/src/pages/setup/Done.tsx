@@ -81,6 +81,7 @@ export function Done({ facts, onFinish }: { facts: Facts; onFinish: (to?: string
               <code className="su-address-url" title={addr.url}>{addr.url}</code>
               <Button size="sm" variant="ghost" onClick={() => void copy()} aria-label={t('Copy the address {url}', { url: addr.url })}>{t('Copy')}</Button>
               {!addr.reachable && <small className="muted">{t('Right now this server only answers on this computer.')}</small>}
+              {addr.also && <small className="muted">{t('It also answers at {url}.', { url: addr.also })}</small>}
             </div>
           </div>
           <Button size="sm" onClick={() => setConnect(true)}>{t('Connect a device')}</Button>

@@ -746,7 +746,10 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .auth-spec { width: 100%; max-width: 32rem; } /* sign-in and server choice are drawn from a spec (spec/specs/auth.ts, connect.ts) */
 .auth-spec .brand { justify-content: center; font-size: var(--text-xl); padding: 0; margin-bottom: var(--sp-2); }
 .auth-spec .auth-profile { margin-bottom: var(--sp-3); }
-.auth-spec .spec-dock { background: transparent; border-top: 0; padding-inline: 0; } /* the sign-in buttons sit on the page, not on a white strip in the Light theme (#553) */
+/* Sign-in is one centred column: its links under the fields sit in the middle, and its buttons sit on the page, as
+   wide as the fields above them, not on a strip reaching past them (or white in the Light theme, #553). */
+.auth-spec .spec-chips { justify-content: center; }
+.auth-spec .spec-dock { margin-inline: 0; background: transparent; border-top: 0; padding-inline: 0; }
 .empty { display: grid; justify-items: center; text-align: center; color: var(--fg-2); padding: var(--sp-16) var(--sp-5); }
 .empty-ic { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: var(--sp-4); border-radius: 50%; background: var(--bg-3); color: var(--fg-3); }
 .empty-ic svg { width: 26px; height: 26px; }

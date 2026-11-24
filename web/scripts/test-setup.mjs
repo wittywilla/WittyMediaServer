@@ -42,9 +42,13 @@ const tagAll = () => page.eval(`(() => {
   const FOCUSABLE = 'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
   const seen = []
   let n = window.__n || 0
-  for (const el of document.querySelectorAll(FOCUSABLE)) {
+  // A dialog that's open is all a remote can reach; the page behind it waits.
+  const scope = document.querySelector('.ui-dialog') || document
+  for (const el of scope.querySelectorAll(FOCUSABLE)) {
     const r = el.getBoundingClientRect()
     if (r.width < 2 || r.height < 2 || (el.closest('details:not([open])') && !el.closest('summary'))) continue
+    // A group of choices (ui/Choice.tsx) is one stop: the arrows move the choice along it, so its other options aren't stops.
+    if (el.matches('[role=radiogroup].seg > [role=radio][tabindex="-1"]')) continue
     if (!el.dataset.t) el.dataset.t = String(++n)
     seen.push(el.dataset.t)
   }
@@ -63,7 +67,8 @@ async function map(label) {
     for (const k of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
       await page.eval(`document.querySelector('[data-t="${id}"]')?.focus({ preventScroll: true })`)
       await press(k)
-      await wait(30)
+      // A group of choices moves its focus on the next frame (ui/Choice.tsx), so the map waits for it.
+      await page.eval(`new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(0))))`)
       edges[k] = await active()
     }
     graph.set(id, edges)
@@ -72,7 +77,7 @@ async function map(label) {
   const reached = new Set([all[0]]); const q = [all[0]]
   while (q.length) for (const t of Object.values(graph.get(q.shift()) || {})) if (t && !reached.has(t) && graph.has(t)) { reached.add(t); q.push(t) }
   for (const a of all) if (!reached.has(a)) problems.add(`${label}: the arrows can't reach "${await nameOf(a)}"`)
-  const small = await page.eval(`[...document.querySelectorAll('main button, main select, main textarea, main input:not([type=hidden])')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 && r.height < 48 }).map((e) => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 40))`)
+  const small = await page.eval(`[...(document.querySelector('.ui-dialog') ? document.querySelectorAll('.ui-dialog button, .ui-dialog select, .ui-dialog input:not([type=hidden])') : document.querySelectorAll('main button, main select, main textarea, main input:not([type=hidden])'))].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 && r.height < 48 }).map((e) => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 40))`)
   for (const s of small) problems.add(`${label}: under 48px: "${s}"`)
   if (await page.eval(`document.documentElement.scrollWidth > document.documentElement.clientWidth + 1`)) problems.add(`${label}: sideways scroll`)
   return { all, graph }
@@ -105,18 +110,29 @@ async function arrowTo(label, wanted) {
   }
 }
 const ok = async (label, wanted) => { await arrowTo(label, wanted); await press('Enter'); await wait(250) }
+// A module draws its own page (Games, Live TV): its layout is the module's, so instead of mapping it, Down is pressed
+// from the top the way a remote would, until the button is reached.
+const downTo = async (label, name) => {
+  await page.eval(`[...document.querySelectorAll('main button, main input, main select, main a[href], main [tabindex]:not([tabindex="-1"])')].find((e) => e.getBoundingClientRect().height > 2)?.focus()`)
+  const trail = []
+  for (let i = 0; i < 80; i++) {
+    const at = await page.eval(`(document.activeElement?.textContent || '').trim()`)
+    trail.push(at.slice(0, 24))
+    if (at === name) { await press('Enter'); await wait(250); return }
+    await press('ArrowDown')
+    await page.eval(`new Promise((r) => setTimeout(r, 150))`)
+  }
+  throw new Error(`${label}: Down never reaches "${name}": ${[...new Set(trail)].join(' > ')}`)
+}
 const says = (t) => (n) => n.includes(t)
 const named = (t) => (n) => n === t
 
 try {
   await wait(800)
-  expect('it starts with the language and time zone', await page.eval(`location.pathname`) === '/setup/language')
-  expect('the language page is step 1, Language', (await page.eval(`document.querySelector('#su-where').textContent`)).startsWith('Step 1 of 12 · Language'))
-  expect('no step says a module is missing before modules were offered', !(await page.eval(`document.querySelector('.oobe-steps').textContent`)).includes('Module not added'))
-  await ok('language', named('Continue'))
-  await atStep('welcome'); await wait(500)
-  expect('restoring a backup is on the welcome page', await page.eval(`[...document.querySelectorAll('button')].some((b) => b.textContent === 'Restore from a backup')`))
-  await ok('welcome', says('Set up a new server'))
+  expect('it starts on Welcome, with the language on it', await page.eval(`location.pathname`) === '/setup/welcome' && await page.eval(`!!document.querySelector('main select')`))
+  expect('Welcome is step 1 of 6', (await page.eval(`document.querySelector('#su-where').textContent`)).startsWith('Step 1 of 6 · Welcome'))
+  expect('restoring a backup and advanced setup are on the welcome page', await page.eval(`['Restore from a backup', 'Advanced setup'].every((w) => [...document.querySelectorAll('button')].some((b) => b.textContent === w))`))
+  await ok('welcome', says('Get started'))
   await atStep('account'); await wait(500)
   await type('owner')
   await press('ArrowDown'); await wait(60); await type('a long test password')
@@ -124,23 +140,21 @@ try {
   await ok('account', says('I understand'))
   expect('OK ticks a box', await page.eval(`document.querySelector('.su-ack button').getAttribute('aria-checked')`) === 'true')
   await ok('account', says('Create account'))
-  await atStep('name'); await wait(800)
-  expect('the name page asks no language again', !(await page.eval(`document.querySelector('main').textContent`)).includes('Time zone'))
-  await ok('name', named('Continue'))
-  await atStep('network'); await wait(600)
-  await ok('network', named('Continue'))
-  await atStep('modules'); await wait(1000)
+  await atStep('modules'); await wait(1200)
   expect('nothing has gone online yet', !(await call('GET', '/modulestore')).checkedAt)
+  // When a module has a new version waits under Customize, in a dialog a remote can work.
+  await ok('modules', named('Customize'))
+  await page.until(`!!document.querySelector('.ui-dialog')`, 5000, 'the Customize dialog')
+  await ok('modules customize', says('Install them by themselves'))
+  await ok('modules customize', named('Done'))
+  expect('updates by themselves was saved', (await call('GET', '/settings')).moduleAutoInstall === '1')
   await ok('modules', says('WittyPlay'))
-  await ok('modules', says('Install them by themselves'))
   await shot('modules')
-  await ok('modules', says('Download and install'))
-  await page.until(`/ready|didn’t install/i.test(document.querySelector('h1')?.textContent || '')`, 240000, 'modules to install')
+  await ok('modules', says('Install 2 modules'))
+  await page.until(`/ready|didn’t install/i.test(document.querySelector('main h1')?.textContent || '')`, 240000, 'modules to install')
   await wait(300)
   const mods = (await call('GET', '/modules')).modules
   expect('WittyPlay came through the store', mods.find((m) => m.id === 'wittyplay')?.installed && (await call('GET', '/modulestore/run')).run?.kind === 'install')
-  const set1 = await call('GET', '/settings')
-  expect('updates by themselves was saved', set1.moduleAutoInstall === '1' && set1.moduleUpdateCheck === '1')
   await press('Enter')
   await atStep('media'); await wait(600)
   await page.eval(`(document.activeElement || document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'GoBack', bubbles: true }))`)
@@ -148,9 +162,7 @@ try {
   expect('the remote\'s Back goes back a step', true)
   await page.eval(`history.forward()`)
   await atStep('media'); await wait(600)
-  expect('saving beside the files is asked before the first library', await page.eval(`[...document.querySelectorAll('main [role=checkbox]')].some((b) => b.textContent.includes('Save posters and details beside your files'))`))
-  await ok('media', says('Save posters and details beside your files'))
-  expect('unticked, it is saved at once', (await call('GET', '/settings')).saveMetadata === '0')
+  await call('PUT', '/settings', { saveMetadata: '0' })
   await ok('media', says('Movies'))
   await wait(300)
   await arrowTo('media', named('Folder path'))
@@ -161,43 +173,27 @@ try {
   await ok('media', named('Continue'))
   await atStep('games'); await wait(400)
   expect('the games line is word for word', await page.eval(`document.querySelector('.lead').textContent`) === 'Point it at your games folder and leave it. Anything it can’t prove is listed for you to look at.')
-  await ok('games', named('Continue'))
-  expect('no discs step without a disc module, and the looks come after the modules', await page.eval(`location.pathname`) === '/setup/look' || await atStep('look'))
+  await downTo('games', 'Continue')
+  expect('the look comes after the media', await atStep('look'))
   await wait(800)
-  await arrowTo('look', named('Continue'))
-  await press('Enter'); await wait(250)
-  await atStep('theme'); await wait(800)
-  await arrowTo('theme', says('Paper'))
+  await ok('look', named('Customize'))
+  await page.until(`!!document.querySelector('.ui-dialog')`, 5000, 'the Customize dialog')
+  await ok('look customize', says('Colours'))
+  await wait(800)
+  await arrowTo('look customize', says('Paper'))
   expect('passing through a choice doesn\'t choose it', await page.eval(`document.activeElement.getAttribute('aria-checked')`) === 'false')
   await press('Enter'); await wait(250)
   await shot('theme')
-  await ok('theme', named('Use this'))
-  expect('no WittyTV page without WittyTuner', await atStep('people'))
-  await ok('people', named('Continue'))
-  await atStep('remote'); await wait(800)
-  await ok('remote', named('Continue'))
-  await atStep('details'); await wait(400)
-  await ok('details', named('Continue'))
-  await atStep('logos'); await wait(400)
-  expect('logos are asked about with their rights notice', await page.eval(`!!document.querySelector('[data-legal=logos]')`) && (await call('GET', '/logos/status')).consent === '')
-  await ok('logos', says('No thanks, use plain names'))
-  await atStep('music'); await wait(400)
-  expect('logos were declined', (await call('GET', '/logos/status')).consent === 'no')
-  await ok('music', says('Find lyrics online'))
-  await ok('music', named('Continue'))
-  await atStep('karaoke'); await wait(400)
-  await ok('karaoke', named('Continue'))
-  await atStep('listings'); await wait(400)
-  expect('streaming lists are off', !(await call('GET', '/listings/status')).enabled)
-  await ok('listings', says('Leave it off and continue'))
+  await ok('look customize', named('Done'))
+  await ok('look', named('Continue'))
   await atStep('done'); await wait(1000)
   await map('done')
   await shot('done')
   const said = await page.eval(`document.querySelector('main').textContent`)
-  for (const w of ['Library transcoding', 'Modules: ', 'Module updates: installed by themselves', 'Logos: plain names', 'Lyrics: looked up online', 'Streaming lists: off', 'Use this screen as a TV']) expect(`the last page says "${w}"`, said.includes(w))
-  expect('the last page has no second port editor', !said.includes('Change the port'))
+  for (const w of ['Libraries: Movies', 'Modules: ', 'Connect a device', 'Add a profile', 'Use this screen as a TV']) expect(`the last page says "${w}"`, said.includes(w))
+  for (const w of ['Library transcoding', 'Change the port', 'peer-to-peer']) expect(`the last page doesn't say "${w}"`, !said.includes(w))
   const set2 = await call('GET', '/settings')
-  expect('the answers were saved', set2.theme === 'paper' && set2.lyricsOnline === '1' && set2.musicInfoOnline === '0', [set2.theme, set2.lyricsOnline, set2.musicInfoOnline])
+  expect('the answers were saved', set2.theme === 'paper' && set2.saveMetadata === '0', [set2.theme, set2.saveMetadata])
   await arrowTo('done', says('Start watching'))
   await press('Enter')
   await page.until(`!location.pathname.startsWith('/setup')`, 15000, 'leaving setup')

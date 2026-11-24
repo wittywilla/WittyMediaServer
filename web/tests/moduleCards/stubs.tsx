@@ -43,5 +43,6 @@ export async function bundledModule(id: string) {
 export const hostFor = () => ({})
 // ../src/api
 export const api = { get: async () => ({ bundles: [] }), post: async () => ({}) }
+export const getToken = () => 'test-token'
 // ../src/components/ModuleMissing
 export const ModuleMissing = () => <p>missing</p>

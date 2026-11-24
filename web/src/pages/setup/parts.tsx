@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { Fragment, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { applyPageTitle } from '../../theme'
 import { t, tx } from '../../i18n'
-import { IconCheck } from '../../icons'
-import { Button } from '../../ui'
+import { IconCheck, IconDown, IconTune } from '../../icons'
+import { Button, Dialog } from '../../ui'
 import { ranked, type Dir } from '../../ui/spatial'
 import type { Facts, StepInfo } from './plan'
 
@@ -23,6 +24,8 @@ export type StepProps = {
 }
 
 export function StepHead({ title, lead }: { title: string; lead?: ReactNode }) {
+  // The browser's tab says what the page says, as it changes (installing, then ready), not a title from before (#550).
+  useEffect(() => { applyPageTitle(title) }, [title])
   return (
     <>
       <h1>{title}</h1>
@@ -45,6 +48,44 @@ export function StepActions({ back, note, children }: { back?: () => void; note?
       {note && <span className="muted oobe-grow">{note}</span>}
       <span className="su-actions-go">{children}</span>
     </div>
+  )
+}
+
+// A page of advanced setup: a short title, one sentence, what it asks, and Continue. What it asks saves as it's changed.
+export function PanelStep({ title, lead, back, next, busy, children, go, wide }: { title: string; lead: string; back?: () => void; next: () => void; busy?: boolean; children: ReactNode; go?: string; wide?: boolean }) {
+  return (
+    <section className={wide ? undefined : 'su-narrow'}>
+      <StepHead title={title} lead={lead} />
+      {children}
+      <StepActions back={back}><Button variant="primary" size="big" busy={busy} onClick={next}>{go || t('Continue')}</Button></StepActions>
+    </section>
+  )
+}
+
+// The optional choices of a step, kept out of the way: a Customize button beside the step's own, which opens them in a
+// dialog. Everything in it already has the usual answer, so nobody has to open it to finish setup.
+export function Customize({ title, children, label }: { title: string; children: ReactNode; label?: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button variant="ghost" className="su-customize-btn" onClick={() => setOpen(true)} aria-haspopup="dialog"><IconTune size={18} /> {label || t('Customize')}</Button>
+      {open && (
+        <Dialog title={title} size="wide" className="su-customize" onClose={() => setOpen(false)}
+          actions={<Button variant="primary" onClick={() => setOpen(false)}>{t('Done')}</Button>}>
+          <div className="su-customize-body">{children}</div>
+        </Dialog>
+      )}
+    </>
+  )
+}
+
+// One part of a Customize dialog, folded until it's opened, with what it is in a few words.
+export function Option({ title, text, children, open }: { title: string; text?: string; children: ReactNode; open?: boolean }) {
+  return (
+    <details className="su-option" open={open}>
+      <summary><span className="su-option-words"><b>{title}</b>{text && <small>{text}</small>}</span><IconDown size={20} /></summary>
+      <div className="su-option-body">{children}</div>
+    </details>
   )
 }
 
@@ -92,11 +133,11 @@ export function ChoiceCards<T extends string>({ label, value, onChange, cards, s
 // A yes or no, as a whole row that can be pressed. A checkbox when it's saved with the step, a
 // switch when it takes effect at once, as docs/DESIGN.md asks. Nothing else that can be pressed
 // goes inside: a link belongs beside it.
-export function TickRow({ checked, onChange, title, text, icon, kind = 'checkbox', disabled, note }: {
-  checked: boolean; onChange?: (v: boolean) => void; title: ReactNode; text?: ReactNode; icon?: ReactNode; kind?: 'checkbox' | 'switch'; disabled?: boolean; note?: ReactNode
+export function TickRow({ checked, onChange, title, text, icon, kind = 'checkbox', disabled, note, plain }: {
+  plain?: boolean; checked: boolean; onChange?: (v: boolean) => void; title: ReactNode; text?: ReactNode; icon?: ReactNode; kind?: 'checkbox' | 'switch'; disabled?: boolean; note?: ReactNode
 }) {
   return (
-    <button type="button" role={kind} aria-checked={checked} aria-label={typeof title === 'string' ? title : undefined} aria-disabled={disabled || undefined} className={'su-tick' + (checked ? ' on' : '') + (disabled ? ' off' : '')}
+    <button type="button" role={kind} aria-checked={checked} aria-label={typeof title === 'string' ? title : undefined} aria-disabled={disabled || undefined} className={'su-tick' + (checked ? ' on' : '') + (disabled ? ' off' : '') + (plain ? ' plain' : '')}
       onClick={disabled ? undefined : () => onChange?.(!checked)}>
       {kind === 'checkbox'
         ? <span className="su-tick-box" aria-hidden="true">{checked && <IconCheck size={16} />}</span>

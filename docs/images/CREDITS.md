@@ -88,7 +88,7 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `settings-library-transcoding.webp` | Settings, Library transcoding. |
 | `settings-logs.webp` | Settings, WittyLog. |
 | `settings-metadata.webp` | Settings, Metadata agents. |
-| `settings-modules.webp` | Settings, Module store. |
+| `settings-modules.webp` | Settings, Modules. |
 | `settings-playback.webp` | Settings, Playback. |
 | `settings-remote.webp` | Settings, Remote Access. The address is an example. |
 | `settings-repair.webp` | Settings, Repair. |
@@ -98,22 +98,25 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `settings-transcoding.webp` | Settings, Live transcoding. |
 | `settings-users.webp` | Settings, Profiles, with made-up names. |
 | `settings-wittyrigs.webp` | Settings, WittyRigs. |
-| `setup-01-welcome.webp` | The first page. Your server can have a name of its own here, and a logo. |
-| `setup-02-account.webp` | This account looks after the server. Everyone else gets a profile later. |
+| `setup-01-welcome.webp` | The first page: the language, then quick or advanced setup. |
+| `setup-02-welcome-customize.webp` | Welcome's Customize: disc menus and sound tracks, and the time zone. |
+| `setup-03-account.webp` | The account and the server's name, on one page. |
 | `setup-03-data-folder.webp` | Documents is chosen to begin with. The line under the choices says how much room there is. |
-| `setup-04-modules-chosen.webp` | Tick what you want. The folder browser is ticked for you, as it's how you choose a folder from a TV or a phone. |
-| `setup-05-modules-installing.webp` | Each module downloads, and its signature is checked before it goes in. |
-| `setup-06-modules-ready.webp` | If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Module store. |
-| `setup-07-media.webp` | Choose a kind. A kind you didn't add the module for isn't offered. |
-| `setup-08-media-movies.webp` | Three ways to give the folder. |
+| `setup-04-modules.webp` | Tick what you want. The folder browser is ticked for you. |
+| `setup-05-modules-installing.webp` | Each module downloads, and is checked before it's used. |
+| `setup-06-media.webp` | Choose a kind, then its folder. A kind that needs a module offers it right there. |
+| `setup-07-media-customize.webp` | Your media's Customize: details beside your files, and one or separate libraries. |
+| `setup-08-media-movies.webp` | The folder for a Movies library. Openly licensed demo media. |
 | `setup-09-media-added.webp` | Add another kind, or press Continue. |
 | `setup-10-games.webp` | Point it at your games folder and leave it. |
-| `setup-11-discs.webp` | The menu is still one button away if you choose to play straight away. |
-| `setup-12-details.webp` | TVmaze, Wikidata, Wikipedia, AniList and libretro work with no key. |
-| `setup-14-logos.webp` | Off unless you say yes. Nothing else changes if you say no. |
-| `setup-15-music.webp` | Both are free, with no account and no key, and both stay off unless you turn them on. |
-| `setup-16-listings.webp` | Off unless you choose it. |
-| `setup-18-done.webp` | The last page says what you chose, as the server has it now. |
+| `setup-11-look.webp` | The layouts, tried as you choose. |
+| `setup-12-look-customize.webp` | Look's Customize: one theme for all looks, or each look's own. |
+| `setup-13-done.webp` | The last page: connect a device, add the family, use this screen as a TV. |
+| `setup-14-done-customize.webp` | Finish's Customize: everything optional, each already answered. |
+| `setup-22-advanced-name.webp` | Advanced setup: the server's name, colours and mark. |
+| `setup-23-advanced-people.webp` | Advanced setup: profiles, and what people can change. |
+| `setup-25-advanced-details.webp` | Advanced setup: posters and details. |
+| `setup-32-advanced-remote.webp` | Advanced setup: connect a device, at home or away. |
 | `shorts.webp` | Clips cropped from open films, credited in [the list](CREDITS.md). |
 | `stats.webp` | WittyStats. |
 | `store-module.webp` | A module's page in the store. |

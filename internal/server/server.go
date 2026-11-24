@@ -729,6 +729,11 @@ func (s *Server) logRequest(r *http.Request, id string, sw *statusWriter, start 
 		if sw.code == 502 || sw.code == 503 || sw.code == 504 || sw.code == 501 {
 			lv = slog.LevelWarn // waiting for something else, or a feature this system lacks
 		}
+		// Before first-time setup is finished, every app route answers 503 setup_required (setupGate): that's the
+		// expected answer, not a fault to look into (#494).
+		if sw.code == 503 && !s.setupComplete(r.Context()) {
+			lv = slog.LevelInfo
+		}
 	case sw.code >= 400:
 		lv = slog.LevelInfo
 	default:

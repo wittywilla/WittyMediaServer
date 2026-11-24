@@ -8,7 +8,7 @@ import type { ListingStatus } from '../../metadata'
 import { Button, Field, Input, LoadError, Notice, Select, Spinner } from '../../ui'
 import { LISTING_STATEMENTS, REGIONS } from '../settings/MetadataOptional'
 import { PROVIDERS } from './Details'
-import { LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
+import { TickRow } from './parts'
 import { language, t, tx } from '../../i18n'
 
 // The optional streaming lists. They stay off unless someone chooses them, reads every statement
@@ -19,7 +19,7 @@ const guessRegion = () => {
   return r && REGIONS.includes(r) ? r : 'US'
 }
 
-export function Listings({ info, next, back }: StepProps) {
+export function Listings() {
   const [s, setS] = useState<ListingStatus | null>(null)
   const [failed, setFailed] = useState(false)
   const [opened, setOpened] = useState(false)
@@ -54,12 +54,10 @@ export function Listings({ info, next, back }: StepProps) {
     setBusy(true); setErr('')
     try { setS(await api.put<ListingStatus>('/listings/settings', { enabled: false, region, accepted: [] })); setTicked(new Set()) } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
-  const head = <StepHead title={t('Streaming service lists')} lead={t('Used to finding things by which streaming service has them? This can show which of your own titles a service lists right now. Most people skip this, and it stays off unless you choose it.')} />
-  if (failed) return <section>{head}<LoadError what={t('This question')} onRetry={load} /><StepActions back={back}><Button variant="primary" size="big" onClick={next}>{t('Skip for now')}</Button></StepActions></section>
-  if (!s) return <section>{head}<Spinner /></section>
+  if (failed) return <LoadError what={t('This question')} onRetry={load} />
+  if (!s) return <Spinner />
   return (
-    <section>
-      {head}
+    <div>
       <Notice title={t('This doesn’t stream anything from those services')}>
         {t('It only sorts the files already on your server, using each service’s current list. You don’t need an account with any of them, and you won’t get their shows.')}
       </Notice>
@@ -68,7 +66,7 @@ export function Listings({ info, next, back }: StepProps) {
         <div className="su-consent su-gap" ref={panel}>
           {!s.hasKey && (
             <div className="su-keybox">
-              <h2 className="oobe-type-head">{t('First, a free key from TMDB')}</h2>
+              <h3 className="oobe-type-head">{t('First, a free key from TMDB')}</h3>
               <p className="muted oobe-hint">{t('The lists come through TMDB, which gives you a free key: a code that lets your server ask it for things.')}</p>
               <ol className="op-steps">{PROVIDERS[0].steps().map((x, i) => <li key={i}>{x}</li>)}</ol>
               <Field label={t('Your TMDB key')} error={keyErr}><Input value={key} spellCheck={false} autoComplete="off" onChange={(e) => setKey(e.target.value)} /></Field>
@@ -76,7 +74,7 @@ export function Listings({ info, next, back }: StepProps) {
             </div>
           )}
           {s.hasKey && <p className="oobe-added"><IconCheck size={16} /> {t('Your TMDB key is saved.')}</p>}
-          <h2 className="oobe-type-head su-gap">{t('Please read each of these, and tick it if you accept')}</h2>
+          <h3 className="oobe-type-head su-gap">{t('Please read each of these, and tick it if you accept')}</h3>
           <div className="su-ticks">
             {LISTING_STATEMENTS.map((a) => <TickRow key={a.id} checked={ticked.has(a.id)} title={tx(a.text)} onChange={(v) => setTicked((t) => { const n = new Set(t); if (v) n.add(a.id); else n.delete(a.id); return n })} />)}
           </div>
@@ -92,12 +90,11 @@ export function Listings({ info, next, back }: StepProps) {
         </div>
       )}
       <LegalNote kind="listings" newTab className="su-gap" />
-      <LaterNote info={info} />
-      <StepActions back={back}>
+      <div className="su-gap su-row">
         {s.enabled
-          ? <><Button busy={busy} onClick={turnOff}>{t('Turn it off and forget them')}</Button><Button variant="primary" size="big" onClick={next}>{t('Continue')}</Button></>
-          : <>{!opened && <Button onClick={() => setOpened(true)}>{t('Set this up…')}</Button>}<Button variant="primary" size="big" onClick={next}>{t('Leave it off and continue')}</Button></>}
-      </StepActions>
-    </section>
+          ? <Button busy={busy} onClick={turnOff}>{t('Turn it off and forget them')}</Button>
+          : !opened && <Button onClick={() => setOpened(true)}>{t('Set this up…')}</Button>}
+      </div>
+    </div>
   )
 }

@@ -1083,7 +1083,7 @@ are in `internal/brandname` (`testdata/cases.json`).
 
 ## First run
 
-First run is twelve steps in a web browser, and only there: `GET /setup/state` says where it is
+First run is six steps in a web browser, and only there: `GET /setup/state` says where it is
 (`complete`, `steps`, `step`, `done`, `url`). Until it is complete the server answers **every route an app
 uses** with **503** and
 
@@ -1928,7 +1928,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching, up to two rows its modules offer, and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
 | `GET /sdui/tv-summary/{id}` | user | What a television shows in place of an editor it doesn't offer ([TV mode](TV-MODE.md)): `{id, lines, addresses}`, a few lines of what is set now (only what the account may already see: administrators' screens say nothing to anyone else) and this server's addresses on the home network for the card's QR code, asked from there. {id} is a screen's `summary` in the catalogue's `tvLevels`. |
 | `GET /sdui/experiences` | user | Every experience as data (`{experiences, navStyles, themes, default}`): the catalogue a chooser draws, with each experience's shell per form factor, its `wire` (the layout in a few words per form factor, for the chooser's thumbnail: [SDUI](SDUI.md#experiences)), default theme, WittyTV look, effects, shape, type set, density, motion and home. Which a person may pick is `GET /sdui/experience`. |
-| `GET /setup/state` | none | First run: `{complete, steps, step, done, url}`. The steps are language, welcome, account, server, modules, libraries, modulesetup, looks, people, remote, extras, ready ([SETUP-FLOW.md](SETUP-FLOW.md)); the names 0.8.0 used (name, look, theme, details, livetv, games, discs) are still taken, as the step each became. Until `complete`, every route an app uses answers 503 `setup_required` (below). |
+| `GET /setup/state` | none | First run: `{complete, steps, step, done, url}`. The steps are welcome, account, modules, media, look, ready ([SETUP-FLOW.md](SETUP-FLOW.md)); the names 0.8.0 to 0.8.2 used (language, server, libraries, modulesetup, looks, people, remote, extras, and the pages in them) are still taken, as the step each became. Until `complete`, every route an app uses answers 503 `setup_required` (below). |
 | `PUT /setup/state` | none, until first run is over | `{step, done}`. Before the first account: the setup code (`X-WMS-Setup-Code` from another device). After: an administrator. 409 once first run is over. |
 | `POST /setup/complete` | admin | First run is over: apps may connect. |
 | `POST /setup/module-steps/skip` | admin | Puts off a module's setup step, `{module, step}`: the Dismiss of "Finish setting up" on Home (SDUI command `setup.skip`). With `done: true`, the step was gone through in first-run setup (the wizard sends it when someone moves on from a step a module draws), audited as done. 204. |

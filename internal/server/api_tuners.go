@@ -350,6 +350,9 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 		writeErr(w, 404, "channel not found")
 		return
 	}
+	if s.liveRefused(w, r, "tun", id, time.Now()) { // the programme's rating (parental_live.go)
+		return
+	}
 	c, err := s.TV.Channel(r.Context(), id)
 	if err != nil {
 		writeErr(w, 404, "channel not found")

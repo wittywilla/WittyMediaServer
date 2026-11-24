@@ -44,7 +44,7 @@ var filmBoards = []string{"KIJKWIJZER", "NICAM", "BBFC", "MPAA", "MPA", "CNC", "
 // AgeFor returns the minimum age for a content rating, or nil if unknown
 // (unrated). Country prefixes ("US:PG-13", "de/12") are accepted.
 func AgeFor(rating string) *int {
-	r := strings.ToUpper(strings.TrimSpace(rating))
+	country, r := countryPrefix(strings.ToUpper(strings.TrimSpace(rating)))
 	// A game's rating names its board, as boards reuse each other's letters: an ESRB M
 	// isn't an Australian M.
 	if sys, val, ok := strings.Cut(strings.ReplaceAll(r, ":", " "), " "); ok && IsRatingBoard(sys) {
@@ -64,7 +64,15 @@ func AgeFor(rating string) *int {
 	if r == "" {
 		return nil
 	}
-	age, ok := ratingAges[r]
+	// The country's own table first: the one written in front, or the one the server keeps
+	// (rating_countries.go).
+	if country == "" {
+		country = ratingCountry()
+	}
+	age, ok := countryAges[country][r]
+	if !ok {
+		age, ok = ratingAges[r]
+	}
 	if !ok {
 		// "Rated 12+", "16+": a plain number is an age.
 		if n, err := strconv.Atoi(strings.TrimSuffix(r, "+")); err == nil && n >= 0 && n <= 21 {

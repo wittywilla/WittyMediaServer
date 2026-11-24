@@ -675,6 +675,8 @@ func stripSecrets(ctx context.Context, d *sql.DB, secret []string, scrub map[str
 	for _, stmt := range []string{
 		`UPDATE users SET totp_secret = NULL, totp_on = 0, recovery_codes = NULL`,
 		`DELETE FROM share_links`,
+		// A webhook's address is often its password (the token is in the path), and the secret signs for this server.
+		`UPDATE notify_channels SET webhook_on = 0, webhook_url = '', webhook_secret = ''`,
 	} {
 		if _, err := d.ExecContext(ctx, stmt); err != nil {
 			return err

@@ -67,6 +67,7 @@ func aServer(t *testing.T) (Folders, string) {
 		t.Fatal(err)
 	}
 	mustExec(t, d.DB, `INSERT INTO users(id, name, password_hash, is_admin, created_at, totp_secret, totp_on, recovery_codes) VALUES (1, 'kim', ?, 1, 1, 'TOTPPLANTEDSECRET', 1, 'RECOVERYPLANTED')`, string(hash))
+	mustExec(t, d.DB, `INSERT INTO notify_channels(user_id, email_on, email_to, webhook_on, webhook_url, webhook_secret) VALUES (1, 1, 'kim@example.com', 1, 'https://hooks.example.com/HOOKPLANTED', 'HOOKSECRETPLANTED')`)
 	mustExec(t, d.DB, `INSERT INTO users(id, name, password_hash, is_admin, created_at) VALUES (2, 'sam', ?, 0, 1)`, string(hash))
 	mustExec(t, d.DB, `INSERT INTO sessions(token, user_id, created_at, expires_at, device) VALUES ('SESSIONPLANTED', 1, 1, 9999999999, 'phone')`)
 	mustExec(t, d.DB, `INSERT INTO libraries(id, name, type, created_at) VALUES (1, 'Films', 'movies', 1)`)
@@ -75,7 +76,7 @@ func aServer(t *testing.T) (Folders, string) {
 	mustExec(t, d.DB, `INSERT INTO items(id, library_id, kind, path, title, sort_title, added_at, updated_at, size_bytes, mtime) VALUES (2, 1, 'video', ?, 'Harbour Lights', 'harbour', 1, 1, 10, 1)`, filepath.Join(media, "b.mkv"))
 	mustExec(t, d.DB, `INSERT INTO progress(user_id, item_id, position_sec, duration_sec, watched, updated_at) VALUES (1, 1, 120, 600, 0, 5)`)
 	mustExec(t, d.DB, `INSERT INTO channels(id, number, name, enabled, definition, seed, rev, anchor_day, created_at, updated_at) VALUES (1, 7, 'Late Films', 1, '{}', 1, 1, 1, 1, 1)`)
-	for k, v := range map[string]string{"tmdbKey": "TMDBPLANTEDKEY", "brandName": "Kim's server", "serverKey": "IDENTITYPLANTED", "javaPath": "/tmp/evil-java", "lyricsMirror": "http://192.168.1.2/", "remoteAccess": `{"enabled":true}`} {
+	for k, v := range map[string]string{"tmdbKey": "TMDBPLANTEDKEY", "notifySmtpPassword": "SMTPPLANTED", "brandName": "Kim's server", "serverKey": "IDENTITYPLANTED", "javaPath": "/tmp/evil-java", "lyricsMirror": "http://192.168.1.2/", "remoteAccess": `{"enabled":true}`} {
 		if err := d.SetSetting(ctx, k, v); err != nil {
 			t.Fatal(err)
 		}
@@ -158,7 +159,7 @@ func TestPlainBackupHoldsNoSecretsAndNoCode(t *testing.T) {
 		if strings.Contains(name, "core.so") || strings.Contains(name, "save.srm") || strings.Contains(name, "helper") || strings.Contains(name, "wms.log") || strings.HasSuffix(name, "not-a-picture.txt") || strings.HasPrefix(name, "lyrics-corrections") {
 			t.Errorf("%s shouldn't be in it", name)
 		}
-		for _, planted := range []string{"TMDBPLANTEDKEY", "TOTPPLANTEDSECRET", "RECOVERYPLANTED", "SESSIONPLANTED", "IDENTITYPLANTED", "LOGPLANTED"} {
+		for _, planted := range []string{"TMDBPLANTEDKEY", "TOTPPLANTEDSECRET", "RECOVERYPLANTED", "SESSIONPLANTED", "IDENTITYPLANTED", "LOGPLANTED", "SMTPPLANTED", "HOOKPLANTED", "HOOKSECRETPLANTED"} {
 			if bytes.Contains(b, []byte(planted)) {
 				t.Errorf("%s holds %s, even in free pages", name, planted)
 			}

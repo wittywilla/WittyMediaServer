@@ -52,7 +52,7 @@ test('kids and guests get fewer rows, and nothing the server would refuse', () =
   const kid = menuGroups(menu, who({ admin: false, adult: false, twoStep: false, games: false, off: new Set(['sharing', 'activity']) }), web)
   assert.deepEqual(kid.map((g) => g.id), ['account', 'yours', 'modules', 'device', 'help'])
   assert.deepEqual(kid[0].rows.map((r) => r.id), ['names', 'devices'])
-  assert.deepEqual(kid[1].rows.map((r) => r.id), ['yourYear', 'collections', 'quality', 'remoteControl', 'watchParty'])
+  assert.deepEqual(kid[1].rows.map((r) => r.id), ['yourYear', 'collections', 'quality', 'notifications', 'remoteControl', 'watchParty'])
 })
 
 test('a TV signs in no TVs, and a condition nobody knows keeps a row out', () => {

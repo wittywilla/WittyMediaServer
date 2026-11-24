@@ -64,7 +64,7 @@ func (s *Server) wireTasks() {
 	}}
 	store.MarkInterrupted(context.Background())
 	s.taskStore = store
-	s.Tasks = tasks.New(store)
+	s.Tasks = tasks.New(taskEnds{SQLStore: store, s: s}) // the store, and a failed scan for the bell
 	if s.Scanner != nil {
 		s.Scanner.Tasks = s.Tasks
 	}

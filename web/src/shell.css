@@ -103,7 +103,7 @@
   .top-back { position: relative; display: grid; place-items: center; flex: none; width: 40px; height: 40px; margin-inline-end: auto; padding: 0; border: 0; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); color: var(--fg); transition: transform var(--dur-1); }
   .top-back::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; } /* a 44 target around the 40 circle */
   .top-back:active { transform: scale(.975); }
-  .topbar .act-btn { width: 40px; height: 40px; min-height: 40px; border-color: transparent; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); }
+  .topbar :is(.act-btn, .note-btn) { width: 40px; height: 40px; min-height: 40px; border-color: transparent; border-radius: 50%; background: rgb(var(--bg-rgb) / .7); }
   /* The bar has no surface of its own over a picture or at the top of a page; once the page
      is scrolled under it, it gains the page's colour at 85% with a blur, and a hairline.
      Phones only, and only while scrolled under: it's 52 high, and a phone can afford it. */

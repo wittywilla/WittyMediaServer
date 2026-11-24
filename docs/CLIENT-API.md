@@ -2334,6 +2334,27 @@ Watching together, in step: [SYNCPLAY.md](SYNCPLAY.md) has the rules every playe
 | `POST /system/tasks/{id}/cancel` | admin | Asks a task to stop |
 | `POST /system/tasks/{id}/retry` | admin | Starts a failed or cancelled task again |
 
+### Notifications
+
+The bell beside Activity. Each profile has its own list, kept on the server until it is cleared (the newest 200,
+for 90 days at most). A client asks `GET /me/notifications/count` while it is in front, no more than once a
+minute, and reads the list when the count or `latest` changes or the bell is opened. Links are paths inside the
+app (`/show/12`, `/tv/recordings`). Kinds: `episodes`, `recordings`, and for administrators `scans`, `modules`
+and `server`. See [NOTIFICATIONS.md](NOTIFICATIONS.md).
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /me/notifications` | user | The profile's notifications, newest first (`before`, `limit`), with `unread` and `latest` |
+| `GET /me/notifications/count` | user | How many are unread, and the newest one's id |
+| `POST /me/notifications/read` | user | Marks `ids` read, or all of them when none are given |
+| `DELETE /me/notifications` | user | Clears them all |
+| `DELETE /me/notifications/{id}` | user | Clears one |
+| `GET /me/notifications/choices` | user | Which kinds the profile gets |
+| `PUT /me/notifications/choices` | user | Turns kinds on or off |
+| `GET /notifications/channels` | admin | The mail server and this administrator's own email and webhook; never a password or secret |
+| `PUT /notifications/channels` | admin | Saves them. Off until turned on; they carry only this administrator's notifications |
+| `POST /notifications/channels/test` | admin | Sends a test through each channel that's filled in |
+
 ### Library transcoding
 
 See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).

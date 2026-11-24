@@ -735,6 +735,7 @@ func (m *Manager) startDue(ctx context.Context) {
 	for _, r := range due {
 		if r.Stop+m.padAfterOf(r) <= now {
 			m.finish(r.ID, "failed", "the server was not running when this was due", "")
+			m.recorded(*r, "failed", "the server was not running when this was due")
 			continue
 		}
 		// Whoever changes the status starts it, so a recording never runs twice.
@@ -755,6 +756,7 @@ func (m *Manager) startDue(ctx context.Context) {
 			} else {
 				task.Finish(nil)
 			}
+			m.recorded(*r, status, msg)
 		}, "cat", "tv", "session", recSession(r.ID))
 		if !started { // the server is stopping: it starts next time, if it's still on
 			_, _ = m.DB.Exec(`UPDATE recordings SET status = 'scheduled' WHERE id = ? AND status = 'recording'`, r.ID)
@@ -1098,4 +1100,13 @@ func boolInt(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+// recorded tells OnRecorded how a recording ended. Anything but done or failed (a recording
+// the server stopped part-way, to finish next start) says nothing yet.
+func (m *Manager) recorded(r Recording, status, msg string) {
+	if m.OnRecorded == nil || (status != "done" && status != "failed") {
+		return
+	}
+	m.OnRecorded(r, status, msg)
 }

@@ -24,6 +24,7 @@ export const settingsHelp: Record<string, string> = {
   security: 'accounts',
   games: 'games',
   activity: 'tasks',
+  notifications: 'notifications',
   appearance: 'themes',
   sharing: 'settings#sharing-and-photos',
   wittyrigs: 'game-rigs',

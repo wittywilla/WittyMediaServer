@@ -28,7 +28,7 @@ import { tiltBlocked } from '../ui/tilt'
 import { setTvMode, useTvMode } from '../tvmode/mode'
 import { useUserPref } from '../ui/userPrefs'
 import { jumpTo } from './settings/jump'
-import { LAYOUT_EVENT } from './ShellEditor'
+import { LAYOUT_EVENT } from '../shell/layoutEvent'
 import { LayoutThumb } from '../ui/LayoutThumb'
 import type { WireMap } from '../ui/layoutSpecs'
 import { Row, Section } from './settings/ui'
@@ -314,14 +314,10 @@ function ServerLookRows({ choice }: { choice: NonNullable<ReturnType<typeof useM
   // A required look is the only one shown, and nothing can be pressed.
   const options = lockedLook ? [{ value: choice.required!.value, label: cards.find((c) => c.id === choice.required!.value)?.name || choice.required!.value }] : choice.options
   if (page === 2) {
-    const shown = themes.find((t) => t.id === colour)
+    // Only the themes, as the layout step has only the layouts: each card is the chosen layout in that theme.
     return (
       <>
         <h3 className="look-step">{t('Choose colours')}</h3>
-        <figure className="look-colours-big">
-          <LayoutThumb wire={picked?.wire} formFactor={here} colours={shown?.preview} />
-          <figcaption><b>{shown?.name || colour}</b>{picked ? ' ' + t('with {name}', { name: picked.name }) : ''}</figcaption>
-        </figure>
         <div className="layout-opts look-opts" role="radiogroup" aria-label={t('Colours')}>
           {themes.map((th) => (
             <button key={th.id} type="button" role="radio" aria-checked={th.id === colour} disabled={lockedTheme} className={'layout-opt' + (th.id === colour ? ' on' : '')} onClick={() => { setColour(th.id); applyTheme(th.id) }}>

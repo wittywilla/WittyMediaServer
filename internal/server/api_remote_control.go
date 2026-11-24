@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"log/slog"
 	"net/http"
@@ -215,7 +216,7 @@ func (s *Server) remoteGate(w http.ResponseWriter, r *http.Request, needSession 
 	}
 	sess := sessionOf(r)
 	if needSession && sess == "" {
-		remoteError(w, 403, "no-session", "This needs a signed-in device, not a media address.")
+		remoteError(w, 403, "no-session", i18n.T("This needs a signed-in device, not a media address."))
 		return nil, "", false
 	}
 	return userFrom(r), sess, true
@@ -571,7 +572,7 @@ func (s *Server) checkPlay(ctx context.Context, caller *auth.User, d wittyremote
 	if d.UserID != caller.ID {
 		var err error
 		if owner, err = s.Auth.User(ctx, d.UserID); err != nil {
-			return 409, wittyremote.CodeOffline, "That device's account no longer exists."
+			return 409, wittyremote.CodeOffline, i18n.T("That device's account no longer exists.")
 		}
 	}
 	// Screen time: neither a caller whose time is up nor a device whose profile's time is
@@ -583,7 +584,7 @@ func (s *Server) checkPlay(ctx context.Context, caller *auth.User, d wittyremote
 		return 403, "screen-time", v.Message()
 	}
 	if owner != caller && s.timeIsUp(ctx, owner, accessFor(owner)) {
-		return 403, "screen-time-there", "Screen time is over for the profile that device is signed in as."
+		return 403, "screen-time-there", i18n.T("Screen time is over for the profile that device is signed in as.")
 	}
 	for _, id := range items {
 		it, ok := s.itemFor(ctx, caller, id)
@@ -593,11 +594,11 @@ func (s *Server) checkPlay(ctx context.Context, caller *auth.User, d wittyremote
 		}
 		if owner != caller {
 			if _, ok := s.itemFor(ctx, owner, id); !ok {
-				return 403, "not-allowed-there", "The account that device is signed in as isn't allowed to play that."
+				return 403, "not-allowed-there", i18n.T("The account that device is signed in as isn't allowed to play that.")
 			}
 		}
 		if !d.Caps.Plays(it.Kind) {
-			return 409, wittyremote.CodeUnsupported, "That device can't play that kind of thing."
+			return 409, wittyremote.CodeUnsupported, i18n.T("That device can't play that kind of thing.")
 		}
 	}
 	return 0, "", ""
@@ -664,7 +665,7 @@ func (s *Server) handleRemoteCommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !d.Online {
-		remoteError(w, 409, wittyremote.CodeOffline, "That device isn't connected.")
+		remoteError(w, 409, wittyremote.CodeOffline, i18n.T("That device isn't connected."))
 		return
 	}
 	var source *wittyremote.Device
@@ -680,7 +681,7 @@ func (s *Server) handleRemoteCommand(w http.ResponseWriter, r *http.Request) {
 		}
 		play, playing := castFrom(src, d, time.Now())
 		if !playing {
-			remoteError(w, 409, "nothing-playing", "That device isn't playing anything to hand over.")
+			remoteError(w, 409, "nothing-playing", i18n.T("That device isn't playing anything to hand over."))
 			return
 		}
 		cmd, source = play, &src

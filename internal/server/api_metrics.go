@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -124,18 +125,18 @@ func (s *Server) metricSections() []MetricSection {
 	return []MetricSection{
 		sec("server", "Server", true, "", false),
 		sec("cpu", "Processor", cpu, notOn("Processor use"), true),
-		sec("temperature", "Temperature", len(sysinfo.ReadTemperatures()) > 0, "This system doesn't report temperatures to the server.", true),
-		sec("memory", "Memory and swap", true, "", true),
-		sec("gpu", "Graphics", len(gpus) > 0, "No graphics card here reports its use. NVIDIA needs nvidia-smi, and AMD needs Linux.", true),
+		sec("temperature", "Temperature", len(sysinfo.ReadTemperatures()) > 0, i18n.T("This system doesn't report temperatures to the server."), true),
+		sec("memory", i18n.T("Memory and swap"), true, "", true),
+		sec("gpu", "Graphics", len(gpus) > 0, i18n.T("No graphics card here reports its use. NVIDIA needs nvidia-smi, and AMD needs Linux."), true),
 		sec("disks", "Disks", true, "", true),
 		sec("diskio", "Disk speed", len(sysinfo.ReadDiskIO()) > 0, notOn("Disk speed"), true),
 		sec("network", "Network", counted || runtime.GOOS == "linux" || runtime.GOOS == "windows", notOn("Network traffic"), true),
 		sec("process", "This server", true, "", true),
-		sec("modules", "Modules", s.Modules != nil, "This build can't update modules.", true),
+		sec("modules", "Modules", s.Modules != nil, i18n.T("This build can't update modules."), true),
 		sec("streams", "Streams", true, "", false),
 		sec("games", "Game sessions", true, "", false),
 		sec("libraries", "Libraries", true, "", false),
-		sec("logs", "Log", s.Logs != nil, "This server isn't keeping a log.", true),
+		sec("logs", "Log", s.Logs != nil, i18n.T("This server isn't keeping a log."), true),
 	}
 }
 
@@ -810,7 +811,7 @@ func (s *Server) reportCaches() []ReportCache {
 		return s.reports.caches
 	}
 	out := []ReportCache{}
-	for _, c := range []struct{ name, dir string }{{"Artwork", s.Cfg.ImagesDir}, {"Thumbnails and cache", s.Cfg.CacheDir}, {"Transcodes", s.Cfg.TranscodeDir}} {
+	for _, c := range []struct{ name, dir string }{{"Artwork", s.Cfg.ImagesDir}, {i18n.T("Thumbnails and cache"), s.Cfg.CacheDir}, {"Transcodes", s.Cfg.TranscodeDir}} {
 		if c.dir == "" {
 			continue
 		}

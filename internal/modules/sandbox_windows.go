@@ -4,6 +4,7 @@
 package modules
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"os/exec"
 	"syscall"
@@ -26,7 +27,7 @@ func ProtectServer() {}
 // confinement says what a helper gets here.
 func confinement(launcher string) SandboxInfo {
 	return SandboxInfo{Level: SandboxPartial, Title: "Modules keep their network on Windows",
-		Words: "A module's helper can't change this server's files or start other programs unless it needs to, but it keeps its network access, so it could send what it reads over the internet. A helper that needs to start programs or use a device runs without the low-integrity limit, inside a job that ends with this server. Windows can only take a network away from one program with an administrator's help."}
+		Words: i18n.T("A module's helper can't change this server's files or start other programs unless it needs to, but it keeps its network access, so it could send what it reads over the internet. A helper that needs to start programs or use a device runs without the low-integrity limit, inside a job that ends with this server. Windows can only take a network away from one program with an administrator's help.")}
 }
 
 func hideWindow(cmd *exec.Cmd) {

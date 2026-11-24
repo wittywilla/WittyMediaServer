@@ -25,7 +25,7 @@ You add a library under **Settings → Libraries → Add library**. A kind of li
 | [Games](#games) | Games | WittyPlay |
 | [Creator videos](#creator-videos-music-videos-and-concerts) | Creator videos, or Music videos & concerts | No |
 | [Shorts](#shorts) | Vertical videos | No |
-| [Live TV](#live-tv) | None: **Settings → Channels & tuners** | WittyTuner for tuners and IPTV. Channels from your library need nothing |
+| [Live TV](#live-tv) | None: **Settings → Live TV & tuners** | WittyTuner for tuners and IPTV. Channels from your library need nothing |
 
 ## How far this has been checked
 
@@ -157,7 +157,7 @@ See [Shorts](SHORTS.md).
 
 ## Live TV
 
-- **Where:** **Settings → Channels & tuners**, and **TV guide** in the menu. You don't add a library.
+- **Where:** **Settings → Library channels & WittyTV**, and **TV guide** in the menu. You don't add a library.
 - **Channels from your library:** no module, and no extra hardware. DVD and Blu-ray main features and scenes can be on a channel if you have the disc modules.
 - **Tuners and IPTV:** need **WittyTuner**. No channel lists come with the server.
 - **Recording:** tuner and IPTV channels only, on a schedule that belongs to each person.

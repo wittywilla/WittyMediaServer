@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"os"
@@ -272,7 +273,7 @@ func (s *Server) handleThemeImportMine(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if count >= maxProfileThemes && s.themeOwner(id) != u.ID {
-			writeErr(w, 409, "You have imported "+strconv.Itoa(maxProfileThemes)+" themes already. Remove one first.")
+			writeErr(w, 409, i18n.F("You have imported {maxProfileThemes} themes already. Remove one first.", "maxProfileThemes", strconv.Itoa(maxProfileThemes)))
 			return
 		}
 	}

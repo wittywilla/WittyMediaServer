@@ -74,6 +74,7 @@ These are never in a backup, whatever you tick:
 - share links
 - this server's identity
 - logins inside addresses, such as a TV source's
+- the notification mail server's password, and each webhook's address and secret (that webhook is turned off)
 
 Account passwords are in it as hashes. A hash can't be turned back into a password, but it can be guessed at, and titles and file names can be read. Keep a plain archive private.
 

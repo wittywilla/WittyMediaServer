@@ -9,13 +9,13 @@ import { Button } from '../../ui'
 import { AddProfile } from '../Profiles'
 import { getLooks, type LooksAnswer } from '../settings/pages/api'
 import type { ThemeMeta } from '../../theme'
-import { LaterNote, StepActions, StepHead, TickRow, type StepProps } from './parts'
+import { StepActions, StepHead, TickRow, type StepProps } from './parts'
 import { t } from '../../i18n'
 
-// Step: People. Profiles (a kids profile has limits of its own), then the rules: a look or theme to require of everyone,
-// of kids or of one person, which then shows locked for them (docs/SDUI.md, "Experiences"), and whether people may add
-// themes of their own. It comes after the looks, so what it refers to has just been chosen.
-export function People({ info, next, back }: StepProps) {
+// Advanced setup: People. Profiles (a kids profile has limits of its own), then what each may change: a look or theme to
+// require of everyone, of kids or of one person, which then shows locked for them (docs/SDUI.md, "Experiences"), and
+// whether people may add themes of their own.
+export function People({ next, back }: StepProps) {
   const [add, setAdd] = useState<'' | 'adult' | 'kids'>('')
   const [looks, setLooks] = useState<LooksAnswer | null>(null)
   const [themes, setThemes] = useState<ThemeMeta[]>([])
@@ -64,8 +64,8 @@ export function People({ info, next, back }: StepProps) {
     </div>
   )
   return (
-    <section>
-      <StepHead title={t('Who else watches?')} lead={t('Everyone at home can have a profile of their own, with their own place in what they’re watching. A kids profile only sees what you allow.')} />
+    <section className="su-narrow">
+      <StepHead title={t('Who else watches?')} lead={t('Each person gets their own profile and place in what they’re watching.')} />
       {people.length > 0 && <><h2 className="oobe-sub">{t('Profiles')}</h2><ul className="tvs-list" aria-label={t('Profiles')}>{people.map((u) => <li key={u.id} className="tvs-item"><b>{profileName(u)}</b> <span className="muted">{u.isAdmin ? t('Administrator') : u.kind === 'kids' ? t('Kids') : u.kind === 'guest' ? t('Guest') : t('Adult')}</span></li>)}</ul></>}
       <div className="su-gap">
         <Button onClick={() => setAdd('adult')}>{t('Add a profile')}</Button>{' '}
@@ -73,15 +73,14 @@ export function People({ info, next, back }: StepProps) {
       </div>
       {add && <AddProfile admin initialKind={add} onClose={() => setAdd('')} onDone={() => { setAdd(''); void loadPeople() }} />}
       {looks && <>
-        <h2 className="oobe-sub">{t('Rules')}</h2>
+        <h2 className="oobe-sub">{t('What people can change')}</h2>
         <div className="su-gap">
           <TickRow kind="switch" checked={own} onChange={setOwn} title={t('Let people add their own themes')} text={t('Anyone can add a theme of their own from a ZIP file, for their profile only.')} />
         </div>
-        <p className="muted">{t('A required look or theme is locked for that profile, with your name beside it. A profile with nothing required chooses freely.')}</p>
+        <p className="muted">{t('Choose a look or theme here to lock it for those profiles.')}</p>
         {row('everyone', t('Everyone'))}{row('kids', t('Kids profiles'))}
         {people.filter((u) => !u.isAdmin).map((u) => row(String(u.id), profileName(u)))}
       </>}
-      <LaterNote info={info} />
       <StepActions back={back}><Button variant="primary" size="big" onClick={() => void save()}>{t('Continue')}</Button></StepActions>
     </section>
   )

@@ -2954,6 +2954,7 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 | [`matchCandidates`](#matchcandidates) | A title's possible matches | context | view | tile |  | custom |
 | [`formField`](#formfield) | A field for a Form | context | view | tile |  | custom |
 | [`search`](#search) | Search results | context | movie, show, album, book, game, channel, person | poster |  | search |
+| [`recentSearches`](#recentsearches) | Recent searches | personal | view | tile |  | search |
 
 #### continueWatching
 
@@ -3646,18 +3647,31 @@ Pictures are asked for at one of these widths, in pixels: 120, 160, 240, 320, 48
 
 #### search
 
-*Search results.* What a search finds in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.
+*Search results.* What a search finds: one group of the one search across every library (group, a letter or two wrong still matching), or the older ways, in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.
 
 | Property | Type | Default | What it is |
 |---|---|---|---|
 | `query` (required) | ref |  | Search. $query on the search page. |
 | `library` | library |  | Library. One library; leave empty for every library the profile can open. $library on a library page, $each in a row repeated over libraries. |
 | `in` | enum: library, channels, people | `library` | Look in |
+| `group` | string, at most 20 |  | Group. One group of the one search: films, shows, episodes, artists, albums, songs, audiobooks, podcasts, books, comics, games, karaoke, videos, photos, radio, channels or people. $each in a section repeated over searchGroups. |
 | `filterable` | bool | `false` | Follows the page's filters. The page's FilterBar (year, score) narrows what a library search finds. |
 | `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
 
 ```json
-{"type":"search","query":"$query","library":"$each"}
+{"type":"search","query":"$query","group":"$each"}
+```
+
+#### recentSearches
+
+*Recent searches.* The profile's last ten searches, newest first, each opening its search again. A search that carries on from the newest one takes its place.
+
+| Property | Type | Default | What it is |
+|---|---|---|---|
+| `limit` | int 0 to 500 |  | Most items. How many items it gives in all. 0 has no limit of its own; the device still pages it. |
+
+```json
+{"type":"recentSearches"}
 ```
 
 Every source also takes `map`: `{"subtitle": "studio"}` puts another field of the item into a card's `title`, `subtitle` or `synopsis`. The fields are `title`, `subtitle`, `overview`, `tagline`, `year`, `studio`, `contentRating`, `artist`, `showTitle`, `count`, `number`, `runtime`, `genres`.
@@ -3679,7 +3693,7 @@ Every source also takes `map`: `{"subtitle": "studio"}` puts another field of th
 | `hasLibrary` | enum: movies, discs, shows, anime, videos, shorts, channels, musicvideos, commercials, music, audiobooks, podcasts, radio, books, photos, games | Has a library of kind. The profile can open at least one such library. |
 | `libraryKind` | enum: movies, discs, shows, anime, videos, shorts, channels, musicvideos, commercials, music, audiobooks, podcasts, radio, books, photos, games | This library is of kind. On a library page. |
 | `capability` | string, at most 64 | Device capability. Something the client said it has: hdr, touch, pointer, keyboard. |
-| `flag` | enum: setupIncomplete, scanning, librariesEmpty, hasQuery, screenTimeUp | The server says |
+| `flag` | enum: setupIncomplete, scanning, librariesEmpty, hasQuery, hasRecentSearches, screenTimeUp | The server says |
 | `minWidth` | int 0 to 10000 | Window at least. Points wide. |
 | `maxWidth` | int 0 to 10000 | Window at most. Points wide. |
 | `timeFrom` | string, at most 5 | From time of day. HH:MM on the server's clock. |
@@ -3822,6 +3836,7 @@ A menu entry (`type: native`) may open the screens marked *menu*; the others nee
 | `collection.create` | Makes a list of the profile's own, named params.name. | `POST /api/collections` with `{"name":"{name}","kind":"manual"}`; `name` (string, required) |
 | `session.end` | Signs out the device params.session. | `DELETE /api/sessions/{session}`; `session` (string, required) |
 | `sessions.endOthers` | Signs out every device of the profile but this one. | `DELETE /api/sessions` |
+| `search.forgetRecent` | Forgets the profile's recent searches. | `DELETE /api/v1/search/recent` |
 | `history.clear` | Forgets what the profile watched and listened to. It cannot be undone. | `DELETE /api/me/history` |
 | `rewind.open` | Client-handled, in the game player: opens the player's rewind panel. No request. |  |
 | `controller.remap` | Client-handled, in the game player: opens the player's own controller-mapping panel. No request. |  |
@@ -3927,7 +3942,7 @@ The menu's style on each form factor, the theme and WittyTV look each wears by d
 | `detail-artist` | detail | artist | `header` (DetailHeader), `albums` (Shelf of albums), `tracks` (TrackList of tracks) |
 | `detail-collection` | detail | collection | `header` (DetailHeader), `all` (Grid of collection) |
 | `detail-person` | detail | person | `header` (DetailHeader), `titles` (Shelf of filmography, per personPart) |
-| `search` | search | every search page | `q` (SearchBox), `idle` (Text), `narrow` (FilterBar), `scope` (Tabs), `all` (Tab), `found` (Shelf of search, per librarie), `people` (Shelf of search), `channels` (Shelf of search), `movies` (Tab), `found-movies` (Shelf of search, per librarie), `shows` (Tab), `found-shows` (Shelf of search, per librarie), `music` (Tab), `found-music` (Shelf of search, per librarie), `people-tab` (Tab), `people-only` (Shelf of search), `tv` (Tab), `channels-only` (Shelf of search) |
+| `search` | search | every search page | `q` (SearchBox), `recent` (List of recentSearches), `forget` (Button), `idle` (Text), `narrow` (FilterBar), `scope` (Tabs), `all` (Tab), `found` (Shelf of search, per searchGroup), `movies` (Tab), `found-movies` (Shelf of search, per searchGroup), `shows` (Tab), `found-shows` (Shelf of search, per searchGroup), `music` (Tab), `found-music` (Shelf of search, per searchGroup), `books` (Tab), `found-books` (Shelf of search, per searchGroup), `games` (Tab), `found-games` (Shelf of search, per searchGroup), `photos` (Tab), `found-photos` (Shelf of search, per searchGroup), `people-tab` (Tab), `found-people` (Shelf of search, per searchGroup), `tv` (Tab), `found-channels` (Shelf of search, per searchGroup) |
 | `livetv` | livetv | every livetv page | `guide` (NativeView), `favourites` (Shelf of liveNow), `recordings` (Shelf of recordings), `channels` (Grid of liveNow) |
 | `music` | music | every music page | `listening` (Shelf of continueWatching), `played` (Shelf of albums, per librarie), `added` (Shelf of albums, per librarie), `artists` (Shelf of artists, per librarie) |
 | `photos` | photos | every photos page | `recent` (Shelf of recentlyAdded, per librarie) |

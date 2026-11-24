@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -204,10 +205,10 @@ var redeemFailures = map[string]struct {
 	status int
 	msg    string
 }{
-	redeemWrong:   {400, "That code isn't right. Check the number on your phone or computer and try again."},
-	redeemExpired: {410, "That code has expired. Codes last five minutes: get a new one on your phone or computer."},
-	redeemUsed:    {410, "That code has already been used. Get a new one on your phone or computer."},
-	redeemTooMany: {429, "Too many wrong codes. Wait a few minutes and try again."},
+	redeemWrong:   {400, i18n.T("That code isn't right. Check the number on your phone or computer and try again.")},
+	redeemExpired: {410, i18n.T("That code has expired. Codes last five minutes: get a new one on your phone or computer.")},
+	redeemUsed:    {410, i18n.T("That code has already been used. Get a new one on your phone or computer.")},
+	redeemTooMany: {429, i18n.T("Too many wrong codes. Wait a few minutes and try again.")},
 }
 
 func redeemFailed(w http.ResponseWriter, reason string, wait time.Duration) {
@@ -326,6 +327,7 @@ func (s *Server) handlePairRedeem(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Log.InfoContext(r.Context(), "device signed in with a code", "cat", "auth", "device", device, "user", u.Name, "from", ipOf(r))
 	s.notePlainSession(r, tok)
+	s.noteP2PSession(r, tok) // a device that joined by invite or code signs in here
 	writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 }
 
@@ -674,6 +676,7 @@ func (s *Server) writePoll(w http.ResponseWriter, r *http.Request, state int, p 
 		}
 		s.Log.InfoContext(r.Context(), "device signed in by pairing", "cat", "auth", "session", p.id, "device", p.device, "user", u.Name)
 		s.notePlainSession(r, tok)
+		s.cookieForPage(w, r, tok) // a browser on this server's own page: its pictures then need no token
 		writeJSON(w, 200, map[string]any{"status": "approved", "token": tok, "user": u})
 	default:
 		writeJSON(w, 200, map[string]any{"status": "pending", "intervalSec": int(pairInterval.Seconds())})

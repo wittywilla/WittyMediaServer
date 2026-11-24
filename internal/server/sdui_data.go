@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"net/url"
 	"slices"
@@ -48,6 +49,10 @@ type sduiResolver struct {
 	noPlay bool
 	// What the device said it is, for the modules' sources.
 	formFactor, platform, locale string
+	// The page's search, worked out once (sdui_search.go).
+	found       *searchFound
+	searchCards map[string][]sdui.Item
+	noted       bool // kept among the profile's recent searches
 }
 
 func (s *Server) newSDUIResolver(r *http.Request, vars map[string]string) *sduiResolver {
@@ -251,11 +256,7 @@ func isArtistPage(v map[string]string) bool {
 // place in the library's list, which names it among that library's artists.
 func (rv *sduiResolver) artist(lib int64, i int, a library.Artist) sdui.Item {
 	it := sdui.Item{ID: "artist-" + strconv.Itoa(i), Kind: "artist", Title: a.Name, Artist: a.Name, Count: a.Albums, Route: "/artist/" + itoa(lib) + "?name=" + url.QueryEscape(a.Name), Images: map[string]string{}}
-	noun := "albums"
-	if a.Albums == 1 {
-		noun = "album"
-	}
-	it.Subtitle = strconv.Itoa(a.Albums) + " " + noun
+	it.Subtitle = i18n.N("{count} album", "{count} albums", a.Albums)
 	if a.CoverItem != 0 {
 		it.Images["square"] = "/api/items/" + itoa(a.CoverItem) + "/poster"
 	}
@@ -449,6 +450,8 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		lib = l
 	}
 	switch src.Type() {
+	case "recentSearches":
+		return page(rv.recentSearchItems(), req), nil
 	case "continueWatching":
 		cont, err := s.Store.ContinueWatching(rv.ctx, rv.u.ID, 60)
 		if err != nil {
@@ -793,6 +796,19 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		if len([]rune(term)) < 2 {
 			return sdui.SourceResult{}, nil
 		}
+		// A group: the one search's index (sdui_search.go), typos and all.
+		group := src.Str("group")
+		if group == "" && lib == nil && (src.Str("in") == "channels" || src.Str("in") == "people") {
+			group = src.Str("in")
+		}
+		if group != "" {
+			if res, ok := rv.searchGroup(searchText(term, req.Filter["year"]), group, req); ok {
+				return res, nil
+			}
+			if src.Str("group") != "" {
+				return sdui.SourceResult{}, nil // the index is still being built
+			}
+		}
 		if src.Str("in") == "channels" {
 			return page(rv.channels(false, term, req.Offset+req.Limit+1, false), req), nil
 		}
@@ -849,7 +865,8 @@ func (rv *sduiResolver) channels(favouritesOnly bool, search string, limit int, 
 					} else if p.ItemID > 0 {
 						it.Images["backdrop"] = "/api/items/" + itoa(p.ItemID) + "/backdrop"
 					}
-				} else if p.Start > rv.now.Unix() && it.Next == nil {
+				} else if p.Start > rv.now.Unix() && it.Next == nil && p.Kind != "slate" && p.Kind != "none" {
+					// A break or nothing at all isn't what a viewer means by "next" (#634): the next programme is.
 					it.Next = pg
 					break
 				}
@@ -984,6 +1001,8 @@ func (rv *sduiResolver) Each(over string, kinds []string, limit int) ([]sdui.Eac
 				out = append(out, sdui.Each{Key: itoa(c.ID), Label: c.Name})
 			}
 		}
+	case "searchGroups":
+		return rv.searchGroups(kinds), nil
 	case "personParts":
 		list, err := rv.personParts()
 		if err != nil {

@@ -32,8 +32,9 @@ const (
 	// A picture bigger than this isn't a cover, and decoding it could take all the memory
 	// a small machine has.
 	maxThumbPixels = 16 << 20
-	// Posters are asked for up to 640 wide, backdrops up to a screen's width.
-	thumbMaxWidth = 1920
+	// Posters are asked for up to 640 wide, backdrops up to a screen's width: a wider ask (a
+	// 4K screen's 3840) gets this one, still a good deal smaller than a 3000-pixel original.
+	thumbMaxWidth = 2560
 )
 
 var (
@@ -53,7 +54,7 @@ func gameThumbSlot() chan struct{} {
 // A picture beside the media goes to SmallCopyOf, opened inside its library.
 func (s *Scanner) PosterThumb(ctx context.Context, src string, width int) string {
 	name, ok := strings.CutPrefix(src, "cache:")
-	if !ok || name == "" || name != filepath.Base(name) || width <= 0 || width > thumbMaxWidth {
+	if !ok || name == "" || name != filepath.Base(name) || width <= 0 {
 		return src
 	}
 	f, err := os.Open(filepath.Join(s.ImagesDir, name))
@@ -69,10 +70,12 @@ func (s *Scanner) PosterThumb(ctx context.Context, src string, width int) string
 // in one open, where checking it by name again looks at every folder on the way (37 looks
 // for each poster on the WSL test machine's media drive). src names it, for the copy's name.
 func (s *Scanner) SmallCopyOf(ctx context.Context, f *os.File, src string, width int) string {
-	if width <= 0 || width > thumbMaxWidth || src == "" {
+	if width <= 0 || src == "" {
 		return src
 	}
-	width = SnapThumbWidth(width)
+	// Wider than any copy made is the widest copy, not the original: Home's backdrop asked at
+	// 2560 for a wide screen was sent whole, 3000 pixels and most of a megabyte.
+	width = SnapThumbWidth(min(width, thumbMaxWidth))
 	st, err := f.Stat()
 	if err != nil || st.IsDir() {
 		return src

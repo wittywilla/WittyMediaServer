@@ -42,6 +42,7 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/tv/{key}/live/seg/{name}", a(s.handleLiveSegment))
 	m.Handle("GET /api/tv/{key}/live/work", a(s.handleLiveWork))
 	m.Handle("POST /api/tv/{key}/leave", a(s.handleLiveLeave))
+	s.timeshiftRoutes(m)
 	m.Handle("GET /api/tv/settings", ad(s.handleTVSettings))
 	m.Handle("PUT /api/tv/settings", ad(s.handlePutTVSettings))
 	m.Handle("PUT /api/libraries/{id}/main", ad(s.handleLibraryShowMain))
@@ -63,6 +64,7 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/channels/{id}/logo", a(s.handleChannelLogo))
 	m.Handle("PUT /api/channels/{id}/logo", ad(s.handleSetChannelLogo))
 	m.Handle("DELETE /api/channels/{id}/logo", ad(s.handleDeleteChannelLogo))
+	s.cloneRoutes(m)
 	s.tunerRoutes(m)
 	s.tvExtraRoutes(m)
 	if s.DB != nil && s.Cfg != nil {
@@ -157,7 +159,7 @@ func channelError(w http.ResponseWriter, err error) {
 
 func (s *Server) handleCreateChannel(w http.ResponseWriter, r *http.Request) {
 	var c channels.Channel
-	if err := readJSON(r, &c); err != nil {
+	if err := readJSONUpTo(r, &c, maxChannelBody); err != nil {
 		writeErr(w, 400, "that channel could not be read")
 		return
 	}
@@ -216,7 +218,7 @@ func (s *Server) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The body replaces what it names; nothing else changes.
-	if err := readJSON(r, c); err != nil {
+	if err := readJSONUpTo(r, c, maxChannelBody); err != nil {
 		writeErr(w, 400, "that channel could not be read")
 		return
 	}
@@ -333,10 +335,11 @@ func (s *Server) handleChannelPreview(w http.ResponseWriter, r *http.Request) {
 		Definition channels.Definition `json:"definition"`
 		Day        int                 `json:"day"` // days from today
 	}
-	if err := readJSON(r, &b); err != nil {
+	if err := readJSONUpTo(r, &b, maxChannelBody); err != nil {
 		writeErr(w, 400, "that channel could not be read")
 		return
 	}
+	b.Definition.CompileClone(s.Channels.Location())
 	if err := b.Definition.Validate(); err != nil {
 		writeErr(w, 400, err.Error())
 		return
@@ -546,7 +549,7 @@ func (s *Server) handleDeleteChannelLogo(w http.ResponseWriter, r *http.Request)
 // tvSettings are stored in the settings table under these names.
 var tvSettings = map[string]string{
 	"tvLibraryBufferMin": "5",  // minutes kept for pausing a library channel
-	"tvTunerBufferMin":   "30", // and a tuner channel
+	"tvTunerBufferMin":   "10", // and a tuner channel: small by default, for low-end machines (#648)
 	"tvCopyVideo":        "1",  // pass H.264 through instead of converting it
 	"tvMaxHeight":        "0",  // 0 = the server's general limit
 	// tvTheme is the owner's WittyTV look for anyone whose own choice and UI suggest none: a theme
@@ -555,8 +558,12 @@ var tvSettings = map[string]string{
 	// tvBackgroundPlay: whether a device that hasn't chosen keeps playing a channel while its tab
 	// or app is in the background. Each device can choose for itself: see backgroundPlay.
 	"tvBackgroundPlay": "1",
-	"dvrFolder":        "", // "" = recordings in the data folder
-	"dvrLibrary":       "", // a library to rescan after recording
+	// tvStartOver: viewers may start a library channel's programme over, pause and rewind it
+	// and skip its breaks, each on a stream of their own ("0" = off, for a server that can't
+	// spare the FFmpeg).
+	"tvStartOver": "1",
+	"dvrFolder":   "", // "" = recordings in the data folder
+	"dvrLibrary":  "", // a library to rescan after recording
 }
 
 func (s *Server) tvSetting(ctx context.Context, k string) string {
@@ -616,7 +623,7 @@ func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 				writeErr(w, 400, "unknown WittyTV theme")
 				return
 			}
-		case "tvCopyVideo", "tvBackgroundPlay":
+		case "tvCopyVideo", "tvBackgroundPlay", "tvStartOver":
 			if v != "0" && v != "1" {
 				writeErr(w, 400, "bad value")
 				return
@@ -669,6 +676,8 @@ type guideProgramme struct {
 	Trimmed int64  `json:"trimmed,omitempty"`
 	// Clip: a scene from the disc ItemID, not the whole of it.
 	Clip *channels.ClipRef `json:"clip,omitempty"`
+	// For: on a cloned station, the programme this one stands in for.
+	For string `json:"for,omitempty"`
 }
 
 // guideChannel is one row of the guide.
@@ -748,11 +757,21 @@ type securityInfo struct {
 
 const encryptedHelpURL = "/api/modules/wittytuner/encrypted-help"
 
+// slateTitle is what the guide calls a stretch with nothing scheduled (the channel shows its "We'll be right back"
+// card there). As a programme's name those words read like a title that is missing (#634): a short gap is a break,
+// a long one is off air.
+func slateTitle(seconds int64) string {
+	if seconds >= 3600 {
+		return "Off air"
+	}
+	return "Short break"
+}
+
 func fromSchedule(p channels.Programme) guideProgramme {
 	g := guideProgramme{Start: p.Start, End: p.End, Kind: p.Kind, Title: p.Title, Sub: p.Sub, Genre: p.Genre, Rating: p.Rating, Year: p.Year,
-		ItemID: p.ItemID, ShowID: p.ShowID, Season: p.Season, Episode: p.Episode, Role: p.Role, Trimmed: p.Trimmed, Clip: p.Clip}
+		ItemID: p.ItemID, ShowID: p.ShowID, Season: p.Season, Episode: p.Episode, Role: p.Role, Trimmed: p.Trimmed, Clip: p.Clip, For: p.For}
 	if p.Kind == channels.KindSlate {
-		g.Title = "We'll be right back"
+		g.Title = slateTitle(p.End - p.Start)
 	}
 	return g
 }
@@ -937,6 +956,11 @@ type tuneInfo struct {
 	Notices        []string      `json:"notices,omitempty"`
 	// Alternative: the same station with sound, when this one has none.
 	Alternative *livetv.Alternative `json:"alternative,omitempty"`
+	// StartOver: this channel can start the programme on now from its beginning for this
+	// viewer (/startover). On an answer from /startover, it says this is such a stream, and
+	// Timeline says where its programme and breaks are.
+	StartOver bool      `json:"startOver,omitempty"`
+	Timeline  *timeline `json:"timeline,omitempty"`
 }
 
 func parseKey(key string) (kind string, id int64, ok bool) {
@@ -1027,6 +1051,7 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 		info.Playing = &p
 	}
 	info.BufferSec = float64(s.tvSettingInt(r.Context(), "tvLibraryBufferMin") * 60)
+	info.StartOver = s.startOverOn(r.Context())
 	info.BackgroundPlay = s.backgroundPlay(r.Context())
 	if err := s.addLiveTicket(r, &info); err != nil {
 		writeErr(w, 500, err.Error())
@@ -1051,7 +1076,10 @@ func (s *Server) handleLiveLeave(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad channel")
 		return
 	}
-	if v := viewerName(r); v != "" {
+	if v := viewerName(r); v != "" && r.URL.Query().Get("shift") == "1" {
+		// A start-over stream is the viewer's alone: it stops.
+		s.leaveShift(r, key, v)
+	} else if v != "" {
 		// A catch-up stream is left by naming the programme's start as well.
 		if start, err := strconv.ParseInt(r.URL.Query().Get("start"), 10, 64); err == nil && start > 0 && strings.HasPrefix(key, "tun-") {
 			id, _ := strconv.ParseInt(strings.TrimPrefix(key, "tun-"), 10, 64)
@@ -1128,6 +1156,12 @@ func feedPlan(now time.Time, lastEnd int64) (at time.Time, wait time.Duration, c
 
 // libraryFeed says what a library channel plays next: see feedPlan.
 func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK bool) hls.LiveFeed {
+	return s.shiftedFeed(id, q, maxHeight, copyOK, 0)
+}
+
+// shiftedFeed is libraryFeed for a viewer shift behind the clock (start over): the same
+// schedule, played as it was shift ago.
+func (s *Server) shiftedFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK bool, shift time.Duration) hls.LiveFeed {
 	var lastEnd int64
 	var lastRev int
 	return func(ctx context.Context, _ time.Time) (*hls.LiveInput, error) {
@@ -1135,7 +1169,7 @@ func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK b
 		if err != nil {
 			return nil, &hls.FatalError{Err: errors.New("this channel no longer exists")}
 		}
-		now := time.Now()
+		now := time.Now().Add(-shift)
 		if lastRev != 0 && c.Rev != lastRev && lastEnd > now.Unix() {
 			// The schedule was made again. An edit keeps what is on now, so it
 			// still ends when it did; after a reset it doesn't, and the channel
@@ -1297,6 +1331,9 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "channel not found")
 		return
 	}
+	if s.liveRefused(w, r, kind, id, time.Now()) { // what is on now, by its rating (parental_live.go)
+		return
+	}
 	ls := s.liveLookup(r, kind, key)
 	if ls == nil {
 		// Stopped while nobody was looking: start it again where it should be.
@@ -1343,6 +1380,11 @@ func (s *Server) handleLiveSegment(w http.ResponseWriter, r *http.Request) {
 	kind, id, ok := parseKey(key)
 	if !ok || !s.canWatchLive(r, kind, id) {
 		writeErr(w, 404, "channel not found")
+		return
+	}
+	// Every part, not just the playlist: a player that guesses the next part's name still
+	// stops when the programme changes to one this profile may not watch.
+	if s.liveRefused(w, r, kind, id, time.Now()) {
 		return
 	}
 	ls := s.liveLookup(r, kind, key)

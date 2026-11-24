@@ -177,6 +177,26 @@ wittymediaserver doctor reinstall wittyplay
 
 Module updates and versions are covered in [Modules and the store](MODULE-STORE.md).
 
+## Library health
+
+**Settings, Library health** lists what in your libraries needs a look, in one place, with a fix
+for each where there is one. Repair looks after the server itself; Library health looks at your
+titles. Nothing on the page renames, moves or deletes a media file.
+
+| Section | What it lists | Fixes |
+|---|---|---|
+| Files that have gone | Titles whose files aren't where they were. The server keeps everything known about them in case they come back. | Scan the library again; or forget a title whose file is gone for good, with its history. Forgetting is refused while the file is there, or while the library's folder is empty or can't be reached (a drive that isn't plugged in). |
+| No match | The same list as Fix matches, No match. | Look for matches for all, choose the match in Fix matches, or leave it unmatched. |
+| Possible duplicates | The same film twice in one library (the same match, or the same title and year), one episode in two files, one show in two folders. | Keep a film's copies as versions of it: the larger picture becomes the main copy, and the film shows once with a choice of copy. Episodes and shows are a person's call: edit them, or set them aside. |
+| Odd file names | Episodes with no number, files in a shows library outside a show's folder, films titled with their release name. | Naming rules, or edit the title. |
+| NFO files that can't be read | NFO and metadata files beside your media with a mistake in them. Checking reads every one, so it runs when you press **Check NFO files**, shows in Activity, and stops after a few minutes on a very large library. | Edit the file at the line named, as in [What it checks and fixes](#what-it-checks-and-fixes). |
+| No artwork | Films and shows with no poster. | Fetch the details again, or match the title first. |
+| Files that can't be read | Video files whose details couldn't be read when they were scanned, so they may not play. | Read it again once the file is fixed. If none can be read, check FFmpeg in Repair. |
+
+**It's fine** sets a row aside, and the page stops counting it. **Bring them back** at the top
+shows every row set aside again. In TV mode the page shows the counts, with the address and QR code
+to change things on a computer.
+
 ## Moved a drive?
 
 If a library's folder is now somewhere else, the server only needs to be told. Watch progress, matches, ratings and your edits all stay, and your files aren't touched.

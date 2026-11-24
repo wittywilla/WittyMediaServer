@@ -3,7 +3,8 @@
 // The interface audit: opens every page of a test server at each size, theme and look, takes a
 // picture, and runs the same detectors on each so the obvious faults are found by a machine before a
 // person has to spot them: sideways scroll, text under the top bar, hard-to-read text, tiny targets,
-// clipped words, broken pictures, missing focus. Also the visual regression harness: pictures are
+// clipped words, broken pictures, missing focus, buttons with no name, controls covered by
+// another layer, and see-through panels over the page. Also the visual regression harness: pictures are
 // named <page>--<size>--<theme>.png so two runs can be compared. No window opens.
 //
 //   WMS_SERVER=http://audit.localhost:19516 WMS_USER=owner WMS_PASSWORD=... node scripts/ui-audit.mjs out-folder
@@ -17,7 +18,7 @@ import { open, wait } from './shots-lib.mjs'
 const server = process.env.WMS_SERVER
 const [out = 'audit'] = process.argv.slice(2)
 const SIZES = {
-  phone: [390, 844, true], phone360: [360, 740, true], tablet: [768, 1024, true], desktop: [1280, 800, false], wide: [1920, 1080, false],
+  phone: [390, 844, true], phone360: [360, 800, true], tablet: [768, 1024, true], desktop: [1280, 800, false], wide: [1920, 1080, false],
   tv: [1920, 1080, false, true],
 }
 const sizes = (process.env.WMS_SIZES || 'phone,tablet,desktop,tv').split(',')
@@ -69,6 +70,47 @@ const DETECT = `(() => {
   // 8 buttons that touch or overlap their neighbour
   const btn = all.filter((x) => x.matches('button, .btn, a.btn')).slice(0, 200)
   for (let a = 0; a < btn.length; a++) for (let b = a + 1; b < btn.length; b++) { if (btn[a].contains(btn[b]) || btn[b].contains(btn[a])) continue; const x = btn[a].getBoundingClientRect(), y = btn[b].getBoundingClientRect(); const w = Math.min(x.right, y.right) - Math.max(x.left, y.left), hh = Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top); if (w > 2 && hh > 2 && getComputedStyle(btn[a]).position !== 'fixed') add('overlap', btn[a], 'with ' + name(btn[b])) }
+  // 10 buttons with no name: a screen reader says just "button"
+  const named = (e) => {
+    if ((e.getAttribute('aria-label') || '').trim() || (e.title || '').trim()) return true
+    const by = e.getAttribute('aria-labelledby'); if (by && by.split(/\\s+/).some((id) => (document.getElementById(id)?.textContent || '').trim())) return true
+    if ((e.innerText || e.textContent || '').trim()) return true
+    if ([...e.querySelectorAll('img[alt], svg[aria-label], [aria-label]')].some((x) => (x.getAttribute('alt') || x.getAttribute('aria-label') || '').trim())) return true
+    return !!(e.closest('label') && e.closest('label').textContent.trim()) || [...(e.labels || [])].some((l) => l.textContent.trim())
+  }
+  for (const e of all.filter((x) => x.matches('button, [role=button], a[href], [role=switch], [role=tab], [role=menuitem]'))) if (!e.closest('[aria-hidden=true]') && !named(e)) add('no-name', e, 'icon-only, no aria-label')
+  // 11 a control under another layer: what a tap at its middle reaches is something else
+  for (const e of all.filter((x) => x.matches('button, a[href], input, select, [role=button]')).slice(0, 300)) {
+    const r = e.getBoundingClientRect(); const x = r.left + r.width / 2, y = r.top + r.height / 2
+    if (x < 0 || y < 0 || x >= vw || y >= vh || getComputedStyle(e).pointerEvents === 'none') continue
+    const hit = document.elementFromPoint(x, y)
+    if (!hit || e.contains(hit) || hit.contains(e) || hit.closest('label')?.contains(e)) continue
+    const layer = (n) => { for (let p = n; p && p !== document.body; p = p.parentElement) { const ps = getComputedStyle(p).position; if (ps === 'fixed' || ps === 'sticky') return p } return null }
+    const L = layer(hit); if (!L || L.contains(e)) continue
+    // Under a bar at the bottom, with more page below: scrolling brings it out, as it should.
+    if (L.getBoundingClientRect().top > vh / 2 && scrollY + vh < document.documentElement.scrollHeight - 4) continue
+    add('covered', e, 'under ' + name(hit) + ' in ' + name(L))
+  }
+  // 12 see-through panels: a fixed or sticky bar with words whose background lets the page show through
+  for (const e of all) {
+    const st = getComputedStyle(e); if (st.position !== 'fixed' && st.position !== 'sticky') continue
+    const r = e.getBoundingClientRect()
+    // A sticky bar only covers anything once it is stuck at its place.
+    if (st.position === 'sticky' && Math.abs(r.top - (parseFloat(st.top) || 0)) > 1) continue
+    if (r.width < 120 || r.height < 30 || !(e.innerText || '').trim() || r.top <= 1 && r.height < 90) continue
+    const c = parse(st.backgroundColor); const blur = (st.backdropFilter || st.webkitBackdropFilter || 'none') !== 'none'
+    const kids = [...e.children].some((k) => { const b = parse(getComputedStyle(k).backgroundColor); return b && b[3] >= 0.92 && k.getBoundingClientRect().width >= r.width * 0.9 })
+    if ((!c || c[3] < 0.92) && !blur && !kids) add('see-through', e, 'background ' + st.backgroundColor)
+  }
+  // 13 a gap the words don't fill: an item in a column whose flex basis (meant as a width in a row) became its height
+  for (const e of all) {
+    const p = e.parentElement; if (!p) continue
+    const ps = getComputedStyle(p); if (!ps.display.includes('flex') || !ps.flexDirection.startsWith('column')) continue
+    const b = getComputedStyle(e).flexBasis; if (!/px|rem|em/.test(b) || parseFloat(b) < 120) continue
+    const r = e.getBoundingClientRect(); let inner = 0
+    for (const k of e.children) { const kr = k.getBoundingClientRect(); inner = Math.max(inner, kr.bottom - r.top) }
+    if (r.height - inner > 80) add('tall-gap', e, Math.round(r.height) + 'px tall around ' + Math.round(inner) + 'px (flex-basis ' + b + ' in a column)')
+  }
   // 9 raw error words
   const body = document.body.innerText
   if (/\\b(undefined|NaN|\\[object Object\\]|null)\\b/.test(body)) out.push({ kind: 'raw-value', where: 'text', detail: (body.match(/.{0,30}\\b(undefined|NaN|\\[object Object\\])\\b.{0,30}/) || [''])[0] })

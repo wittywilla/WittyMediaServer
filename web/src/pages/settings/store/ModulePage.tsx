@@ -173,7 +173,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
       <section className="st-mod-sec" aria-labelledby="st-new">
         <h2 id="st-new">{t('What’s new')}{(m?.latest?.version || it.version) ? <span className="ms-ver"> {m?.latest?.version || it.version}</span> : null}</h2>
         {it.released && !m?.latest && <p className="muted st-news-day">{t('Released {day}', { day: dayOf(it.released) })}</p>}
-        <ChangeNotes text={news} />
+        <ChangeNotes text={news} developer />
       </section>
 
       <section className="st-mod-sec" aria-labelledby="st-asks">
@@ -234,7 +234,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
                     <div className="muted ms-ver-fit">{t('Fits servers {min} to {max}', { min: v.minServer, max: v.maxServer })}{v.size ? ` · ${mb(v.size)}` : ''}</div>
                     {v.override && !v.allowed && <p className="ms-why">{t('Needs an override:')} {overrideLines(v.override).map((l) => l.reason || l.title).join(' ')}</p>}
                     {v.refused && !v.override && <p className="ms-why">{v.refused}</p>}
-                    <ChangeNotes text={v.notes} />
+                    <ChangeNotes text={v.notes} developer />
                   </li>
                 ))}
               </ul>

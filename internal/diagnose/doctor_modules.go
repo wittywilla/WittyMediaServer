@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"sort"
@@ -33,7 +34,7 @@ func checkModuleState(_ context.Context, e *DoctorEnv) []Issue {
 	if _, err := modules.ReadInstalledState(e.modulesDir()); err != nil {
 		return []Issue{{Key: "module-state", Severity: SevWarn, Title: "The list of installed modules can't be read", Safety: SafetySafe, Exclusive: e.Modules == nil,
 			What: "modules/state.json is damaged: " + err.Error() + ". No downloaded module is in use until this is fixed, and your choices of version can't be remembered.",
-			Fix:  "Moves the damaged file to the safety copy. Modules are out of use until you install them again from Settings, Modules."}}
+			Fix:  "Moves the damaged file to the safety copy. Modules are out of use until you install them again from Settings, Module store."}}
 	}
 	return nil
 }
@@ -42,7 +43,7 @@ func fixModuleState(_ context.Context, e *DoctorEnv, _ *Issue, f *FixContext) (s
 	if err := f.Remove(filepath.Join(e.modulesDir(), "state.json")); err != nil {
 		return "", err
 	}
-	return "The damaged list was moved to the safety copy. Modules are out of use until you install them again from Settings, Modules.", nil
+	return i18n.T("The damaged list was moved to the safety copy. Modules are out of use until you install them again from Settings, Module store."), nil
 }
 
 // --------------------------------------------------------------- each installed version
@@ -84,7 +85,7 @@ func checkModuleVersions(_ context.Context, e *DoctorEnv) []Issue {
 			switch p.Kind {
 			case modules.ProblemSignature:
 				title = id + " " + ver + " fails its signature check"
-				what = "Its files don't match what its publisher signed: " + p.Error() + ". The server refuses to run it."
+				what = i18n.F("Its files don't match what its publisher signed: {p}. The server refuses to run it.", "p", p.Error())
 			case modules.ProblemVersion:
 				title = id + " " + ver + " isn't for this server"
 				what = p.Error() + ". The server won't run it."
@@ -93,7 +94,7 @@ func checkModuleVersions(_ context.Context, e *DoctorEnv) []Issue {
 				}
 			default:
 				title = id + " " + ver + " is incomplete"
-				what = "It's listed as installed, but " + p.Error() + "."
+				what = i18n.F("It's listed as installed, but {p}.", "p", p.Error())
 			}
 			if inUse {
 				what += " Until this is fixed the server falls back to the version before it, if it has one."
@@ -101,14 +102,14 @@ func checkModuleVersions(_ context.Context, e *DoctorEnv) []Issue {
 			iss := Issue{Key: "module-versions:" + id + ":" + ver, Severity: sev, Title: title, What: what, Safety: SafetySafe, Exclusive: e.Modules == nil, data: badVersion{id, ver, inUse},
 				Fix: "Takes this version out of use, and moves its files to the safety copy. The module goes back to the version before it. With none, it's out of use until you install it again."}
 			if inUse {
-				iss.Options = []FixOption{{ID: "reinstall", Label: "Reinstall it", Network: true, What: "Also downloads this module's newest compatible version from its publisher. Nothing is downloaded unless you choose this."}}
-				iss.Steps = []string{"To reinstall afterwards: wittymediaserver doctor reinstall " + id + ", or use the Modules page in Settings."}
+				iss.Options = []FixOption{{ID: "reinstall", Label: "Reinstall it", Network: true, What: i18n.T("Also downloads this module's newest compatible version from its publisher. Nothing is downloaded unless you choose this.")}}
+				iss.Steps = []string{i18n.F("To reinstall afterwards: wittymediaserver doctor reinstall {id}, or use the Modules page in Settings.", "id", id)}
 			}
 			out = append(out, iss)
 		}
 		for ver, why := range st.Blocked {
 			out = append(out, Issue{Key: "module-versions:" + id + ":blocked:" + ver, Severity: SevInfo, Title: id + " " + ver + " was taken out of use", Safety: SafetyManual,
-				What: "The server stopped using it, because: " + why + ". A newer version clears this when it installs."})
+				What: i18n.F("The server stopped using it, because: {why}. A newer version clears this when it installs.", "why", why)})
 		}
 	}
 	return out
@@ -276,7 +277,7 @@ func checkHelpers(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	list, err := listProcesses(ctx)
 	if err != nil {
-		return notChecked("module-helpers:failed", "module helpers", "The list of running programs couldn't be read: "+err.Error()+".")
+		return notChecked("module-helpers:failed", "module helpers", i18n.F("The list of running programs couldn't be read: {error}.", "error", err.Error()))
 	}
 	found := helpersOf(list, e.modulesDir())
 	if len(found) == 0 {

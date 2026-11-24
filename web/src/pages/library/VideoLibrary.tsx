@@ -11,7 +11,7 @@ import LibraryHeader, { type SortOption } from '../../components/LibraryHeader'
 import { IconCheck, IconEdit, IconFilm, IconPlus, IconTune } from '../../icons'
 import { artPictureUrl, type BrowseResult, type BrowseRow, type Category, type ListingStatus, type SavedView, type Shelves } from '../../metadata'
 import { toast, useApp } from '../../state'
-import { emptyLibraryWords } from '../../profileWords'
+import { emptyLibraryState } from '../../profileWords'
 import BulkEdit from './BulkEdit'
 import CategoryEditor from './CategoryEditor'
 import { ActiveFilters, FILTER_KEYS, FilterPanel, SaveViewDialog } from './Filters'
@@ -92,7 +92,7 @@ function LogoCard({ kind, name, to, count }: { kind: 'studio' | 'network' | 'pla
 
 export default function VideoLibrary({ lib }: { lib: Library }) {
   const { id } = useParams()
-  const { user } = useApp()
+  const { user, refreshLibraries } = useApp()
   const [params, setParams] = useSearchParams()
   const sort = params.get('sort') || ''
   const desc = params.get('desc') === '1'
@@ -176,8 +176,8 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
     const poll = async () => {
       try {
         const r = await api.get<{ scanning: boolean; progress: ScanProgress | null }>(`/libraries/${id}/scan`)
-        setScanning(r.scanning ? r.progress : null)
-        if (was && !r.scanning) setScanTick((n) => n + 1)
+        setScanning(r.scanning ? r.progress || {} : null) // a scan with nothing to say yet is still a scan
+        if (was && !r.scanning) { setScanTick((n) => n + 1); void refreshLibraries() } // its last scan's date, for the empty page's words
         was = r.scanning
         timer = setTimeout(poll, r.scanning ? 1500 : 10000)
       } catch { /* the next page asks again */ }
@@ -235,7 +235,7 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
       </LibraryHeader>
 
       {grid ? (
-        <GridBody rows={rows} failed={failed} onRetry={() => setRetry((n) => n + 1)} scanning={!!scanning} filtered={activeCount > 0} lib={lib} isAdmin={!!user?.isAdmin} selecting={selecting} selected={selected} toggle={toggle} />
+        <GridBody rows={rows} failed={failed} onRetry={() => setRetry((n) => n + 1)} scanning={!!scanning} phase={scanning?.phase} filtered={activeCount > 0} lib={lib} isAdmin={!!user?.isAdmin} selecting={selecting} selected={selected} toggle={toggle} />
       ) : shelves ? (
         <Shelf lib={lib} shelves={shelves} listing={listing} isAdmin={!!user?.isAdmin} />
       ) : <SkeletonGrid />}
@@ -261,15 +261,16 @@ export default function VideoLibrary({ lib }: { lib: Library }) {
   )
 }
 
-function GridBody({ rows, failed, onRetry, scanning, filtered, lib, isAdmin, selecting, selected, toggle }: {
-  rows: BrowseRow[] | null; failed: boolean; onRetry: () => void; scanning: boolean; filtered: boolean; lib: Library; isAdmin: boolean; selecting: boolean; selected: Map<string, BrowseRow>; toggle: (r: BrowseRow) => void
+function GridBody({ rows, failed, onRetry, scanning, phase, filtered, lib, isAdmin, selecting, selected, toggle }: {
+  rows: BrowseRow[] | null; failed: boolean; onRetry: () => void; scanning: boolean; phase?: string; filtered: boolean; lib: Library; isAdmin: boolean; selecting: boolean; selected: Map<string, BrowseRow>; toggle: (r: BrowseRow) => void
 }) {
   const { user } = useApp()
   if (!rows) return failed ? <LoadError what={t('This library')} onRetry={onRetry} /> : <SkeletonGrid />
   if (rows.length === 0) {
-    return <EmptyState icon={<IconFilm />} title={scanning ? t('Scanning…') : filtered ? t('Nothing matches') : t('Nothing here yet')}
-      text={scanning ? t('Titles appear as they are found.') : filtered ? t('Try taking away a filter.') : tx(emptyLibraryWords(user, lib.type === 'shows' || lib.type === 'anime' ? t('Organize episodes as {pattern} and scan again.', { pattern: 'Show/Season 1/Show - S01E01 - Title.mkv' }) : t('No videos were found in this library’s folders.')))}
-      action={!scanning && !filtered && isAdmin ? <Link to="/settings/libraries" className="btn">{t('Check its folders')}</Link> : undefined} />
+    if (filtered && !scanning) return <EmptyState icon={<IconFilm />} title={t('Nothing matches')} text={t('Try taking away a filter.')} />
+    const w = emptyLibraryState(user, { scanning, lastScanAt: lib.lastScanAt }, phase, lib.type === 'shows' || lib.type === 'anime' ? t('Organize episodes as {pattern} and scan again.', { pattern: 'Show/Season 1/Show - S01E01 - Title.mkv' }) : t('No videos were found in this library’s folders.'))
+    return <EmptyState icon={<IconFilm />} title={tx(w.title)} text={tx(w.text)}
+      action={w.state === 'empty' && isAdmin ? <Link to="/settings/libraries" className="btn">{t('Check its folders')}</Link> : undefined} />
   }
   if (!selecting) return <div className="grid">{rows.map((r) => <RowCard key={r.type + (r.type === 'item' ? r.item.id : r.show.id)} row={r} />)}</div>
   return (

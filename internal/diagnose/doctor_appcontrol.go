@@ -5,6 +5,7 @@ package diagnose
 
 import (
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"path/filepath"
 	"sort"
 
@@ -22,10 +23,10 @@ func checkSmartAppControl(_ context.Context, e *DoctorEnv) []Issue {
 		return nil
 	case appcontrol.Off:
 		return []Issue{{Key: key, Severity: SevInfo, Title: "Smart App Control is off", Safety: SafetyManual,
-			What: "Windows doesn't require this server's programs, its modules' or game cores to be signed."}}
+			What: i18n.T("Windows doesn't require this server's programs, its modules' or game cores to be signed.")}}
 	case appcontrol.Evaluation:
 		return []Issue{{Key: key, Severity: SevInfo, Title: "Smart App Control is in evaluation", Safety: SafetyManual,
-			What: "Windows is watching which programs run, and will turn Smart App Control on or off by itself. It blocks nothing yet. Once it's on, programs and libraries that aren't signed by a publisher Windows trusts can't run, and that includes modules and game cores that aren't signed yet."}}
+			What: i18n.T("Windows is watching which programs run, and will turn Smart App Control on or off by itself. It blocks nothing yet. Once it's on, programs and libraries that aren't signed by a publisher Windows trusts can't run, and that includes modules and game cores that aren't signed yet.")}}
 	}
 	// Only the versions in use: one kept for going back can't be blocked from running.
 	var files []string
@@ -46,7 +47,7 @@ func checkSmartAppControl(_ context.Context, e *DoctorEnv) []Issue {
 	sort.Strings(files)
 	if len(files) == 0 {
 		return []Issue{{Key: key, Severity: SevInfo, Title: "Smart App Control is on", Safety: SafetyManual,
-			What: "Windows runs only programs and libraries signed by a publisher it trusts, or that it knows. No installed module has one it would block."}}
+			What: i18n.T("Windows runs only programs and libraries signed by a publisher it trusts, or that it knows. No installed module has one it would block.")}}
 	}
 	names, more := files, 0
 	if len(names) > 20 {
@@ -54,6 +55,6 @@ func checkSmartAppControl(_ context.Context, e *DoctorEnv) []Issue {
 	}
 	return []Issue{{Key: key, Severity: SevProblem, Safety: SafetyManual, Count: len(files), Names: names, More: more,
 		Title: plural(len(files), "module program isn't signed, so Smart App Control blocks it", "module programs aren't signed, so Smart App Control blocks them"),
-		What:  "Smart App Control is on: Windows runs only programs and libraries signed by a publisher it trusts. These are in the data folder's modules folder, and the modules they belong to can't start.",
-		Fix:   "Install a signed version of each module from Settings, Modules when there is one. A fork's author would need to sign theirs. Turning Smart App Control off isn't the answer: Windows can't turn it back on without being reinstalled."}}
+		What:  i18n.T("Smart App Control is on: Windows runs only programs and libraries signed by a publisher it trusts. These are in the data folder's modules folder, and the modules they belong to can't start."),
+		Fix:   "Install a signed version of each module from Settings, Module store when there is one. A fork's author would need to sign theirs. Turning Smart App Control off isn't the answer: Windows can't turn it back on without being reinstalled."}}
 }

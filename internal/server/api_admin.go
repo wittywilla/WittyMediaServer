@@ -5,7 +5,10 @@ package server
 
 import (
 	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net"
@@ -17,6 +20,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
@@ -28,13 +32,13 @@ import (
 // uiLanguagePattern: the language of the app's own pages, "de" or "pt-PT".
 var uiLanguagePattern = regexp.MustCompile(`^[a-z]{2}(-[A-Z]{2})?$`)
 
-var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage", "uiLanguage",
+var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "guideKey", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage", "uiLanguage",
 	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "saveWittyinfo", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "gpuPathsOff", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "timeZone", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
 	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "lanDiscovery", "radioDirectory", "radioChecks",
-	"legalOwnerNotice", "legalOwnerContact", "noPoster", "pairRequirePin", settingSecondOpinion}
+	"legalOwnerNotice", "legalOwnerContact", "noPoster", "pairRequirePin", settingSecondOpinion, "ratingCountry"}
 
 // settingDefaults are returned when a key has never been saved.
 var settingDefaults = map[string]string{"saveMetadata": "1", "saveWittyinfo": "1", "brandMark": brandname.DefaultMark, "noPoster": library.NoPosterFrame, "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
@@ -58,7 +62,9 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "saveWittyinfo": "1
 	// radioDirectory: search the free station directory, and refresh details of
 	// stations that came from it. radioChecks: try stations in the background, which
 	// contacts them when nobody is listening, so it's off unless the owner wants it.
-	"radioDirectory": "1", "radioChecks": "0"}
+	"radioDirectory": "1", "radioChecks": "0",
+	// ratingCountry: whose certificates titles keep, and how letters such as "M" are read.
+	"ratingCountry": "US"}
 
 // settingChecks: settings handed to FFmpeg or used as numbers. A wrong value
 // would otherwise only show up as every transcode failing.
@@ -77,6 +83,7 @@ var settingChecks = map[string]func(string) bool{
 	"moduleUpdateCheck": oneOf("", "0", "1"),
 	"moduleAutoInstall": oneOf("0", "1"),
 	"uploadAccountMb":   intBetween(0, 1<<30),
+	"ratingCountry":     library.ValidRatingCountry,
 }
 
 var bitrateRe = regexp.MustCompile(`^[0-9]{1,6}(\.[0-9]{1,3})?[kKmM]?$`)
@@ -100,7 +107,7 @@ func oneOf(list ...string) func(string) bool {
 }
 
 // secretSettings are masked when read back.
-var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin"}
+var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin", "guideKey"}
 
 func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 	out, status := s.serverSettingsView(r)
@@ -191,12 +198,22 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 500, err.Error())
 			return
 		}
+		if k == "guideKey" {
+			// A key entered again may go to a new site: the first one a link uses it with (api_clone_key.go).
+			if err := s.DB.SetSetting(r.Context(), guideKeyHostSetting, ""); err != nil {
+				writeErr(w, 500, err.Error())
+				return
+			}
+		}
 	}
 	if v, ok := in["gpuPathsOff"]; ok {
 		ffmpeg.SetGPUPathsOff(strings.Split(v, ","))
 	}
 	if _, ok := in["timeZone"]; ok {
 		s.restartForTimeZone(r.Context(), adminName(r)) // time.Local isn't changed while the server runs
+	}
+	if v, ok := in["ratingCountry"]; ok {
+		s.ratingCountryChanged(r.Context(), v, adminName(r))
 	}
 	s.protectSecrets(r.Context()) // a new API key is hidden from the log from now on
 	if s.Discovery != nil {
@@ -338,8 +355,11 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 			encoders = append(encoders, e)
 		}
 	}
+	lanUrls, lanGuess, localOnly := s.homeAddresses(r)
 	writeJSON(w, 200, map[string]any{
-		"lanUrls":     s.lanURLs(r),
+		"lanUrls":     lanUrls,
+		"lanGuess":    lanGuess,  // the home-network address, even while it only listens on this computer
+		"localOnly":   localOnly, // listens on this computer only
 		"version":     s.Version,
 		"go":          runtime.Version(),
 		"os":          runtime.GOOS,
@@ -383,6 +403,12 @@ func (s *Server) spa() http.Handler {
 				}
 				if !strings.HasPrefix(p, "assets/") {
 					w.Header().Set("Cache-Control", "no-cache") // the page names the assets of this version
+					// The embedded files have no modification time, so without a tag the browser
+					// had nothing to ask again with, and fetched each font (350 KB) on every
+					// visit (#643). With one, a visit after the first gets 304 Not Modified.
+					if tag := s.webTag(p, st); tag != "" {
+						w.Header().Set("ETag", tag)
+					}
 				} else {
 					w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 					if s.serveGzipped(w, r, p) {
@@ -480,38 +506,107 @@ func acceptsGzip(header string) bool {
 	return false
 }
 
-// lanURLs are the addresses other devices on the home network can open
-// (this machine's private IPv4 addresses, on the port this request used);
-// none when the server only listens on this machine.
+// lanURLs are the addresses other devices on the home network can open (this machine's private IPv4 addresses, on the
+// port this request used), the one its network traffic goes out through first; none when the server only listens on
+// this machine.
 func (s *Server) lanURLs(r *http.Request) []string {
-	if h, _, err := net.SplitHostPort(s.Cfg.Listen); err == nil && h != "" && h != "0.0.0.0" && h != "::" {
-		if ip := net.ParseIP(h); ip == nil || ip.IsLoopback() {
-			return []string{}
-		}
-	}
-	_, port, err := net.SplitHostPort(r.Host)
-	if err != nil {
-		port = ""
-	}
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return nil
-	}
+	urls, _, _ := s.homeAddresses(r)
+	return urls
+}
+
+// homeAddresses is lanURLs, with guess, the address the server has on the home network (its main one), which is
+// there even when it only listens on this computer, so first-run setup can say where it will be once it's opened up;
+// and localOnly, true when it listens on loopback only.
+func (s *Server) homeAddresses(r *http.Request) (urls []string, guess string, localOnly bool) {
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
 	}
-	out := []string{}
-	for _, a := range addrs {
-		ipn, ok := a.(*net.IPNet)
-		if !ok || ipn.IP.To4() == nil || !ipn.IP.IsPrivate() {
-			continue
+	_, port, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		_, port, _ = net.SplitHostPort(s.Cfg.Listen)
+	}
+	var ips []net.IP
+	if addrs, err := net.InterfaceAddrs(); err == nil {
+		for _, a := range addrs {
+			if ipn, ok := a.(*net.IPNet); ok {
+				ips = append(ips, ipn.IP)
+			}
 		}
-		host := ipn.IP.String()
+	}
+	return homeURLs(s.Cfg.Listen, scheme, port, ips, mainLANIP())
+}
+
+// homeURLs works out homeAddresses from the listen address, the machine's addresses and its main one.
+func homeURLs(listen, scheme, port string, ips []net.IP, main net.IP) (urls []string, guess string, localOnly bool) {
+	url := func(ip net.IP) string {
+		host := ip.String()
 		if port != "" {
 			host = net.JoinHostPort(host, port)
 		}
-		out = append(out, scheme+"://"+host)
+		return scheme + "://" + host
 	}
-	return out
+	var home []net.IP // private IPv4 addresses, the main one first
+	if main != nil && main.To4() != nil && main.IsPrivate() {
+		home = append(home, main)
+	}
+	for _, ip := range ips {
+		if ip.To4() != nil && ip.IsPrivate() && !slices.ContainsFunc(home, ip.Equal) {
+			home = append(home, ip)
+		}
+	}
+	if len(home) > 0 {
+		guess = url(home[0])
+	}
+	urls = []string{}
+	if h, _, err := net.SplitHostPort(listen); err == nil && h != "" && h != "0.0.0.0" && h != "::" {
+		ip := net.ParseIP(h)
+		if ip == nil || ip.IsLoopback() {
+			return urls, guess, true
+		}
+		// One address of this machine: only that one answers.
+		if ip.To4() != nil && ip.IsPrivate() {
+			return []string{url(ip)}, url(ip), false
+		}
+		return urls, guess, false
+	}
+	for _, ip := range home {
+		urls = append(urls, url(ip))
+	}
+	return urls, guess, false
+}
+
+// mainLANIP is the address this computer's traffic to the rest of the network goes out from: what its default route
+// uses. A UDP socket is pointed at a documentation address (TEST-NET-1) to ask the system which; nothing is sent.
+func mainLANIP() net.IP {
+	c, err := net.Dial("udp4", "192.0.2.1:9")
+	if err != nil {
+		return nil
+	}
+	defer c.Close()
+	if a, ok := c.LocalAddr().(*net.UDPAddr); ok && a.IP.IsPrivate() {
+		return a.IP
+	}
+	return nil
+}
+
+// webTags: each client file's tag, from its content, worked out once per file as it is.
+var webTags sync.Map // "path size modtime" -> `"sha256 prefix"`
+
+// webTag is a strong ETag for one of the client's files: the first 16 bytes of its SHA-256.
+// Kept by path, size and time, so a development build reading web/dist from disk gets a new
+// tag when a file changes.
+func (s *Server) webTag(p string, st fs.FileInfo) string {
+	key := fmt.Sprintf("%s %d %d", p, st.Size(), st.ModTime().UnixNano())
+	if v, ok := webTags.Load(key); ok {
+		return v.(string)
+	}
+	b, err := fs.ReadFile(s.Web, p)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(b)
+	tag := `"` + hex.EncodeToString(sum[:16]) + `"`
+	webTags.Store(key, tag)
+	return tag
 }

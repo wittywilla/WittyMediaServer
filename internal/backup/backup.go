@@ -46,6 +46,9 @@ const DirName = "backups"
 type Folders struct {
 	Data   string
 	Images string // artwork; usually <data>/cache/images
+	// Store is a folder an administrator chose for archives, such as a second drive. Empty:
+	// the data folder's own. See ArchiveDir.
+	Store string
 }
 
 // Dir is the backups folder.
@@ -147,12 +150,16 @@ var tableParts = map[string]string{
 
 	"settings": PartSettings,
 	"users":    PartUsers,
+	// An administrator's own email and webhook. Without a password, the webhook's address and secret are left out.
+	"notify_channels": PartUsers,
 
 	"progress": PartHistory, "play_log": PartHistory, "item_stats": PartHistory, "item_reactions": PartHistory, "item_comments": PartHistory,
 	"annotations": PartHistory, "collections": PartHistory, "collection_items": PartHistory, "collection_shows": PartHistory,
 	"share_link_items": PartHistory, "saved_views": PartHistory, "creator_subs": PartHistory,
 	"lyrics_offsets": PartHistory, "tv_favourites": PartHistory, "tv_reminders": PartHistory, "tv_sets": PartHistory, "tv_set_channels": PartHistory, "tv_set_order": PartHistory, "share_links": PartHistory,
 	"screen_time": PartHistory, "profile_watch": PartHistory, "profile_events": PartHistory,
+	// The bell's list and each profile's choice of kinds.
+	"notifications": PartHistory, "notify_muted": PartHistory,
 
 	"channels": PartChannels, "channel_days": PartChannels, "channel_history": PartChannels, "channel_bumpers": PartChannels,
 	"epg_channels":   PartChannels,
@@ -212,6 +219,8 @@ type Info struct {
 	Auto      bool      `json:"auto"`
 	Protected bool      `json:"protected"`
 	Version   string    `json:"version,omitempty"`
+	// Elsewhere: kept in the folder an administrator chose, not the data folder.
+	Elsewhere bool `json:"elsewhere,omitempty"`
 }
 
 // Names of backups this package makes. Anything else in the folder isn't listed, can't be
@@ -243,34 +252,40 @@ func (f Folders) PathOf(name string) (string, error) {
 	if !ValidName(name) {
 		return "", errors.New("no such backup")
 	}
-	p := filepath.Join(f.Dir(), name)
-	st, err := os.Lstat(p)
-	if err != nil || !st.Mode().IsRegular() {
-		return "", errors.New("no such backup")
+	for _, dir := range f.archiveDirs() {
+		p := filepath.Join(dir, name)
+		if st, err := os.Lstat(p); err == nil && st.Mode().IsRegular() {
+			return p, nil
+		}
 	}
-	return p, nil
+	return "", errors.New("no such backup")
 }
 
 // List returns the backups in the folder, newest first.
 func List(f Folders) []Info {
 	out := []Info{}
-	entries, err := os.ReadDir(f.Dir())
-	if err != nil {
-		return out
-	}
-	for _, e := range entries {
-		if e.IsDir() || !ValidName(e.Name()) {
+	seen := map[string]bool{}
+	for i, dir := range f.archiveDirs() {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
 			continue
 		}
-		fi, err := e.Info()
-		if err != nil || !fi.Mode().IsRegular() {
-			continue
+		for _, e := range entries {
+			// The same name in both: the chosen folder's is the one PathOf finds.
+			if e.IsDir() || !ValidName(e.Name()) || seen[e.Name()] {
+				continue
+			}
+			fi, err := e.Info()
+			if err != nil || !fi.Mode().IsRegular() {
+				continue
+			}
+			seen[e.Name()] = true
+			in := Info{Name: e.Name(), Size: fi.Size(), Created: fi.ModTime(), Auto: strings.HasPrefix(e.Name(), autoPrefix), Elsewhere: i == 0 && f.Store != "" && len(f.archiveDirs()) > 1}
+			if m, err := peekManifest(filepath.Join(dir, e.Name())); err == nil {
+				in.Created, in.Protected, in.Version = m.Created, m.Crypt != nil, m.ServerVersion
+			}
+			out = append(out, in)
 		}
-		in := Info{Name: e.Name(), Size: fi.Size(), Created: fi.ModTime(), Auto: strings.HasPrefix(e.Name(), autoPrefix)}
-		if m, err := peekManifest(filepath.Join(f.Dir(), e.Name())); err == nil {
-			in.Created, in.Protected, in.Version = m.Created, m.Crypt != nil, m.ServerVersion
-		}
-		out = append(out, in)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Created.After(out[j].Created) })
 	return out

@@ -11,7 +11,7 @@ import { IconPlay, IconPlus, IconRight } from '../../icons'
 import { PlayOnMenuItem } from '../../remote/PlayOnButton'
 import { toast, useApp } from '../../state'
 import { SongVideoItems, TieDialog } from './SongVideo'
-import { num, t, tn } from '../../i18n'
+import { num, t, tn, bidi } from '../../i18n'
 import { MusicInfoDialog, MusicInfoItem } from '../../wittyinfo/MusicInfo'
 import './music.css'
 
@@ -63,7 +63,7 @@ export function AlbumTile({ libId, a, book, noArtist }: { libId: number; a: Albu
     <Link to={albumLink(libId, a)} className="album-card mh-album" title={a.title}>
       <div className={'album-cover' + (book ? ' book' : '')}>{a.coverItem ? <img src={sized(coverUrl(a.coverItem), 320)} srcSet={artSet(coverUrl(a.coverItem))} sizes={CARD_SIZES} alt="" loading="lazy" /> : <Placeholder title={a.title || t('Unknown')} />}</div>
       <b>{a.title || t('Unknown album')}</b>
-      <span className="muted">{[noArtist ? '' : a.artist, a.year].filter(Boolean).join(' · ')}</span>
+      <span className="muted">{[noArtist ? '' : a.artist, a.year].filter(Boolean).map(bidi).join(' · ')}</span>
     </Link>
   )
 }
@@ -76,7 +76,7 @@ export function SongRow({ t: song, onPlay }: { t: Item; onPlay: () => void }) {
     <div className={'mh-song' + (on ? ' on' : '')}>
       <button type="button" className="mh-song-play" onClick={onPlay} aria-label={t('Play {title}', { title: song.title })} aria-current={on ? 'true' : undefined}>
         <span className="mh-song-art">{song.poster && <img src={sized(posterUrl(song), fitWidth(64))} alt="" loading="lazy" />}{on && playing && <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i>}</span>
-        <span className="mh-song-text"><b>{song.title}</b><small>{[song.artist || song.albumArtist, song.album].filter(Boolean).join(' · ')}</small></span>
+        <span className="mh-song-text"><b>{song.title}</b><small>{[song.artist || song.albumArtist, song.album].filter(Boolean).map(bidi).join(' · ')}</small></span>
         <span className="mh-song-time">{song.runtimeSec ? fmtTime(song.runtimeSec) : ''}</span>
       </button>
       <TrackMenu t={song} />

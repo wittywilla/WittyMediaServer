@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"net/url"
@@ -389,7 +390,7 @@ func (m *Manager) installVersionLocked(id string, e *entry, ver string, confirm,
 			return
 		}
 		if err != nil {
-			task.Fail(sentence(err.Error()), "Nothing changed: the version in use is still in use. Settings, Modules has the details.", err)
+			task.Fail(sentence(err.Error()), i18n.T("Nothing changed: the version in use is still in use. Settings, Module store has the details."), err)
 		} else {
 			task.Result(e.builtin.Name + " " + rel.version + " is installed.")
 			task.Finish(nil)

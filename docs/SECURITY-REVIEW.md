@@ -17,7 +17,7 @@ independent audit. For what to do about exposure, read [REMOTE.md](REMOTE.md).
 | **Someone who can put files in a library** | Hostile media, sidecars, links, pipes, archives, disc images | Parsers are bounded, fuzzed and time-limited. Files are served through a handle that can't leave the library. FFmpeg opens library files only as real media formats, with no network |
 | **A host behind a feed or playlist** | Answer anything, redirect anywhere, change its answer between requests | The internet-only client checks each connection as it is made, including the machine's own addresses. A playlist from the internet stays on the internet. FFmpeg never reads an internet stream by itself |
 | **A stolen administrator session** | Everything in Settings | It's not meant to reach the machine: no running programs, no reading arbitrary files, no second administrator or reset without the password and code, and no taking away the backups or a library's originals without them either. Custom cores need a switch set on the machine |
-| **A helper, game core or module** | Run with a hostile file as input | Helpers and cores run in a sandbox, as far as the system allows: no writes outside their folder, no sockets unless needed, no changing who may read a file. [What each system really gives](#what-a-helper-is-held-to) differs, and Settings, Modules says so wherever it's short of this |
+| **A helper, game core or module** | Run with a hostile file as input | Helpers and cores run in a sandbox, as far as the system allows: no writes outside their folder, no sockets unless needed, no changing who may read a file. [What each system really gives](#what-a-helper-is-held-to) differs, and Settings, Module store says so wherever it's short of this |
 | **Whoever runs a store an admin added** | Answer anything, change their list, name another key, list as many pictures as a list can hold | Its key is pinned and its list refused if it changes. Its words are cleaned, its pictures checked and bounded, and it can't reach a module it isn't the chosen source of. A store that's off isn't asked anything and installs nothing |
 | **Whoever controls what GitHub answers** | Offer old or altered releases | Everything installed is signed, the signature covers each file's name and hash, older versions aren't offered, and a withdrawn version stays withdrawn |
 
@@ -92,7 +92,7 @@ device they're looking at.
 ## What a helper is held to
 
 A module's helper is someone's code handling a hostile file. How much the system can do about that differs, so here it is, and
-**Settings, Modules** and the store say the same wherever it's short of the first row.
+**Settings, Module store** and the store say the same wherever it's short of the first row.
 
 | System | What a helper can't do, unless it's a module allowed to | What it can still do | Modules from other publishers |
 |---|---|---|---|

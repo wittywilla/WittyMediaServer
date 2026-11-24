@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"log/slog"
 	"os"
@@ -152,11 +153,11 @@ func (s *Scanner) StartBy(libraryID int64, mode ScanMode, by tasks.By) bool {
 	s.progress(libraryID, func(p *ScanProgress) { p.Mode, p.Resumed = run.mode, run.resumed })
 	title := "Scanning " + name
 	if run.mode == ScanFull {
-		title = "Full rescan of " + name
+		title = i18n.F("Full rescan of {name}", "name", name)
 	}
-	phase := "Waiting for its turn"
+	phase := i18n.T("Waiting for its turn")
 	if run.resumed {
-		phase = "Waiting to carry on where it left off"
+		phase = i18n.T("Waiting to carry on where it left off")
 	}
 	t := s.Tasks.Queue(tasks.Spec{Type: tasks.TypeScan, Title: title, Phase: phase, LibraryID: libraryID, LibraryName: name, Unit: "files",
 		By: by, Cancel: stop, Pausable: true, RetryKey: strconv.FormatInt(libraryID, 10) + "/" + string(run.mode), Quiet: rig})
@@ -307,7 +308,7 @@ func scanResult(files, problems int, took time.Duration) string {
 		}
 		return strconv.Itoa(n) + " " + many
 	}
-	s := fmt.Sprintf("Looked at %s in %s", plural(files, "file", "files"), took.Round(time.Second))
+	s := i18n.F("Looked at {files} in {round}", "files", plural(files, "file", "files"), "round", took.Round(time.Second))
 	if problems == 0 {
 		return s + ", with no problems."
 	}
@@ -696,7 +697,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		// empty folder) is not the same as every file having been deleted.
 		if entries, err := os.ReadDir(root); err != nil || len(entries) == 0 {
 			s.Log.WarnContext(ctx, "library folder is empty or can't be reached; keeping its items", "library", lib.Name, "dir", root, "err", err)
-			task.Problem(root, "This folder is empty or can't be reached, so what it held is being kept for now. If it's on a drive or a share, check that it's connected.")
+			task.Problem(root, i18n.T("This folder is empty or can't be reached, so what it held is being kept for now. If it's on a drive or a share, check that it's connected."))
 			offline = append(offline, root)
 			continue
 		}
@@ -719,14 +720,14 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 		}
 		if errors.Is(err, errWalkStopped) {
 			s.Log.ErrorContext(ctx, "could not read a library folder; keeping its items", "library", lib.Name, "dir", root, "err", err)
-			task.Problem(root, "This folder couldn't be read because of a fault in the server, so what it held is being kept for now. The log has the details.")
+			task.Problem(root, i18n.T("This folder couldn't be read because of a fault in the server, so what it held is being kept for now. The log has the details."))
 			offline = append(offline, root)
 			continue
 		}
 		if err != nil {
 			s.Log.WarnContext(ctx, "could not read all of a library folder", "library", lib.Name, "dir", root, "err", err)
 			words, fix := tasks.Explain(err)
-			task.Problem(root, "Some of this folder couldn't be read. "+words+" "+fix)
+			task.Problem(root, i18n.F("Some of this folder couldn't be read. {words} {fix}", "words", words, "fix", fix))
 		}
 		if lib.Type == "discs" {
 			images := discoverDiscCDs(root)
@@ -758,6 +759,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	rules := s.Store.loadRuleSet(ctx, lib)
 	ctx = context.WithValue(ctx, rulesKey{}, rules)
+	// The next new films' details are read while one is indexed (scan_ahead.go).
+	ahead := s.newLookahead(ctx, lib)
+	ctx = context.WithValue(ctx, aheadKey{}, ahead)
 	if err := s.Store.loadKnown(ctx, libraryID, all, !IsAudioLibrary(lib.Type) && lib.Type != "photos" && lib.Type != "books"); err != nil && ctx.Err() == nil {
 		s.Log.WarnContext(ctx, "could not read what the library holds in one go; looking file by file", "library", lib.Name, "err", err)
 	}
@@ -791,6 +795,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			continue // its name says media, its content says otherwise
 		}
 		keep[c.path] = true
+		ahead.feed(all, i)
 		err := guard(func() error {
 			switch {
 			case (lib.Type == "shows" || lib.Type == "anime") && IsDiscKind(c.kind):
@@ -815,7 +820,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 				failed++
 				s.Log.WarnContext(ctx, "could not add a file to the library", "file", c.path, "err", err)
 				words, fix := tasks.Explain(err)
-				task.Problem(c.path, "This file couldn't be added to the library. "+words+" "+fix)
+				task.Problem(c.path, i18n.F("This file couldn't be added to the library. {words} {fix}", "words", words, "fix", fix))
 			}
 		} else {
 			s.Log.DebugContext(ctx, "indexed", "file", c.path)
@@ -826,6 +831,16 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	task.Phase(phaseTidying)
 	if err := s.Store.markMissing(ctx, libraryID, keep, offline); err != nil {
 		return err
+	}
+	if lib.Type == "music" {
+		if err := s.Store.unifyFolderAlbums(ctx, libraryID); err != nil && ctx.Err() == nil {
+			s.Log.WarnContext(ctx, "could not put together albums split by their tags", "library", lib.Name, "err", err)
+		}
+	}
+	if n, err := s.Store.repointStaleArt(ctx, libraryID); err != nil && ctx.Err() == nil {
+		s.Log.WarnContext(ctx, "could not look for pictures that have moved", "library", lib.Name, "err", err)
+	} else if n > 0 {
+		s.Log.InfoContext(ctx, "pictures that were renamed or removed beside the media were looked for again", "library", lib.Name, "items", n)
 	}
 	s.importPlaylists(ctx, lib, playlists)
 	if err := s.Store.markShowsMissing(ctx, libraryID); err != nil {
@@ -1260,9 +1275,9 @@ func (s *Scanner) findPoster(ctx context.Context, it *Item, c candidate) {
 }
 
 func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
-	pctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	pctx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
-	p, err := s.Tools.ProbeFile(pctx, it.Path)
+	p, err := s.probeFile(pctx, it.Path)
 	if err != nil {
 		s.minorFailure(ctx, "could not read a file's details", err, "file", it.Path)
 		return

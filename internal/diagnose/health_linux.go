@@ -6,6 +6,7 @@ package diagnose
 import (
 	"context"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -20,7 +21,7 @@ import (
 func driveHealth(_ context.Context, _ *slog.Logger, f sysinfo.FS, _ string) healthResult {
 	dev := sysinfo.BlockDevice(f.Source)
 	if dev == "" {
-		return healthResult{note: "This isn't a local disk the system can name. Needs administrator rights, not checked."}
+		return healthResult{note: i18n.T("This isn't a local disk the system can name. Needs administrator rights, not checked.")}
 	}
 	read := func(rel string) string {
 		b, err := os.ReadFile(filepath.Join("/sys/block", dev, rel))
@@ -52,12 +53,12 @@ func driveHealth(_ context.Context, _ *slog.Logger, f sysinfo.FS, _ string) heal
 			if v, err := strconv.Atoi(strings.TrimSpace(string(b))); err == nil && v > 0 {
 				r.lines = append(r.lines, fmt.Sprintf("Temperature: %d °C", v/1000))
 				if v/1000 >= 70 {
-					r.lines = append(r.lines, "That's hot: check the airflow around this drive")
+					r.lines = append(r.lines, i18n.T("That's hot: check the airflow around this drive"))
 				}
 				break
 			}
 		}
 	}
-	r.lines = append(r.lines, "The drive's own health records need administrator rights, not checked")
+	r.lines = append(r.lines, i18n.T("The drive's own health records need administrator rights, not checked"))
 	return r
 }

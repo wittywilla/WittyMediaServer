@@ -38,7 +38,7 @@ const EnvCatalog = "WMS_TEST_CATALOG"
 // ServerVersion is the server the modules are told they run on: this one, as
 // cmd/wittymediaserver says (a test there keeps the two the same). An older version here
 // has every module that needs this server refuse to be added, failing each test that uses it.
-const ServerVersion = "0.8.1-alpha"
+const ServerVersion = "0.8.4-alpha"
 
 var (
 	mu      sync.Mutex

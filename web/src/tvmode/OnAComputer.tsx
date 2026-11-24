@@ -8,7 +8,7 @@ import { Button, Dialog } from '../ui'
 import { IconDevices } from '../icons'
 import { Brand, BrandMark } from '../components/common'
 import { useApp } from '../state'
-import { t, tx } from '../i18n'
+import { t, tx, bidi } from '../i18n'
 import { pageAddress, type TvLevel } from './levels'
 import { TV_LEVELS, tvPartLevel, tvPartTitle } from './levelTable'
 import './levelWords'
@@ -63,7 +63,7 @@ function SetNow({ lines, centred }: { lines: string[]; centred?: boolean }) {
   return (
     <div className={'tvl-now' + (centred ? ' tvl-now-centred' : '')}>
       <span className="tvl-now-label">{t('Set now')}</span>
-      {centred ? <p className="tvl-now-line">{lines.join(' · ')}</p> : <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>}
+      {centred ? <p className="tvl-now-line">{lines.map(bidi).join(' · ')}</p> : <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>}
     </div>
   )
 }
@@ -180,11 +180,13 @@ export function PartNote({ title, path }: { title: string; path: string }) {
 
 // OnAComputerDialog: for a button that opens an editor (Customise this page, Edit layout, a title's
 // scenes and skips): in TV mode the button stays, and says where to go instead of opening it.
-export function OnAComputerDialog({ part, title: named, onClose }: { part?: string; title?: string; onClose: () => void }) {
+// `path` is the setting's own address (a settings row's, with its #part), so the QR code and the short link go
+// straight to it; `summary` is its TV summary, shown as what is set now. Without them, the page that is open.
+export function OnAComputerDialog({ part, title: named, path, summary, onClose }: { part?: string; title?: string; path?: string; summary?: string; onClose: () => void }) {
   const loc = useLocation()
-  const s = useSummary(undefined)
+  const s = useSummary(summary)
   const device = tvClient() === 'tvDevice'
-  const address = addressOf(loc.pathname, s.addresses)
+  const address = addressOf(path || loc.pathname, s.addresses)
   const title = named || (part ? tx(tvPartTitle(part)) : '') || t('On a computer')
   const actions = device
     ? <Button variant="primary" data-tv-first onClick={onClose}>{t('OK')}</Button>
@@ -196,6 +198,7 @@ export function OnAComputerDialog({ part, title: named, onClose }: { part?: stri
           <p>{tvNote()}</p>
           {device && <p><Address text={address} /></p>}
           {device && <p className="tvl-follow">{t('What you change there applies on this TV too.')}</p>}
+          <SetNow lines={s.lines} />
         </div>
         {device && <QrCode text={address} label={t('QR code that opens this page on a phone or computer')} size={160} />}
       </div>

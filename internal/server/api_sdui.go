@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -504,6 +505,9 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	ctx.Flags["librariesEmpty"] = len(libs) == 0
 	ctx.Flags["setupIncomplete"] = u.IsAdmin && s.DB.GetSetting(r.Context(), "setupDone", "") == "0"
 	ctx.Flags["hasQuery"] = len([]rune(vars["query"])) >= 2
+	if pg.Kind == "search" && !ctx.Flags["hasQuery"] {
+		ctx.Flags["hasRecentSearches"] = len(s.recentSearches(r.Context(), u.ID)) > 0
+	}
 	for _, ui := range set.Modules() {
 		ctx.Modules = append(ctx.Modules, ui.Module)
 	}
@@ -1058,7 +1062,7 @@ func (s *Server) handleSDUIPersonalPut(w http.ResponseWriter, r *http.Request) {
 		err = dec.Decode(&p)
 	}
 	if err != nil {
-		writeErr(w, 400, "That arrangement can't be read: "+err.Error())
+		writeErr(w, 400, i18n.F("That arrangement can't be read: {error}", "error", err.Error()))
 		return
 	}
 	if issues := sdui.ValidatePersonal(&p); sdui.HasErrors(issues) {

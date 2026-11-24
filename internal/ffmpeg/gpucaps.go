@@ -6,6 +6,7 @@ package ffmpeg
 import (
 	"context"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -235,7 +236,7 @@ func (t *Tools) testPath(ctx context.Context, log *slog.Logger, st *GPUPath, job
 	if m := vulkanSelected.FindStringSubmatch(said); m != nil {
 		st.Device = strings.TrimSpace(m[1])
 		if strings.EqualFold(m[2], "cpu") || strings.Contains(strings.ToLower(m[1]), "llvmpipe") {
-			st.Tested, st.Reason = true, "The only Vulkan device here is a software one ("+st.Device+"), which would do the work on the processor."
+			st.Tested, st.Reason = true, i18n.F("The only Vulkan device here is a software one ({device}), which would do the work on the processor.", "device", st.Device)
 			log.Info("graphics chip path can't be used", "path", st.ID, "reason", st.Reason)
 			return
 		}

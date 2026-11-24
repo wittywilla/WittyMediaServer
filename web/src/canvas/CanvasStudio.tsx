@@ -12,7 +12,7 @@ import { Button, Dialog, Notice, ask, toast } from '../ui'
 import LoopEditor, { type Range } from './LoopEditor'
 import { GEN_MAX_SEC, GEN_MIN_SEC, SOURCE_WORDS } from './rules'
 import { noteCanvasChanged, useCanvas } from './useCanvas'
-import { num, t, tx } from '../i18n'
+import { num, t, tx, bidi } from '../i18n'
 import './canvas.css'
 import './studio.css'
 
@@ -201,7 +201,7 @@ function ServerVideos({ itemId, artist, title, songs, onPick }: { itemId: number
     <li key={v.id}>
       <button type="button" className="cs-vid" onClick={() => onPick(it || ({ id: v.id, title: v.title, runtimeSec: v.runtimeSec } as Item))}>
         <span className="cs-vid-pic" style={{ backgroundImage: `url("${it?.poster ? sized(posterUrl(it), fitWidth(200)) : mediaUrl(`/api/items/${v.id}/scene/${Math.floor(v.runtimeSec / 4)}`)}")` }} />
-        <span className="cs-vid-t"><b>{v.title}</b><small>{[v.artist, v.runtimeSec ? `${Math.floor(v.runtimeSec / 60)}:${String(Math.floor(v.runtimeSec % 60)).padStart(2, '0')}` : ''].filter(Boolean).join(' · ')}</small></span>
+        <span className="cs-vid-t"><b>{v.title}</b><small>{[v.artist, v.runtimeSec ? `${Math.floor(v.runtimeSec / 60)}:${String(Math.floor(v.runtimeSec % 60)).padStart(2, '0')}` : ''].filter(Boolean).map(bidi).join(' · ')}</small></span>
       </button>
     </li>
   )

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/parental"
 )
 
@@ -17,7 +17,7 @@ import (
 // walks every title of a small library through both for each kind of limit,
 // and fails when they disagree or when either lets through what it shouldn't.
 func TestLimitsInSQLAndInGoAgree(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +240,13 @@ func TestUnresolvedLimitsAllowNothing(t *testing.T) {
 func TestRatingSystemsMatchTheAgesTitlesGet(t *testing.T) {
 	for _, sys := range parental.Systems {
 		for _, r := range sys.Ratings {
-			got := AgeFor(r.Label)
+			// A board's ratings are read as its country's, which is how the server keeps them
+			// when that is its rating country.
+			label := r.Label
+			if sys.Country != "" {
+				label = sys.Country + ":" + label
+			}
+			got := AgeFor(label)
 			if got == nil || *got != r.Age {
 				t.Errorf("%s %q: a title rated this gets age %v, and Settings says %d", sys.Name, r.Label, got, r.Age)
 			}

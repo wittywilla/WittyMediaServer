@@ -37,6 +37,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
 	"github.com/wittywilla/wittymediaserver/internal/music"
+	"github.com/wittywilla/wittymediaserver/internal/notify"
 	"github.com/wittywilla/wittymediaserver/internal/playback"
 	"github.com/wittywilla/wittymediaserver/internal/reset"
 	"github.com/wittywilla/wittymediaserver/internal/sduistore"
@@ -282,8 +283,12 @@ func TestDocumentedSignInMatchesTheCode(t *testing.T) {
 }
 
 // ...and the running server must refuse what the docs say it refuses.
+// It runs on every build: without a test catalogue the module's routes are still checked, as
+// the server answers them with no module; with one, they're checked with WittyPlay installed.
 func TestSignInIsEnforced(t *testing.T) {
-	modtest.Need(t, "wittyplay")
+	if os.Getenv(modtest.EnvCatalog) != "" {
+		modtest.Need(t, "wittyplay")
+	}
 	ts := newContractServer(t)
 	_, adult := ts.account(t, "Alex", "adult", false)
 	id := ts.item(t, "video", tempMedia(t, "a.mp4", "AAAA"))
@@ -391,6 +396,8 @@ func schemaTypes() map[string]reflect.Type {
 	ty := func(v any) reflect.Type { return reflect.TypeOf(v) }
 	return map[string]reflect.Type{
 		"User": ty(auth.User{}), "UserView": ty(userView{}), "Access": ty(library.Access{}),
+		"Note": ty(notify.Note{}), "NoteList": ty(NoteList{}), "NoteCount": ty(NoteCount{}), "NoteChoice": ty(notify.Choice{}), "NoteChoices": ty(NoteChoices{}),
+		"NoteSmtp": ty(notify.SMTP{}), "NoteChannel": ty(notify.Channel{}), "NoteChannels": ty(NoteChannels{}), "NoteChannelsUpdate": ty(NoteChannelsUpdate{}),
 		"Library": ty(library.Library{}), "Item": ty(library.Item{}), "Progress": ty(library.Progress{}), "Show": ty(library.Show{}), "Season": ty(library.Season{}),
 		"CDView": ty(cdView{}), "DiscInfo": ty(library.DiscInfo{}), "Album": ty(library.Album{}), "Artist": ty(library.Artist{}), "MusicLinks": ty(MusicLinks{}), "MusicLinkView": ty(MusicLinkView{}), "MusicLinkSide": ty(MusicLinkSide{}), "MusicVideoCard": ty(MusicVideoCard{}), "MusicLink": ty(music.Link{}), "MusicMatchResult": ty(music.Result{}), "Network": ty(library.Network{}),
 		"Podcast": ty(library.Podcast{}), "Annotation": ty(library.Annotation{}), "SearchHit": ty(library.SearchHit{}), "Agent": ty(library.Agent{}), "AgentResult": ty(library.AgentResult{}),

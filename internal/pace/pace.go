@@ -81,7 +81,7 @@ func Machine() Class {
 	}
 	machineOnce.Do(func() {
 		memoryMB = machineMemoryMB(sysinfo.MemoryMB(), containerLimit())
-		machine = Classify(runtime.NumCPU(), memoryMB)
+		machine = Classify(Cores(), memoryMB)
 		switch strings.ToLower(strings.TrimSpace(os.Getenv("WMS_MACHINE"))) {
 		case "tiny":
 			machine = Tiny
@@ -140,7 +140,7 @@ const (
 // Slots is how many of a kind may run at once on this machine. Each is a process
 // of its own, with tens of megabytes of memory and a processor to itself for as
 // long as it runs.
-func Slots(k Kind) int { return slots(k, Machine(), runtime.NumCPU()) }
+func Slots(k Kind) int { return slots(k, Machine(), Cores()) }
 
 func slots(k Kind, c Class, cores int) int {
 	switch k {
@@ -180,7 +180,7 @@ type Tuning struct {
 // GOGC themselves keeps what they set.
 func Tune() Tuning {
 	c := Machine()
-	t := Tuning{Class: c, Cores: runtime.NumCPU(), MemoryMB: memoryMB}
+	t := Tuning{Class: c, Cores: Cores(), MemoryMB: memoryMB}
 	limit, percent := tuning(c, memoryMB)
 	if limit > 0 && os.Getenv("GOMEMLIMIT") == "" {
 		debug.SetMemoryLimit(limit)
@@ -297,3 +297,9 @@ func Yield(ctx context.Context) error {
 func Stats() (times int64, waited time.Duration) {
 	return yields.Load(), time.Duration(yieldNanos.Load())
 }
+
+// Cores is how many processors the server may use: Go's GOMAXPROCS, which since Go 1.25
+// follows a container's processor limit (Docker's --cpus, a NAS app's CPU quota) as well
+// as the machine. runtime.NumCPU counts every processor of the host, so a container held
+// to two processors on a 20-processor machine would be taken for a large one (#643).
+func Cores() int { return max(1, runtime.GOMAXPROCS(0)) }

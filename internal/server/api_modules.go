@@ -500,6 +500,13 @@ func (s *Server) handleModuleFailed(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(429)
 		return
 	}
+	u := userFrom(r)
+	if !s.moduleReports.counts(s.sessionToken(r, u), r.PathValue("id"), b.Version, time.Now()) {
+		// The same browser again, within the hour: noted, not counted.
+		s.Log.InfoContext(r.Context(), "a browser reported a module failing again", "cat", "modules", "module", r.PathValue("id"), "version", b.Version, "by", u.Name)
+		w.WriteHeader(204)
+		return
+	}
 	s.Log.WarnContext(r.Context(), "a browser reported a module failing", "cat", "modules", "module", r.PathValue("id"), "version", b.Version, "reason", b.Reason, "by", userFrom(r).Name)
 	if err := s.Modules.ReportBrowserFailure(r.PathValue("id"), b.Version, "in a browser: "+b.Reason, userFrom(r).IsAdmin); err != nil {
 		writeModuleErr(w, err)

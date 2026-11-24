@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiformats/go-multihash"
 	"golang.org/x/crypto/argon2"
+	"golang.org/x/crypto/scrypt"
 )
 
 // Joining by a code is an invite the other way round, for a device with no
@@ -118,6 +120,40 @@ type joinKeys struct {
 func deriveJoin(code string) joinKeys {
 	out := argon2.IDKey([]byte(code), []byte("wittymedia-join-v1"), 2, 32<<10, 1, 64)
 	return joinKeys{find: out[:32], proof: out[32:]}
+}
+
+// DeriveWebJoin is what a code becomes when it is typed on a device and taken
+// over the server's web port (internal/server, api_connect.go): the lookup key,
+// which the device sends, and the key that proves knowing the code, which it
+// never does. scrypt and not Argon2id, as joinKeys are, because the apps must
+// compute it too, and the desktop app's Electron has no Argon2: N=2^15, r=8
+// costs 32 MiB and a few hundred milliseconds, at each end and for every guess.
+func DeriveWebJoin(code string) (find, proof []byte, err error) {
+	clean, err := CleanJoinCode(code)
+	if err != nil {
+		return nil, nil, err
+	}
+	out, err := scrypt.Key([]byte(clean), []byte("wittymedia-web-join-v1"), 1<<15, 8, 1, 64)
+	if err != nil {
+		return nil, nil, err
+	}
+	return out[:32], out[32:], nil
+}
+
+// WebJoinProof is joinProof for a code taken over the server's web port, where
+// there are no libp2p IDs to bind to: the server's identity key (the one apps
+// pin, from /api/identity) stands for the server, and the device's own random
+// number for the device. Its own label, so a proof made for one way can't be
+// used for the other.
+func WebJoinProof(key []byte, role string, deviceNonce, serverNonce []byte, identityKey string) []byte {
+	m := hmac.New(sha256.New, key)
+	for _, part := range [][]byte{[]byte("wittymedia web join 1"), []byte(role), deviceNonce, serverNonce, []byte(identityKey)} {
+		var n [2]byte
+		n[0], n[1] = byte(len(part)>>8), byte(len(part))
+		m.Write(n[:])
+		m.Write(part)
+	}
+	return m.Sum(nil)
 }
 
 func joinCID(find []byte) cid.Cid {
@@ -262,25 +298,24 @@ func (n *Node) joinWaiting(name string) bool {
 // until its proof has been checked.
 func (n *Node) handleJoin(s network.Stream) {
 	defer s.Close()
-	_ = s.SetDeadline(time.Now().Add(20 * time.Second))
+	_ = s.SetDeadline(time.Now().Add(n.talkWait(joinWait)))
 	device := s.Conn().RemotePeer()
 	addr := n.remoteOf(s, false)
 	refuse := func(reason, msg string) { _ = writeMessage(s, joinChallenge{Reason: reason, Error: msg}) }
 	// The same counters as invites: a stranger gets no more tries by asking another way.
-	okAll, okPeer, okAddr := n.enrolAll.allow("all"), n.enrolPeer.allow(device.String()), n.enrolAddr.allow(addr.IP.String())
-	if !okAll || !okPeer || !okAddr {
+	if !n.allowTry(device.String(), addr.IP) {
 		n.noteRefused(s, "too many tries at a code")
 		refuse("too-many-tries", "Too many tries. Wait a minute and try again.")
 		return
 	}
 	var hello joinHello
 	if err := readMessage(s, &hello); err != nil || hello.V != 1 {
-		refuse("wrong", "That isn't a code this server understands.")
+		refuse("wrong", i18n.T("That isn't a code this server understands."))
 		return
 	}
 	deviceNonce, err := base64.StdEncoding.DecodeString(hello.Nonce)
 	if err != nil || len(deviceNonce) != joinNonceLen {
-		refuse("wrong", "That isn't a code this server understands.")
+		refuse("wrong", i18n.T("That isn't a code this server understands."))
 		return
 	}
 	n.joins.mu.Lock()
@@ -291,12 +326,12 @@ func (n *Node) handleJoin(s network.Stream) {
 	}
 	n.joins.mu.Unlock()
 	if proofKey == nil || n.cfg.Enrol == nil {
-		refuse("wrong", "No such code is waiting on this server.")
+		refuse("wrong", i18n.T("No such code is waiting on this server."))
 		return
 	}
 	serverNonce := make([]byte, joinNonceLen)
 	if _, err := rand.Read(serverNonce); err != nil {
-		refuse("refused", "The server couldn't answer.")
+		refuse("refused", i18n.T("The server couldn't answer."))
 		return
 	}
 	me := n.host.ID()

@@ -231,10 +231,10 @@ Read this before turning it on. It's the honest list.
 
 **Before you start:** do [Step 2](#step-2-lock-down-your-accounts) and [Step 3](#step-3-reduce-what-an-intruder-would-get). A paired device still needs a password, and it should be a good one.
 
-1. Go to **Settings → Remote Access → Peer-to-peer connections**. The page lists everyone who'll be contacted. Tick the box and choose **Turn on peer-to-peer connections**. Every way of connecting starts on, the **Public address book** among them: it's how your apps find your server by its ID, and how a TV that has never been at home finds it by a code. In the address book your server announces only its connection ID and its internet address and port, never what's on it or what anyone watches. Each way has its own switch under **Peer-to-peer options**, and one you turn off stays off.
+1. Go to **Settings → Remote Access → Peer-to-peer connections**. The page lists everyone who'll be contacted. Tick the box and choose **Turn on peer-to-peer connections**. Every way of connecting starts on, the **Public address book** among them: it's how your apps find your server by its ID. In the address book your server announces only its connection ID and its internet address and port, never what's on it or what anyone watches. Each way has its own switch under **Peer-to-peer options**, and one you turn off stays off.
 2. **Pair your devices while they're at home.** Open the app on each phone, TV and laptop while it's on your home network and signed in. Within a minute it adds itself to **Devices that may connect**. That's all: from then on, when the app can't find your server at home, it connects this way by itself.
-3. **A device that isn't at home** (yours while travelling, or a relative's) needs an invite. Choose **Invite a device that isn't at home**, and send them the link or show them the code. In the app they choose **Join with a link or code** and paste the link, or **Scan a QR code**. It works once, for fifteen minutes, and signs the device in as you, so send it the way you'd send a password.
-4. **A TV that isn't at home** can't take a link in: it has no keyboard worth the name and no camera. In the app on the TV choose **Join from away**. It shows a code of eight letters and digits. Type it into **A TV that shows a code** on this page, with your password, and within a minute or so the TV finds your server and signs in as you. Only type in a code you can see on your own TV: whoever is showing it gets in. It works once, for fifteen minutes, and needs **Public address book** on, as that is how the TV finds your server.
+3. **A device that isn't at home** (yours while travelling, or a relative's): at the top of **Settings → Remote Access**, under **Connect a device**, press **Show a code**. Scan the QR code with the device, or send it the link under **More options**; in the app they choose **Add a server → Paste a link**. It works once, for fifteen minutes, and signs the device in as you, so send it the way you'd send a password.
+4. **A device at home** can use the code shown beside it instead: **Add a server → Enter a code**.
 5. **[Test it](#testing-peer-to-peer-connections)**, or follow [Try it yourself](#try-it-yourself) step by step.
 
 You don't have to change the three choices at the top of the page. Peer-to-peer connections work with **Home network only** chosen, which keeps every other way in closed.
@@ -292,7 +292,7 @@ About fifteen minutes, with a phone (or a second computer) that has the WittyMed
    - **Peer to peer · connecting directly…** for more than a minute: the network the phone is on, or your home router, blocks direct connections, and there's no relay to carry it. Add your own WittyRelay.
 10. Play something for a minute, to be sure it plays. Then turn Wi-Fi back on: the app goes back to connecting at home by itself.
 
-**Somebody else's device** (a relative's TV, a laptop that has never been at home): on the server choose **Invite a device that isn't at home** and send them the link, or for a TV type in the code it shows under **A TV that shows a code**. See [Turning it on](#turning-it-on), steps 3 and 4.
+**Somebody else's device** (a relative's TV, a laptop that has never been at home): on the server choose **Connect a device → Show a code** and send them the link under **More options**, or let them scan the QR code. See [Turning it on](#turning-it-on), step 3.
 
 If anything goes differently, the server's log has every step under **Settings → Logs**, category *p2p*: each device connecting, which way, and every refusal with its reason.
 
@@ -327,6 +327,8 @@ A hosted WittyRelay is planned as a **free** service. Until it exists, and whene
 6. Paste the address, and the access key.
 7. Choose **Check**. The page asks the relay what it allows and shows it, for example *Up to 8 Mbit/s per connection, 50 Mbit/s for everyone together, pictures up to 1080p.* Read it before going on: that is what your devices get when they use it.
 8. Choose **Use this relay**. Within a few seconds it says **Working**, with the same limits. The box at the top changes to **Connections will go through your relay** if your network blocks direct connections, or keeps **Direct connection works** (the relay is then only used from networks that need it).
+
+Under **Working** is the relay's health, a dot and a line: **good**, **busy** (most of what it allows is in use, so streams through it may be slower), **full** (it takes no new servers, and yours keeps its place) or **starting**, with how much is in use. It's renewed every five minutes. A WittyRelay older than 0.2 doesn't say, and no line is shown.
 
 The server tells the relay which of your devices may come through it, and keeps telling it every five minutes: a device you remove is cut off from the relay within minutes as well. Nobody else's devices can use it to reach your server. With `WITTYRELAY_ACCESS: "open"`, other servers may register with it too, within its limits; with `"key"` (the default), only servers you gave a key to.
 

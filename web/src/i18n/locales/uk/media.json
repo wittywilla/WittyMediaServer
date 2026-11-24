@@ -934,5 +934,9 @@
     "few": "і ще {count} запрошення",
     "many": "і ще {count} запрошень",
     "other": "і ще {count} запрошення"
-  }
+  },
+  "Pause for scenes": "Пауза під час вибору сцен",
+  "Pause the film while the scenes are open": "Ставити фільм на паузу, поки відкрито список сцен",
+  "Phones and TVs": "Телефони й телевізори",
+  "Every screen": "Усі екрани"
 }

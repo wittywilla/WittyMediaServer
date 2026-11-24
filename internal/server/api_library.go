@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"net/url"
@@ -587,7 +588,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			id := l.ID
-			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: []*library.Item{}, Shows: shows})
+			hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: i18n.F("Recently added in {name}", "name", l.Name), Library: &id, Items: []*library.Item{}, Shows: shows})
 			continue
 		}
 		items, _, err := s.Store.Items(ctx, library.ItemQuery{LibraryID: l.ID, Sort: "added", Desc: true, Limit: 20, Access: acc, NoTotal: true, Brief: true})
@@ -597,7 +598,7 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 		recent = append(recent, items...)
 		hidePaths(r, items...)
 		id := l.ID
-		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: "Recently added in " + l.Name, Library: &id, Items: items})
+		hubs = append(hubs, hub{Key: "recent-" + itoa(l.ID), Title: i18n.F("Recently added in {name}", "name", l.Name), Library: &id, Items: items})
 	}
 	// In pages: past 500 titles AttachProgress reads everything this account has played.
 	for page := range slices.Chunk(recent, 500) {
@@ -720,12 +721,24 @@ func (s *Server) serveArt(w http.ResponseWriter, r *http.Request, backdrop bool)
 		writeErr(w, 404, "item not found")
 		return
 	}
+	// A picture beside the media that has gone (renamed, deleted, fetched again under another
+	// name) gives way to the next best one beside it, or the poster, or a frame, and the item
+	// is pointed at what was found: no broken picture.
+	hadPoster := it.Poster != ""
+	s.Store.StaleArt(r.Context(), it, false)
+	if backdrop {
+		s.Store.StaleArt(r.Context(), it, true)
+	}
+	lostPoster := hadPoster && it.Poster == ""
 	src := it.Poster
 	if backdrop {
 		src = it.Backdrop
 		if src == "" {
 			src = it.Poster
 		}
+	}
+	if src == "" && lostPoster && (it.Kind == "video" || it.Kind == "photo") {
+		src = library.LazyPoster // a frame of it, until the next scan finds or makes a poster
 	}
 	if src == library.LazyPoster {
 		width := qInt(r, "w", 480)
@@ -1002,6 +1015,33 @@ func (s *Server) handleLibraryNFO(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Scanner.Start(id)
 	writeJSON(w, 200, map[string]any{"foreignNfo": b.Use})
+}
+
+// PUT /api/libraries/{id}/read-only {readOnly}: whether anything the server does may write
+// into the library's folders (uploads, pictures and details saved beside the files,
+// conversions). Every kind of library has it, games among them (#398).
+func (s *Server) handleLibraryReadOnly(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathInt(r, "id")
+	if !ok {
+		writeErr(w, 400, "bad id")
+		return
+	}
+	var b struct {
+		ReadOnly bool `json:"readOnly"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if err := s.Store.SetLibraryReadOnly(r.Context(), id, b.ReadOnly); err != nil {
+		if errors.Is(err, library.ErrNotFound) {
+			writeErr(w, 404, "no such library")
+		} else {
+			writeErr(w, 500, err.Error())
+		}
+		return
+	}
+	writeJSON(w, 200, map[string]any{"readOnly": b.ReadOnly})
 }
 
 // POST /api/libraries/{id}/purge-metadata: deletes every .nfo and .metadata.json file in the

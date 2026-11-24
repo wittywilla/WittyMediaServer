@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,7 +57,7 @@ type Department struct {
 var Departments = []Department{
 	{"directing", "Directing"}, {"writing", "Writing"}, {"production", "Production"}, {"camera", "Camera"},
 	{"lighting", "Lighting"}, {"editing", "Editing"}, {"sound", "Sound"}, {"art", "Art"},
-	{"costume", "Costume & Make-Up"}, {"effects", "Visual Effects"}, {"crew", "Crew"},
+	{"costume", i18n.T("Costume & Make-Up")}, {"effects", "Visual Effects"}, {"crew", "Crew"},
 }
 
 // DepartmentKeys are the departments' keys in order.
@@ -160,10 +161,6 @@ type PersonIDs struct {
 	IMDB   string `json:"imdb,omitempty"`
 	TVDB   string `json:"tvdb,omitempty"`
 	TVMaze string `json:"tvmaze,omitempty"`
-}
-
-func (p PersonIDs) empty() bool {
-	return p.TMDB == "" && p.IMDB == "" && p.TVDB == "" && p.TVMaze == ""
 }
 
 // CreditIn is one credit as a source gives it.

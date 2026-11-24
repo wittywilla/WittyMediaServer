@@ -9,8 +9,9 @@
 .sdui-shelf.focus-grow.has-detail .sdui-item.grown .card .title, .sdui-shelf.focus-grow.has-detail .sdui-item.grown .card .sub { display: none; }
 .sdui-shelf.focus-grow .sdui-item { transition: margin var(--dur-2) var(--ease-out); }
 .sdui-shelf.focus-grow .sdui-item .card { transition: width var(--dur-2) var(--ease-out), box-shadow var(--dur-2); }
-.sdui-shelf.focus-grow .sdui-item.grown .card { width: calc(var(--card-w, 140px) * 1.2); box-shadow: var(--e-3), 0 0 0 3px var(--fg); }
-@media (max-width: 599px) { .sdui-shelf.focus-grow .sdui-item.grown .card { width: calc(var(--card-w, 140px) * 1.2); } }
+.sdui-shelf.focus-grow .sdui-item.grown .card { width: calc(var(--card-w, 140px) * var(--grow, 1.25)); box-shadow: var(--e-3), 0 0 0 3px var(--fg); }
+html.tv-mode .sdui-shelf.focus-grow { --grow: 1.45; }
+@media (max-width: 599px) { .sdui-shelf.focus-grow { --grow: 1.2; } }
 @media (prefers-reduced-motion: reduce) { .sdui-shelf.focus-grow .sdui-item .card { transition: none; } .sdui-shelf.focus-grow .sdui-item.grown .card { width: var(--card-w, 140px); } }
 
 /* ---- the consoles of a games row, over it: chips that scroll sideways (arrows to page them only where a fine pointer is) ---- */

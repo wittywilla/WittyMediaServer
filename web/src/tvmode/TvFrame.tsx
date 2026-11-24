@@ -6,10 +6,11 @@ import { profileName } from '../api'
 import { t, tx } from '../i18n'
 import { Brand, BrandMark, Spinner } from '../components/common'
 import LegalNote from '../components/LegalNote'
+import NoteSlot from '../components/NoteSlot'
 import { IconBack } from '../icons'
 import { sduiIcon } from '../sdui/render/icons'
 import { useMenu } from '../shell/useNav'
-import { Avatar } from '../pages/AuthPage'
+import { Avatar } from '../ui/Avatar'
 import { useApp } from '../state'
 import { SduiRoute } from '../sdui/useSdui'
 import { focusFirst, OWN_BACK, typing } from '../tv'
@@ -51,6 +52,7 @@ function TopBar({ tab, tabs, side }: { tab: TabId; tabs: TvTab[]; side?: { size:
             </Link>
           )
         })}
+        <NoteSlot tv={side ? 'side' : 'row'} />
       </nav>
     </header>
   )

@@ -6,6 +6,7 @@ package brandart
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"image"
 	"image/draw"
 	"path"
@@ -78,7 +79,7 @@ func (k Kit) Build(target string, modules map[string]string) (Files, error) {
 		return k.BuildKit(modules), nil
 	case "website":
 		k.webIcons(f, Server, "images/brand/")
-		f["images/brand/social.png"] = k.Social(Server, 1200, 630, "Your films, shows, music, books and games, served from home.").PNG(1200, 630)
+		f["images/brand/social.png"] = k.Social(Server, 1200, 630, i18n.T("Your films, shows, music, books and games, served from home.")).PNG(1200, 630)
 		f["images/brand/hero-dark.svg"] = k.Hero(1600, 900, false).SVG()
 		f["images/brand/hero-light.svg"] = k.Hero(1600, 900, true).SVG()
 		for _, p := range Products {
@@ -219,7 +220,7 @@ func (k Kit) apple(f Files) {
 	for _, ts := range []struct {
 		name string
 		w    int
-	}{{"Top Shelf Image", 1920}, {"Top Shelf Image Wide", 2320}} {
+	}{{i18n.T("Top Shelf Image"), 1920}, {i18n.T("Top Shelf Image Wide"), 2320}} {
 		dir := ba + ts.name + ".imageset/"
 		var imgs []any
 		for _, sc := range []int{1, 2} {
@@ -231,10 +232,10 @@ func (k Kit) apple(f Files) {
 		f[dir+"Contents.json"] = contents(map[string]any{"images": imgs})
 	}
 	f[ba+"Contents.json"] = contents(map[string]any{"assets": []any{
-		map[string]any{"filename": "App Icon - App Store.imagestack", "idiom": "tv", "role": "primary-app-icon", "size": "1280x768"},
+		map[string]any{"filename": i18n.T("App Icon - App Store.imagestack"), "idiom": "tv", "role": "primary-app-icon", "size": "1280x768"},
 		map[string]any{"filename": "App Icon.imagestack", "idiom": "tv", "role": "primary-app-icon", "size": "400x240"},
-		map[string]any{"filename": "Top Shelf Image Wide.imageset", "idiom": "tv", "role": "top-shelf-image-wide", "size": "2320x720"},
-		map[string]any{"filename": "Top Shelf Image.imageset", "idiom": "tv", "role": "top-shelf-image", "size": "1920x720"},
+		map[string]any{"filename": i18n.T("Top Shelf Image Wide.imageset"), "idiom": "tv", "role": "top-shelf-image-wide", "size": "2320x720"},
+		map[string]any{"filename": i18n.T("Top Shelf Image.imageset"), "idiom": "tv", "role": "top-shelf-image", "size": "1920x720"},
 	}})
 
 	// Behind the Apple TV's sign-in and connect screens.
@@ -325,5 +326,5 @@ func (k Kit) android(f Files) {
 	f["android/app/src/main/kotlin/com/wittywilla/wittymediaclient/ui/BrandArt.kt"] = KotlinFile("com.wittywilla.wittymediaclient.ui", []string{"Server", "Client"}, []Art{k.Tile(Server, 64), k.Tile(Client, 64)}, 64)
 	// For the stores: Google Play's 512 icon and its 1024×500 feature graphic.
 	f["android/brand/play-icon-512.png"] = encodePNG(Opaque(k.Full(Client, 512).Image(512, 512), k.Pal.Night))
-	f["android/brand/feature-graphic.png"] = encodePNG(Opaque(k.Social(Client, 1024, 500, "Your WittyMediaServer, on your phone and TV.").Image(1024, 500), k.Pal.Night))
+	f["android/brand/feature-graphic.png"] = encodePNG(Opaque(k.Social(Client, 1024, 500, i18n.T("Your WittyMediaServer, on your phone and TV.")).Image(1024, 500), k.Pal.Night))
 }

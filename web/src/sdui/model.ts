@@ -9,7 +9,7 @@
 
 import { cardStyle, UNKNOWN_STYLE } from './cardStyles.ts'
 import { WEB_LAYOUT, type Action, type Document, type Layout, type Node, type Props, type Shell } from './types.ts'
-import { t, tn, tx } from './words.ts'
+import { bidi, t, tn, tx } from './words.ts'
 
 export type View = {
   id: string
@@ -188,7 +188,7 @@ function cardView(e: View, x: Node, parent: Node | undefined) {
     e.role = 'group'
     e.label = join(str(p, 'title'), factsOf(p).join(', '))
     e.text = { title: str(p, 'title') }
-    const f = factsOf(p).join(' · ')
+    const f = factsOf(p).map(bidi).join(' · ')
     if (f) e.text.facts = f
     if (str(p, 'synopsis')) e.text.synopsis = str(p, 'synopsis')
     e.lines = { title: 2, synopsis: 3 }
@@ -224,7 +224,26 @@ function cardView(e: View, x: Node, parent: Node | undefined) {
   e.shows = shows.length ? shows : undefined
 }
 
+// A card's view, kept by its node: when more of a grid's items arrive, the section is a new node
+// but the cards already there are the same nodes (applyItems), so they get the same views back and
+// the drawn cards (memo) are left alone. Without this, every card of a big grid drew again each
+// time a page of it arrived: 298,565 component renders to scroll 1,500 films (#643). A card's view
+// depends on its node, its depth, its section's type and showTitles, and (for anything inside it)
+// the layout and the page's title; all are checked.
+type KeptCard = { v: View; depth: number; ptype?: string; titles: boolean; l: Layout; title: string }
+const keptCards = new WeakMap<Node, KeptCard>()
+
 function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pageTitle: string): View {
+  if (x.type !== 'Card') return makeView(x, depth, parent, l, pageTitle)
+  const ptype = parent?.type, titles = parent?.props?.showTitles !== false
+  const had = keptCards.get(x)
+  if (had && had.depth === depth && had.ptype === ptype && had.titles === titles && had.l === l && had.title === pageTitle) return had.v
+  const v = makeView(x, depth, parent, l, pageTitle)
+  keptCards.set(x, { v, depth, ptype, titles, l, title: pageTitle })
+  return v
+}
+
+function makeView(x: Node, depth: number, parent: Node | undefined, l: Layout, pageTitle: string): View {
   const p = x.props || {}
   const e: View = { id: x.id, type: x.type, depth, role: 'none', label: '', state: x.state || undefined, scope: x.scope || undefined, action: describeAction(x.action) || undefined, node: x, children: [] }
   const text = (k: string, v: string) => { if (v) (e.text ||= {})[k] = v }
@@ -283,7 +302,7 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
       break
     }
     case 'KeyLegend':
-      text('keys', list(p, 'entries').map((en) => tx(str(en as Props, 'label'))).join(' · '))
+      text('keys', list(p, 'entries').map((en) => tx(str(en as Props, 'label'))).map(bidi).join(' · '))
       e.textSize = l.dock?.hintSize
       break
     case 'WidgetGrid': e.role = 'group'; e.label = pageTitle; e.columns = Math.trunc(num(p, 'columns') ?? 4); e.cards = kids; break
@@ -315,7 +334,7 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
     }
     case 'DetailHeader': {
       e.role = 'region'; e.label = str(p, 'title')
-      text('title', str(p, 'title')); text('tagline', str(p, 'tagline')); text('facts', factsOf(p).join(' · ')); text('overview', str(p, 'overview'))
+      text('title', str(p, 'title')); text('tagline', str(p, 'tagline')); text('facts', factsOf(p).map(bidi).join(' · ')); text('overview', str(p, 'overview'))
       lines('title', 2); lines('overview', 4)
       e.textSize = l.text.pageTitle
       const b = buttonLabels(p)
@@ -341,7 +360,7 @@ function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pag
       e.role = 'region'; e.label = tx(str(p, 'title')); e.cards = kids
       text('title', tx(str(p, 'title'))); lines('title', 1)
       e.textSize = l.text.heading
-      text('groups', creditGroups(p).map((g) => g.label + ' ' + g.shown + (g.total > g.shown ? ' of ' + g.total : '')).join(' · '))
+      text('groups', creditGroups(p).map((g) => g.label + ' ' + g.shown + (g.total > g.shown ? ' of ' + g.total : '')).map(bidi).join(' · '))
       const c = obj(p, 'card')
       if (c) { e.cardStyle = 'person'; e.cardWidth = Math.trunc(num(c, 'width') || 0); e.cardHeight = Math.trunc(num(c, 'height') || 0) }
       const more = obj(p, 'more')

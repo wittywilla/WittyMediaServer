@@ -4,6 +4,7 @@
 package libtranscode
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"slices"
 	"strconv"
 	"strings"
@@ -46,11 +47,11 @@ func chooseEncoder(target string, depth int, hdr bool, p Policy, env Env, v Vide
 	codec := target
 	if !hasEncoderFor(codec, env, depth, hdr) && codec == "av1" {
 		codec = "hevc"
-		note = "This server's FFmpeg can't encode AV1, so H.265 is used instead."
+		note = i18n.T("This server's FFmpeg can't encode AV1, so H.265 is used instead.")
 	}
 	if !hasEncoderFor(codec, env, depth, hdr) && codec == "hevc" && !hdr {
 		codec = "h264"
-		note = "This server's FFmpeg can't encode H.265, so H.264 at a stronger setting is used instead. It saves less."
+		note = i18n.T("This server's FFmpeg can't encode H.265, so H.264 at a stronger setting is used instead. It saves less.")
 	}
 	q := p.Video.Quality
 	if codec == "h264" && target != "h264" {

@@ -5,6 +5,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strconv"
 	"strings"
 	"time"
@@ -108,7 +109,7 @@ func (rv *sduiResolver) libraryScanRows(ref string) (out []sdui.Item, busy bool,
 	} else {
 		changes.Action = &sdui.Action{Type: sdui.ActCommand, Op: "library.scan", Item: ref}
 		full.Action = &sdui.Action{Type: sdui.ActCommand, Op: "library.rescan", Item: ref,
-			Confirm: "Read every file of " + l.Name + " and its details again? On a big library this can take a long time. The library stays usable meanwhile."}
+			Confirm: i18n.F("Read every file of {name} and its details again? On a big library this can take a long time. The library stays usable meanwhile.", "name", l.Name)}
 	}
 	return append(out, changes, full), busy, nil
 }
@@ -122,7 +123,7 @@ func (rv *sduiResolver) newLibraryRows() []sdui.Item {
 	for _, k := range sdui.LibraryKinds {
 		label := strings.ToUpper(k[:1]) + k[1:]
 		if k == "musicvideos" {
-			label = "Music videos and concerts"
+			label = i18n.T("Music videos and concerts")
 		}
 		kinds = append(kinds, sdui.EnumOption{Value: k, Label: label})
 	}
@@ -214,13 +215,13 @@ func (rv *sduiResolver) matchCandidateRows(ref string) ([]sdui.Item, error) {
 			sub = append(sub, strings.Join(c.Reasons, ", "))
 		}
 		out = append(out, sdui.Item{ID: "c-" + c.Source + "-" + c.ID, Kind: "view", Title: name, Subtitle: strings.Join(sub, " · "), Icon: "check", Trailing: "Match",
-			Action: &sdui.Action{Type: sdui.ActCommand, Op: "meta.match", Item: ref, Confirm: "Match it to " + name + "?",
+			Action: &sdui.Action{Type: sdui.ActCommand, Op: "meta.match", Item: ref, Confirm: i18n.F("Match it to {name}?", "name", name),
 				Params: map[string]any{"target": target, "title": idText, "source": c.Source, "ref": c.ID}}})
 	}
 	for _, w := range res.Warnings {
 		out = append(out, sdui.Item{ID: "w-" + strconv.Itoa(len(out)), Kind: "view", Title: w, Icon: "warning"})
 	}
 	out = append(out, sdui.Item{ID: "unmatch", Kind: "view", Title: "None of these", Subtitle: "Leave it unmatched: scans won't look it up again.", Icon: "warning",
-		Action: &sdui.Action{Type: sdui.ActCommand, Op: "meta.unmatch", Item: ref, Confirm: "Leave it unmatched?", Params: map[string]any{"target": target, "title": idText}}})
+		Action: &sdui.Action{Type: sdui.ActCommand, Op: "meta.unmatch", Item: ref, Confirm: i18n.T("Leave it unmatched?"), Params: map[string]any{"target": target, "title": idText}}})
 	return out, nil
 }

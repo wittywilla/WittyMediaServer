@@ -5,6 +5,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"hash/fnv"
 	"net/http"
 	"strconv"
@@ -249,7 +250,7 @@ func timeWatched(sec float64) string {
 	h, m := int(d/time.Hour), int(d%time.Hour/time.Minute)
 	switch {
 	case h == 0 && m == 0:
-		return "Under a minute"
+		return i18n.T("Under a minute")
 	case h == 0:
 		return strconv.Itoa(m) + " min"
 	case m == 0:

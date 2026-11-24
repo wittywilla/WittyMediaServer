@@ -3,6 +3,304 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## 0.8.4-alpha
+
+Released 2026-11-24.
+
+**Languages (#497, #498)**
+
+- **What the server says follows your language.** Backup parts, Remote Access status, the peer-to-peer list, one-click
+  channels and every other sentence the server sends are now marked for translation and shown translated where a
+  translation exists. German has the ones that were reported; the others follow in the translation pass. A check in
+  CI stops new English slipping past.
+- **Arabic and Hebrew keep Latin titles in order.** A file name such as "00-aurora-…-2019" or a title's "2 hr 10 min"
+  no longer has its digits and dashes moved, and a long title is cut at its end. A screenshot test walks the pages in
+  both languages.
+**Lighter on a small machine (#643)**
+
+- **An idle server on a small machine is about six times quieter.** Go's execution trace, kept for developers' crash
+  reports, woke it about 3,500 times a minute; it is now off by default on tiny and small machines (turn it on in
+  **Logs**). On two processors: 0.04 % of one while idle, down from 0.25 %.
+- **A server in a container held to two processors now counts two**, not every processor of the machine it's on, and
+  holds itself back to match.
+- **First scans of films are about a third quicker**: the next films' details are read while one is added.
+- **The web app fetches its font once**, not on every visit (a second visit to Home: 424 KB down to 24 KB), its first
+  download is smaller, and scrolling a big library no longer draws every card again (2,219 renders for 1,500 films,
+  down from 298,565).
+- **New page: Minimum hardware** (docs/MINIMUM-HARDWARE.md): what a Raspberry Pi, an old laptop and a NAS can do, and
+  what needs a graphics card, from measurements on a two-processor container. Budgets for the web app's download and
+  the server's memory, scans and pages are now checked on every change (docs/PERFORMANCE.md, "Budgets").
+
+**Sign-in and other standalone pages (#624)**
+
+- **Sign in, Who's watching, Sign in with your phone, can't reach the server and the error page are one centred card**
+  with your server's logo and name at the top. They fit a 1280×720 screen without scrolling, on a TV too.
+- **Sign in with your phone** has one heading and one sentence. With a QR code, the code and PIN sit beside it. On an
+  address only this computer can use (127.0.0.1), there's no QR code, which a phone couldn't open, and the code leads.
+- **The app's "this address is for the app" page** is no longer bare black text. It's the same card, with a line on
+  what to open instead.
+**First-time setup (#610, #550, #494)**
+
+- **Six plain steps instead of twelve:** Welcome, Your account, Modules, Your media, Look, Finish. Each page has a short
+  title, one sentence and one main button, with the usual answer already chosen. The language is on Welcome, the
+  server's name is on the account page, and Live TV and Games follow Your media when they're installed.
+- **Customize:** every other choice (time zone, two-step sign-in, module updates, details beside your files, colours,
+  the TV guide, the home network, posters and keys, logos, lyrics, karaoke voices, streaming lists) waits behind the
+  step's Customize button, already answered.
+- **Advanced setup**, on Welcome, goes through every choice a page at a time, next to the step it belongs with.
+- **Finish** offers Connect a device (the same code and QR code as Settings → Remote Access), adding a profile, and
+  this screen as a TV, with the server's address and Copy.
+- Fixed: picking a kind of library brings its form into view; the Games page counts a games library made anywhere;
+  closing the modules dialog no longer stops installs; the browser tab follows the page; no module requests or warnings
+  before the account exists.
+- **Sign in:** the server is named once, the page is one centred column, and a wrong password on a chosen profile says
+  so ("That password isn't right").
+**Parental controls (#649)**
+
+- **Live TV is checked programme by programme.** Antenna, cable and IPTV channels now go by the guide's rating: a
+  programme above a profile's TV limit isn't shown when tuning in, stops a stream when it comes on, and can't be
+  reached through catch-up. Library channels are held to the same. A programme the guide doesn't rate counts as
+  unrated.
+- **Ratings country** (Settings → Profiles): titles keep that country's age rating, with the US one when it has none,
+  and ratings are read as that country's, since letters mean different ages in different places. Settings offers the
+  boards of 21 more countries.
+- **Explicit songs are known.** A song's explicit or clean label is read from its file when it is scanned, so an age
+  limit keeps explicit songs from kids.
+- **The parents' PIN keeps a kids' profile on its device.** With **Ask for the parents' PIN to switch away or sign
+  out**, switching to another profile, signing out, or picking a profile with no password on that device's sign-in
+  screen asks for the PIN. A parent's own password works too.
+- **Limits, for a parent:** a parent changes a kids' profile's screen time, bedtime and age on the child's own device
+  with the PIN.
+- **New kids' profiles start kid-safe:** no explicit songs, no antenna or IPTV channels, at home only, no recording,
+  downloads, sharing, comments, watch parties or playing on other devices, two hours of screen time on school days and
+  three at weekends with a bedtime, and the PIN to leave. Profiles made before keep their limits.
+- **A friendly "time's up" page** for kids' profiles: one card with the server's name, saying why and when they can
+  watch again, with **Ask a parent** and **Switch profile**, on a computer, a phone and in TV mode.
+**Clone a station (#622)**
+
+- **A channel can follow a real TV station's schedule, played from your own files.** On **Channels**, press
+  **Clone a station**, pick where the guide comes from (TVmaze's free public schedule, an XMLTV link or file, or the
+  guide your tuners and IPTV playlists already have), the days and the station. Every programme is matched to your
+  library by series, season and episode, episode title, air date and metadata ids, with how sure each match is.
+- **What you don't have is filled in**, and each slot says how: the closest episode of the same series, another
+  episode of it, a similar show (genre, network, era, rating), or whatever fits the time. Green, amber and red show
+  exact matches, stand-ins and gaps, and **Swap** chooses another in one press.
+- **It keeps to the station's clock**, with commercials on by default: spread through each programme at its natural
+  breaks where your files mark them, from the programme's own era first. **Advanced options** has the matching rules,
+  how many breaks, repeating, the time zone, a shift, and **Follow the station**, which reads the guide again each week.
+  Only the guide's words are used: nothing is recorded or decrypted. See docs/CHANNELS.md, "Clone a station".
+**Connecting another device**
+
+- **A link or QR code works from away through your own WittyRelay (#614).** A device that had never been at home
+  couldn't join when the server's only way in was its own relay, which lets through only devices the server has
+  listed. While an invite is open, the server now also lists a single-use key made from it, which the app uses only to
+  show the invite; the relay still lets through no key the server hasn't listed.
+**Players (#470)**
+
+- **A TV remote's Up and Down no longer change the volume of a film.** A TV has a volume of its own: on the picture,
+  Up brings the controls back and Down goes into them, at the timeline. On a computer Up and Down still set the volume.
+- **The quality menu never offers more than the original has.** A 1080p film of 6.4 Mbps no longer lists "1080p,
+  about 8 Mbps"; Original covers it, and the smaller sizes are held to the original's rate.
+- **Live TV on a phone gets the simple bar,** as films do: channel up and down, the last channel, now and next and the
+  guide are in its Options sheet. Live TV no longer has a speed setting.
+- **Picture in picture** is in the player's More menu (and a phone's Options sheet) where the browser has it. Not on
+  a TV; the apps use their system's own.
+- **On a computer, the music bar no longer shows the page's words in the gap under it.**
+
+**Pages (#438)**
+
+- **WittyTV's channel pages start where every other page starts,** at the top and on the page's left edge, not lower
+  down in a narrower column of their own.
+- **The chosen game on WittyPlay's home rows stays inside its row.** It grew twice, so its top ran under the tabs and
+  the first one started off the left edge of the screen.
+
+**Libraries**
+
+- **An episode whose title starts with a number keeps it.** "S01E05 - 80's Cats" is episode 5, "80's Cats", not
+  episodes 5 to 80 called "'s Cats". Run **Scan for changes** to correct ones already scanned.
+
+**Settings, the same everywhere (#612)**
+
+- **One settings menu on every device.** The web (computer and phone), its TV mode, the desktop app, and the
+  Android and Apple apps show the same groups and rows, in the same order and words: the Android phone app's You
+  page. On a computer and a TV the person is on the left and the groups on the right, and each settings page has the
+  same rows beside it. The list comes from the server (`settingsMenu` in its catalogue, docs/SETTINGS-MENU.md).
+- **A TV shows every row, and says where to change the ones it can't.** Such a row stays in its place, says what is
+  set (Remote access: Off, Live transcoding: Graphics chip…), and opens a panel with that setting's own address and
+  QR code to open on a computer or phone.
+- **Module settings and Module store sit side by side** under Modules (both were called Modules before, in two
+  places), and each page links to the other. **Look** is now **Layout**, beside Edit layout and Theme.
+- **Choose colours has no preview,** only the theme cards, like Choose a layout.
+**Player, detail page and live TV (#634)**
+
+- **A click on the faded control bar brings it back.** A click where the seek bar sits, a moment after the controls
+  have faded, used to pause the film. Now it shows the controls instead.
+- **A title's languages are a short list.** A film with 35 subtitle languages shows six, then "+25 more", which shows
+  the rest. The facts under a title sit in a grid with room between each label and its value.
+- **A break between programmes is named as one.** The guide and Home's On TV now said "We'll be right back" as if it
+  were a programme. A gap is now "Short break" (or "Off air" for an hour or more), and "Next" always names the next
+  programme.
+
+**Notifications (#654)**
+
+- **A bell beside Activity, for each profile:** new episodes of shows the profile can watch, finished recordings,
+  and for administrators failed scans, module updates and server news. Mark one or all read; in TV mode it's the
+  last pill in the bar. Settings → Notifications chooses which kinds each profile gets.
+- **Email and webhooks for administrators,** off until turned on, through your own mail server or a web address you
+  enter. A backup made without a password leaves their addresses and secrets out.
+
+**Live TV: start over and time-shift (#655)**
+
+- **Start over, pause, rewind and skip breaks** on library and custom channels (cloned stations too), for one viewer
+  while the channel keeps running live for everyone else. **Back to live** is one button, and **Skip break** jumps a
+  whole run of bumpers and commercials on a started-over programme. Parental limits apply to every one of them.
+- **Start over on a phone** is in the player's Options sheet (#667).
+
+**Search (#645)**
+
+- **One search across every library:** grouped by kind, typo-tolerant, recent searches per profile, voice where the
+  device offers it.
+
+**Library health and backups (#646, #647)**
+
+- **Settings → Library health** lists what needs a look (files that have gone, titles with no match, possible
+  duplicates, odd names, NFO files and artwork) with the fix beside each.
+- **Scheduled backups can go to a folder of your own,** such as a second drive. A folder that isn't there (a drive
+  not plugged in) is never written to: the backup says why instead.
+- **Pause for scenes:** opening the scenes panel pauses the film on phones and TVs, or on every screen if you choose
+  (#632).
+
+**Modules**
+
+- **A module that is only slow to start no longer looks like a crash in the log.** When a module's helper doesn't say
+  hello in time, the log now says the server stopped it, and says so when it wrote nothing, rather than "exit code 1"
+  with nothing to go on.
+
+- **A module that is too slow to start says so.** The log reads "stopped by the server: no hello within 45s" with
+  what the module wrote, instead of a bare "exit code 1" (#671).
+
+**Modules in this release:** WittyPlay 0.7.18 (console photo switches a remote can reach; N64 homebrew and the
+graphics card check on Linux; games on phones).
+
+**WittyMediaClient 0.6.2** goes with this release: the same settings menu as the web, the notifications bell, the
+parents' PIN to leave a kids' profile, start over and time-shift, voice search, and new native player menus.
+
+## 0.8.3-alpha
+
+Released 2026-11-24.
+
+**Player (#632)**
+
+- **The film waits while you choose a scene** on a phone, a tablet or a TV, and plays on when the scenes close. On a
+  computer it keeps playing; **Viewing settings → Pause for scenes → Every screen** makes it wait there too.
+
+**Connecting another device (#605)**
+
+- **Your own WittyRelay shows its health.** Under **Your own WittyRelay** (in **Technical details and other ways in**),
+  a dot and a line say whether the relay is good, busy, full or starting, and how much of it is in use. It's renewed
+  with every registration. Older relays don't say, and no line is shown.
+
+- **One way to connect a device, at the top of Settings → Remote Access** (and on the From away page): it says
+  whether devices away from home can connect, then **Show a code** gives a short code and a QR code. Type the code on
+  a device on your home network (**Add a server → Enter a code** in WittyMediaClient), or scan the QR code or paste the
+  link (under **More options**) from away. Whichever is used first ends the other; it works once, for fifteen minutes.
+  The code is checked without being sent: the server that made it proves so first. The rest of the page (peer-to-peer
+  settings, private networks, the router, HTTPS, limits) is folded under **Technical details and other ways in**.
+- **The QR code for joining from away is drawn again.** The link it held had grown too long for one, so none appeared.
+- **The code a TV shows for joining from away is no longer offered on the server**: it depended on the public address
+  book finding the server, which too often it didn't. A TV signs in at home with **Sign in a TV**, as before.
+
+**Games on a phone**
+
+- **Games start on a phone away from home again.** With WittyPlay 0.7.13 and later, a game reached from away no
+  longer stops at "Waiting for the first picture" or a raw "the first message must be the hello" message, and the
+  Android app no longer shows "This address is for the WittyMediaServer app on this device only".
+
+**Fixed**
+
+- **Setup's fixes from 0.8.1 are back (#623).** A later change had quietly undone them: setup's last page again shows
+  no address on a server that only this computer can reach (#536), setup and Settings again ask for a saved
+  TheTVDB, TMDB or Musixmatch key with an empty field (#534), and the converter again counts every format (#535).
+- **A library waiting for its first scan says so (#617):** "Waiting to be scanned", then "Scanning…", not an empty
+  page. Search lists titles that start with the word first, and finds songs by their artist. Settings' **Channels &
+  tuners** is now **Library channels & WittyTV**, and What's new is plain text.
+- **Pages, headings and side-by-side groups are centred the same way everywhere (#611),** with no empty band on the
+  right of Settings on a smaller window.
+- **A module's helper that stops is started properly again (#596),** and why it stopped reaches the log.
+- **A 4K screen's backdrop is the 2560-wide copy, not the original (#598),** so it loads faster.
+
+**Modules in this release:** WittyPlay 0.7.14, WittyStats 0.3.1, and updated dependencies in WittyPhotos 0.5.5,
+WittyPDF 0.4.4, WittyCD 0.3.4, WittyRigs 0.4.3, WittyCouch 0.4.4, WittyBluray 0.5.3, WittyDVD 0.5.3,
+WittyIntegratedFileBrowser 0.4.3 and WittyDisc 0.3.6.
+
+**WittyMediaClient 0.6.1** goes with this release: its **Enter a code** uses the new Connect a device, and its
+Android app is now signed with one permanent key, so later versions install over it. Uninstall 0.6.0 once first.
+
+### Developer notes for 0.8.3-alpha
+
+- New routes `POST /api/connect/hello` and `/api/connect/answer` for Enter a code (#608); `RelayOffer.Health` (#620).
+- docs/GAMING-STREAM.md: nothing is sent before a game stream's hello (#607).
+- CI: jobs side by side, caches from master only, known.json checked, flaky tests fixed (#616).
+- Updated dependencies from dependabot (#625).
+- gorilla/websocket moves to its fixed commit for GO-2026-6278 (a weak random mask key).
+- `scripts/set-tag-rules.sh` covers WittyRelay (#626); docs/PUBLISHING.md lists every repository that needs
+  `SITE_BUILD_TOKEN` (#619).
+
+## 0.8.2-alpha
+
+Released 2026-11-23.
+
+**Safer**
+
+- **Peer-to-peer: a device you take off the list is signed out (#589).** Removing a device from the peer-to-peer list
+  closed its connections; now it also ends the sign-ins it used over them. Sign-ins on your other devices stay.
+- **Peer-to-peer: stricter limits and cleaner names (#591).** Tries at an invite or a code are counted per address
+  first, so one busy address can't hold up everyone else's invites. Names that come from elsewhere (an invite's server
+  name, a device's name, what a relay says about itself) lose control characters and the invisible characters that
+  turn text around.
+- **Backups without a password leave relay access keys out (#590),** as they already left out other keys and secrets.
+- **Sign-ins stay out of picture and video addresses (#575).** The server's own web pages no longer put the session
+  token in the addresses of pictures, videos and downloads, so it can't end up in a log or a copied link.
+
+**Music, TV and artwork**
+
+- **One album folder is one album (#577).** A compilation whose songs each have their own artist was split into one
+  album per artist; it's now one album, by the artist the folder above is named after or by **Various Artists**.
+  Album names that differ only in spacing or case ("2.5 beats", "2.5beats") are one album too. A **Scan for changes**
+  applies it.
+- **TV mode's album and artist pages use the whole screen (#580),** with one stop per song for the remote and a music
+  bar sized for a TV.
+- **A renamed or removed picture beside the media is found again (#584),** instead of a broken image. The server looks
+  for the next best picture in the same folder, and a **Scan for changes** fixes the rest. A drive that's away changes
+  nothing.
+- **Changing quality keeps the sound (#578).** A film started part-way in its original quality, or resumed, could play
+  without sound, or stop with an error when the quality changed.
+- **On a phone, the category bar opens at its start (#579),** with Featured in view.
+
+**Libraries and modules**
+
+- **Any library can be read-only (#574),** games among them: Settings → Libraries has a **Read-only** switch on every
+  library with folders.
+- **A module page that doesn't exist says "page not found" (#593),** instead of a broken page.
+- **The log no longer calls it a server error when a viewer leaves mid-request (#582).**
+- **Scans use less memory on big .wittyinfo archives (#587).**
+
+**Modules in this release:** WittyModule 0.5.6, WittyPlay 0.7.12, WittyTuner 0.5.1, WittyPhotos 0.5.3, WittyComics,
+WittyEbook, WittyPDF, WittyVisualizer and WittyCouch 0.4.3, WittyCD 0.3.3, WittyRigs 0.4.2, WittyBluray and WittyDVD
+0.5.2, WittyIntegratedFileBrowser 0.4.2 and WittyDisc 0.3.5. Each module's own changelog says what changed; many make
+TV remotes' Back button work and stop showing keyboard keys on a TV.
+
+### Developer notes for 0.8.2-alpha
+
+- New route `PUT /api/libraries/{id}/read-only` (admin), in CLIENT-API.md, SECURITY-ROUTES.md and openapi.json (#574).
+- `sessions.p2p_devices`, migration 40 (#589); `p2p.CleanName` (#591).
+- Fuzz tests for playlists, .wittyinfo, XMLTV (#576) and the transport stream reader, now 97% covered (#594);
+  network-simulator scenarios for strangers, revoked devices and bad links (#599).
+- The docs contract checks sign-in enforcement on every build, and the modules job can't skip (#586).
+- CI: cheaper hashes, a copied database per test and the race detector in four shares (#585); two flaky tests fixed
+  (#569); code nothing calls removed (#588); one guide for the Mac (#573).
+- A published release starts the website's build when `SITE_BUILD_TOKEN` is set (#603, docs/PUBLISHING.md).
+
 ## 0.8.1-alpha
 
 Released 2026-11-23.
@@ -1364,7 +1662,6 @@ as well (see its section below).
 - Pictures load when the browser holds another server's (or an expired) sign-in cookie.
 - The docked music player no longer moves the profile button; the profile's name shows beside it.
 
-
 ### Updates
 
 - **One-click updates**: *Settings → About & legal → Updates* shows the installed and the newest
@@ -1430,7 +1727,6 @@ as well (see its section below).
 
 - **Version and modules**, in *About & legal* and at the foot of the settings menu: this server's
   version and those of WittyDVD, WittyBluray, WittyDisc and the readers inside it.
-
 
 ### Disc engines as Go modules
 

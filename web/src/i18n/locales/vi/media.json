@@ -889,5 +889,9 @@
   },
   "and {count} more invitations": {
     "other": "và {count} lời mời nữa"
-  }
+  },
+  "Pause for scenes": "Tạm dừng khi chọn cảnh",
+  "Pause the film while the scenes are open": "Tạm dừng phim khi danh sách cảnh đang mở",
+  "Phones and TVs": "Điện thoại và TV",
+  "Every screen": "Mọi màn hình"
 }

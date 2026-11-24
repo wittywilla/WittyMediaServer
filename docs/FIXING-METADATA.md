@@ -164,7 +164,7 @@ Anywhere a logo is needed, **Change** opens the same place. Search by name, and 
 |---|---|
 | A studio or network on a title | **Edit**, then **Logos**, or **Change logo** on its own page |
 | A channel from your library | Its editor, under **Logo**. You can also give it another name to go by |
-| A tuner or playlist channel | **Settings → Channels & tuners**, the tuner, then **Change** beside the channel. See [Logos and title art](CHANNELS.md#logos-and-title-art) |
+| A tuner or playlist channel | **Settings → Live TV & tuners**, the tuner, then **Change** beside the channel. See [Logos and title art](CHANNELS.md#logos-and-title-art) |
 | A console or a game studio | A game's page, under **Logos** |
 | Any of these, or a streaming service | **Settings → Metadata agents**, under **Logos**, then **Find or set a logo**. A name nothing has yet can be started from there |
 

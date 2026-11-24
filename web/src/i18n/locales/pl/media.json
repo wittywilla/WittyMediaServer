@@ -934,5 +934,9 @@
     "few": "i jeszcze {count} zaproszenia",
     "many": "i jeszcze {count} zaproszeń",
     "other": "i jeszcze {count} zaproszenia"
-  }
+  },
+  "Pause for scenes": "Pauza przy scenach",
+  "Pause the film while the scenes are open": "Wstrzymaj film, gdy sceny są otwarte",
+  "Phones and TVs": "Telefony i telewizory",
+  "Every screen": "Wszystkie ekrany"
 }

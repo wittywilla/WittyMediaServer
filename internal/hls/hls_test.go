@@ -655,6 +655,23 @@ func TestStreamThreads(t *testing.T) {
 	if got := line(copied); strings.Contains(got, "-threads") {
 		t.Errorf("a copy decodes no picture:\n%s", got)
 	}
+	// Picked up later on, a copied picture and its sound start at the same keyframe, so the first
+	// segment has both (#501). From the start, or converted, the seek stays exact.
+	if got := line(copied); strings.Contains(got, "-noaccurate_seek") {
+		t.Errorf("from the start there's nothing to line up:\n%s", got)
+	}
+	copied.StartSec = 120
+	if got := line(copied); !strings.Contains(got, "-ss 120.000 -noaccurate_seek") || strings.Index(got, "-noaccurate_seek") > strings.Index(got, "-i in.mkv") {
+		t.Errorf("a copy picked up at 2 min should start its sound at the keyframe too, before the input:\n%s", got)
+	}
+	if got := line(copied); strings.Contains(got, "first_pts=0") {
+		t.Errorf("the sound read from the keyframe mustn't be cut back to the place:\n%s", got)
+	}
+	converted := copied
+	converted.CopyVideo = false
+	if got := line(converted); strings.Contains(got, "-noaccurate_seek") || !strings.Contains(got, "first_pts=0") {
+		t.Errorf("a converted picture starts at the place itself, and so does its sound:\n%s", got)
+	}
 }
 
 // A wait that runs out says how far FFmpeg got: a format table row once timed out with nothing

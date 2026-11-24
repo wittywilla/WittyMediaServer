@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useEffect, useRef, useState } from 'react'
 import { api, type PlayInfo } from '../api'
-import { t } from '../i18n'
+import { t, bidi } from '../i18n'
 import { trackLang } from './trackLang'
 import { IconPlay } from '../icons'
 import { Controls, setSpeed, useVideoState } from './Controls'
@@ -105,8 +105,8 @@ export default function InlinePlayer({ id, startAt, autoPlay = true, onEnded, du
       {err && <div className="overlay-msg"><div className="box">{t('Playback failed: {error}', { error: err })}</div></div>}
       <Controls video={video} duration={info?.durationSec || durationSec} onSeek={seek} onFullscreen={() => toggleFullscreen(root.current)}
         chapters={chapters} chapterNames={info?.chapters?.map((c) => c.title)}
-        audio={info?.audio.map((a) => ({ id: a.index, label: [trackLang(a.language), a.title, a.codec?.toUpperCase()].filter(Boolean).join(' · '), active: a.index === audio }))}
-        subtitles={info?.subtitles.map((s) => ({ id: s.index, label: [trackLang(s.language), s.title].filter(Boolean).join(' · '), active: s.index === sub }))}
+        audio={info?.audio.map((a) => ({ id: a.index, label: [trackLang(a.language), a.title, a.codec?.toUpperCase()].filter(Boolean).map(bidi).join(' · '), active: a.index === audio }))}
+        subtitles={info?.subtitles.map((s) => ({ id: s.index, label: [trackLang(s.language), s.title].filter(Boolean).map(bidi).join(' · '), active: s.index === sub }))}
         onAudio={(n) => switchTrack(setAudio, n)} onSubtitle={(n) => switchTrack(setSub, n)} />
     </div>
   )

@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"os"
@@ -20,6 +21,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/backup"
+	"github.com/wittywilla/wittymediaserver/internal/config"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
@@ -37,6 +39,7 @@ const (
 	backupScheduleSetting = "backupSchedule"
 	backupLastSetting     = "backupLast"
 	backupLastErrSetting  = "backupLastError"
+	backupFolderSetting   = "backupFolder"
 	backupLinkLife        = 10 * time.Minute
 	inspectionLife        = time.Hour
 	uploadPrefix          = "wms-backup-upload-"
@@ -90,6 +93,7 @@ func (s *Server) backupRoutes(m *http.ServeMux) {
 	m.Handle("POST /api/backup/create", s.requireAdmin(s.handleBackupCreate))
 	m.Handle("POST /api/backup/cancel", s.adminOrFirstRun(s.handleBackupCancel))
 	m.Handle("PUT /api/backup/schedule", s.requireAdmin(s.handleBackupSchedule))
+	m.Handle("PUT /api/backup/folder", s.requireAdmin(s.handleBackupFolder))
 	m.Handle("DELETE /api/backup/files/{name}", s.requireAdmin(s.handleBackupDelete))
 	m.Handle("POST /api/backup/files/{name}/link", s.requireAdmin(s.handleBackupLink))
 	m.HandleFunc("GET /api/backup/download", s.handleBackupDownload)
@@ -128,11 +132,55 @@ func (s *Server) adminOrFirstRun(h http.HandlerFunc) http.Handler {
 }
 
 func (s *Server) backupFolders() backup.Folders {
-	return backup.Folders{Data: s.Cfg.DataDir, Images: s.Cfg.ImagesDir}
+	return backup.Folders{Data: s.Cfg.DataDir, Images: s.Cfg.ImagesDir, Store: s.DB.GetSetting(context.Background(), backupFolderSetting, "")}
+}
+
+// PUT /api/backup/folder {folder, current, code}: where backups are kept. It takes your own
+// password (and code), as backups hold everyone's account. An empty folder is the data
+// folder's own. The folder must already be there; it gets a marker file, so a drive that
+// isn't plugged in later isn't mistaken for it.
+func (s *Server) handleBackupFolder(w http.ResponseWriter, r *http.Request) {
+	var b struct {
+		Folder  string `json:"folder"`
+		Current string `json:"current"`
+		Code    string `json:"code"`
+	}
+	if err := readJSON(r, &b); err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if !s.confirmOwner(w, r, b.Current, b.Code) {
+		return
+	}
+	ctx := r.Context()
+	rules := backup.FolderRules{Data: s.Cfg.DataDir,
+		Protect: []string{config.ProgramDir(), s.Cfg.CacheDir, s.Cfg.ImagesDir, s.Cfg.TranscodeDir, s.Cfg.LogDir}}
+	if s.Store != nil {
+		if roots, err := s.Store.LibraryRoots(ctx); err == nil {
+			rules.Media = roots
+		}
+	}
+	clean, err := backup.CheckFolder(b.Folder, rules)
+	if err != nil {
+		writeErr(w, 400, err.Error())
+		return
+	}
+	if err := s.DB.SetSetting(ctx, backupFolderSetting, clean); err != nil {
+		writeErr(w, 500, err.Error())
+		return
+	}
+	s.Log.InfoContext(ctx, "the backup folder changed", "cat", "server", "folder", clean, "by", userFrom(r).Name)
+	s.handleBackupView(w, r)
 }
 
 // BackupSecretSettings are the settings a backup with no password leaves out.
 func BackupSecretSettings() []string { return append([]string{}, secretSettings...) }
+
+// BackupScrubSettings are the settings a backup with no password keeps with
+// the secrets inside them taken out.
+func BackupScrubSettings() map[string]func(string) string {
+	return map[string]func(string) string{p2pSettingKey: scrubP2PSetting}
+}
 
 // NoteRestore is told how the restore at this start went.
 func (s *Server) NoteRestore(r *backup.Result) {
@@ -162,19 +210,24 @@ func (s *Server) loadBackupSchedule(ctx context.Context) backupSchedule {
 }
 
 type backupView struct {
-	Parts      []backup.Part       `json:"parts"`
-	Files      []backup.Info       `json:"files"`
-	Folder     string              `json:"folder"`
-	Schedule   backupSchedule      `json:"schedule"`
-	LastAuto   int64               `json:"lastAuto,omitempty"`
-	LastErr    string              `json:"lastError,omitempty"`
-	Job        backupJob           `json:"job"`
-	Pending    *backup.Request     `json:"pending,omitempty"`
-	Last       *backup.Result      `json:"last,omitempty"`
-	Safety     []backup.SafetyCopy `json:"safety"`
-	CanRestart bool                `json:"canRestart"`
-	TwoFactor  bool                `json:"twoFactor"`
-	FirstRun   bool                `json:"firstRun"`
+	Parts  []backup.Part `json:"parts"`
+	Files  []backup.Info `json:"files"`
+	Folder string        `json:"folder"`
+	// Chosen is the folder an administrator typed, if any, and FolderProblem why a backup
+	// can't be made there now (a drive that isn't plugged in).
+	Chosen        string              `json:"chosenFolder,omitempty"`
+	DefaultFolder string              `json:"defaultFolder,omitempty"`
+	FolderProblem string              `json:"folderProblem,omitempty"`
+	Schedule      backupSchedule      `json:"schedule"`
+	LastAuto      int64               `json:"lastAuto,omitempty"`
+	LastErr       string              `json:"lastError,omitempty"`
+	Job           backupJob           `json:"job"`
+	Pending       *backup.Request     `json:"pending,omitempty"`
+	Last          *backup.Result      `json:"last,omitempty"`
+	Safety        []backup.SafetyCopy `json:"safety"`
+	CanRestart    bool                `json:"canRestart"`
+	TwoFactor     bool                `json:"twoFactor"`
+	FirstRun      bool                `json:"firstRun"`
 }
 
 // GET /api/backup: what's kept, what's scheduled and what's going on.
@@ -185,7 +238,7 @@ func (s *Server) handleBackupView(w http.ResponseWriter, r *http.Request) {
 	st.mu.Lock()
 	job := st.job
 	st.mu.Unlock()
-	v := backupView{Parts: backup.Parts(), Files: backup.List(f), Folder: f.Dir(), Job: job, Pending: backup.Pending(f), Last: backup.Last(f), Safety: backup.SafetyCopies(f), CanRestart: s.Restart != nil}
+	v := backupView{Parts: backup.Parts(), Files: backup.List(f), Folder: f.ArchiveDir(), Chosen: f.Store, DefaultFolder: f.Dir(), Job: job, Pending: backup.Pending(f), Last: backup.Last(f), Safety: backup.SafetyCopies(f), CanRestart: s.Restart != nil}
 	if u := userFrom(r); u != nil {
 		v.TwoFactor = u.TwoFactor
 		v.Schedule = s.loadBackupSchedule(ctx)
@@ -193,9 +246,12 @@ func (s *Server) handleBackupView(w http.ResponseWriter, r *http.Request) {
 			v.LastAuto = n
 		}
 		v.LastErr = s.DB.GetSetting(ctx, backupLastErrSetting, "")
+		if err := f.StoreReady(); err != nil {
+			v.FolderProblem = err.Error()
+		}
 	} else {
 		v.FirstRun = true
-		v.Parts, v.Folder = backup.Parts(), ""
+		v.Parts, v.Folder, v.Chosen, v.DefaultFolder = backup.Parts(), "", "", ""
 	}
 	writeJSON(w, 200, v)
 }
@@ -263,7 +319,7 @@ func (s *Server) startCreate(parts []string, password string, key *backup.Key, a
 	logging.Go("backup", func() {
 		var problems []string
 		out, man, err := backup.Create(ctx, backup.Options{Folders: s.backupFolders(), Parts: parts, LiveDB: s.DB.DB, Password: password, Key: key,
-			SecretSettings: BackupSecretSettings(), ServerVersion: s.Version, Auto: auto, Progress: s.backupProgress(t),
+			SecretSettings: BackupSecretSettings(), ScrubSettings: BackupScrubSettings(), ServerVersion: s.Version, Auto: auto, Progress: s.backupProgress(t),
 			Problem: func(file, why string) {
 				problems = append(problems, file+": "+why)
 				t.Problem(file, why)
@@ -300,7 +356,7 @@ func (s *Server) startCreate(parts []string, password string, key *backup.Key, a
 				log.Info("old scheduled backups were removed", "count", len(removed))
 			}
 		}
-		result := fmt.Sprintf("Backed up %d files.", len(man.Files))
+		result := i18n.F("Backed up {len} files.", "len", len(man.Files))
 		t.Result(result)
 		t.Finish(nil)
 		s.endBackup(func(j *backupJob) { j.File, j.Result, j.Problems = name, result, problems })
@@ -333,6 +389,11 @@ func (s *Server) handleBackupCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	if b.Password != "" && len(b.Password) < backup.MinPassword {
 		writeErr(w, 400, fmt.Sprintf("use a password of at least %d characters", backup.MinPassword))
+		return
+	}
+	// A chosen folder on a drive that isn't plugged in: said now, rather than in the job.
+	if err := s.backupFolders().StoreReady(); err != nil {
+		writeErr(w, 409, err.Error())
 		return
 	}
 	if err := s.startCreate(parts, b.Password, nil, false, byUser(userFrom(r))); err != nil {
@@ -594,7 +655,7 @@ func (s *Server) StartBackupSchedule(ctx context.Context) {
 				key = &backup.Key{}
 				if err := json.Unmarshal([]byte(v), key); err != nil {
 					s.Log.Error("the scheduled backup's password can't be read: no backup was made", "cat", "server", "err", err)
-					s.setBackupSetting(backupLastErrSetting, "The saved password can't be read. Set it again.")
+					s.setBackupSetting(backupLastErrSetting, i18n.T("The saved password can't be read. Set it again."))
 					s.setBackupSetting(backupLastSetting, strconv.FormatInt(time.Now().Unix(), 10))
 					continue
 				}

@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"path/filepath"
 	"slices"
@@ -549,13 +550,13 @@ func (j *Job) Engine(what string, fn func()) (ok bool) {
 			f := Finding{
 				Severity: SevProblem,
 				Title:    "The engine crashed on this disc",
-				What:     "Something went wrong inside the server while " + what + ". That's a bug in the server, and is itself a useful result: this disc would probably cause trouble in the player too.",
+				What:     i18n.F("Something went wrong inside the server while {what}. That's a bug in the server, and is itself a useful result: this disc would probably cause trouble in the player too.", "what", what),
 				Fix:      "The rest of the check carried on. Please send this report (it holds no disc content) with a bug report, along with the crash report in Settings, WittyLog.",
 				Details:  []string{fmt.Sprint(p)},
 			}
 			if j.cat == "storage" {
 				f.Title = "This check crashed"
-				f.What = "Something went wrong inside the server while " + what + ". That's a bug in the server, not in your drive."
+				f.What = i18n.F("Something went wrong inside the server while {what}. That's a bug in the server, not in your drive.", "what", what)
 				f.Fix = "Please send this report with a bug report, along with the crash report in Settings, WittyLog."
 			}
 			j.Add(f)

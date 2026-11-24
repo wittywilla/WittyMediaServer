@@ -15,13 +15,13 @@ require (
 	github.com/marcopolo/simnet v0.0.7
 	github.com/multiformats/go-multiaddr v0.16.1
 	github.com/multiformats/go-multihash v0.2.3
-	github.com/nwaples/rardecode/v2 v2.4.5
+	github.com/nwaples/rardecode/v2 v2.4.6
 	github.com/ulikunitz/xz v0.5.17
-	github.com/wittywilla/wittydisc v0.2.0
-	github.com/wittywilla/wittymodule v0.5.3
+	github.com/wittywilla/wittydisc v0.3.3
+	github.com/wittywilla/wittymodule v0.5.4
 	golang.org/x/crypto v0.59.0
 	golang.org/x/image v0.48.0
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/sys v0.50.0
 	golang.org/x/text v0.44.0
 	modernc.org/sqlite v1.62.0
@@ -47,7 +47,7 @@ require (
 	github.com/godbus/dbus/v5 v5.2.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/gorilla/websocket v1.5.4-0.20240701034025-d67f41855da4 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect

@@ -17,7 +17,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/config"
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
@@ -45,6 +45,9 @@ var publicRoutes = map[string]bool{
 	"POST /api/pair/start":  true,
 	"POST /api/pair/poll":   true,
 	"POST /api/pair/redeem": true,
+	// A code typed on a device: the server proves it made it, then the device does.
+	"POST /api/connect/hello":  true,
+	"POST /api/connect/answer": true,
 	// Pairing v2: start, and the device's own polling with its secret.
 	"POST /api/auth/pair":              true,
 	"GET /api/auth/pair/{session}":     true,
@@ -71,7 +74,7 @@ var routeRe = regexp.MustCompile(`m\.Handle(?:Func)?\("((?:GET|POST|PUT|PATCH|DE
 
 func routeServer(t *testing.T) (*Server, *auth.Service) {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

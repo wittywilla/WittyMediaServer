@@ -728,6 +728,37 @@ programme. It plays from the start at the speed it aired, and can be paused and 
 live channel. Leave with `POST /tv/{key}/leave?viewer=<name>&start=<the same start>`. A 404 means the programme
 isn't in the archive. Offer **Watch from the start** only where `catchupDays` covers the programme's start.
 
+### Start over, pause, rewind and skip breaks
+
+Every channel can be paused and rewound within `bufferSec` of its stream, as above. A `/tune` answer with
+`startOver: true` can also start the programme on now from its beginning, for this viewer only, while the channel
+runs on live for everyone else: `GET /tv/{key}/startover?viewer=<name>&from=<a moment, Unix seconds>`. Without
+`from` it is the start of the programme on now. It answers like `/tune`, with `url` for the viewer's own stream and
+`timeline`:
+
+- `programme`: `start`, `end`, `title`, `kind` of the programme `from` is in;
+- `breaks`: `start` and `end` of each run of bumpers and commercials in it and after it, up to the next programme;
+- `from`, `live` (the moment on the air now) and `earliest` (the furthest back `from` may go, six hours).
+
+A library channel's start-over stream is the channel's schedule played behind the clock: its
+`EXT-X-PROGRAM-DATE-TIME`s are the schedule's moments, so the player knows where in the programme the picture is
+(hls.js `playingDate`, ExoPlayer's window start time, AVPlayer `currentDate()`). Draw the bar from
+`programme.start` to `programme.end`. Seeking within what the playlist holds is an ordinary seek; further back, or a
+**Skip break** (to the end of the break the picture is in), asks `/startover` again with that `from`, which replaces
+this viewer's stream. A `from` within 20 seconds of live answers 409: go back to the shared stream with `/tune`. After
+a pause longer than `bufferSec`, start over from where it paused. When the picture passes `programme.end`,
+`GET /tv/{key}/timeline?at=<moment>` gives the next programme's timeline without starting anything. Skip break is
+only offered on a start-over stream: watching live keeps the breaks. Leave with
+`POST /tv/{key}/leave?viewer=<name>&shift=1`, which stops the viewer's stream at once. The owner can turn start over
+off (`tvStartOver` in `PUT /tv/settings`); `startOver` is then false and `/startover` answers 403.
+A profile's live TV limits apply as on the shared stream, at the moment of the schedule the
+stream is at: `/startover` and each playlist and part of a shifted stream answer 403 with
+`code: "programme-rating"` (and `until`) when what is on then is not for the profile.
+
+A tuner channel has `startOver` when its source has an archive (`catchupDays`): `/startover` then answers as
+`/catchup` does for the programme on now. Without an archive, pause and rewind work within the rolling buffer kept on
+disk (`tvTunerBufferMin`). Encrypted broadcasts are refused as always: nothing is ever decrypted.
+
 Tuner rows also carry `health` (`ok` or `failing`) from the last check or tune, for showing a channel that has
 stopped working. A channel can have backups, the same station from other sources, which the server tries by itself
 when it won't open; they don't appear in the guide.
@@ -1083,7 +1114,7 @@ are in `internal/brandname` (`testdata/cases.json`).
 
 ## First run
 
-First run is twelve steps in a web browser, and only there: `GET /setup/state` says where it is
+First run is six steps in a web browser, and only there: `GET /setup/state` says where it is
 (`complete`, `steps`, `step`, `done`, `url`). Until it is complete the server answers **every route an app
 uses** with **503** and
 
@@ -1267,6 +1298,25 @@ department; a title is `{target, id, title, year, character, job, episodes, gues
 (open `/items/{id}`, poster `/items/{id}/poster`) or `show` (`/shows/{id}`, `/shows/{id}/art/poster`).
 `GET /people?search=` finds people by name. A library filtered to one person is `GET /browse?person=<id>`.
 
+## Search
+
+`GET /search?q=` is the one search across every library the account can open, the same as the
+search page: films, shows and episodes, artists, albums and songs, audiobooks, podcasts, books,
+comics, games, karaoke, videos, photos, radio, channels and people. A letter or two wrong still
+matches (one from five letters, two from nine; a four-letter word may have a letter left out), and
+the last word typed matches the start of a word, so a client can search as someone types.
+`year:1999`, `year:1990-1999` or `year:1990s` in the text narrows it. Results come in `groups`,
+the best-matching group first, each with `key`, `label`, `more` and `items` (the search page's
+cards). `groups=films,shows` keeps only those; `limit` is the most items in each.
+
+Send `remember=1` when someone picks a result or presses Enter, so the search is kept among the
+profile's recent searches (`GET /search/recent`, ten, newest first; `DELETE /search/recent`
+forgets them, or with `q` one of them). The search page keeps what is searched on it by itself, a
+search that carries on from the newest one ("inter", then "interstellar") taking its place.
+
+The server answers from an index in memory, rebuilt for a library after each scan and when its
+titles change; a server that has just started answers 503 until it's ready.
+
 Everything follows the profile's limits: a hidden title's credits answer 404, a person's filmography
 names only titles the profile may see, and a person credited on nothing it may see answers 404 and
 isn't found, so an app needs no checks of its own. The first time a person is opened the server may
@@ -1432,6 +1482,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `POST /reset/restore` | admin | Bring a kept copy back: `{password, code, copy}`. 202, then the server restarts. What's there now becomes another copy. |
 | `DELETE /reset/request` | admin | Take back a reset waiting for the next start. |
 | `POST /reset/copies/delete` | admin | Delete a kept copy for good: `{password, code, copy}`. |
+| `GET /health/library` | admin | Library health: `{sections, setAside, scanning, check}`. Sections `missing`, `unmatched`, `duplicates`, `names`, `nfo`, `artwork`, `unreadable`, each `{id, count, rows, checked}`; a row is `{key, target, id, libraryId, title, year, path, detail, members, fixes}`, and `fixes` names the buttons it offers (`forget`, `scan`, `match`, `leave`, `versions`, `open`, `rules`, `refresh`, `probe`, `setaside`). `?library=` for one library, `?section=` for one section, `?limit=` rows a section (25, at most 500). Rows set aside aren't listed or counted. |
+| `POST /health/library/check` | admin | Read the NFO and metadata files beside the media in the background (in Activity), as a scan would. 202 with `check`; the `nfo` section comes from the last one. Stops after a few minutes on a huge library and says so. |
+| `DELETE /health/library/check` | admin | Stop it. |
+| `POST /health/library/fix` | admin | `{action: "versions", ids}` keeps the copies as versions of the first; `{action: "forget", target, id}` forgets a title whose file has gone, with its history (409 when the file is there or its library folder is empty or away); `{action: "probe", id}` reads a video file's details again (422 with why when it still can't); `{action: "setaside", key}` and `{action: "bringback", key}` (no key: every one). |
 | `GET /repair` | admin | [Repair](REPAIR.md): what's running, the last report with its issues, what fixes did, and the safety copies kept. |
 | `POST /repair/check` | admin | Look, and change nothing: `{only}`, a list of checks or areas, or nothing for all. 202, then ask `GET /repair`. 409 if one is running. |
 | `POST /repair/fix` | admin | Fix from the last report: `{keys, allSafe, option, password, code}`. A fix that isn't `safe`, or any `option`, needs the password and any second step again. 202, then ask `GET /repair`. |
@@ -1479,7 +1533,7 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `PUT /modules/libraries/{type}/label` | admin | What this server calls a kind of library, for when two read alike or two modules share one: `{"label": "Blu-rays and DVDs", "taken": {"movies": "Movies"}}`. An empty label goes back to the usual name. `taken` is what the app shows for the other kinds, and a name already in use is refused. |
 | `GET /modules/web` | user | The web bundles in use. |
 | `GET /modules/{id}/web/{version}/{path}` | user | A file of the bundle in use. Only names in its signed list exist. |
-| `POST /modules/{id}/failed` | user | A browser saying a bundle wouldn't load or crashed: `{"version": "...", "reason": "..."}`. Three within a day, at most one a minute, from an administrator's browser take that version out of use, and anyone else's goes in the module's log. 204. |
+| `POST /modules/{id}/failed` | user | A browser saying a bundle wouldn't load or crashed: `{"version": "...", "reason": "..."}`. Three within a day, at most one a minute, from an administrator's browser take that version out of use, and anyone else's goes in the module's log. One browser (sign-in) counts once an hour for a version; its reports in between are only noted. Only a bundle that won't load or run is reported: a page a module doesn't have is a page not found. 204. |
 
 `POST /libraries` answers 409 with `"code": "module-missing"` and the `modules` that would make it possible when a kind of library's module isn't installed. A `games` library (made or changed with `PUT /libraries/{id}`) needs a module that scans games, installed and on; its `console` is `auto` or one of that module's consoles, or it's refused as "unknown console".
 
@@ -1516,7 +1570,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 |---|---|---|
 | `POST /setup` | none | Create the first administrator (409 once there is an account). |
 | `POST /login` | none | Sign in. 429 with Retry-After after repeated failures. Password-free Kids and Guest profiles only sign in where `/profiles` lists them. |
-| `POST /logout` | none | End the session the request carries. |
+| `POST /logout` | none | End the session the request carries. A profile whose `/me/limits` says `pinToLeave` sends `{pin}` (or `{name, password}` of a parent): without it, 403 with `code` `parent-pin`. |
 | `GET /profiles` | none | The "Who's watching?" list where the server offers it: `style` is `profiles` (with `profiles`) or `classic` (ask for name and password). |
 | `POST /pair/invite` | user | Code typed on the device: get 6 digits to type there, for this account or a Kids or Guest profile it manages. Adults only. One open at a time per person; lasts 5 minutes. |
 | `POST /pair/redeem` | none | Code typed on the device: use the 6 digits and get a sign-in. Works once. Failures say why in `reason`: `wrong-code` (400), `expired` or `used` (410), `too-many-tries` (429). |
@@ -1543,8 +1597,9 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /users/{id}/password` | user | Change a password. Your own needs `current`; other sessions of that account end. |
 | `PUT /users/{id}/profile` | user | Change `displayName`, `username`, `showUsername` or `avatar` (`name:colour` from `/parental/ratings`, or empty). Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
 | `GET /profiles/household` | user | The profiles this device can switch to, as `GET /profiles` lists them, with `avatar` and `current`. Empty where the sign-in screen hides profiles, unless an adult asks. |
-| `POST /profiles/switch` | user | Switch this device to another profile: `{name, password, code, device}` as `/login`. Answers a new `token` and `user`, and ends the session it was called with. A wrong password is 403 and the device stays signed in. |
-| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, syncplay, remoteControl, remote, editProfile, editLayout, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now. For hiding what is off. |
+| `POST /profiles/switch` | user | Switch this device to another profile: `{name, password, code, device}` as `/login`, and `parentPin` when leaving a profile whose `/me/limits` says `pinToLeave` (403 with `code` `parent-pin` without it, unless the other profile's own password is given). Answers a new `token` and `user`, and ends the session it was called with. A wrong password is 403 and the device stays signed in. |
+| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, syncplay, remoteControl, remote, editProfile, editLayout, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now, and `pinToLeave`: switching away or signing out takes the parents' PIN. For hiding what is off. |
+| `PUT /me/limits` | user | A parent changes this Kids or Guest profile's limits on its own device: `{pin}` or `{name, password}`, with any of `time` (as in `/users/{id}/access`; empty for none), `maxAge` and `kinds` (`{"film": {"maxAge": 7}}`). Answers as `GET /me/limits`. 403 with `code` `wrong-pin` or `parent-pin`, 429 after too many. |
 | `GET /me/screen-time` | user | How long this profile may still play today: `allowed`, `reason` (allowance, bedtime, early), `remainingSec` (-1 = no limit), `until` and `nextAt` in Unix seconds, and a `message` to show. |
 | `POST /me/screen-time/extra` | user | Ask a parent: `{minutes, pin}` or `{minutes, name, password}` gives this profile more time today. 403 for a wrong PIN or password, 429 after too many. |
 | `POST /users/{id}/screen-time/extra` | user | Give a profile you manage more time today: `{minutes}`. |
@@ -1564,6 +1619,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /libraries/{id}` | admin | Change a library; scanning starts. |
 | `DELETE /libraries/{id}` | admin | Remove a library (the files stay). |
 | `POST /libraries/{id}/scan` | admin | Scan the library. Body `{"mode": "changes"}` (the default, also with no body): only new, changed or removed files, "Scan for changes". `{"mode": "full"}`: every file and its details again from scratch, "Full rescan" (it can take a long time on a big library; the library stays usable meanwhile). 202 `{started, mode}`; `started` is false while one is running. A scan has no time limit: it runs until it is done or someone stops it, and is stopped as stuck only when nothing moves for 10 minutes. A scan a restart cut short carries on when the server is back (a Full rescan from where it got to). 400 for another mode. An app doesn't build a screen for this: the You page's Libraries row opens the SDUI route `/manage/libraries` (page `manage-libraries`, administrators only), whose rows open each library's choices at `/manage/library/{id}` as a layer (page `manage-library`); see SDUI.md, Pages the server serves for every app. |
+| `PUT /libraries/{id}/read-only` | admin | `{readOnly}`: whether anything the server does may write into the library's folders (uploads, details and pictures saved beside the files, conversions). Any kind of library. |
 | `PUT /libraries/{id}/nfo` | admin | `{use}`: whether the library reads `.nfo` files other programs wrote (the server's own are read either way). Scans it again. |
 | `POST /libraries/{id}/purge-metadata` | admin | Deletes every `.nfo` and `.metadata.json` file in the library's folders, then scans it again. 409 for a read-only library. |
 | `GET /libraries/{id}/scan` | user | Scan progress: `{scanning, progress}`, `progress` null when none runs, else `{libraryId, phase, current, found, done, startedAt, mode, resumed}`: `done` of `found` files ("12,400 of 16,780 files"), `mode` changes or full, `resumed` when it carries on after a restart; `current` (the file) for administrators only. A library in `GET /libraries` has `scanMode` while its scan runs or waits to carry on. |
@@ -1592,6 +1648,9 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /people` | user | People credited on titles the account may see: `search` (two letters or more), `limit`. Each with `titles`, how many of theirs the account may see. |
 | `GET /people/{id}` | user | A `person` (name, dates, birthplace, biography, ids) and their `filmography` here, grouped by what they did. 404 for someone credited only on titles the account may not see. |
 | `GET /people/{id}/photo` | user, `st` | A person's picture; `w` asks for a smaller copy. |
+| `GET /search` | user | The one search, grouped by kind: `q`, `groups`, `year`, `limit`, `remember`. See "Search". |
+| `GET /search/recent` | user | The profile's recent searches, newest first. |
+| `DELETE /search/recent` | user | Forgets the profile's recent searches, or with `q` one of them. |
 | `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. `{id}` `show-<n>` with `{"watched": true}` marks every episode of the show this profile may see watched. |
 | `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). `{id}` `show-<n>`: in every episode of the show. |
 
@@ -1818,6 +1877,7 @@ asks for in one call. `{id}` is an item, as in
 | `GET /wittyinfo/{target}/{id}/files/{name}` | user | A picture in the file (`images/...`), as `files[].url` names it. |
 | `GET /wittyinfo/convert/counts` | admin | `?libraries=1,2` (default: every library of films and shows). `{counts: {titles, withNfo, withArt, withSkips, withInfo, shows, showsWithNfo, showsWithInfo, libraries, readOnlyLibraries}, canWrite, saveMetadata}`, from file names only. |
 | `POST /wittyinfo/convert` | admin | `{direction: "gather" \| "spread", libraries?, subtitles?, retire?}`. Gather puts each title's NFO details, pictures, `.skip.json`/`.edl` skips and (with `subtitles`) text subtitle files in its `.wittyinfo`, and a show's `tvshow.nfo` and pictures in `show.wittyinfo`; spread writes NFO files, pictures, a `.skip.json` and subtitles back out. What a `.wittyinfo` says is never replaced. `retire` renames what was converted from to `.bak`. Waits for scans of those libraries to finish; 202 `{task}`; 409 when one is running, or when spreading with `saveMetadata` off. |
+| `GET /wittyinfo/convert/report` | admin | `?task=<id>`. What a finished conversion did, counted by kind: `{titles, titlesConverted, shows, showsConverted, songs, songsConverted, albums, albumsConverted, converted, unchanged, failed, retired}`. Kept for the last 20 runs, until the server restarts; 404 otherwise. The task's own `result` says the same in English. |
 | `GET /media/{id}/where-to-watch` | user | This title here (`inLibrary`, `local.quality`, `local.versions`) next to the services that offer it in `region` (the listings region, or `US`): `groups` of `stream`, `free`, `ads`, `rent`, `buy`, each provider with `name`, `logo` and `priority`, and `link` to the offers page. With no TMDB key: `providers: []`, `reason: "no-api-key"`. Show `attribution` wherever this is shown. |
 | `GET /discover/where-to-watch` | user | The same for a TMDB title that may not be here: `tmdb`, `type` (`movie` or `tv`), `region`. `inLibrary`, and `itemId` or `showId` when it is. |
 
@@ -1900,7 +1960,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching, up to two rows its modules offer, and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
 | `GET /sdui/tv-summary/{id}` | user | What a television shows in place of an editor it doesn't offer ([TV mode](TV-MODE.md)): `{id, lines, addresses}`, a few lines of what is set now (only what the account may already see: administrators' screens say nothing to anyone else) and this server's addresses on the home network for the card's QR code, asked from there. {id} is a screen's `summary` in the catalogue's `tvLevels`. |
 | `GET /sdui/experiences` | user | Every experience as data (`{experiences, navStyles, themes, default}`): the catalogue a chooser draws, with each experience's shell per form factor, its `wire` (the layout in a few words per form factor, for the chooser's thumbnail: [SDUI](SDUI.md#experiences)), default theme, WittyTV look, effects, shape, type set, density, motion and home. Which a person may pick is `GET /sdui/experience`. |
-| `GET /setup/state` | none | First run: `{complete, steps, step, done, url}`. The steps are language, welcome, account, server, modules, libraries, modulesetup, looks, people, remote, extras, ready ([SETUP-FLOW.md](SETUP-FLOW.md)); the names 0.8.0 used (name, look, theme, details, livetv, games, discs) are still taken, as the step each became. Until `complete`, every route an app uses answers 503 `setup_required` (below). |
+| `GET /setup/state` | none | First run: `{complete, steps, step, done, url}`. The steps are welcome, account, modules, media, look, ready ([SETUP-FLOW.md](SETUP-FLOW.md)); the names 0.8.0 to 0.8.2 used (language, server, libraries, modulesetup, looks, people, remote, extras, and the pages in them) are still taken, as the step each became. Until `complete`, every route an app uses answers 503 `setup_required` (below). |
 | `PUT /setup/state` | none, until first run is over | `{step, done}`. Before the first account: the setup code (`X-WMS-Setup-Code` from another device). After: an administrator. 409 once first run is over. |
 | `POST /setup/complete` | admin | First run is over: apps may connect. |
 | `POST /setup/module-steps/skip` | admin | Puts off a module's setup step, `{module, step}`: the Dismiss of "Finish setting up" on Home (SDUI command `setup.skip`). With `done: true`, the step was gone through in first-run setup (the wizard sends it when someone moves on from a step a module draws), audited as done. 204. |
@@ -1965,6 +2025,10 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /channels/suggestions` | admin | Channel suggestions. |
 | `GET /channels/options` | admin | Channel options. |
 | `POST /channels/from-network` | admin | Channel from network. |
+| `POST /channels/clone/upload` | admin | Upload an XMLTV guide (the body is the file, up to 200 MB). Answers `{url: "upload:<id>"}`, kept for a week. |
+| `POST /channels/clone/stations` | admin | Stations in a guide: `{source: {kind: xmltv\|guide\|tvmaze, url, country}, from, days}`. Answers `{stations, credit}`. |
+| `POST /channels/clone/import` | admin | Clone a station: `{source, station, from, days, options}` (or `slots` to match again). Answers `{clone, commercials, counts}`; save `clone` in the channel's definition, whose blocks the server then makes from it. |
+| `POST /channels/clone/candidates` | admin | What one cloned slot could play: `{slot, options}`. Answers `{candidates}`. |
 | `POST /channels/networks/refresh` | admin | Refresh networks. |
 | `GET /channels/networks/refresh` | admin | Refresh networks progress. |
 | `GET /channels/{id}` | admin | Channel. |
@@ -1989,6 +2053,10 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `POST /tv-sets/{id}/channels` | user | Add and remove channels: `add`, `remove`. |
 | `DELETE /tv-sets/{id}` | user | Delete a set. |
 | `GET /tv/{key}/programme` | user | WittyTV More info: one programme in full, `start=<unix>`. See "More info". |
+| `GET /tv/{key}/startover` | user | Start the programme on now over, or from `from`, for this viewer only: `viewer`, `from`. Answers like `/tune` with `timeline`; 409 at live. See "Start over, pause, rewind and skip breaks". |
+| `GET /tv/{key}/timeline` | user | A library channel's programme and breaks at `at`, and where live is. Starts nothing. |
+| `GET /tv/{key}/shift/{viewer}/playlist.m3u8` | user | A viewer's start-over stream; 410 once it has stopped. |
+| `GET /tv/{key}/shift/{viewer}/seg/{name}` | user | A segment of it. |
 | `GET /tv/{key}/catchup` | user | Watch a programme from its start, from the source's archive: `start`, `end`, `viewer`. Answers like `/tune`. See "Catch-up". |
 | `GET /tv/{key}/catchup/{start}/playlist.m3u8` | user | The catch-up stream. |
 | `GET /tv/{key}/catchup/{start}/seg/{name}` | user | A segment of the catch-up stream. |
@@ -2228,6 +2296,11 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `GET /p2p/devices` | user | The devices that may connect peer to peer: yours, or everyone's with `?all=1` for an admin. Each has `id`, `name`, `platform`, `lastSeen`, and `connected` with its `path` (direct or relayed). |
 | `POST /p2p/devices` | user | Put this device's key on the list, under your account: `{id, name, platform}`. An app does this once, while it reaches the server some other way. |
 | `DELETE /p2p/devices/{id}` | user | Take a device off the list. Its open connections close at once. |
+| `GET /connect` | user | whether devices can connect from away, in words: `away` (off, checking, yes, partly, no), `words`, `p2p`, `canTurnOn`. |
+| `POST /connect/offer` | user | Connect a device: `{userId, password, otp}` gives a `code` (`K7QM-2XHD`) for a device on the same network, and with peer to peer on a `link` and a shorter `qrLink` for one away from home, for this account or a Kids or Guest profile it manages. One way in: whichever is used first ends the other. Adults only; an administrator's takes the password again (403 `password-required`). Works once, for 15 minutes; a new one ends the one before. |
+| `DELETE /connect/offer` | user | Ends the code and link this person has open. |
+| `POST /connect/hello` | none | A code from Connect a device, typed on a device: `{v: 1, find, nonce}` (scrypt lookup key, 16 random bytes). The server that made it answers `{nonce, publicKey, proof}`, proving it knows the code; 404 `not-here` from any other. The code itself is never sent. |
+| `POST /connect/answer` | none | `{v: 1, find, nonce, serverNonce, proof, device, platform}`: the device's proof. A right one signs it in: `{status: approved, token, user, serverName}`. Three wrong proofs end the code. Failures say why in `reason`, as `/pair/redeem`. |
 | `POST /p2p/invite` | user | `{userId, password, otp}`: an invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only; an invite that signs a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it), as `/pair/approve` and `/p2p/join` do. Works once, for 15 minutes. |
 | `POST /p2p/join` | user | `{code, userId, password, otp}`: the code a device away from home is showing, typed in by someone signed in. The device finds the server by it, is put on the list and signed in. Adults only; signing a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it). Works once, for 15 minutes. 409 when peer-to-peer connections or their address book are off. Feature `p2p-join`. |
 | `GET /p2p/settings` | admin | The owner's choices, how every layer is doing in plain words (`steps`), who is contacted (`thirdParties`) and every device. |
@@ -2297,6 +2370,27 @@ Watching together, in step: [SYNCPLAY.md](SYNCPLAY.md) has the rules every playe
 | `POST /system/tasks/{id}/cancel` | admin | Asks a task to stop |
 | `POST /system/tasks/{id}/retry` | admin | Starts a failed or cancelled task again |
 
+### Notifications
+
+The bell beside Activity. Each profile has its own list, kept on the server until it is cleared (the newest 200,
+for 90 days at most). A client asks `GET /me/notifications/count` while it is in front, no more than once a
+minute, and reads the list when the count or `latest` changes or the bell is opened. Links are paths inside the
+app (`/show/12`, `/tv/recordings`). Kinds: `episodes`, `recordings`, and for administrators `scans`, `modules`
+and `server`. See [NOTIFICATIONS.md](NOTIFICATIONS.md).
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /me/notifications` | user | The profile's notifications, newest first (`before`, `limit`), with `unread` and `latest` |
+| `GET /me/notifications/count` | user | How many are unread, and the newest one's id |
+| `POST /me/notifications/read` | user | Marks `ids` read, or all of them when none are given |
+| `DELETE /me/notifications` | user | Clears them all |
+| `DELETE /me/notifications/{id}` | user | Clears one |
+| `GET /me/notifications/choices` | user | Which kinds the profile gets |
+| `PUT /me/notifications/choices` | user | Turns kinds on or off |
+| `GET /notifications/channels` | admin | The mail server and this administrator's own email and webhook; never a password or secret |
+| `PUT /notifications/channels` | admin | Saves them. Off until turned on; they carry only this administrator's notifications |
+| `POST /notifications/channels/test` | admin | Sends a test through each channel that's filled in |
+
 ### Library transcoding
 
 See [LIBRARY-TRANSCODING.md](LIBRARY-TRANSCODING.md).
@@ -2363,6 +2457,7 @@ The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a
 | `POST /backup/create` | Start a backup: `{parts, password}`. With no password, secrets are left out. |
 | `POST /backup/cancel` | Stop what's running. An administrator's, or first-time setup. |
 | `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. Keeping fewer than before also takes `{current, code}`: the account's own password, and its two-factor code if it has one. |
+| `PUT /backup/folder` | Choose where backups are kept, such as a second drive: `{folder, current, code}`, with the account's own password and its two-factor code if it has one. The folder must already exist; an empty one means the data folder's own. It gets a marker file, and while that's missing (a drive not plugged in) no backup is made there and `GET /backup` says why in `folderProblem`. Backups made before the change stay listed. |
 | `DELETE /backup/files/{name}` | Delete a backup kept on this server. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
 | `POST /backup/files/{name}/link` | A short-lived address to download a backup. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
 | `GET /backup/download` | Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission. |

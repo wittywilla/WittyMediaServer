@@ -50,8 +50,18 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* The bar: floating along the bottom, a pill with the artwork standing out of it, in
    the theme's own colours. Room is left under the page so it never hides anything. */
 .audio-bar { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: var(--z-dock, 45); display: flex; align-items: center; gap: var(--sp-2);
-  padding: 8px 8px 12px; border-radius: var(--r-xl); background: var(--bg-2); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out); }
+  padding: 8px 8px 12px; border-radius: var(--r-xl); border: 1px solid var(--border-strong); box-shadow: var(--e-3); animation: toast-bar-in var(--dur-3) var(--ease-out);
+  /* Solid whatever the theme: a theme (or one made in the theme maker) whose panel colour lets light through still
+     gets the page's own colour under it, so the page's words never read through the song's (#551). */
+  background: linear-gradient(var(--bg-2), var(--bg-2)) var(--bg); }
 @keyframes toast-bar-in { from { opacity: 0; } }
+/* On a computer the bar floats a little above the bottom edge: the page's own colour fills in behind its lower half
+   and the gap under it, so a page scrolled under it doesn't show its words there (#470). Under the bar's layer, and
+   a computer has no other bar along the bottom for it to cover. (The page itself is a layer of its own, container-type,
+   so a bar that lives inside a page, as Music's tabs on a phone do, would be covered: hence a computer only.) */
+@media (min-width: 900px) {
+  html:has(.audio-bar) body::before { content: ""; position: fixed; inset-inline: 0; bottom: 0; height: calc(var(--sp-2) + var(--sp-8)); z-index: calc(var(--z-dock) - 1); pointer-events: none; background: linear-gradient(to bottom, transparent, var(--bg) var(--sp-3)); }
+}
 /* While the account menu is open, it comes first. */
 /* Always a square that keeps its size: the bar squeezes its words, never the art (#522). One size, --ab-art, set per layout. */
 .ab-art { --ab-art: 52px; position: relative; flex: none; width: var(--ab-art); height: var(--ab-art); aspect-ratio: 1; border-radius: var(--r-md); overflow: hidden; border: 0; padding: 0; background: var(--bg-3); display: grid; place-items: center; color: var(--fg-3); cursor: pointer; transition: transform var(--dur-2) var(--ease-out); box-shadow: var(--e-1); }
@@ -112,6 +122,20 @@ a.album-artist:hover { text-decoration: underline; text-underline-offset: 3px; }
   /* Room under the page for the bar, so the last row is never hidden. */
   .app:has(~ .audio-bar) .content, .app:has(~ .np) .content { padding-bottom: 128px; }
 }
+/* A television (#568): the bar at ten-foot sizes, with what a remote needs from across the room (previous, play,
+   next, the full player, stop) and the rest (shuffle, repeat, queue, add to a playlist, more) in the full player. */
+html.tv-mode .audio-bar:not(.collapsed) { width: min(1600px, calc(100% - 2 * var(--sp-12))); padding: var(--sp-4) var(--sp-6); gap: var(--sp-6); }
+html.tv-mode .audio-bar .extra { display: none; }
+html.tv-mode .audio-bar .ab-art { --ab-art: 88px; }
+html.tv-mode .audio-bar .ab-title { font-size: var(--text-xl); }
+html.tv-mode .audio-bar .ab-sub { font-size: var(--text-lg); }
+html.tv-mode .audio-bar .mp-ibtn { width: 64px; height: 64px; }
+html.tv-mode .audio-bar .mp-ibtn svg { width: 32px; height: 32px; }
+html.tv-mode .audio-bar .ab-ctl .mp-ibtn.big { width: 80px; height: 80px; }
+html.tv-mode .audio-bar .ab-ctl { gap: var(--sp-4); }
+html.tv-mode .audio-bar .ab-time { font-size: var(--text-md); }
+html.tv-mode:has(.audio-bar:not(.full, .collapsed)) { --dock-space: 160px; }
+html.tv-mode .app:has(~ .audio-bar:not(.collapsed)) .content { padding-bottom: calc(var(--dock-space) + var(--sp-8)); }
 /* Collapsed: a small round button in the corner, keeping the play button to hand. */
 .audio-bar.collapsed { left: auto; right: 16px; transform: none; width: auto; display: flex; gap: 6px; padding: 5px 8px 5px 5px; border-radius: var(--r-full); grid-template-columns: none; }
 .audio-bar.collapsed .ab-art { --ab-art: 48px; margin: 0; border-radius: 50%; }

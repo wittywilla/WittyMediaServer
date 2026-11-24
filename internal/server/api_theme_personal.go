@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"strings"
 
@@ -141,7 +142,7 @@ func (s *Server) handleThemePersonalPut(w http.ResponseWriter, r *http.Request) 
 	t := s.resolveThemeWith(r, st.Current(), s.moduleSet(nil), choices)
 	if bad := personalWarnings(t); len(bad) > 0 {
 		writeJSON(w, 400, map[string]any{
-			"error":    "Those colours would make text hard to read: " + describeIssues(bad) + ". Text needs a contrast of at least 4.5:1 with what it sits on.",
+			"error":    i18n.F("Those colours would make text hard to read: {describeIssues}. Text needs a contrast of at least 4.5:1 with what it sits on.", "describeIssues", describeIssues(bad)),
 			"contrast": bad,
 		})
 		return

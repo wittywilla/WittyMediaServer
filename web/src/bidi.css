@@ -1,0 +1,51 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+
+/*
+ * Text that isn't the app's own: titles, names, file names, artists, and the facts under a title ("2018", "2 hr 10 min").
+ * Each takes its direction from its own first letter, and keeps its digits and dashes where they are, whatever the
+ * direction of the line around it. Without this, in Arabic or Hebrew a Latin file name "00-aurora-…-2019" shows as
+ * "…-2019-00" and "2 hr 10 min" as "hr 10 min 2"; with it, a Hebrew title in English reads right to left too.
+ *
+ * unicode-bidi: plaintext is <bdi> and dir="auto" in CSS: the browser finds the direction from the text, isolates it
+ * from what's around it, and puts a cut-off title's ellipsis at the end the text runs to, so its start shows.
+ * text-align: match-parent keeps it lined up as the page is (on the right in a right-to-left page) instead of
+ * following the text's own direction. Both sit in :where(), so a rule of a component that sets its own alignment wins.
+ *
+ * The app's own words, translated, are left alone: a sentence in Arabic that begins with a name would otherwise be
+ * laid out left to right. What t() fills into a sentence is isolated there instead (i18n/core.ts, fill).
+ * test-rtl.mjs checks this on every page, in Arabic and Hebrew.
+ */
+:where(
+  /* cards, rows and lists */
+  .card .title, .card .sub, .sdui-person-text b, .sdui-person-text > span, .mus-quick-tile b, .list-item .title, .list-item .sub, .list-item b, .sdui-synopsis, .sdui-next,
+  .game-title-sub, .sdui-detail-title, .sdui-detail-line, .ep-title, .episode .title, .episode .sub,
+  /* a title's page */
+  .detail h1, .detail .tagline, .meta > *, .info > h1, .sdui-detail h1, .hero h1,
+  /* music */
+  .album-card b, .album-card .muted, .album-title, .album-artist, .album-meta, .ab-title, .ab-sub, .tl-t b, .tl-t .muted,
+  .mus-card-link > b, .mus-card-link .mus-muted, .mus-title, .mus-byline > span, .mus-actions-title, .mus-tr-title, .mus-tr-sub, .mus-tr-album a, .mus-side-words b, .mus-side-words small,
+  .mus-shelf-head h2, .mh-artist b, .mh-song-text b, .mh-song-text small, .mh-list b, .mh-list small, .mh-video-song span,
+  .mv-song-text b, .mv-song-text .muted, .np-q-text b, .np-q-text small, .np-where-sub, .kar-song b, .kar-song span,
+  .podcast-hit .grow b, .podcast-hit .grow .muted, .rd-hit-text b, .rd-hit-text .muted, .radio-name b,
+  /* people, creators, photos */
+  .cr-person b, .cr-text .muted, .cr-meta, .gal-v-title b, .av-caption, .cs-vid-t b,
+  /* the player */
+  .player .top h1, .player .top .sub, .mini-title, .mini-sub, .scene-panel .scene-name, .seek-tip-chap,
+  /* live TV */
+  .ctv-hero-chtext b, .ctv-hero-chtext span, .ctv-hero-next, .ctv-hero-sub, .ctv-cell b, .ctv-cell small, .ctv-cell-text b,
+  .ctv-preview-name, .ctv-banner-title, .ctv-banner-sub, .ctv-banner-next, .ctv-mini-ch, .ctv-mini-now b, .ctv-mini-next,
+  .ctv-name, .ctv-setch-name b, .ctv-setch-name small, .ctv-set b, .ctv-addto-row b, .ctv-setbtn-name, .onnow-card b,
+  .onnow-card small, .tve-chapter b, .tve-bumper-text b, .tve-vpick-title, .tvm-title,
+  /* files, folders and names in settings and tools */
+  .fm-row-text b, .fm-row-text .muted, .fm-file, .wi-file, .wi-row-name, .wi-pin b, .port-file, .ltc-file-name, .ltc-path,
+  .lg-file-text, .lg-long-name, .set-lib-title b, .set-lib-paths li span, .set-paths li span, .lk-name, .rc-name, .mod-name,
+  .hw-name, .dgn-entry-name, .ed-marker-name, .ed-attached-name, .lib-tile-txt b, .lib-summary-list b, .who-name,
+  .you-server-name, .avatar-name, .sw-name, .who-user, .theme-name, .pe-tree-name, .ap-meta span
+) {
+  unicode-bidi: plaintext;
+  text-align: match-parent;
+}
+
+/* <bdi> and dir="auto" where a component marks its text itself: lined up as the page is. */
+:where(bdi, [dir="auto"]) { text-align: match-parent; }

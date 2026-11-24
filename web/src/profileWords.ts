@@ -23,6 +23,17 @@ export function emptyLibraryWords(who: Who, forOwner: string): string {
   return tk('There’s nothing in this library that your profile can see yet.')
 }
 
+// emptyLibraryState: the heading and words of a library page with nothing on it. A library whose
+// scan waits behind another one's, or is going on, or has never run, isn't empty: it says so,
+// rather than telling the owner to add folders that are already there. phase is the scan's own
+// (GET /libraries/{id}/scan), "waiting" while it waits for its turn.
+export function emptyLibraryState(who: Who, lib: { scanning?: boolean; lastScanAt?: number | null }, phase: string | undefined, forOwner: string): { title: string; text: string; state: 'waiting' | 'scanning' | 'unscanned' | 'empty' } {
+  if (lib.scanning && phase === 'waiting') return { state: 'waiting', title: tk('Waiting to be scanned'), text: tk('Another library is being scanned first. What’s here appears as soon as this one’s turn comes.') }
+  if (lib.scanning) return { state: 'scanning', title: tk('Scanning…'), text: tk('Titles appear as they are found.') }
+  if (lib.lastScanAt == null) return { state: 'unscanned', title: tk('Not scanned yet'), text: who?.isAdmin ? tk('Scan this library to look through its folders.') : tk('This library hasn’t been looked through yet. Check back soon.') }
+  return { state: 'empty', title: tk('Nothing here yet'), text: emptyLibraryWords(who, forOwner) }
+}
+
 // emptyHomeWords: the card on a home page with nothing on it.
 export function emptyHomeWords(who: Who, scanning: boolean): { title: string; text: string } {
   if (scanning) return { title: who?.isAdmin ? tk('Your libraries are being scanned') : tk('The libraries are being scanned'), text: tk('Movies, shows, music and books appear here as they’re found. The first scan can take a few minutes.') }

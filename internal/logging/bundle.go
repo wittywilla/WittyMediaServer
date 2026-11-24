@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"os"
 	"path/filepath"
@@ -318,7 +319,7 @@ func PreviewDir(dir string, g *CrashGuard, o BundleOptions) BundlePreview {
 	logs, used := takeLogs(dir, &o, 0)
 	earlier := bundleEarlier(&o, used)
 	crashes := g.List()
-	add("README.txt", "What this is, and what it holds", int64(len(readmeFor(o.Sanitize))+len(contents(logs, crashes, earlier, o.Days))))
+	add("README.txt", i18n.T("What this is, and what it holds"), int64(len(readmeFor(o.Sanitize))+len(contents(logs, crashes, earlier, o.Days))))
 	if scrub != nil {
 		learn(scrub, dir, logs, g, earlier, previewScanLines)
 	}
@@ -329,7 +330,7 @@ func PreviewDir(dir string, g *CrashGuard, o BundleOptions) BundlePreview {
 		}
 	}
 	for _, f := range logs {
-		add("logs/"+f.Name, "Log file from "+f.Modified.Format("2 Jan 2006"), f.Size)
+		add("logs/"+f.Name, i18n.F("Log file from {format}", "format", f.Modified.Format("2 Jan 2006")), f.Size)
 	}
 	crashPart := func(prefix string, c Crash) {
 		summary := c.Summary
@@ -350,14 +351,14 @@ func PreviewDir(dir string, g *CrashGuard, o BundleOptions) BundlePreview {
 	}
 	for _, e := range earlier {
 		for _, f := range e.logs {
-			add("logs/"+e.Name+"/"+f.Name, "Log file from "+f.Modified.Format("2 Jan 2006")+", before a reset", f.Size)
+			add("logs/"+e.Name+"/"+f.Name, i18n.F("Log file from {format}, before a reset", "format", f.Modified.Format("2 Jan 2006")), f.Size)
 		}
 		for _, c := range e.reports {
 			crashPart("crashes/"+e.Name+"/", c)
 		}
 	}
 	if len(crashes) == 0 && !earlierCrashes(earlier) {
-		add("crashes/none.txt", "There are no crash reports", int64(len(noCrashes)))
+		add("crashes/none.txt", i18n.T("There are no crash reports"), int64(len(noCrashes)))
 	}
 	for _, f := range logs {
 		if p.Scanned >= previewScanLines {
@@ -488,9 +489,9 @@ func earlierCrashes(earlier []earlierPart) bool {
 }
 
 var partWords = map[string]string{
-	PartFlight:     "The last minutes before it, at the most detailed level",
-	PartGoroutines: "What every part of the server was waiting for",
-	PartTrace:      "An execution trace, for go tool trace",
+	PartFlight:     i18n.T("The last minutes before it, at the most detailed level"),
+	PartGoroutines: i18n.T("What every part of the server was waiting for"),
+	PartTrace:      i18n.T("An execution trace, for go tool trace"),
 }
 
 // writePart adds the evidence beside a report: the flight recorder as log lines, the

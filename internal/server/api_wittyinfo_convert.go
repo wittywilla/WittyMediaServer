@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,10 +25,63 @@ import (
 //
 //	GET  /api/wittyinfo/convert/counts?libraries=1,2   what there is to convert
 //	POST /api/wittyinfo/convert                         start it as a task
+//	GET  /api/wittyinfo/convert/report?task=ID          what a finished one did, counted by kind
 
 func (s *Server) wittyinfoConvertRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/wittyinfo/convert/counts", s.requireAdmin(s.handleConvertCounts))
 	m.Handle("POST /api/wittyinfo/convert", s.requireAdmin(s.handleConvert))
+	m.Handle("GET /api/wittyinfo/convert/report", s.requireAdmin(s.handleConvertReport))
+}
+
+// GET /api/wittyinfo/convert/report?task=ID: the counts behind a finished conversion's result, so
+// a page can say it in its own language and words (films and episodes, shows, albums, songs).
+func (s *Server) handleConvertReport(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("task")
+	j := &s.convertJobs
+	j.mu.Lock()
+	rep, ok := j.reports[id]
+	j.mu.Unlock()
+	if !ok {
+		writeErr(w, 404, "no report for that task")
+		return
+	}
+	writeJSON(w, 200, rep)
+}
+
+// convertResult is a finished conversion's result in a sentence, for Tasks and the log, counting
+// what the format holds: films and episodes, and shows (.wittyinfo); albums, and songs' lyrics
+// (.wittyaudio).
+func convertResult(format string, rep library.ConvertReport) string {
+	plural := func(n int, one, many string) string {
+		if n == 1 {
+			return one
+		}
+		return many
+	}
+	var parts []string
+	if format == "" || format == "wittyinfo" {
+		if rep.Titles > 0 || rep.Shows == 0 {
+			parts = append(parts, fmt.Sprintf("%d of %d %s converted", rep.TitlesConverted, rep.Titles, plural(rep.Titles, "film or episode", "films and episodes")))
+		}
+		if rep.Shows > 0 {
+			parts = append(parts, fmt.Sprintf("%d of %d %s", rep.ShowsConverted, rep.Shows, plural(rep.Shows, "show", "shows")))
+		}
+	}
+	if format == "" || format == "wittyaudio" {
+		if rep.Albums > 0 || rep.Songs == 0 || format == "wittyaudio" {
+			parts = append(parts, fmt.Sprintf("%d of %d %s converted", rep.AlbumsConverted, rep.Albums, plural(rep.Albums, "album", "albums")))
+		}
+		if rep.SongsConverted > 0 || format == "wittyaudio" {
+			parts = append(parts, fmt.Sprintf("lyrics for %d of %d %s", rep.SongsConverted, rep.Songs, plural(rep.Songs, "song", "songs")))
+		}
+	}
+	if rep.Retired > 0 {
+		parts = append(parts, fmt.Sprintf("%d old %s renamed to .bak", rep.Retired, plural(rep.Retired, "file", "files")))
+	}
+	if rep.Failed > 0 {
+		parts = append(parts, fmt.Sprintf("%d couldn't be (see the log)", rep.Failed))
+	}
+	return strings.Join(parts, "; ") + "."
 }
 
 // convertLibraries are the libraries asked for, or every one with films or shows.
@@ -161,16 +215,20 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 	}
 	o := library.ConvertOptions{Subtitles: b.Subtitles, Retire: b.Retire, Beside: s.saveInfoBeside(r), Author: author, Tool: "WittyMediaServer", ToolVersion: s.Version, Format: b.Format}
 	titles := map[string]string{
-		"gather/":           "Gathering NFO files, pictures and lyrics into .wittyinfo and .wittyaudio files",
-		"gather/wittyinfo":  "Gathering NFO files and pictures into .wittyinfo files",
-		"gather/wittyaudio": "Gathering lyrics, covers and album details into .wittyaudio files",
-		"spread/":           "Writing NFO files, pictures and lyrics from .wittyinfo and .wittyaudio files",
-		"spread/wittyinfo":  "Writing NFO files and pictures from .wittyinfo files",
-		"spread/wittyaudio": "Writing lyrics, covers and album details from .wittyaudio files",
+		"gather/":           i18n.T("Gathering NFO files, pictures and lyrics into .wittyinfo and .wittyaudio files"),
+		"gather/wittyinfo":  i18n.T("Gathering NFO files and pictures into .wittyinfo files"),
+		"gather/wittyaudio": i18n.T("Gathering lyrics, covers and album details into .wittyaudio files"),
+		"spread/":           i18n.T("Writing NFO files, pictures and lyrics from .wittyinfo and .wittyaudio files"),
+		"spread/wittyinfo":  i18n.T("Writing NFO files and pictures from .wittyinfo files"),
+		"spread/wittyaudio": i18n.T("Writing lyrics, covers and album details from .wittyaudio files"),
 	}
 	title := titles[b.Direction+"/"+b.Format]
 	stopped, stop := context.WithCancel(context.Background())
-	task := s.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: title, Unit: "titles", By: byUser(u), Cancel: stop, AdminOnly: true})
+	unit := "titles"
+	if b.Format == "wittyaudio" {
+		unit = "songs"
+	}
+	task := s.Tasks.Start(tasks.Spec{Type: tasks.TypeMetadata, Title: title, Unit: unit, By: byUser(u), Cancel: stop, AdminOnly: true})
 	sid := logging.NewID("convert")
 	log := s.Log.With("cat", "library", "session", sid, "direction", b.Direction)
 	started := s.background("wittyinfo conversion", func(bg context.Context) {
@@ -181,7 +239,7 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 		defer context.AfterFunc(stopped, c)()
 		// A library still being scanned has titles yet to come: wait for it (setup starts this
 		// while the first scans run).
-		task.Item("Waiting for the libraries to be scanned", "")
+		task.Item(i18n.T("Waiting for the libraries to be scanned"), "")
 		for waited := 0; waited < 6*3600; waited += 5 {
 			busy := false
 			if all, err := s.Store.Libraries(ctx); err == nil {
@@ -220,15 +278,9 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 			task.Finish(err)
 			return
 		}
-		msg := fmt.Sprintf("%d of %d titles and shows converted", rep.Converted, rep.Titles+rep.Shows)
-		if rep.Retired > 0 {
-			msg += fmt.Sprintf("; %d old files renamed to .bak", rep.Retired)
-		}
-		if rep.Failed > 0 {
-			msg += fmt.Sprintf("; %d couldn't be (see the log)", rep.Failed)
-		}
-		task.Result(msg + ".")
-		log.Info("converted", "titles", rep.Titles, "shows", rep.Shows, "converted", rep.Converted, "failed", rep.Failed, "retired", rep.Retired, "errors", strings.Join(rep.Errors, " | "))
+		j.keep(task.ID(), rep)
+		task.Result(convertResult(b.Format, rep))
+		log.Info("converted", "format", b.Format, "titles", rep.Titles, "shows", rep.Shows, "songs", rep.Songs, "albums", rep.Albums, "converted", rep.Converted, "failed", rep.Failed, "retired", rep.Retired, "errors", strings.Join(rep.Errors, " | "))
 		task.Finish(nil)
 	}, "cat", "library", "session", sid)
 	if !started {
@@ -241,8 +293,26 @@ func (s *Server) handleConvert(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 202, map[string]any{"ok": true, "task": task.ID(), "libraries": libs, "format": b.Format})
 }
 
-// convertJobs: the formats being converted now.
+// convertJobs: the formats being converted now, and the reports of the last few that finished.
 type convertJobs struct {
 	mu      sync.Mutex
 	running map[string]bool
+	reports map[string]library.ConvertReport
+	order   []string
+}
+
+// keep remembers a finished conversion's report by its task, the last 20 of them.
+func (j *convertJobs) keep(task string, rep library.ConvertReport) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	if j.reports == nil {
+		j.reports = map[string]library.ConvertReport{}
+	}
+	rep.Errors = nil // for the log, not for pages
+	j.reports[task] = rep
+	j.order = append(j.order, task)
+	for len(j.order) > 20 {
+		delete(j.reports, j.order[0])
+		j.order = j.order[1:]
+	}
 }

@@ -416,75 +416,93 @@ const itemCols = `i.id, i.library_id, i.kind, i.path, i.title, i.sort_title, i.y
 var itemColsBrief = strings.Replace(itemCols, "i.disc_json", "CASE WHEN json_valid(i.disc_json) THEN json_remove(i.disc_json, '$.titles', '$.cd') END", 1)
 
 func scanItem(sc interface{ Scan(...any) error }) (*Item, error) {
-	var it Item
-	var overview, tagline, genres, contentRating, studio, poster, backdrop, container, vcodec, audio, subs, discJSON, provider, providerID sql.NullString
-	var year sql.NullInt64
-	var rating, runtime sql.NullFloat64
-	var width, height, size, mtime sql.NullInt64
-	var missing int
-	var showID, season, episode, episodeEnd sql.NullInt64
-	var showTitle, aired sql.NullString
-	var introStart, introEnd sql.NullFloat64
-	var track, discNo, cdDisc sql.NullInt64
-	var altTitles string
-	err := sc.Scan(&it.ID, &it.LibraryID, &it.Kind, &it.Path, &it.Title, &it.SortTitle, &year, &overview, &tagline, &genres, &rating,
-		&contentRating, &studio, &runtime, &poster, &backdrop, &container, &vcodec, &width, &height,
-		&audio, &subs, &discJSON, &provider, &providerID, &size, &mtime, &it.AddedAt, &it.UpdatedAt, &missing,
-		&showID, &showTitle, &season, &episode, &episodeEnd, &aired, &it.PlayMode, &it.InsertFX, &introStart, &introEnd,
-		&it.Artist, &it.Album, &it.AlbumArtist, &track, &discNo, &it.Reading, &it.Console, &cdDisc, &altTitles)
-	if err != nil {
+	return new(itemScanner).scan(sc)
+}
+
+// itemScanner reads items row after row. Its columns' holders and the list pointing at
+// them are made once for a whole list, not for every row: a list of 60 items used to
+// make some 30 small allocations a row just to hold the columns (scripts/perf budget).
+type itemScanner struct {
+	it Item
+	// The nullable columns, by type.
+	overview, tagline, genres, contentRating, studio, poster, backdrop sql.NullString
+	container, vcodec, audio, subs, discJSON, provider, providerID     sql.NullString
+	showTitle, aired                                                   sql.NullString
+	year, width, height, size, mtime                                   sql.NullInt64
+	showID, season, episode, episodeEnd, track, discNo, cdDisc         sql.NullInt64
+	rating, runtime, introStart, introEnd                              sql.NullFloat64
+	missing                                                            int
+	altTitles                                                          string
+	args                                                               []any
+}
+
+func (x *itemScanner) scan(sc interface{ Scan(...any) error }) (*Item, error) {
+	if x.args == nil {
+		it := &x.it
+		x.args = []any{&it.ID, &it.LibraryID, &it.Kind, &it.Path, &it.Title, &it.SortTitle, &x.year, &x.overview, &x.tagline, &x.genres, &x.rating,
+			&x.contentRating, &x.studio, &x.runtime, &x.poster, &x.backdrop, &x.container, &x.vcodec, &x.width, &x.height,
+			&x.audio, &x.subs, &x.discJSON, &x.provider, &x.providerID, &x.size, &x.mtime, &it.AddedAt, &it.UpdatedAt, &x.missing,
+			&x.showID, &x.showTitle, &x.season, &x.episode, &x.episodeEnd, &x.aired, &it.PlayMode, &it.InsertFX, &x.introStart, &x.introEnd,
+			&it.Artist, &it.Album, &it.AlbumArtist, &x.track, &x.discNo, &it.Reading, &it.Console, &x.cdDisc, &x.altTitles}
+	}
+	x.it = Item{} // the holders keep their addresses; what a row before left is gone
+	if err := sc.Scan(x.args...); err != nil {
 		return nil, err
 	}
-	it.Titles = readItemTitles(altTitles, it.Title)
-	if cdDisc.Valid {
-		it.CDDisc = &cdDisc.Int64
+	it := new(Item)
+	*it = x.it
+	it.Titles = readItemTitles(x.altTitles, it.Title)
+	if x.cdDisc.Valid {
+		it.CDDisc = ptrTo(x.cdDisc.Int64)
 	}
-	if introStart.Valid && introEnd.Valid {
-		it.IntroStart, it.IntroEnd = &introStart.Float64, &introEnd.Float64
+	if x.introStart.Valid && x.introEnd.Valid {
+		it.IntroStart, it.IntroEnd = ptrTo(x.introStart.Float64), ptrTo(x.introEnd.Float64)
 	}
-	if showID.Valid {
-		it.ShowID = &showID.Int64
+	if x.showID.Valid {
+		it.ShowID = ptrTo(x.showID.Int64)
 	}
-	it.ShowTitle, it.Aired = showTitle.String, aired.String
-	it.Season, it.Episode, it.EpisodeEnd = nullInt(season), nullInt(episode), nullInt(episodeEnd)
-	it.Track, it.DiscNo = nullInt(track), nullInt(discNo)
-	if year.Valid {
-		y := int(year.Int64)
-		it.Year = &y
+	it.ShowTitle, it.Aired = x.showTitle.String, x.aired.String
+	it.Season, it.Episode, it.EpisodeEnd = nullInt(x.season), nullInt(x.episode), nullInt(x.episodeEnd)
+	it.Track, it.DiscNo = nullInt(x.track), nullInt(x.discNo)
+	if x.year.Valid {
+		it.Year = ptrTo(int(x.year.Int64))
 	}
-	if rating.Valid {
-		it.Rating = &rating.Float64
+	if x.rating.Valid {
+		it.Rating = ptrTo(x.rating.Float64)
 	}
-	it.Overview, it.Tagline, it.ContentRating, it.Studio = overview.String, tagline.String, contentRating.String, studio.String
-	it.Poster, it.Backdrop, it.Container, it.VideoCodec = poster.String, backdrop.String, container.String, vcodec.String
+	it.Overview, it.Tagline, it.ContentRating, it.Studio = x.overview.String, x.tagline.String, x.contentRating.String, x.studio.String
+	it.Poster, it.Backdrop, it.Container, it.VideoCodec = x.poster.String, x.backdrop.String, x.container.String, x.vcodec.String
 	switch it.Kind {
 	case "audio":
-		it.AudioDirect = audioPlaysDirect(&it)
+		it.AudioDirect = audioPlaysDirect(it)
 	case "book":
 		it.Reader = mediatypes.ReaderFor(it.Container)
 	}
-	it.Provider, it.ProviderID = provider.String, providerID.String
-	it.RuntimeSec = runtime.Float64
-	it.Width, it.Height = int(width.Int64), int(height.Int64)
+	it.Provider, it.ProviderID = x.provider.String, x.providerID.String
+	it.RuntimeSec = x.runtime.Float64
+	it.Width, it.Height = int(x.width.Int64), int(x.height.Int64)
 	if it.Kind == "video" {
 		it.DiscSource = discSourceOf(it.Path, it.VideoCodec, it.Height)
 	}
-	it.SizeBytes, it.MTime = size.Int64, mtime.Int64
-	it.Missing = missing != 0
-	it.Genres = splitList(genres.String)
-	it.AudioLangs = splitList(audio.String)
-	it.SubLangs = splitList(subs.String)
-	if discJSON.Valid && discJSON.String != "" {
+	it.SizeBytes, it.MTime = x.size.Int64, x.mtime.Int64
+	it.Missing = x.missing != 0
+	it.Genres = splitList(x.genres.String)
+	it.AudioLangs = splitList(x.audio.String)
+	it.SubLangs = splitList(x.subs.String)
+	if x.discJSON.Valid && x.discJSON.String != "" {
 		var d DiscInfo
-		if json.Unmarshal([]byte(discJSON.String), &d) == nil {
+		if json.Unmarshal([]byte(x.discJSON.String), &d) == nil {
 			if d.Titles == nil { // left out of lists (ItemQuery.Brief); apps decode this as a list
 				d.Titles = []DiscTitle{}
 			}
 			it.Disc = &d
 		}
 	}
-	return &it, nil
+	return it, nil
 }
+
+// ptrTo is a new variable holding v.
+func ptrTo[T any](v T) *T { return &v }
 
 func nullInt(v sql.NullInt64) *int {
 	if !v.Valid {
@@ -622,10 +640,17 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	} else {
 		where = append(where, "i.library_id NOT IN (SELECT id FROM libraries WHERE type = '"+CommercialsType+"' AND show_main = 0)")
 	}
+	// A search finds a word in a title, another title, an artist's or an album's name, or the
+	// plot, and with no order asked for it lists them in that order of how well they match: "lady"
+	// is Lady Gaga's albums before a book whose blurb has a lady in it (#553).
+	var rankArgs []any
+	rank := ""
 	if q.Search != "" {
-		where = append(where, "(i.title LIKE ? OR i.overview LIKE ? OR "+altTitlesLike+")")
 		like := "%" + q.Search + "%"
-		args = append(args, like, like, like)
+		where = append(where, "(i.title LIKE ? OR "+altTitlesLike+" OR "+searchNames+" LIKE ? OR i.overview LIKE ?)")
+		args = append(args, like, like, like, like)
+		rank = "CASE WHEN i.title LIKE ? THEN 0 WHEN i.title LIKE ? OR " + altTitlesLike + " THEN 1 WHEN " + searchNames + " LIKE ? THEN 2 ELSE 3 END, "
+		rankArgs = []any{q.Search + "%", like, like, like}
 	}
 	if q.Genre != "" {
 		where = append(where, "('|' || IFNULL(i.genres,'') || '|') LIKE ?")
@@ -755,6 +780,11 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	default:
 		order += ", i.id"
 	}
+	if rank != "" && q.Sort == "" {
+		order = rank + order
+	} else {
+		rankArgs = nil
+	}
 	w := strings.Join(where, " AND ")
 	var total int
 	if !q.NoTotal {
@@ -770,14 +800,15 @@ func (s *Store) Items(ctx context.Context, q ItemQuery) ([]*Item, int, error) {
 	if q.Brief {
 		cols = itemColsBrief
 	}
-	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM items i WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(args, limit, q.Offset)...)
+	rows, err := s.DB.QueryContext(ctx, `SELECT `+cols+` FROM items i WHERE `+w+` ORDER BY `+order+` LIMIT ? OFFSET ?`, append(append(args, rankArgs...), limit, q.Offset)...)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
 	out := []*Item{}
+	var sc itemScanner
 	for rows.Next() {
-		it, err := scanItem(rows)
+		it, err := sc.scan(rows)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -1077,8 +1108,9 @@ func (s *Store) ContinueWatching(ctx context.Context, userID int64, limit int) (
 		return nil, err
 	}
 	out := []*Item{}
+	var sc itemScanner
 	for rows.Next() {
-		it, err := scanItem(rows)
+		it, err := sc.scan(rows)
 		if err != nil {
 			rows.Close()
 			return nil, err

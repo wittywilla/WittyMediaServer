@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"sync"
 	"time"
 
@@ -204,7 +205,7 @@ func (s *Server) secondOpinionState(ctx context.Context) *secondOpinionState {
 	}
 	c, err := bdsession.Capability()
 	if err != nil {
-		st.Reason = "WittyBluray couldn't say: " + err.Error()
+		st.Reason = i18n.F("WittyBluray couldn't say: {error}", "error", err.Error())
 		return st
 	}
 	st.Available, st.Version, st.Reason = c.Libbluray.Available, c.Libbluray.Version, c.Libbluray.Reason

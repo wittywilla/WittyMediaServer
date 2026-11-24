@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -54,31 +53,26 @@ type RelayOffer struct {
 	// connections each may have through it.
 	Servers  int `json:"servers,omitempty"`
 	Circuits int `json:"circuits,omitempty"`
+	// Health is how the relay is doing now, when it says (WittyRelay 0.2 and
+	// later): told with its offer and with every registration's answer.
+	Health *RelayHealth `json:"health,omitempty"`
+}
+
+// RelayHealth is how full a relay is. It is coarse: the relay tells anyone.
+type RelayHealth struct {
+	// State: ok, busy (most of what it allows is in use: expect it to be
+	// slower), full (it takes no new servers; registered ones keep their
+	// place) or starting.
+	State string `json:"state"`
+	// Load is the fullest of what it allows, as a percentage in steps of 10.
+	Load int `json:"load"`
 }
 
 // Clean holds an offer read from someone else's relay to sane values: it is
 // shown to people and decides limits, so nothing in it is taken as it comes.
 func (o RelayOffer) Clean() RelayOffer {
-	clip := func(s string, n int) string {
-		s = strings.Map(func(r rune) rune {
-			if r < 0x20 || r == 0x7f {
-				return ' '
-			}
-			return r
-		}, strings.TrimSpace(s))
-		if !utf8.ValidString(s) {
-			s = strings.ToValidUTF8(s, "")
-		}
-		if len(s) > n {
-			s = s[:n]
-			for !utf8.ValidString(s) {
-				s = s[:len(s)-1]
-			}
-		}
-		return s
-	}
 	o.V = 1
-	o.Software, o.Name, o.Note = clip(o.Software, 60), clip(o.Name, 60), clip(o.Note, 280)
+	o.Software, o.Name, o.Note = CleanName(o.Software, 60), CleanName(o.Name, 60), CleanName(o.Note, 280)
 	if o.Access != "key" {
 		o.Access = "open"
 	}
@@ -98,6 +92,14 @@ func (o RelayOffer) Clean() RelayOffer {
 		o.DataMiB = 0
 	}
 	o.DataMiB = min(o.DataMiB, 1<<30)
+	if h := o.Health; h != nil {
+		switch h.State {
+		case "ok", "busy", "full", "starting":
+			o.Health = &RelayHealth{State: h.State, Load: max(0, min(100, (h.Load+5)/10*10))}
+		default:
+			o.Health = nil
+		}
+	}
 	return o
 }
 

@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"os"
 	"path/filepath"
@@ -150,17 +151,17 @@ func runCLI(e *Env, a Args, in io.Reader, out io.Writer) int {
 	if !a.Yes && !a.DryRun && pl.Has(GroupData) && !a.KeepData && !a.RemoveData {
 		fmt.Fprintln(out, "\nYour library, accounts and settings:")
 		fmt.Fprint(out, pl.Describe(GroupData))
-		a.RemoveData = askYes(r, out, "Delete these too? If you keep them, they're there if you install it again.")
+		a.RemoveData = askYes(r, out, i18n.T("Delete these too? If you keep them, they're there if you install it again."))
 	}
 	if !a.Yes && !a.DryRun && pl.Has(GroupRecordings) && !a.RemoveRecordings {
 		fmt.Fprintln(out, "\nRecorded TV:")
 		fmt.Fprint(out, pl.Describe(GroupRecordings))
-		a.RemoveRecordings = askYes(r, out, "Delete your recordings too?")
+		a.RemoveRecordings = askYes(r, out, i18n.T("Delete your recordings too?"))
 	}
 	if !a.Yes && !a.DryRun && pl.Has(GroupBackups) && !a.RemoveBackups {
 		fmt.Fprintln(out, "\nYour backups:")
 		fmt.Fprint(out, pl.Describe(GroupBackups))
-		a.RemoveBackups = askYes(r, out, "Delete your backups too? If you keep them, you can restore from them after installing it again.")
+		a.RemoveBackups = askYes(r, out, i18n.T("Delete your backups too? If you keep them, you can restore from them after installing it again."))
 	}
 	if a.DryRun {
 		if a.JSON {

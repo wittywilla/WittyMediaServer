@@ -12,6 +12,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"os"
@@ -46,10 +47,10 @@ func (e *DoctorEnv) metaDB(what string) (*db.DB, []Issue) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, notChecked("meta:"+what, what, "The database can't be opened, so this waits until that's fixed.")
+		return nil, notChecked("meta:"+what, what, i18n.T("The database can't be opened, so this waits until that's fixed."))
 	}
 	if e.damaged != "" {
-		return nil, notChecked("meta:"+what, what, "The database is damaged, so this waits until that's fixed.")
+		return nil, notChecked("meta:"+what, what, i18n.T("The database is damaged, so this waits until that's fixed."))
 	}
 	return d, nil
 }
@@ -99,7 +100,7 @@ func checkLibraryRoots(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	roots, err := libraryRoots(ctx, d)
 	if err != nil {
-		return notChecked("library-folders:failed", "library folders", "The list couldn't be read: "+err.Error()+".")
+		return notChecked("library-folders:failed", "library folders", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 	}
 	var out []Issue
 	for _, r := range roots {
@@ -107,11 +108,11 @@ func checkLibraryRoots(ctx context.Context, e *DoctorEnv) []Issue {
 		if !away {
 			continue
 		}
-		out = append(out, Issue{Key: "library-folders:" + hashOf(r.path), Severity: SevWarn, Title: "A folder of “" + r.name + "” " + why, Safety: SafetyManual, Input: "remap", Details: []string{r.path},
+		out = append(out, Issue{Key: "library-folders:" + hashOf(r.path), Severity: SevWarn, Title: i18n.F("A folder of “{name}” {why}", "name", r.name, "why", why), Safety: SafetyManual, Input: "remap", Details: []string{r.path},
 			What: "The folder " + r.path + " " + why + ". Its titles stay listed and nothing about them was changed, in case the drive comes back.",
 			Fix:  "If a drive is unplugged, plug it back in. If the folder moved, tell this program where it went.",
 			Steps: []string{
-				"If it's on a drive that's away, connect the drive. Nothing else is needed.",
+				i18n.T("If it's on a drive that's away, connect the drive. Nothing else is needed."),
 				remapStep(e, r.path),
 			}})
 	}
@@ -121,9 +122,9 @@ func checkLibraryRoots(ctx context.Context, e *DoctorEnv) []Issue {
 // remapStep says how to tell it, in the terms of whoever is asking.
 func remapStep(e *DoctorEnv, path string) string {
 	if e.InServer {
-		return "If it moved, say where it went, with the button below."
+		return i18n.T("If it moved, say where it went, with the button below.")
 	}
-	return "If it moved: wittymediaserver doctor remap --from \"" + path + "\" --to \"<the new folder>\" --fix, or use Moved a drive? in Settings, Repair."
+	return i18n.F("If it moved: wittymediaserver doctor remap --from \"{path}\" --to \"<the new folder>\" --fix, or use Moved a drive? in Settings, Repair.", "path", path)
 }
 
 func hashOf(s string) string {
@@ -160,7 +161,7 @@ func checkMissingFiles(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	roots, err := libraryRoots(ctx, d)
 	if err != nil {
-		return notChecked("missing-files:failed", "files of titles", "The list couldn't be read: "+err.Error()+".")
+		return notChecked("missing-files:failed", "files of titles", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 	}
 	here := map[int64][]string{}
 	for _, r := range roots {
@@ -170,7 +171,7 @@ func checkMissingFiles(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	rows, err := d.QueryContext(ctx, `SELECT id, library_id, kind, path FROM items WHERE missing = 0`)
 	if err != nil {
-		return notChecked("missing-files:failed", "files of titles", "The list couldn't be read: "+err.Error()+".")
+		return notChecked("missing-files:failed", "files of titles", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 	}
 	defer rows.Close()
 	var ids []int64
@@ -181,7 +182,7 @@ func checkMissingFiles(ctx context.Context, e *DoctorEnv) []Issue {
 		var id, lib int64
 		var kind, p string
 		if err := rows.Scan(&id, &lib, &kind, &p); err != nil {
-			return notChecked("missing-files:failed", "files of titles", "The list couldn't be read: "+err.Error()+".")
+			return notChecked("missing-files:failed", "files of titles", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 		}
 		file, ok := itemFile(p, kind)
 		if !ok || !underRoot(file, here[lib]) {
@@ -197,11 +198,11 @@ func checkMissingFiles(ctx context.Context, e *DoctorEnv) []Issue {
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return notChecked("missing-files:failed", "files of titles", "The list couldn't be read: "+err.Error()+".")
+		return notChecked("missing-files:failed", "files of titles", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 	}
 	if len(ids) == 0 {
 		if stopped {
-			return notChecked("missing-files:partial", "every title's file", fmt.Sprintf("It looked at %d files and stopped there, to keep from running for too long. Nothing it looked at has gone.", seen))
+			return notChecked("missing-files:partial", "every title's file", i18n.F("It looked at {seen} files and stopped there, to keep from running for too long. Nothing it looked at has gone.", "seen", seen))
 		}
 		return nil
 	}
@@ -294,7 +295,7 @@ func checkArtRefs(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	refs, err := artRefs(ctx, d)
 	if err != nil {
-		return notChecked("artwork-refs:failed", "artwork of titles", "The list couldn't be read: "+err.Error()+".")
+		return notChecked("artwork-refs:failed", "artwork of titles", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 	}
 	var gone []artRef
 	var names []string
@@ -316,9 +317,9 @@ func checkArtRefs(ctx context.Context, e *DoctorEnv) []Issue {
 			What: "All " + fmt.Sprint(len(refs)) + " pictures the database knows are missing from " + e.Images + ", so the folder is probably away or the setting is wrong. Nothing was changed.",
 			Fix:  "Check the artwork folder.",
 			Steps: []string{
-				"Check that the drive holding " + e.Images + " is there.",
-				"Run wittymediaserver config path to see which folder is in use, and check metadataDir in wms.json.",
-				"Run this check again. If the pictures really are gone, a refresh of each library fetches them again.",
+				i18n.F("Check that the drive holding {images} is there.", "images", e.Images),
+				i18n.T("Run wittymediaserver config path to see which folder is in use, and check metadataDir in wms.json."),
+				i18n.T("Run this check again. If the pictures really are gone, a refresh of each library fetches them again."),
 			}}}
 	}
 	return []Issue{{Key: "artwork-refs", Severity: SevWarn, Title: "Some titles point at artwork that has gone", Safety: SafetySafe, Count: len(gone), Names: names, data: gone,
@@ -416,7 +417,7 @@ func checkArtOrphans(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	used, err := usedArtwork(ctx, d)
 	if err != nil {
-		return notChecked("artwork-orphans:failed", "unused artwork", "The list couldn't be read: "+err.Error()+".")
+		return notChecked("artwork-orphans:failed", "unused artwork", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 	}
 	now := e.now()
 	var files, names []string
@@ -491,14 +492,14 @@ func checkMatches(ctx context.Context, e *DoctorEnv) []Issue {
 	for _, table := range []string{"items", "shows"} {
 		rows, err := d.QueryContext(ctx, `SELECT id, title, IFNULL(provider, ''), IFNULL(provider_id, '') FROM `+table+` WHERE IFNULL(provider, '') <> '' OR IFNULL(provider_id, '') <> ''`)
 		if err != nil {
-			return notChecked("matches:failed", "matches", "The list couldn't be read: "+err.Error()+".")
+			return notChecked("matches:failed", "matches", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 		}
 		for rows.Next() {
 			var id int64
 			var title, p, pid string
 			if err := rows.Scan(&id, &title, &p, &pid); err != nil {
 				rows.Close()
-				return notChecked("matches:failed", "matches", "The list couldn't be read: "+err.Error()+".")
+				return notChecked("matches:failed", "matches", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 			}
 			shape, known := matchShapes[p]
 			why := ""
@@ -518,7 +519,7 @@ func checkMatches(ctx context.Context, e *DoctorEnv) []Issue {
 		err = rows.Err()
 		rows.Close()
 		if err != nil {
-			return notChecked("matches:failed", "matches", "The list couldn't be read: "+err.Error()+".")
+			return notChecked("matches:failed", "matches", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 		}
 	}
 	if len(bad) == 0 {
@@ -575,7 +576,7 @@ func checkDuplicates(ctx context.Context, e *DoctorEnv) []Issue {
 		return skip
 	}
 	failed := func(err error) []Issue {
-		return notChecked("duplicates:failed", "duplicates", "The list couldn't be read: "+err.Error()+".")
+		return notChecked("duplicates:failed", "duplicates", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 	}
 	var merge []dupRow
 	var names []string
@@ -638,9 +639,9 @@ func checkDuplicates(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	if len(overlap) > 0 {
 		out = append(out, Issue{Key: "duplicates:libraries", Severity: SevInfo, Title: "Some files are in two libraries", Safety: SafetyManual, Count: len(overlap), Names: overlap,
-			What:  "Two libraries include the same files, which usually means their folders overlap. It can be on purpose.",
+			What:  i18n.T("Two libraries include the same files, which usually means their folders overlap. It can be on purpose."),
 			Fix:   "If it isn't on purpose, take the overlapping folder out of one library.",
-			Steps: []string{"Open Settings, Libraries, and compare the folders of each library.", "Remove the folder that's inside another, then scan."}})
+			Steps: []string{i18n.T("Open Settings, Libraries, and compare the folders of each library."), i18n.T("Remove the folder that's inside another, then scan.")}})
 	}
 	// The same show in two folders: they could be parts of one show, or two different shows
 	// with a name in common. Only a person can say.
@@ -665,9 +666,9 @@ func checkDuplicates(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	if len(shows) > 0 {
 		out = append(out, Issue{Key: "duplicates:shows", Severity: SevWarn, Title: "A show is listed twice under one name", Safety: SafetyManual, Count: len(shows), Details: shows,
-			What:  "Two folders in one library have the same name and year. They could be parts of one show or two different shows, so nothing is merged by itself.",
+			What:  i18n.T("Two folders in one library have the same name and year. They could be parts of one show or two different shows, so nothing is merged by itself."),
 			Fix:   "Put the episodes in one folder and scan, or tell them apart in their folder names.",
-			Steps: []string{"Move the episodes into one show folder, or add the year or an id to the folder name, such as My Show (2004) [tvdb-12345].", "Scan the library."}})
+			Steps: []string{i18n.T("Move the episodes into one show folder, or add the year or an id to the folder name, such as My Show (2004) [tvdb-12345]."), i18n.T("Scan the library.")}})
 	}
 	return out
 }
@@ -779,6 +780,15 @@ func jsonProblem(b []byte) string {
 	return err.Error()
 }
 
+// SidecarProblem says what's wrong with an NFO or metadata file's contents, or "" when a
+// scan can use it. Library health reads files with it too.
+func SidecarProblem(path string, b []byte) string {
+	if strings.HasSuffix(strings.ToLower(path), ".json") {
+		return jsonProblem(b)
+	}
+	return xmlProblem(b)
+}
+
 func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 	d, skip := e.metaDB("NFO files")
 	if d == nil {
@@ -786,7 +796,7 @@ func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	roots, err := libraryRoots(ctx, d)
 	if err != nil {
-		return notChecked("nfo-files:failed", "NFO files", "The list couldn't be read: "+err.Error()+".")
+		return notChecked("nfo-files:failed", "NFO files", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 	}
 	here := map[int64][]string{}
 	for _, r := range roots {
@@ -796,7 +806,7 @@ func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	rows, err := d.QueryContext(ctx, `SELECT library_id, kind, path FROM items WHERE missing = 0`)
 	if err != nil {
-		return notChecked("nfo-files:failed", "NFO files", "The list couldn't be read: "+err.Error()+".")
+		return notChecked("nfo-files:failed", "NFO files", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 	}
 	defer rows.Close()
 	seen := map[string]bool{}
@@ -819,13 +829,7 @@ func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 		if err != nil {
 			return
 		}
-		why := ""
-		if strings.HasSuffix(p, ".json") {
-			why = jsonProblem(b)
-		} else {
-			why = xmlProblem(b)
-		}
-		if why != "" {
+		if why := SidecarProblem(p, b); why != "" {
 			bad = append(bad, p+": "+why)
 		}
 	}
@@ -833,7 +837,7 @@ func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 		var lib int64
 		var kind, p string
 		if err := rows.Scan(&lib, &kind, &p); err != nil {
-			return notChecked("nfo-files:failed", "NFO files", "The list couldn't be read: "+err.Error()+".")
+			return notChecked("nfo-files:failed", "NFO files", i18n.F("The list couldn't be read: {error}.", "error", err.Error()))
 		}
 		file, ok := itemFile(p, kind)
 		if !ok || !underRoot(file, here[lib]) {
@@ -858,9 +862,9 @@ func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 		What: countOf(len(bad), "file beside your media has a mistake, so it's", "files beside your media have mistakes, so they're") + " ignored. These are your own files, and nothing here changes them.",
 		Fix:  "Open the file and fix the line named.",
 		Steps: []string{
-			"Open the file in a text editor and go to the line named. Most often it's a stray & (write &amp;) or a tag that was never closed.",
-			"Or delete the file, and with saving beside media on, the server writes a new one at the next scan.",
-			"Then scan the library. The guide in Help, Where details come from, has examples.",
+			i18n.T("Open the file in a text editor and go to the line named. Most often it's a stray & (write &amp;) or a tag that was never closed."),
+			i18n.T("Or delete the file, and with saving beside media on, the server writes a new one at the next scan."),
+			i18n.T("Then scan the library. The guide in Help, Where details come from, has examples."),
 		}}}
 }
 
@@ -922,7 +926,7 @@ func PlanRemap(ctx context.Context, e *DoctorEnv, from, to string) (*RemapPlan, 
 	}
 	st, err := os.Stat(to)
 	if err != nil || !st.IsDir() {
-		p.Why = "The new place isn't a folder this program can see: " + to
+		p.Why = i18n.F("The new place isn't a folder this program can see: {to}", "to", to)
 		return p, nil
 	}
 	if underRoot(to, []string{e.Data}) {
@@ -945,7 +949,7 @@ func PlanRemap(ctx context.Context, e *DoctorEnv, from, to string) (*RemapPlan, 
 		}
 	}
 	if p.Roots == 0 {
-		p.Why = "No library folder is at " + from + " or inside it, so there's nothing to change."
+		p.Why = i18n.F("No library folder is at {from} or inside it, so there's nothing to change.", "from", from)
 		return p, nil
 	}
 	if underRoot(from, []string{to}) || underRoot(to, []string{from}) {
@@ -997,7 +1001,7 @@ func PlanRemap(ctx context.Context, e *DoctorEnv, from, to string) (*RemapPlan, 
 		return nil, err
 	}
 	if p.Checked > 0 && p.Found*100 < p.Checked*remapMinShare {
-		p.Why = fmt.Sprintf("Only %d of %d files were found in the new place. It doesn't look like the same files, so nothing would be changed.", p.Found, p.Checked)
+		p.Why = i18n.F("Only {found} of {checked} files were found in the new place. It doesn't look like the same files, so nothing would be changed.", "found", p.Found, "checked", p.Checked)
 		return p, nil
 	}
 	p.CanApply = true

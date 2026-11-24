@@ -10,6 +10,7 @@ package parental
 import (
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"time"
 )
 
@@ -225,11 +226,11 @@ func (t *TimeRules) Check(now time.Time, u Usage) Verdict {
 func (v Verdict) Message() string {
 	switch v.Reason {
 	case ReasonAllowance:
-		return "That's all the screen time for today. A parent can add more."
+		return i18n.T("That's all the screen time for today. A parent can add more.")
 	case ReasonBedtime:
-		return "It's past the time this profile can watch tonight. A parent can allow a little longer."
+		return i18n.T("It's past the time this profile can watch tonight. A parent can allow a little longer.")
 	case ReasonEarly:
-		return "It's too early for this profile to watch. A parent can allow it."
+		return i18n.T("It's too early for this profile to watch. A parent can allow it.")
 	}
 	return ""
 }

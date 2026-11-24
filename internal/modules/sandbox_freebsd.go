@@ -5,6 +5,7 @@ package modules
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -175,8 +176,8 @@ func confinement(launcher string) SandboxInfo {
 	}
 	if os.Geteuid() == 0 {
 		return SandboxInfo{Level: SandboxLimited, Title: "Modules run in a jail here, but can still change files",
-			Words: "This server runs as root, so each module's helper goes in a FreeBSD jail: it can't see programs outside it and has no network unless it needs one. Being root, it can still change any file and take off its other limits. Run this server as an ordinary account if you can: limits hold better there than root's jail does. Modules from other publishers are refused here."}
+			Words: i18n.T("This server runs as root, so each module's helper goes in a FreeBSD jail: it can't see programs outside it and has no network unless it needs one. Being root, it can still change any file and take off its other limits. Run this server as an ordinary account if you can: limits hold better there than root's jail does. Modules from other publishers are refused here.")}
 	}
 	return SandboxInfo{Level: SandboxLimited, Title: "Modules run with limits here, not in a sandbox",
-		Words: "A module's helper here can't start other programs, open a network connection or write into a file, unless it needs to. FreeBSD offers no more than that to an ordinary account. It can still read anything this server's account can read, delete files this account owns, and stop this account's other programs. That's why modules from other publishers are refused here."}
+		Words: i18n.T("A module's helper here can't start other programs, open a network connection or write into a file, unless it needs to. FreeBSD offers no more than that to an ordinary account. It can still read anything this server's account can read, delete files this account owns, and stop this account's other programs. That's why modules from other publishers are refused here.")}
 }

@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import ActivitySlot from '../components/ActivitySlot'
+import NoteSlot from '../components/NoteSlot'
 import { Brand, BrandMark } from '../components/common'
 import { t, tx, txc } from '../i18n'
 import { IconDown, IconLeft, IconMenu, IconMore, IconSearch, IconSettings, IconSidebar } from '../icons'
@@ -200,6 +201,15 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { 
   const loc = useLocation()
   const [q, setQ] = useState('')
   useEffect(() => { if (!loc.pathname.startsWith('/search')) setQ('') }, [loc.pathname])
+  // Typing searches, a moment after it stops: the search page opens, then follows the box
+  // without filling the history with every few letters.
+  const typing = useRef(false)
+  useEffect(() => {
+    const text = q.trim()
+    if (!typing.current || [...text].length < 2) return
+    const tm = setTimeout(() => nav('/search?q=' + encodeURIComponent(text), { replace: loc.pathname === '/search' }), 300)
+    return () => clearTimeout(tm)
+  }, [q]) // eslint-disable-line react-hooks/exhaustive-deps
   const { brandName } = useApp()
   const items = useNavItems()
   const { prefs } = useNavPrefs()
@@ -220,10 +230,11 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { 
       {topNav && <TopNav />}
       <form className="search" role="search" onSubmit={(e) => { e.preventDefault(); if (q.trim()) nav('/search?q=' + encodeURIComponent(q.trim())) }}>
         <IconSearch />
-        <input aria-label={t('Search')} type="search" placeholder={t('Search your libraries…')} value={q} onChange={(e) => setQ(e.target.value)} />
+        <input aria-label={t('Search')} type="search" placeholder={t('Search your libraries…')} value={q} onChange={(e) => { typing.current = true; setQ(e.target.value) }} />
       </form>
       {!topNav && <div className="spacer" />}
       <ActivitySlot />
+      <NoteSlot />
       <ProfileMenu />
     </header>
   )

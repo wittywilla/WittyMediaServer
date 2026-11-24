@@ -79,6 +79,10 @@ type LiveSpec struct {
 	AudioRate  string
 	Preset     string
 	IdleSec    float64 // stop this long after the last request; default 45
+	// Shift plays the feed this far behind the clock: the feed is asked for, and the
+	// program date-times say, the moment Shift ago. One viewer's start-over stream of a
+	// library channel is the channel's own schedule, shifted.
+	Shift time.Duration
 	// Stop, when set, is called once when the session ends for any reason.
 	OnStop func()
 }
@@ -421,6 +425,9 @@ const (
 	copyBurst  = 24
 )
 
+// clock is the moment on the air now: the wall clock, less the session's shift.
+func (s *LiveSession) clock() time.Time { return time.Now().Add(-s.Spec.Shift) }
+
 // LiveHeadStart is how far ahead of real time a stream starts out, which its
 // feed may keep to.
 const LiveHeadStart = startBurst * time.Second
@@ -431,7 +438,7 @@ func (s *LiveSession) loop() {
 	retries := 0
 	burst := true
 	for s.ctx.Err() == nil {
-		at := time.Now()
+		at := s.clock()
 		s.mu.Lock()
 		s.restarted = false // the feed's answer takes in every change made so far
 		s.mu.Unlock()
@@ -871,7 +878,7 @@ func (s *LiveSession) Playlist(segURL func(file string) string) []byte {
 	hold := float64(LiveHoldBack(target))
 	if n := len(s.segs); n > 0 && !s.segs[n-1].Air.IsZero() {
 		last := s.segs[n-1]
-		if lead := last.Air.Add(time.Duration(last.Dur * float64(time.Second))).Sub(time.Now()).Seconds(); lead > hold {
+		if lead := last.Air.Add(time.Duration(last.Dur * float64(time.Second))).Sub(s.clock()).Seconds(); lead > hold {
 			hold = lead
 		}
 	}

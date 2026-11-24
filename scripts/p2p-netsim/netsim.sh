@@ -23,7 +23,7 @@ set -uo pipefail
 BIN=${1:?folder with p2p-netsim and wittyrelay}
 OUT=${2:?folder for results}
 shift 2
-SCENARIOS=${*:-"cone symmetric-app both-symmetric cgnat-server udp-blocked lossy relay-limit no-relay link-drop address-change many-apps"}
+SCENARIOS=${*:-"cone symmetric-app both-symmetric cgnat-server udp-blocked lossy relay-limit no-relay link-drop address-change many-apps harsh stranger stranger-relayed revoke revoke-relayed wire invite-relayed"}
 mkdir -p "$OUT"
 BIN=$(cd "$BIN" && pwd)
 OUT=$(cd "$OUT" && pwd)
@@ -120,6 +120,9 @@ setup() {
       ns rc iptables -I FORWARD -i lan -p udp -j DROP ;;
     lossy) # a poor mobile connection: 120 ms each way, give or take 30, and 3% of packets lost
       ns rc tc qdisc add dev wan root netem delay 120ms 30ms loss 3% ;;
+    harsh) # both ends on bad links: 250 ms each way, give or take 80, 8% lost, some reordered
+      ns rc tc qdisc add dev wan root netem delay 250ms 80ms loss 8% reorder 5%
+      ns rs tc qdisc add dev wan root netem delay 250ms 80ms loss 8% reorder 5% ;;
   esac
 }
 
@@ -138,6 +141,8 @@ start_parts() {
     relay_arg="-relay /ip4/80.0.0.10/udp/4001/quic-v1/p2p/$rid -key $KEY"
   fi
   for _ in $(seq 1 50); do [ -s "$dir/observers.txt" ] && break; sleep 0.2; done
+  [ -n "${REVOKE:-}" ] && relay_arg="$relay_arg -revoke-after $REVOKE"
+  [ -n "${INVITE:-}" ] && relay_arg="$relay_arg -invite $INVITE"
   # shellcheck disable=SC2086
   ns srv "$BIN/p2p-netsim" server $relay_arg -device "$devices" -observers "$dir/observers.txt" -out "$dir/server.json" >"$dir/server.log" 2>&1 &
   # Wait until the server holds a place on the relay (its addresses then
@@ -152,7 +157,7 @@ start_parts() {
 run() {
   local name=$1 dir="$OUT/$1"
   rm -rf "$dir"; mkdir -p "$dir"
-  local snat=cone anat=cone extra=none kbps=0 relay=yes clients=1 loop="" during=""
+  local snat=cone anat=cone extra=none kbps=0 relay=yes clients=1 loop="" during="" seed=2 expect="" revoke="" mb=8 capture=no
   case "$name" in
     cone) ;;
     symmetric-app) anat=symmetric ;;
@@ -165,22 +170,65 @@ run() {
     link-drop) loop=75s; during=link-drop ;;
     address-change) loop=75s; during=address-change ;;
     many-apps) anat=symmetric; clients=4 ;;
+    harsh) extra=harsh; mb=2 ;;
+    # A device that isn't on the server's list: it may find the server, but
+    # nothing answers it, directly or (when it can't go direct) through the relay.
+    stranger) seed=9; expect=refused ;;
+    stranger-relayed) seed=9; expect=refused; anat=symmetric; extra=udp-blocked ;;
+    # A device taken off the list while it is using the server: nothing more
+    # is answered, whichever way it was connected.
+    revoke) loop=75s; expect=revoked; revoke=45s ;;
+    revoke-relayed) anat=symmetric; extra=udp-blocked; loop=75s; expect=revoked; revoke=45s ;;
+    # Everything on the simulated internet is recorded while a whole file goes
+    # through the relay: the file's bytes must never be seen there.
+    wire) anat=symmetric; extra=udp-blocked; capture=yes ;;
+    # A new device, on no list, holding an invite link, when the only way in
+    # is the server's own WittyRelay: both routers symmetric, no address book,
+    # no other relay. It shows the relay the invite's ticket, gets through,
+    # joins and stays. Beside it a stranger with a made-up invite, and after
+    # it a device with the same, now used, link: neither gets anything.
+    invite-relayed) snat=symmetric; anat=symmetric; expect=invite ;;
     *) echo "unknown scenario $name"; return ;;
   esac
   echo "== $name (server: $snat, app: $anat, $extra, relay: $relay)"
   setup "$snat" "$anat" "$extra"
   local ids=""
   for i in $(seq 2 $((clients + 1))); do ids="$ids,$("$BIN/p2p-netsim" id -seed "$i")"; done
-  start_parts "$dir" "$kbps" "$relay" "${ids#,}"
+  if [ "$capture" = yes ]; then
+    command -v tcpdump >/dev/null || apt-get install -y -qq tcpdump >/dev/null 2>&1
+    ns inet tcpdump -i br0 -s 0 -U -w "$dir/wire.pcap" >/dev/null 2>&1 &
+    sleep 1
+  fi
+  local invite=""
+  if [ "$expect" = invite ]; then
+    invite=netsim-invite-$(head -c 12 /dev/urandom | od -An -tx1 | tr -dc '0-9a-f')
+    ids=""
+  fi
+  REVOKE="$revoke" INVITE="$invite" start_parts "$dir" "$kbps" "$relay" "${ids#,}"
   local pids=""
   for i in $(seq 2 $((clients + 1))); do
-    local args="-server $dir/server.json -observers $dir/observers.txt -mb 8 -seed $i -out $dir/client$i.json"
+    local s=$i
+    [ "$seed" != 2 ] && s=$seed
+    local args="-server $dir/server.json -observers $dir/observers.txt -mb $mb -seed $s -out $dir/client$i.json"
     [ -n "$loop" ] && args="$args -loop $loop"
+    [ "$expect" = refused ] && args="$args -expect-refused -wait 60s"
+    [ "$expect" = revoked ] && args="$args -expect-revoked"
     [ "$relay" = no ] && args="$args -wait 60s"
+    [ "$expect" = invite ] && args="$args -invite $invite"
     # shellcheck disable=SC2086
     ns cli "$BIN/p2p-netsim" client $args >"$dir/client$i.log" 2>&1 &
     pids="$pids $!"
   done
+  if [ "$expect" = invite ]; then
+    ns cli "$BIN/p2p-netsim" client -server "$dir/server.json" -observers "$dir/observers.txt" -seed 9 \
+      -invite "netsim-made-up-invite-0000000000" -expect-refused -wait 60s -out "$dir/client9.json" >"$dir/client9.log" 2>&1 &
+    pids="$pids $!"
+    # Once the first device has joined, the same link again, from another device.
+    for _ in $(seq 1 240); do [ -s "$dir/client2.json" ] && break; sleep 0.5; done
+    ns cli "$BIN/p2p-netsim" client -server "$dir/server.json" -observers "$dir/observers.txt" -seed 8 \
+      -invite "$invite" -expect-refused -wait 45s -out "$dir/client8.json" >"$dir/client8.log" 2>&1 &
+    pids="$pids $!"
+  fi
   case "$during" in
     link-drop) # the app's connection drops for 12 seconds (a tunnel, a lift)
       # The app has connected, fetched and settled by about 15 s, and keeps asking until about 90 s.
@@ -193,6 +241,15 @@ run() {
   # shellcheck disable=SC2086
   wait $pids
   cp "$dir/server.json" "$dir/server-final.json" 2>/dev/null
+  if [ "$capture" = yes ]; then
+    ns inet pkill tcpdump 2>/dev/null; sleep 1
+    # /big is "WittyMediaServer" over and over: plain, it would be everywhere.
+    local seen size
+    seen=$(grep -a -c 'WittyMediaServerWittyMediaServer' "$dir/wire.pcap" 2>/dev/null)
+    size=$(stat -c %s "$dir/wire.pcap" 2>/dev/null || echo 0)
+    echo "{\"pcapBytes\": $size, \"plaintextLines\": ${seen:-0}}" >"$dir/wire.json"
+    echo "   recorded $size bytes on the wire; lines with the file's plaintext: ${seen:-0}"
+  fi
   teardown
 }
 
@@ -215,3 +272,7 @@ print("%-16s %-4s %-3s %-9s %-9s %-10s %6.1fs  %12s  %6.1f  %6s  %s" % (
 PY
   done
 done
+for s in $SCENARIOS; do
+  [ -f "$OUT/$s/wire.json" ] && echo "$s: on the wire $(cat "$OUT/$s/wire.json")"
+done
+true

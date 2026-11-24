@@ -38,6 +38,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/notify"
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
@@ -66,9 +67,13 @@ type Server struct {
 	// Tasks is every background job; see api_tasks.go. Made in Handler.
 	Tasks *tasks.Registry
 	// LibConvert converts libraries' files ahead of time. Nil without FFmpeg.
-	LibConvert               *libtranscode.Engine
-	taskStore                *tasks.SQLStore
-	taskStreams              taskStreamCounts
+	LibConvert  *libtranscode.Engine
+	taskStore   *tasks.SQLStore
+	taskStreams taskStreamCounts
+	// notes are each profile's notifications, and noteOut sends an administrator's on to
+	// the channels they set up; see api_notify.go. Made in Handler.
+	notes                    *notify.Hub
+	noteOut                  *notify.Sender
 	streamEnd, streamEndInit sync.Once
 	streamEndCh              chan struct{}
 	// Metrics watches the machine; see api_metrics.go. Made in Handler.
@@ -92,6 +97,7 @@ type Server struct {
 	metaFolder metaFolderJob
 	repair     repairState // Settings, Repair
 	backup     backupState // Settings, Backup
+	health     healthState // Settings, Library health
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
@@ -116,18 +122,22 @@ type Server struct {
 	logins     loginLimiter
 	loginSlots chan struct{} // password checks are slow on purpose: only so many at once
 	clientLogs clientLogLimiter
-	probes     struct {
+	// moduleReports: one browser's reports of a module failing count once an hour.
+	moduleReports moduleReportGate
+	probes        struct {
 		sync.Mutex
 		m map[string]*ffmpeg.Probe
 	}
 	stream      streamTokens
 	radio       radioLive
 	pair        pairings
+	connect     connectOffers       // a code and a link for one device: api_connect.go
 	introJob    introJob            // finding intros by ear: one run at a time
 	convertJobs convertJobs         // converting to and from .wittyinfo and .wittyaudio: one run of each at a time
 	mediaJobs   mediaJobs           // stems and canvases being made: one at a time
 	karaoke     karaokeAuto         // the separator found, and who asked for what lately
 	sepInstall  separatorInstall    // Demucs being installed with one press
+	search      searchState         // the one search's index (search.go)
 	kLib        karaokeLibraryState // the whole music library separated in the background, if asked
 	subtitles   subtitleFiles
 	idOnce      sync.Once
@@ -205,6 +215,7 @@ func tokenFrom(r *http.Request) string {
 func (s *Server) StartMetadata() {
 	s.applyTimeZone(context.Background())
 	logging.Go("statistics", func() { s.Metrics.Run(context.Background()) }, "cat", "server")
+	s.startNotifications(context.Background())
 	s.startKaraokeLibrary()
 	s.Scanner.OnScanned = func() {
 		s.logos().Kick()
@@ -218,7 +229,10 @@ func (s *Server) StartMetadata() {
 		}
 		s.kickMusicMatch(id)
 		s.afterModuleScan(id)
+		s.kickSearch() // the scanned library's part of the search index, rebuilt
+		s.noteNewEpisodes(id)
 	}
+	s.kickSearch() // the search index, read from every library once
 	if s.DB.GetSetting(context.Background(), "music.linksMatched", "") == "" {
 		s.kickMusicMatch(0) // songs and videos scanned before links existed
 	}
@@ -253,6 +267,8 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("POST /api/pair/start", s.handlePairStart)
 	m.HandleFunc("POST /api/pair/poll", s.handlePairPoll)
 	m.HandleFunc("POST /api/pair/redeem", s.handlePairRedeem)
+	m.HandleFunc("POST /api/connect/hello", s.handleConnectHello)
+	m.HandleFunc("POST /api/connect/answer", s.handleConnectAnswer)
 	m.HandleFunc("POST /api/auth/pair", s.handleAuthPairStart)
 	m.HandleFunc("GET /api/auth/pair/{session}", s.handleAuthPairPoll)
 	m.HandleFunc("GET /api/auth/pair/{session}/pin", s.handleAuthPairPIN)
@@ -273,6 +289,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("DELETE /api/libraries/{id}", s.requireAdmin(s.handleDeleteLibrary))
 	m.Handle("POST /api/libraries/{id}/scan", s.requireAdmin(s.handleScan))
 	m.Handle("PUT /api/libraries/{id}/nfo", s.requireAdmin(s.handleLibraryNFO))
+	m.Handle("PUT /api/libraries/{id}/read-only", s.requireAdmin(s.handleLibraryReadOnly))
 	m.Handle("POST /api/libraries/{id}/purge-metadata", s.requireAdmin(s.handlePurgeMetadata))
 	m.Handle("GET /api/libraries/{id}/scan", a(s.handleScanProgress))
 	m.Handle("POST /api/libraries/{id}/forget-metadata", s.requireAdmin(s.handleForgetMetadata))
@@ -367,6 +384,9 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/approve", a(s.handlePairApprove))
 	m.Handle("POST /api/pair/deny", a(s.handlePairDeny))
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
+	m.Handle("GET /api/connect", a(s.handleConnectStatus))
+	m.Handle("POST /api/connect/offer", a(s.handleConnectOffer))
+	m.Handle("DELETE /api/connect/offer", a(s.handleConnectCancel))
 	m.Handle("GET /api/auth/pair/{session}/info", a(s.handleAuthPairInfo))
 	m.Handle("POST /api/auth/pair/{session}/approve", a(s.handleAuthPairApprove))
 	m.Handle("POST /api/auth/pair/{session}/deny", a(s.handleAuthPairDeny))
@@ -529,6 +549,7 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("/api/modules/{id}/{path...}", s.handleModuleRoute)
 	m.Handle("GET /api/module-images/{module}/{name}", s.requireUser(s.handleModuleImage))
 	s.remoteRoutes(m)
+	s.notifyRoutes(m)
 	s.taskRoutes(m)
 	s.streams.init(s)
 	s.libTranscodeRoutes(m)
@@ -621,6 +642,7 @@ func (s *Server) Handler() http.Handler {
 	s.repairRoutes(m)
 	s.networkRoutes(m)
 	s.backupRoutes(m)
+	s.healthRoutes(m)
 	s.sduiRoutes(m)
 	s.themeRoutes(m)
 	s.mediaExtrasRoutes(m)
@@ -707,10 +729,21 @@ func (s *Server) logRequest(r *http.Request, id string, sw *statusWriter, start 
 		if sw.code == 502 || sw.code == 503 || sw.code == 504 || sw.code == 501 {
 			lv = slog.LevelWarn // waiting for something else, or a feature this system lacks
 		}
+		// Before first-time setup is finished, every app route answers 503 setup_required (setupGate): that's the
+		// expected answer, not a fault to look into (#494).
+		if sw.code == 503 && !s.setupComplete(r.Context()) {
+			lv = slog.LevelInfo
+		}
 	case sw.code >= 400:
 		lv = slog.LevelInfo
 	default:
 		lv = slog.LevelDebug
+	}
+	// The viewer left (closed the page, moved on) before the answer was ready: what failed
+	// was only the waiting, not the server, so it is no error to look into.
+	left := sw.code >= 500 && errors.Is(r.Context().Err(), context.Canceled)
+	if left {
+		lv = slog.LevelInfo
 	}
 	// While the flight recorder is on, every request goes there, whatever the level says.
 	if !s.Logs.Accepts("http", lv) && !s.Logs.FlightRecorderOn() || quietPath(r.URL.Path) && lv < slog.LevelWarn {
@@ -727,6 +760,9 @@ func (s *Server) logRequest(r *http.Request, id string, sw *statusWriter, start 
 	args := []any{"cat", "http", "from", ip, "m", r.Method, "p", redactPath(r.URL.Path), "q", redactQuery(r.URL.RawQuery), "s", sw.code, "ms", time.Since(start).Milliseconds()}
 	if sw.errBody != nil {
 		args = append(args, "err", string(sw.errBody))
+	}
+	if left {
+		args = append(args, "left", true)
 	}
 	s.Log.Log(ctx, lv, "http", args...)
 }

@@ -52,7 +52,8 @@ func SessionID(token string) string {
 type seen struct {
 	at, written, streamed time.Time
 	ip, where, via        string
-	plain                 bool // marked plain_away already
+	plain                 bool   // marked plain_away already
+	p2p                   string // the peer-to-peer device last noted for it
 }
 
 type activity struct {
@@ -245,6 +246,96 @@ func (s *Service) EndPlainAway(ctx context.Context) (int, error) {
 		s.forget(k)
 	}
 	res, err := s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE plain_away = 1`)
+	if err != nil {
+		return 0, err
+	}
+	for _, k := range keys {
+		s.ended(SessionEnd{Session: SessionID(k)})
+	}
+	n, _ := res.RowsAffected()
+	return int(n), nil
+}
+
+// maxP2PDevices is how many peer-to-peer devices a session remembers being
+// used from. A sign-in belongs to one device; more than one means its token
+// was carried elsewhere, and each of them signs it out when it is revoked.
+const maxP2PDevices = 4
+
+// MarkP2PDevice notes that a session was used over a peer-to-peer connection
+// from this device (its connection ID), so that EndP2PDevice signs it out when
+// the device is taken off the list.
+func (s *Service) MarkP2PDevice(ctx context.Context, token, device string) {
+	if device == "" || strings.Contains(device, ",") {
+		return
+	}
+	key := storedToken(token)
+	s.act.mu.Lock()
+	if e := s.act.m[key]; e != nil && e.p2p == device {
+		s.act.mu.Unlock()
+		return
+	}
+	s.act.mu.Unlock()
+	var have sql.NullString
+	if err := s.DB.QueryRowContext(ctx, `SELECT p2p_devices FROM sessions WHERE token = ?`, key).Scan(&have); err != nil {
+		return
+	}
+	list := []string{}
+	if have.String != "" {
+		list = strings.Split(have.String, ",")
+	}
+	known := false
+	for _, d := range list {
+		known = known || d == device
+	}
+	if !known {
+		list = append(list, device)
+		if len(list) > maxP2PDevices {
+			list = list[len(list)-maxP2PDevices:]
+		}
+		if _, err := s.DB.ExecContext(ctx, `UPDATE sessions SET p2p_devices = ? WHERE token = ?`, strings.Join(list, ","), key); err != nil {
+			return
+		}
+	}
+	s.act.mu.Lock()
+	if s.act.m == nil {
+		s.act.m = map[string]*seen{}
+	}
+	if e := s.act.m[key]; e != nil {
+		e.p2p = device
+	} else {
+		s.act.m[key] = &seen{p2p: device}
+	}
+	s.act.mu.Unlock()
+}
+
+// EndP2PDevice signs out every session MarkP2PDevice noted for a device, and
+// says how many.
+func (s *Service) EndP2PDevice(ctx context.Context, device string) (int, error) {
+	if device == "" || strings.Contains(device, ",") {
+		return 0, nil
+	}
+	const match = `instr(',' || p2p_devices || ',', ',' || ? || ',') > 0`
+	rows, err := s.DB.QueryContext(ctx, `SELECT token FROM sessions WHERE `+match, device)
+	if err != nil {
+		return 0, err
+	}
+	var keys []string
+	for rows.Next() {
+		var k string
+		if err := rows.Scan(&k); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		keys = append(keys, k)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+	for _, k := range keys {
+		s.forget(k)
+	}
+	res, err := s.DB.ExecContext(ctx, `DELETE FROM sessions WHERE `+match, device)
 	if err != nil {
 		return 0, err
 	}

@@ -964,5 +964,9 @@
     "few": "و{count} دعوات أخرى",
     "many": "و{count} دعوة أخرى",
     "other": "و{count} دعوة أخرى"
-  }
+  },
+  "Pause for scenes": "الإيقاف عند المشاهد",
+  "Pause the film while the scenes are open": "إيقاف الفيلم مؤقتًا أثناء فتح المشاهد",
+  "Phones and TVs": "الهواتف وأجهزة التلفاز",
+  "Every screen": "كل الشاشات"
 }

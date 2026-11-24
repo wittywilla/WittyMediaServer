@@ -171,12 +171,19 @@ func chapterZip(t *testing.T, chapter string) *zip.Reader {
 // An opening tag with no closing one made every match look to the end of the text: a 488-byte
 // book pinned a core for a minute, and the largest chapter for days, per request.
 func TestChapterTextIsLinear(t *testing.T) {
+	// Linear reading of 16 MB takes a second or two; reading it again from each tag would take
+	// hours. The race detector makes every step several times slower and CI runs it beside other
+	// packages, where a linear read took 16 to 18 s: it gets 60 s, still far short of hours.
+	limit := 15 * time.Second
+	if raceEnabled {
+		limit = 60 * time.Second
+	}
 	for _, tag := range []string{"<script>", "<style>", "<head>", "<script x=1>", "<", "<a", "</", "<script"} {
 		zr := chapterZip(t, strings.Repeat(tag, (16<<20)/len(tag)))
 		budget := int64(bookBudget)
 		start := time.Now()
 		chapterText(zr, "c.xhtml", &budget)
-		if d := time.Since(start); d > 15*time.Second {
+		if d := time.Since(start); d > limit {
 			t.Errorf("%q: %v", tag, d)
 		}
 	}

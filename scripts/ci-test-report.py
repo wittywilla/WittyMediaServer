@@ -5,6 +5,12 @@
 
 Each failing test becomes an annotation on the run, which anyone can read
 without signing in, where the logs themselves need an account.
+
+    ci-test-report.py go-test.json [--no-skip TEXT]
+
+With --no-skip, a test that skipped saying TEXT fails the report: the job with
+the module catalogue uses it so that a test needing modules can't pass by
+skipping there.
 """
 import json
 import sys
@@ -18,9 +24,10 @@ def escape(s, prop=False):
     return s.replace(':', '%3A').replace(',', '%2C') if prop else s
 
 
-def main(path):
+def main(path, no_skip=None):
     output = {}  # (package, test) -> text
     failed = []
+    skipped = []
     passed = tests = 0
     with open(path, encoding='utf-8', errors='replace') as f:
         for line in f:
@@ -39,6 +46,8 @@ def main(path):
                 failed.append(key)
             elif ev.get('Test') and action == 'pass':
                 passed += 1
+            elif ev.get('Test') and action == 'skip':
+                skipped.append(key)
             if ev.get('Test') and action == 'run':
                 tests += 1
 
@@ -59,6 +68,26 @@ def main(path):
         print('::error title=More failures::%d more failed; the log has them all.' % (len(names) - MAX_ANNOTATIONS))
     print('%d of %d tests passed; %d failed.' % (passed, tests, len(names)))
 
+    bad = [k for k in skipped if no_skip and no_skip in ''.join(output.get(k, []))]
+    for pkg, test in bad:
+        print('::error title=%s::skipped: %s' % (escape('%s %s' % (pkg.rsplit('/', 1)[-1], test), True), escape(no_skip)))
+    if bad:
+        print('%d tests skipped saying "%s", which this job must not.' % (len(bad), no_skip))
+    # Said on the run's page, not only in the log: a skip is not a pass.
+    modules = [k for k in skipped if 'this needs real modules' in ''.join(output.get(k, []))]
+    if modules and not no_skip:
+        print('::notice title=Skipped here::%d tests need real modules and skipped in this job; '
+              'the with-modules job runs them with a catalogue, and fails if any skips there.' % len(modules))
+    if skipped:
+        print('%d tests skipped.' % len(skipped))
+    return 1 if bad else 0
+
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    args = sys.argv[1:]
+    no_skip = None
+    if '--no-skip' in args:
+        i = args.index('--no-skip')
+        no_skip = args[i + 1]
+        del args[i:i + 2]
+    sys.exit(main(args[0], no_skip))

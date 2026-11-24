@@ -24,7 +24,7 @@ OWNER=wittywilla
 GH=${GH:-gh}
 REPOS=(WittyModule WittyDisc WittyDVD WittyBluray WittyCD WittyTuner WittyPhotos WittyIntegratedFileBrowser WittyRigs
   WittyPlay WittyCouch WittyCouchHost WittyInk WittyEbook WittyPDF WittyComics WittyVisualizer WittyStats
-  WittyReader WittyMediaPlayer WittyMediaClient WittyMediaServer)
+  WittyReader WittyMediaPlayer WittyMediaClient WittyMediaServer WittyRelay)
 KEY_TITLE="Release workflow: version tags"
 PERMANENT="Version tags are permanent"
 CREATION="Version tags come from Release"

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/url"
 	"slices"
 	"sort"
@@ -1174,7 +1175,7 @@ func (r *renderer) collectionPage(n *Node, in instance, offset, limit int, allow
 			return false
 		}
 		n.State = "empty"
-		n.Props["emptyText"] = r.fill(propStr(p, "emptyText", "Nothing here yet"), in.each, s.Source)
+		n.Props["emptyText"] = r.fill(propStr(p, "emptyText", i18n.T("Nothing here yet")), in.each, s.Source)
 		if h := r.fill(propStr(p, "emptyHint", ""), in.each, s.Source); h != "" {
 			n.Props["emptyHint"] = h
 		}
@@ -1410,7 +1411,7 @@ func (r *renderer) hero(n *Node, in instance) bool {
 // takes it off: a toggle, marked pressed, so a renderer can draw it as one.
 func watchLaterButton(it *Item) map[string]any {
 	if it.InWatchLater {
-		b := button("watchLater", "In Watch later", "check", false, &Action{Type: ActCommand, Op: "watchLater.remove", Item: it.ID})
+		b := button("watchLater", i18n.T("In Watch later"), "check", false, &Action{Type: ActCommand, Op: "watchLater.remove", Item: it.ID})
 		b["pressed"] = true
 		return b
 	}
@@ -1696,9 +1697,9 @@ func headerActions(it *Item, want []string) []any {
 			out = append(out, button("play", label, icon, false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": true}}))
 		case "restart":
 			if it.ResumeSec > 0 && play != "" {
-				label := "Play from the start"
+				label := i18n.T("Play from the start")
 				if it.Kind == "book" {
-					label = "Read from the start"
+					label = i18n.T("Read from the start")
 				}
 				out = append(out, button("restart", label, "play", false, &Action{Type: ActPlay, Item: play, Params: map[string]any{"resume": false}}))
 			}
@@ -1708,11 +1709,11 @@ func headerActions(it *Item, want []string) []any {
 			}
 		case "queue":
 			if play != "" {
-				out = append(out, button("queue", "Add to queue", "plus", false, &Action{Type: ActCommand, Op: "queue.add", Item: play}))
+				out = append(out, button("queue", i18n.T("Add to queue"), "plus", false, &Action{Type: ActCommand, Op: "queue.add", Item: play}))
 			}
 		case "artist":
 			if it.ArtistRoute != "" {
-				out = append(out, button("artist", "Go to artist", "artist", false, &Action{Type: ActNavigate, To: it.ArtistRoute}))
+				out = append(out, button("artist", i18n.T("Go to artist"), "artist", false, &Action{Type: ActNavigate, To: it.ArtistRoute}))
 			}
 		case "watchLater":
 			out = append(out, watchLaterButton(it))
@@ -1800,19 +1801,15 @@ func countText(it *Item) string {
 	if it.Count <= 0 {
 		return ""
 	}
-	noun := "titles"
 	switch it.Kind {
 	case "show", "season", "podcast":
-		noun = "episodes"
+		return i18n.N("{count} episode", "{count} episodes", it.Count)
 	case "album", "audiobook":
-		noun = "tracks"
+		return i18n.N("{count} track", "{count} tracks", it.Count)
 	case "artist":
-		noun = "albums"
+		return i18n.N("{count} album", "{count} albums", it.Count)
 	}
-	if it.Count == 1 {
-		noun = strings.TrimSuffix(noun, "s")
-	}
-	return strconv.Itoa(it.Count) + " " + noun
+	return i18n.N("{count} title", "{count} titles", it.Count)
 }
 
 // tabs fills a Tabs: every tab's label, and the chosen tab's content.
@@ -2062,7 +2059,7 @@ func (r *renderer) fillDock(d *Node, bar *Node) bool {
 				add("view", "View", "grid")
 			case "jump":
 				if s := obj(bar.Props, "sort"); s != nil && propStr(s, "value", "") == "title" {
-					add("jump", "Jump to a letter", "list")
+					add("jump", i18n.T("Jump to a letter"), "list")
 				}
 			}
 		}
@@ -2394,7 +2391,7 @@ func (r *renderer) credits(n *Node, in instance, all bool) bool {
 		return false
 	}
 	r.eager++
-	if t := r.fill(propStr(p, "title", "Cast and crew"), in.each, s.Source); t != "" {
+	if t := r.fill(propStr(p, "title", i18n.T("Cast and crew")), in.each, s.Source); t != "" {
 		n.Props["title"] = Truncate(t, r.l.TextLimits.Title)
 	}
 	m := r.l.Cards["person"]
@@ -2450,7 +2447,7 @@ func (r *renderer) widget(n *Node, in instance) bool {
 	for _, k := range []string{"w", "h"} {
 		n.Props[k] = max(1, propInt(p, k, 1))
 	}
-	titles := map[string]string{"continue": "Continue watching", "liveNow": "On TV now", "recordings": "Recordings", "stats": "Most watched", "serverStatus": "Server", "clock": "Clock"}
+	titles := map[string]string{"continue": "Continue watching", "liveNow": i18n.T("On TV now"), "recordings": "Recordings", "stats": "Most watched", "serverStatus": "Server", "clock": "Clock"}
 	n.Props["title"] = firstNonEmpty(r.fill(propStr(p, "title", ""), in.each, nil), titles[kind])
 	if kind == "clock" {
 		return true

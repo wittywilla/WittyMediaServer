@@ -5,6 +5,7 @@ package diagnose
 
 import (
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"os/exec"
 	"strings"
@@ -19,11 +20,11 @@ import (
 // administrator rights on most systems; where it does, the answer is "not checked".
 func driveHealth(ctx context.Context, log *slog.Logger, f sysinfo.FS, path string) healthResult {
 	if f.UNC || len(path) < 2 || path[1] != ':' {
-		return healthResult{note: "Windows can't say which drive this is. Needs administrator rights, not checked."}
+		return healthResult{note: i18n.T("Windows can't say which drive this is. Needs administrator rights, not checked.")}
 	}
 	letter := strings.ToUpper(path[:1])
 	if letter[0] < 'A' || letter[0] > 'Z' {
-		return healthResult{note: "Windows can't say which drive this is. Needs administrator rights, not checked."}
+		return healthResult{note: i18n.T("Windows can't say which drive this is. Needs administrator rights, not checked.")}
 	}
 	// Only the drive letter, checked just above, is put into this script.
 	script := `$ErrorActionPreference='Stop';$n=(Get-Partition -DriveLetter ` + letter + ` | Get-Disk).Number;` +
@@ -38,7 +39,7 @@ func driveHealth(ctx context.Context, log *slog.Logger, f sysinfo.FS, path strin
 	err := cmd.Run()
 	logging.ChildExit(log, "drive health", err, ctx.Err() != nil, &stderr, started)
 	if err != nil {
-		return healthResult{note: "Windows didn't say: it needs administrator rights, not checked."}
+		return healthResult{note: i18n.T("Windows didn't say: it needs administrator rights, not checked.")}
 	}
 	return parseWindowsHealth(out.String())
 }
@@ -64,7 +65,7 @@ func parseWindowsHealth(text string) healthResult {
 		break
 	}
 	if !r.checked {
-		r.note = "Windows has nothing to say about this drive: it's common for USB drives, and needs administrator rights for more. Not checked."
+		r.note = i18n.T("Windows has nothing to say about this drive: it's common for USB drives, and needs administrator rights for more. Not checked.")
 	}
 	return r
 }

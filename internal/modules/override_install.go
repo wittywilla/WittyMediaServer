@@ -7,6 +7,7 @@ import (
 	"crypto/ed25519"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -71,7 +72,7 @@ func (m *Manager) installHeldLocked(h *held, accept *OverrideAccept) error {
 		e.busy, e.task = false, nil
 		_ = os.RemoveAll(filepath.Join(m.heldDir(), h.token))
 		if err != nil {
-			task.Fail(sentence(err.Error()), "Nothing changed: the version in use is still in use.", err)
+			task.Fail(sentence(err.Error()), i18n.T("Nothing changed: the version in use is still in use."), err)
 			e.phase, e.lastError = PhaseFailed, sentence(err.Error())
 			e.note("failed", h.version, "the install failed: "+err.Error())
 			if h.custom && e.dir == "" {
@@ -252,19 +253,19 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 	}()
 	name := strings.ToLower(u.ArchiveName)
 	if !strings.HasSuffix(name, ".tar.gz") && !strings.HasSuffix(name, ".tgz") && !strings.HasSuffix(name, ".zip") {
-		return &UploadInfo{Refusal: "Choose a module's release archive: a .tar.gz or .zip.", Problems: []UploadProblem{}, Permissions: []string{}}, nil
+		return &UploadInfo{Refusal: i18n.T("Choose a module's release archive: a .tar.gz or .zip."), Problems: []UploadProblem{}, Permissions: []string{}}, nil
 	}
 	stage := filepath.Join(work, "new")
 	if err := update.Extract(u.Archive, stage, maxUnpacked); err != nil {
-		return &UploadInfo{Refusal: "It can't be unpacked: " + sentence(err.Error()), Problems: []UploadProblem{}, Permissions: []string{}}, nil
+		return &UploadInfo{Refusal: i18n.F("It can't be unpacked: {sentence}", "sentence", sentence(err.Error())), Problems: []UploadProblem{}, Permissions: []string{}}, nil
 	}
 	raw, err := os.ReadFile(filepath.Join(stage, wittymodule.ManifestFile))
 	if err != nil {
-		return &UploadInfo{Refusal: "It has no module.json, so it isn't a module's release.", Problems: []UploadProblem{}, Permissions: []string{}}, nil
+		return &UploadInfo{Refusal: i18n.T("It has no module.json, so it isn't a module's release."), Problems: []UploadProblem{}, Permissions: []string{}}, nil
 	}
 	man, err := wittymodule.ParseManifest(raw)
 	if err != nil {
-		return &UploadInfo{Refusal: "Its module.json can't be used: " + sentence(err.Error()), Problems: []UploadProblem{}, Permissions: []string{}}, nil
+		return &UploadInfo{Refusal: i18n.F("Its module.json can't be used: {sentence}", "sentence", sentence(err.Error())), Problems: []UploadProblem{}, Permissions: []string{}}, nil
 	}
 	status, note := manifestStatus(raw)
 	info := &UploadInfo{ID: man.ID, Name: man.Name, Version: man.Version, Delivery: man.Delivery, API: man.API, ReleaseStatus: status, StatusNote: note,
@@ -291,7 +292,7 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 		}
 		if e.busy {
 			m.mu.Unlock()
-			return refuse("An update of this module is being installed.")
+			return refuse(i18n.T("An update of this module is being installed."))
 		}
 	}
 	m.mu.Unlock()
@@ -300,17 +301,17 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 	// What no override passes.
 	switch {
 	case man.API != API:
-		return refuse(fmt.Sprintf("It is built for module API %d, and this server takes module API %d only: there is no way to run it here.", man.API, API))
+		return refuse(i18n.F("It is built for module API {aPI}, and this server takes module API {aPI2} only: there is no way to run it here.", "aPI", man.API, "aPI2", API))
 	case man.Delivery == wittymodule.DeliveryLibrary || man.Delivery == wittymodule.DeliveryBuiltin:
-		return refuse("It has nothing to install on its own: it reaches a server inside other modules.")
+		return refuse(i18n.T("It has nothing to install on its own: it reaches a server inside other modules."))
 	case known && !e.absent && man.Delivery != builtinDelivery:
-		return refuse(fmt.Sprintf("It is delivered as %q, and this server expects %q for %s.", man.Delivery, builtinDelivery, man.Name))
+		return refuse(fmt.Sprintf(i18n.T("It is delivered as %q, and this server expects %q for %s."), man.Delivery, builtinDelivery, man.Name))
 	case dataWhy != "":
 		return refuse(dataWhy)
 	}
 	if man.PerPlatform() {
 		if _, err := os.Stat(filepath.Join(stage, man.EntryFile(runtime.GOOS))); err != nil {
-			return refuse(fmt.Sprintf("This file is for another kind of computer: it has no %s for %s.", man.EntryFile(runtime.GOOS), runtime.GOOS+"/"+runtime.GOARCH))
+			return refuse(i18n.F("This file is for another kind of computer: it has no {entryFile} for {value}.", "entryFile", man.EntryFile(runtime.GOOS), "value", runtime.GOOS+"/"+runtime.GOARCH))
 		}
 	}
 
@@ -328,22 +329,22 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 		if len(trusted) > 0 && update.VerifySums(u.Sums, u.Sig, trusted) == nil {
 			info.Signed, info.Trusted = true, true
 			if err := verifyInstalled(stage, man, trusted); err != nil {
-				return refuse("Its files don't match its signed checksum list: " + err.Error())
+				return refuse(i18n.F("Its files don't match its signed checksum list: {error}", "error", err.Error()))
 			}
 			break
 		}
 		if strings.TrimSpace(u.Key) == "" {
-			return refuse("Its signature doesn't match this project's key for it. If someone else published it, give their public key, and it can be installed as theirs.")
+			return refuse(i18n.T("Its signature doesn't match this project's key for it. If someone else published it, give their public key, and it can be installed as theirs."))
 		}
 		k, err := parseSourceKey(u.Key)
 		if err != nil {
 			return refuse(err.Error())
 		}
 		if update.VerifySums(u.Sums, u.Sig, []ed25519.PublicKey{k}) != nil {
-			return refuse("Its signature doesn't match the key you gave: it may have been changed, or the key is someone else's.")
+			return refuse(i18n.T("Its signature doesn't match the key you gave: it may have been changed, or the key is someone else's."))
 		}
 		if err := verifyInstalled(stage, man, []ed25519.PublicKey{k}); err != nil {
-			return refuse("Its files don't match its signed checksum list: " + err.Error())
+			return refuse(i18n.F("Its files don't match its signed checksum list: {error}", "error", err.Error()))
 		}
 		info.Signed, info.Fingerprint = true, Fingerprint(k)
 		signer = strings.TrimSpace(u.Key)
@@ -385,7 +386,7 @@ func (m *Manager) StageUpload(u Upload) (*UploadInfo, error) {
 	}
 	if st := status; st == StatusExperimental || st == StatusIncomplete {
 		kinds = append(kinds, OverrideIncomplete)
-		text := "Its publisher marks it " + st + "."
+		text := i18n.F("Its publisher marks it {st}.", "st", st)
 		if note = strings.TrimSpace(note); note != "" {
 			text += " " + note
 		}

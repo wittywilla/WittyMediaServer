@@ -13,6 +13,7 @@ Use this guide to make always-on TV channels from your own library, add live TV 
 - [Commercials](#commercials)
 - [Bumpers](#bumpers)
 - [Keeping to the timetable](#keeping-to-the-timetable)
+- [Clone a station](#clone-a-station)
 - [Who sees a channel](#who-sees-a-channel)
 - [Logos and title art](#logos-and-title-art)
 - [Tuners and IPTV](#tuners-and-iptv)
@@ -27,7 +28,7 @@ Use this guide to make always-on TV channels from your own library, add live TV 
 
 ## Your first channel
 
-1. Open **TV guide** in the menu and press **Edit channels**, or go to **Settings → Channels & tuners** and press **Open the channel list**. Either way you reach **Channels**, the page for channels from your library (its address is `/tv/channels`).
+1. Open **TV guide** in the menu and press **Edit channels**, or go to **Settings → Library channels & WittyTV** and press **Open the channel list**. Either way you reach **Channels**, the page for channels from your library (its address is `/tv/channels`).
 2. Under **Add with one click**, press **Add** on anything suggested. It's on the air straight away.
 3. Open **TV guide** in the menu. Move with the arrow keys or a remote, press Enter or OK to watch, and dial a channel with the number keys.
 
@@ -115,7 +116,7 @@ WittyTV has themes of its own, apart from the app's theme. Press **Look** on the
 | **Compact** | Small type and tight rows, with the top reduced to a strip, for seeing the most channels at once | From your app theme |
 | **Custom** | Your own: choose the layout from any of the above, the type and the colours. It starts from what was on your screen, and it stays as you left it if you try another theme | Your choice |
 
-**Which wins.** Your own choice comes first. Then what your [app theme](THEMES.md#wittytv-themes) suggests. Then the theme the server's owner chose for new viewers, under **Options** in **Settings → Channels & tuners**. **Look** always says which of these you're seeing. **Stop choosing, and use the default** goes back down that list, and **Back to how it started** undoes all your choices. Custom is each viewer's own, so an owner or an app theme can't set it. Looks saved before there were themes moved over as they were: anything that wasn't one of the themes became that theme's overrides, or Custom.
+**Which wins.** Your own choice comes first. Then what your [app theme](THEMES.md#wittytv-themes) suggests. Then the theme the server's owner chose for new viewers, under **Options** in **Settings → Library channels & WittyTV**. **Look** always says which of these you're seeing. **Stop choosing, and use the default** goes back down that list, and **Back to how it started** undoes all your choices. Custom is each viewer's own, so an owner or an app theme can't set it. Looks saved before there were themes moved over as they were: anything that wasn't one of the themes became that theme's overrides, or Custom.
 
 **Colours.** Under **Colours**, choose **Background**, **Programmes**, **On now**, **Highlight**, **Accent** or **Text**, and pick one of the swatches, any colour, or type its code. A colour you pick overrides that one for this theme only, and **Back to following the app theme** or **Back to its own colours** undoes them. Text is always worked out to be readable on what it's on, and a colour that can't be read is moved until it can, whatever you choose, and it says so when that happens.
 
@@ -295,6 +296,79 @@ When a programme runs long, something has to give, or everything after it starts
 
 Mandatory bumpers are never touched. A gap that's left is filled with commercials, the last cut to fit exactly, and then a card. It needs a grid to keep to: a channel playing back to back offers to start programmes on the half hour.
 
+## Clone a station
+
+A cloned channel follows a real TV station's schedule, played from your own files. Pick a station and a day or a week: every programme in its guide is matched to your library, and anything you don't have is filled with the closest thing you do. Only the guide's words are used. Nothing is recorded, downloaded from the station or decrypted.
+
+1. On **Channels**, press **Clone a station** (or choose **Clone a station** as the level in any channel's editor).
+2. **Where the guide comes from:**
+   - **Public schedule** reads TVmaze's free schedule for a country. It needs no key.
+   - **Guide file or link** reads an XMLTV guide, the open guide format, from a link on the internet or a file you choose (gzipped or not, up to 200 MB).
+   - **This server's guide** uses the guide your tuners and IPTV playlists already have in WittyTuner.
+3. **Which days:** the first day, and either **One day, every day** or **A week, each day on its weekday**.
+4. **Find stations**, then press the station. Its schedule is matched to your library straight away, and the channel takes the station's name if it has none yet.
+5. Look over the matched schedule and save.
+
+Editing is on a computer or in a web browser. In TV mode a cloned channel shows in the guide and plays like any other, and its editor shows the usual "change this on a computer" card.
+
+### The matched schedule
+
+Each programme shows its time, what the guide says, what will play, and how it was found, with a colour and a word:
+
+| Colour | Word | Meaning |
+|---|---|---|
+| Green | **Exact** | The same episode, by season and episode, by its title, by when it first aired or by its TVDB, IMDb or TVmaze id; or the same film by name and year |
+| Green | **Your pick** | You chose it |
+| Amber | **Closest episode** | The same series, the nearest episode you have: the next one first, then the previous, then the same season |
+| Amber | **Same series** | Another episode of the series, taking turns through it. A guide that doesn't say which episode always gets this |
+| Amber | **Similar show** | A show like it: genres, network, era, rating and words in the title, from the metadata your library already has |
+| Amber | **Filler** | Whatever is closest to the slot's length without running over |
+| Red | **Missing** | Nothing fits; the channel's own choices play there |
+
+Each also shows how sure the match is, as a percentage. The buttons at the top show only the stand-ins or only the missing ones. **Swap** lists what else could play in that slot, best first, and one press chooses it. **Back to automatic** undoes your pick. A stand-in says in the guide which programme it stands in for.
+
+Stand-ins don't repeat while there are others to use, so a series that airs twice in an evening plays two different episodes.
+
+### Keeping to the clock
+
+Every programme starts when the station's does. A programme shorter than its slot leaves time for commercials, and one longer than its slot is cut at the slot's end. Where the guide has a gap of five minutes or more, the gap is a slot of its own, filled the same way; shorter gaps and very short entries (station idents) join the programme before them.
+
+### Commercials on a cloned station
+
+Commercials are on by default, from the channel's commercials libraries (all of them, until you choose). The time a programme leaves is spread through it: some in breaks inside it and the rest after it. Breaks go at the programme's natural break points where your files mark them (where its own adverts were, the end of its opening titles or recap, the start of its credits: the same skip markers the player uses), and are evenly spaced where not. With **Match the era**, a commercial from the programme's own years plays first, where the commercial's year is known.
+
+You need commercials of your own: see [Commercials](#commercials). For old adverts you may reuse, the Internet Archive has many marked public domain or under a Creative Commons licence. Check each item's own licence on its page before you use it (a collection's name isn't a licence), keep its credit with the file, for example in its .nfo, and leave out anything without a clear licence.
+
+### Advanced options
+
+**Advanced options** on the matched schedule:
+
+| Option | What it does |
+|---|---|
+| **When something is missing, use** | Switch off any of the stand-in rules: the closest episode, any episode of the series, a similar show, the closest length |
+| **Commercial breaks** | On or off. Off leaves the time after a programme to a "right back" card |
+| **How many breaks** | Few (one each half hour of the slot), normal (two), or many (three) |
+| **Match the era** | Commercials from the programme's own years first |
+| **Repeat** | Automatic (one day: every day; a week: each day on its weekday), the first day every day, each day on its weekday, or only on the dates cloned |
+| **Same moment as the station** | Off (the default): the station's own clock times, here, so 8 pm on a New York station is 8 pm where you are. On: the very moment it airs, in this server's time zone |
+| **Shift everything by** | Moves the whole schedule by up to 12 hours either way |
+| **Follow the station** | Reads the guide again each week for the coming week, so the channel keeps up with the station's new schedule. What you chose by hand stays wherever the same programme is in the same slot. Not for a guide you uploaded |
+| **Guide key** | Your own key, for a guide link that says `{key}` where it goes. It's kept on this server only, never in the channel, and shows as dots once saved. It goes only over `https://`, in a link's path or query, and only to the first site a link uses it with: to use it with another site, enter the key again |
+
+**Read the guide again** imports the same days once more, and **Clone another station** starts over, keeping everything else about the channel.
+
+### Where guides come from
+
+| Source | Key | What it has | Licence and limits |
+|---|---|---|---|
+| **TVmaze** public schedule | None | Series episodes on broadcast and cable networks, by country (US, GB, CA, AU and others), with season, episode, air date and TVDB and IMDb ids. Not films, news or sport, which become slots filled by the stand-in rules | CC BY-SA 4.0 (tvmaze.com/api): the credit is shown and kept with the clone. At least 20 requests in 10 seconds; the server asks for a day at a time and keeps each day for an hour |
+| **XMLTV** link or file | Usually none | Whatever the guide has: every programme, often with season, episode, categories, year and IMDb or TMDB ids | The guide's own. Links must be on the internet; a guide on your own network goes in WittyTuner or is uploaded |
+| **iptv-org EPG** | None | Guides grabbed from hundreds of broadcaster sites, in XMLTV | Public domain (Unlicense). There are no ready-made guide files: run its grabber (for example its Docker image), then upload the guide.xml it writes or add it to WittyTuner |
+| **This server's guide** | Whatever WittyTuner's sources need | The coming days of every channel your tuners and IPTV playlists have | As the source's |
+| Paid XMLTV services (for example Schedules Direct, from US$35 a year) | Your own | Full US and Canada listings | Their terms. Paste a link with `{key}` and the key under **Guide key**, or use them through WittyTuner |
+
+Free sites that hand out whole-country XMLTV files exist, but the ones checked say their data is for testing only and state no licence, so they aren't recommended.
+
 ## Who sees a channel
 
 A channel is shown to someone only when all of these hold:
@@ -322,7 +396,7 @@ These need the **WittyTuner** module. No channel lists or stream addresses come 
 **No tuner yet?** **Add a demo tuner** (or **Try a demo tuner** in first-time setup) adds pretend channels and a guide made on the server itself, to try the guide, recording and WittyTV with no hardware and no internet. See [the demo tuner](LIVE-TV.md#try-it-with-no-tuner-the-demo-tuner).
 
 ![The Channels and tuners page in Settings](images/settings-channels.webp)
-*Settings, Channels & tuners, on a server with no tuner attached.*
+*Settings, Library channels & WittyTV, on a server with no tuner attached.*
 
 1. Go to **Settings → Live TV & tuners**, which WittyTuner adds once it is installed (Settings → Modules). Its tuners, their channels and the guide sources are WittyTuner's own, kept in its own data; the guide and recordings stay the server's. On a TV or phone app, the same is an administrator's page from WittyTuner: the tuners, what's on this network to add with a press, each tuner's channels, and the guide sources.
 2. Press **Add live TV**. It goes a step at a time:

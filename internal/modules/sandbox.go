@@ -4,6 +4,7 @@
 package modules
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"sync/atomic"
 )
 
@@ -41,7 +42,7 @@ type SandboxInfo struct {
 
 func unconfined() SandboxInfo {
 	return SandboxInfo{Level: SandboxUnconfined, Title: "Modules aren't confined on this system",
-		Words: "A module's helper runs with everything this server's account can do: it could change your files, start other programs, and send what it reads over the internet. Only modules from this project run here, and modules from other publishers are refused."}
+		Words: i18n.T("A module's helper runs with everything this server's account can do: it could change your files, start other programs, and send what it reads over the internet. Only modules from this project run here, and modules from other publishers are refused.")}
 }
 
 // launcherFailed: helpers wouldn't start in the launcher here, and went on without it.

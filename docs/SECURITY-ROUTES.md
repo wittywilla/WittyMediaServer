@@ -41,7 +41,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 
 | Method + route | Who may call it | What it validates |
 |---|---|---|
-| `GET /api/status` | Public | Reports setup state, branding and the caller's own account if signed in. Version left out for signed-out callers from the internet |
+| `GET /api/status` | Public | Reports setup state, branding and the caller's own account if signed in. Version left out for signed-out callers from the internet. A page of this server's own signed in by a header gets the sign-in cookie, so its media addresses carry no token; nothing is sent to another origin |
 | `POST /api/setup` | Public, until the first account exists | Refused once an account exists. 16 KB body. From outside the home network: setup code, with an attempt limit. Name and password rules |
 | `GET /api/setup/state` | Public | Nothing: whether first run is over, its steps and where it is |
 | `PUT /api/setup/state` | Public, until first run is over | Refused once it is over (409). Before the first account: the setup code, as for POST /api/setup. After: an administrator. 4 KB body; step and done are known step names |
@@ -59,14 +59,23 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/capabilities` | Public | Describes the server to apps. Version left out for signed-out callers from the internet |
 | `POST /api/identity` | Public | Nonce format. Answers with a signature over it |
 | `POST /api/pair/start` | Public | Server is set up. Limits on open codes per address and for the server |
-| `POST /api/pair/poll` | Public | 64-character device secret. Polling rate |
+| `POST /api/pair/poll` | Public | 64-character device secret. Polling rate. An approved sign-in on this server's own page also gets the cookie, as `GET /api/status` |
 | `POST /api/pair/redeem` | Public | Six digits. Wrong-code limits per address and for the server. Code used once |
+| `POST /api/connect/hello` | Public | A well-formed lookup key and nonce. The login limiter per address. Answers only for a code this server made, with a proof bound to its identity key; nothing for any other |
+| `POST /api/connect/answer` | Public | A challenge this server handed out, answered once within a minute. Three wrong proofs end the code. The login limiter per address. The code's maker still signed in. Code used once, and its link with it |
 | `POST /api/auth/pair` | Public | Server is set up. The same limits on open sessions as `/api/pair/start`. The TOTP secret never leaves memory. Session lasts 5 minutes |
-| `GET /api/auth/pair/{session}` | Public | Session ID and the 64-character device secret in a header, compared as a hash in constant time. Polling rate. The sign-in is handed out once, while the approver's session stands |
+| `GET /api/auth/pair/{session}` | Public | Session ID and the 64-character device secret in a header, compared as a hash in constant time. Polling rate. The sign-in is handed out once, while the approver's session stands. On this server's own page also as the cookie, as `GET /api/status` |
 | `GET /api/auth/pair/{session}/pin` | Public | Session ID and the 64-character device secret in a header. Only while the session is waiting |
 | `GET /api/me` | Signed-in | The caller's own account |
 | `GET /api/me/ui` | Signed-in | own |
 | `PUT /api/me/ui` | Signed-in | own. A JSON object of at most 16 KB |
+| `GET /api/me/notifications` | Signed-in | own. Limit of 100 a page |
+| `GET /api/me/notifications/count` | Signed-in | own |
+| `POST /api/me/notifications/read` | Signed-in | own. At most 200 ids, 16 KB |
+| `DELETE /api/me/notifications` | Signed-in | own |
+| `DELETE /api/me/notifications/{id}` | Signed-in | own. A number |
+| `GET /api/me/notifications/choices` | Signed-in | own. The administrators' kinds only for an administrator |
+| `PUT /api/me/notifications/choices` | Signed-in | own. Known kinds; the administrators' kinds refused to anyone else |
 | `GET /api/me/streaming` | Signed-in | own |
 | `PUT /api/me/streaming` | Signed-in | own. Choices read as quality choices; the profile's limits still apply |
 | `GET /api/home` | Signed-in | own progress. limits |
@@ -76,6 +85,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `DELETE /api/libraries/{id}` | Admin | Numeric id |
 | `POST /api/libraries/{id}/scan` | Admin | Library exists; body `{mode}` read up to 4 KB, only `changes` or `full` (400 otherwise) |
 | `PUT /api/libraries/{id}/nfo` | Admin | Library exists |
+| `PUT /api/libraries/{id}/read-only` | Admin | Library exists |
 | `POST /api/libraries/{id}/purge-metadata` | Admin | Library exists and isn't read-only; deletes only `.nfo` and `.metadata.json` files inside its folders |
 | `GET /api/libraries/{id}/scan` | Signed-in | Library is within the account's allowed libraries. File names for admins only |
 | `POST /api/libraries/{id}/forget-metadata` | Admin | Library exists and isn't being scanned. Removes only files the server recorded writing, and NFOs with its marker, inside the library's folders, through the folder (never through a link out of it); a person's `.nfo.bak` goes back. Every item keeps its ID; history, locks and people's edits stay. Logged and shown in Activity |
@@ -152,6 +162,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/people` | Signed-in | limits: only people credited on a title the account may see, counting only those titles |
 | `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
 | `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
+| `GET /api/search` | Signed-in | limits: only libraries the account may open are searched, and each card is read through the account's limits (ratings, blocked titles); people only with a title it may see |
+| `GET /api/search/recent` | Signed-in | own: the account's own recent searches |
+| `DELETE /api/search/recent` | Signed-in | own: forgets the account's own recent searches |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
 | `GET /api/items/{id}/scene/{sec}` | Signed-in; ticket; address token | limits. Video file. Time within its length |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
@@ -273,6 +286,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/profiles/household` | Signed-in | Names, kinds and pictures of every profile, where the sign-in screen shows profiles, or anywhere for an adult's account. No limits and no passwords |
 | `POST /api/profiles/switch` | Signed-in | 16 KB body. The other profile's password or PIN, and code, with the attempt limits of signing in. A profile with no password only at home with the profile screen on. Ends the session it came from |
 | `GET /api/me/limits` | Signed-in | own. Names no titles |
+| `PUT /api/me/limits` | Signed-in | own; Kids and Guest profiles only. 16 KB body. The parents' PIN, or the name and password of an account that manages the caller, each with an attempt limit. Only time rules and age limits |
 | `GET /api/me/screen-time` | Signed-in | own |
 | `POST /api/me/screen-time/extra` | Signed-in | own. 16 KB body. The parents' PIN, or the name and password of an account that manages the caller, each with an attempt limit. 1 to 240 minutes |
 | `POST /api/users/{id}/screen-time/extra` | Signed-in | Caller may manage that account. Not their own, not an administrator's. 1 to 240 minutes |
@@ -367,7 +381,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `PUT /api/module-store/{id}/{key}` | Signed-in | own. Known module. A key of letters and digits. JSON of at most 64 KB, and 32 keys for a module |
 | `GET /api/module-images/{module}/{name}` | Signed-in | A name of letters and digits with one extension, inside that module's own picture folder; only pictures a module kept through the host API |
 | `GET /api/modules/{id}/web/{version}/{path...}` | Signed-in; address token | Version in use. Name in the bundle's signed list, of a listed file type, hash checked when served |
-| `POST /api/modules/{id}/failed` | Signed-in | Known module. 4 KB body. Rate per account. Counts against a version only from an admin |
+| `POST /api/modules/{id}/failed` | Signed-in | Known module. 4 KB body. Rate per account. Counts against a version only from an admin, once an hour per sign-in |
 | `GET /api/reach/{nonce}` | Public | Nonce of a running outside test |
 | `GET /api/remote` | Admin | Nothing further |
 | `GET /api/remote/status` | Signed-in, or this computer | no account only from the server's own computer, directly (the tray). What is wrong in a fault, which can name files, only for an admin |
@@ -382,6 +396,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/p2p/devices` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `POST /api/p2p/devices` | Signed-in | A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all |
 | `DELETE /api/p2p/devices/{id}` | Signed-in | own. Any account's for an admin. Someone else's answers as if there were none |
+| `GET /api/connect` | Signed-in | Says only whether devices can connect from away, and whether the caller may turn that on |
+| `POST /api/connect/offer` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Limit on tries per account and on open codes; one open per person. The link only for a profile allowed away from home, with peer-to-peer connections on |
+| `DELETE /api/connect/offer` | Signed-in | own |
 | `POST /api/p2p/invite` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections are on. Limit on open invites |
 | `POST /api/p2p/join` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections and their address book are on. A well-formed code. Limit on codes waiting |
 | `GET /api/p2p/settings` | Admin | Nothing further |
@@ -392,7 +409,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/p2p/rotate` | Admin | The admin's own password (and code), with an attempt limit |
 | `GET /api/sessions` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `DELETE /api/sessions` | Signed-in | own, except the current one |
-| `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin |
+| `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin. Not a Kids or Guest profile kept on its device by the parents' PIN |
 | `GET /api/me/2fa` | Signed-in | own |
 | `POST /api/me/2fa/setup` | Signed-in | Own password, with an attempt limit |
 | `POST /api/me/2fa/confirm` | Signed-in | Code, with an attempt limit |
@@ -477,6 +494,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/channels/suggestions` | Admin | Nothing further |
 | `GET /api/channels/options` | Admin | Nothing further |
 | `POST /api/channels/from-network` | Admin | Network name of up to 200 characters. Definition validated |
+| `POST /api/channels/clone/upload` | Admin | Body up to 200 MB, stored under a random name in the data folder, removed after a week |
+| `POST /api/channels/clone/stations` | Admin | Guide links fetched only from the internet (no local addresses), up to 200 MB; `{key}` filled from the masked guideKey setting, never stored in the channel; a `{key}` link must be `https://`, may not put the key in the host or user name, goes only to the host the key was first used with (reset when the key is entered again; the host isn't a setting the API reads or writes), follows no redirect to another host, and its errors never show the key. TVmaze country two capital letters |
+| `POST /api/channels/clone/import` | Admin | As stations. Body up to 4 MB, at most 1500 slots, 1 to 7 days |
+| `POST /api/channels/clone/candidates` | Admin | Nothing further |
 | `POST /api/channels/networks/refresh` | Admin | Nothing further |
 | `GET /api/channels/networks/refresh` | Admin | Nothing further |
 | `GET /api/channels/{id}` | Admin | Channel exists |
@@ -518,6 +539,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/tv-sets/{id}/channels` | Signed-in | own; a shared set, an administrator. Added channels must be ones the account may watch |
 | `DELETE /api/tv-sets/{id}` | Signed-in | own; a shared set, an administrator |
 | `GET /api/tv/{key}/programme` | Signed-in | Channel key. Channel visible to the account and enabled; for a library channel, limits on what is on then. Credits, trailers and schedule only from what the profile may see |
+| `GET /api/tv/{key}/startover` | Signed-in | Library channel: visible to the profile, start over on (`tvStartOver`), what was on then visible. Tuner channel: as GET /api/tv/{key}/catchup. The stream is named by the account, the player and its quality, so it is the viewer's alone |
+| `GET /api/tv/{key}/timeline` | Signed-in | Library channel visible to the profile. Reads the schedule only |
+| `GET /api/tv/{key}/shift/{viewer}/playlist.m3u8` | Signed-in | Library channel visible to the profile; the stream of this account and player only. A stream token for that channel |
+| `GET /api/tv/{key}/shift/{viewer}/seg/{name}` | Signed-in | As the playlist. Only segment names FFmpeg wrote |
 | `GET /api/tv/{key}/catchup` | Signed-in | Tuner channel key. Tuner channels allowed for the profile; channel visible, enabled and not encrypted; a start within the source's archive |
 | `GET /api/tv/{key}/catchup/{start}/playlist.m3u8` | Signed-in | As GET /api/tv/{key}/catchup. A stream token for that channel |
 | `GET /api/tv/{key}/catchup/{start}/seg/{name}` | Signed-in | As GET /api/tv/{key}/catchup. Only segment names FFmpeg wrote |
@@ -536,6 +561,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/backup/create` | Admin | Known parts, and what each needs. A password of at least 8 characters, if given. One job at a time. The file stays on the server until a download asks for the password |
 | `POST /api/backup/cancel` | An admin, or before any account exists this machine or the setup code | Nothing: stops the job going |
 | `PUT /api/backup/schedule` | Admin | Frequency, hour, weekday, keep of 1 to 365, known parts. A password of at least 8 characters, kept only as a key made from it. Keeping fewer than before takes the account's password, and code with two-factor sign-in |
+| `PUT /api/backup/folder` | Admin | Takes the account's password, and code with two-factor sign-in. An absolute path to a folder that already exists, not a drive's top, not in or holding the data, program, cache, log or library folders. A marker file is written; no backup is made there while it's missing. Never restored from a backup |
 | `DELETE /api/backup/files/{name}` | Admin | Name has the form of one of this folder's backups, and is a plain file there. The account's password, and code with two-factor sign-in, with an attempt limit |
 | `POST /api/backup/files/{name}/link` | Admin | The account's password, and code with two-factor sign-in, with an attempt limit. Name as for deleting. A ticket for that one file, for 10 minutes |
 | `GET /api/backup/download` | Public, with a ticket | The ticket (`?st=`) names one file and lasts 10 minutes. It isn't a sign-in, and opens nothing else |
@@ -574,6 +600,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/system/metrics/history` | Signed-in | Administrators only, said in the handler. Known range, known series |
 | `GET /api/system/metrics/report` | Signed-in | By the owner's setting. Libraries the account may open, and its own record. The rest for administrators |
 | `GET /api/system/metrics/drives` | Admin | Nothing further |
+| `GET /api/health/library` | Admin | Known sections, a limit of 500 rows. Reads only the database and the last NFO check. Shows file paths, as the rest of Settings does to an administrator |
+| `POST /api/health/library/check` | Admin | One check at a time, with a time and file limit. Reads only files beside titles, in library folders that are there, and only up to the size an NFO may be. Changes nothing |
+| `DELETE /api/health/library/check` | Admin | Nothing further |
+| `POST /api/health/library/fix` | Admin | Known actions. Versions: films in one library, as the item editor allows. Forget: only a title marked gone whose file is still gone and whose library folder is there and not empty, logged with who did it. Probe: a video file of a title that's there, with a time limit. Set aside: a key of at most 2048 characters, at most 5000 kept. No media file is changed |
 | `GET /api/repair` | Admin | Nothing further |
 | `POST /api/repair/check` | Admin | Known checks. One job at a time. Nothing is changed |
 | `POST /api/repair/fix` | Admin | Keys from the last check, and fixes that can be made. Password and code for anything but what can't lose anything. Paths come only from the check |
@@ -583,6 +613,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/network/check` | Admin | A port number only. Listens on it for a moment and closes it again |
 | `PUT /api/network` | Admin | A port number only, checked as above. Refused while `-listen`, `WMS_LISTEN`, `wms.json` or Docker set the port. Writes only the settings.ini that `config.SettingsSaveFile` chooses, never a path from the request, and is logged with who did it |
 | `POST /api/network/restart` | Admin | Nothing further. Logged with who asked |
+| `GET /api/notifications/channels` | Admin | Their own channels and the mail server. The SMTP password and webhook secret are never sent back, only whether one is set |
+| `PUT /api/notifications/channels` | Admin | Email addresses parsed, no line breaks in any header value. Webhook only `http`/`https`, no name or password in the address, 500 characters. SMTP needs STARTTLS or TLS (1.2 at least) unless the mail server is this machine; a password is never sent in the clear. Logged with who changed it |
+| `POST /api/notifications/channels/test` | Admin | Their own saved channels only, never an address from the request. 15 s for a webhook, which isn't followed to another address; 30 s for email |
 | `GET /api/system/tasks` | Signed-in | By the owner's setting. Tasks of libraries the account may open, or its own. No file names, errors or other people for anyone but an administrator |
 | `GET /api/system/tasks/stream` | Signed-in | As for the list. Limits on open streams, per account and overall. The account is looked at again as it runs |
 | `GET /api/system/tasks/history` | Signed-in | As for the list. Limit, type, state, library |
@@ -691,6 +724,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/wittyinfo/{target}/{id}/files/{name...}` | Signed-in; address token | limits. An item or show the account may see. Only members under images/ with a picture extension, already checked when the file was read; sent with its own image type, nosniff and a CSP that allows nothing |
 | `GET /api/wittyinfo/convert/counts` | Admin | Library ids as numbers, 1000 at most. Looks only at file names beside titles inside libraries, for 20 seconds at most |
 | `POST /api/wittyinfo/convert` | Admin | JSON with a fixed direction. One run at a time, as a task that can be stopped. Reads only files beside titles inside libraries, through the same size limits as a scan, and the .wittyinfo reader's checks; writes only inside libraries that aren't read-only, .wittyinfo files only when saveMetadata and saveWittyinfo are on (else into the database), NFO files and pictures only when saveMetadata is on. Renames to .bak only files it converted from, inside a library |
+| `GET /api/wittyinfo/convert/report` | Admin | A task id. Answers only counts kept in memory for the last 20 conversions: no paths, names or errors |
 | `GET /api/media/{id}/where-to-watch` | Signed-in | limits. Versions the account may see only. Region two letters. Sends only a TMDB id and region to TMDB, with the owner's key; answers kept as long as listings |
 | `GET /api/discover/where-to-watch` | Signed-in | limits, for whether it's in the library. TMDB id digits only, type movie or tv, region two letters |
 | `GET /api/remote-control` | Signed-in | Nothing: the protocol's versions and limits. own setting for controlling other accounts' devices Whether this profile may steer devices at all (parental controls) |

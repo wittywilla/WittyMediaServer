@@ -85,7 +85,7 @@ func TestSyncplayAPartyFromStartToFinish(t *testing.T) {
 
 	// The friend types the code, however they type it.
 	guest := party(t, w.do(t, "POST", "/api/syncplay/join", friend, map[string]any{"code": strings.ToLower(host.Code[:3]) + " " + host.Code[3:]}))
-	if guest.ID != host.ID || guest.You == host.You || guest.CanControl || len(guest.Members) != 2 || guest.Members[1].Name != "friend" {
+	if guest.ID != host.ID || guest.You == host.You || guest.CanControl || len(guest.Members) != 2 || !hasMember(guest, "friend") {
 		t.Fatalf("%+v", guest)
 	}
 	// Both lists show it; a stranger's doesn't.
@@ -378,4 +378,15 @@ func TestSyncplayStreamsAndSeats(t *testing.T) {
 	if _, err := w.syncEngine().View(host.ID, host.You, w.parentID); err == nil {
 		t.Fatal("a signed-out member still has their seat")
 	}
+}
+
+// hasMember says whether a party lists someone by name. Members come in the order of their
+// random IDs, so the friend can be first or second (#394).
+func hasMember(room partyRoom, name string) bool {
+	for _, m := range room.Members {
+		if m.Name == name {
+			return true
+		}
+	}
+	return false
 }

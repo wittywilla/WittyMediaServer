@@ -5,7 +5,7 @@
    normal text colour and only icons take --ok and --danger, which are too light
    for small text on panels in the light themes. */
 
-.rem-status, .rem-advanced { padding: 20px 22px; }
+.set-card.rem-status, .set-card.rem-advanced { padding: 20px 22px; } /* .set-card has none, and settings.css can load after this file (#553) */
 /* Green: working as chosen. Amber: asked for, not working yet. Red: a fault. */
 .rem-status { border-left: 6px solid var(--bg-4); }
 .rem-status.rem-good { border-left-color: var(--ok); }
@@ -112,3 +112,13 @@
 .p2p-relay { display: grid; gap: var(--sp-2); }
 .p2p-relay .input { width: 100%; }
 .p2p-allows { font-size: var(--text-sm); }
+.p2p-health { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.p2p-health::before { content: ""; inline-size: .5em; block-size: .5em; border-radius: 50%; background: var(--ok); flex: none; }
+.p2p-health[data-health="busy"]::before { background: var(--warn); }
+.p2p-health[data-health="full"]::before, .p2p-health[data-health="starting"]::before { background: var(--danger); }
+
+/* Connect a device comes first; the rest folds under one heading. */
+.rem-tech { margin-top: var(--sp-5); }
+.rem-tech > summary { cursor: pointer; list-style: revert; padding: var(--sp-3) var(--sp-1); }
+.rem-tech > summary h2 { display: inline; margin: 0; font-size: var(--text-lg); }
+.rem-tech > summary .muted { display: block; margin: var(--sp-1) 0 0 1.3em; font-size: var(--text-sm); line-height: 1.45; }

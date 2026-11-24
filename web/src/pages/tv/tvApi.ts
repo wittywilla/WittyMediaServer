@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, ApiError, mediaUrl, serverBase, getToken, type QualityView } from '../../api'
 import { parseCatchupKey, type TvSet } from './guideLogic'
+import { isLibraryKey, type Timeline } from './timeshift'
 import { date, t } from '../../i18n'
 
 // What the TV pages talk to the server about. See docs/CHANNELS.md.
@@ -14,6 +15,8 @@ export type Programme = {
   // Why a stretch of bumpers is there, and how much was cut to keep the timetable.
   role?: 'pre' | 'post' | 'break' | 'ad' | 'between' | 'pad'; rule?: string; mandatory?: boolean; offset?: number; trimmed?: number
   clip?: ClipRef
+  // On a cloned station: the programme this one stands in for.
+  for?: string
   // Very short programmes the grid has no room to draw one by one.
   group?: Programme[]
 }
@@ -50,6 +53,10 @@ export type TuneInfo = {
   atsc3?: boolean; security?: Security; notices?: string[]; alternative?: Alternative
   // What the quality menu offers, and what is chosen (docs/CLIENT-API.md, Quality).
   quality?: QualityView
+  // Time-shift (#648): this channel can start the programme on now over. On a start-over
+  // answer, timeline says where its programme and breaks are (timeshift.ts).
+  startOver?: boolean
+  timeline?: Timeline
 }
 
 export type Rules = {
@@ -60,7 +67,7 @@ export type Rules = {
 }
 export type Order = { mode: '' | 'rotate' | 'sequential' | 'aired' | 'shuffle'; keepEpisodeOrder?: boolean }
 export type DiscClip = { id: string; item: number; title?: number; start?: number; end?: number; fromChapter?: number; toChapter?: number; label?: string }
-export type Block = { id: string; name?: string; days?: number[]; start: string; end: string; rules?: Rules; order?: Order; fit?: '' | 'fill' | 'overrun' | 'cut'; fromDate?: string; toDate?: string; marathon?: boolean }
+export type Block = { id: string; name?: string; days?: number[]; start: string; end: string; rules?: Rules; order?: Order; fit?: '' | 'fill' | 'overrun' | 'cut'; fromDate?: string; toDate?: string; marathon?: boolean; once?: boolean; standIn?: boolean }
 export type BumperWhen = 'before' | 'after' | 'between' | 'every'
 export type BumperRule = { id: string; name?: string; off?: boolean; when: BumperWhen; everyMin?: number; source: Rules; count?: number; mandatory?: boolean; only?: Rules }
 export type TrimChoice = '' | 'cut' | 'drop' | 'keep'
@@ -69,11 +76,28 @@ export type Trim = { on?: boolean; ads?: TrimChoice; bumpers?: TrimChoice; minKe
 // come from its commercials libraries.
 export type BumperPlan = { rules?: BumperRule[]; trim?: Trim; libraries?: CommercialPick[]; fromCommercials?: boolean }
 export type Definition = {
-  mode: 'simple' | 'rules' | 'timetable'; rules: Rules; order: Order; blocks: Block[] | null
+  mode: 'simple' | 'rules' | 'timetable' | 'clone'; rules: Rules; order: Order; blocks: Block[] | null
   // fromBumpers: commercials may also come from the bumper libraries.
   filler: { rules?: Rules; between?: number; maxSeconds?: number; commercials?: CommercialPick[]; fromBumpers?: boolean; breakEveryMin?: number; breakAds?: number }; alignMin: number
   bumpers?: BumperPlan
+  // A real station's schedule this channel follows: see CloneStation.tsx.
+  clone?: Clone
 }
+export type CloneRule = 'exact' | 'title' | 'aired' | 'near' | 'series' | 'similar' | 'filler' | 'manual' | 'none'
+export type CloneSource = { kind: 'xmltv' | 'guide' | 'tvmaze'; url?: string; channel?: string; country?: string; tz?: string }
+export type CloneOptions = {
+  repeat?: '' | 'daily' | 'weekly' | 'once'; realTime?: boolean; shiftMin?: number
+  noNear?: boolean; noSeries?: boolean; noSimilar?: boolean; noFiller?: boolean; libraries?: number[]
+  adsOff?: boolean; density?: '' | 'low' | 'normal' | 'high'; noEra?: boolean; refresh?: boolean
+}
+export type CloneSlot = {
+  start: number; dur: number; wall: string; title: string; sub?: string; season?: number; episode?: number; year?: number; aired?: string
+  genres?: string[]; network?: string; rating?: string; movie?: boolean; imdb?: string; tvdb?: string; tvmaze?: string; tmdb?: string; gap?: boolean
+  item?: number; rule: CloneRule; confidence: number; why?: string; itemTitle?: string; itemSub?: string; itemDur?: number; show?: number; pinned?: boolean
+}
+export type Clone = { source: CloneSource; station: string; from: string; days: number; credit?: string; options: CloneOptions; slots: CloneSlot[]; importedAt?: number }
+export type CloneCandidate = { item: number; title: string; sub?: string; dur: number; rule: CloneRule; confidence: number; why?: string; show?: number }
+export type Station = { id: string; name: string; country?: string; tz?: string; count?: number }
 export type CommercialPick = { library: number; only?: boolean; items?: number[] }
 export type Visibility = { mode: '' | 'adults' | 'only'; users?: number[] }
 export type Channel = {
@@ -154,7 +178,11 @@ export async function tune(key: string, viewer: string, signal: AbortSignal): Pr
   for (let i = 0; ; i++) {
     try {
       const cu = parseCatchupKey(key)
-      return await api.get<TuneInfo>(cu ? `/tv/${cu.key}/catchup?start=${cu.start}&end=${cu.end}&viewer=${viewer}` : `/tv/${key}/tune?viewer=${viewer}`)
+      // A library channel starts over on a stream of this viewer's own; a tuner channel from its archive.
+      const path = !cu ? `/tv/${key}/tune?viewer=${viewer}`
+        : isLibraryKey(cu.key) ? `/tv/${cu.key}/startover?from=${cu.start}&viewer=${viewer}`
+          : `/tv/${cu.key}/catchup?start=${cu.start}&end=${cu.end}&viewer=${viewer}`
+      return await api.get<TuneInfo>(path)
     } catch (e) {
       if (!(e instanceof ApiError) || e.status !== 503 || i >= 3 || signal.aborted) throw e
       await new Promise((r) => setTimeout(r, 1500))
@@ -168,7 +196,10 @@ export function leaveChannel(key: string, viewer: string, quality = '') {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers.Authorization = 'Bearer ' + tok
-  fetch(serverBase() + `/api/tv/${parseCatchupKey(key)?.key ?? key}/leave?viewer=${viewer}${quality ? '&quality=' + encodeURIComponent(quality) : ''}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
+  const cu = parseCatchupKey(key)
+  // A start-over stream of a library channel is this viewer's alone, so leaving stops it.
+  const shift = cu && isLibraryKey(cu.key) ? '&shift=1' : cu ? `&start=${cu.start}` : ''
+  fetch(serverBase() + `/api/tv/${cu?.key ?? key}/leave?viewer=${viewer}${shift}${quality ? '&quality=' + encodeURIComponent(quality) : ''}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
 }
 
 export async function uploadLogo(id: number, file: File): Promise<{ logo: string }> {

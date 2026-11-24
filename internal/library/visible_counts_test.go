@@ -7,13 +7,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 )
 
 // A library's count, as a profile with limits is told it, is of what that
 // profile may see: the number must not give away that hidden titles exist.
 func TestVisibleCountsFollowTheLimits(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

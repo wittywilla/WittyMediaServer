@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
@@ -375,7 +375,7 @@ func TestValidate(t *testing.T) {
 
 func testStore(t *testing.T) (*Store, *library.Store) {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

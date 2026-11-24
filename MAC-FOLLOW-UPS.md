@@ -1,5 +1,9 @@
 # Mac follow-ups
 
+**Start with [MAC-START-HERE.md](MAC-START-HERE.md)**: it says what the Mac needs, how to clone every repository, and
+the order to do everything in, across the server, the apps and the modules. This file keeps the server's long step
+lists that it points to. Add new Mac work in both: an item there, the steps here.
+
 Newest first. Everything here needs a Mac. Tick each box as it's done, commit the ticks, and say in the PR what ran.
 Merge nothing, and don't release or tag without the owner's OK. The GitHub issues labelled `mac` point at these
 sections. The apps' Mac items (iPhone, iPad, Apple TV, the macOS desktop app) are in WittyMediaClient's

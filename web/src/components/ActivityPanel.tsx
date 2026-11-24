@@ -8,7 +8,7 @@ import SpecPage from '../spec/SpecPage'
 import { handledIds, withIds } from '../spec/model'
 import { activitySpec } from '../spec/specs/activity'
 import { Button, EmptyState, IconButton, LinkButton, LoadError, Notice, Progress, Sheet, Spinner, Tabs, ask, toast } from '../ui'
-import { t, tn, tx } from '../i18n'
+import { t, tn, tx, bidi } from '../i18n'
 
 // The panel behind the activity button: what's going on, library by library, and what
 // happened lately, with errors a person can act on. A sheet on phones.
@@ -81,7 +81,7 @@ function LiveTask({ task }: { task: Task }) {
       <div className="act-task-head">
         <div>
           <div className="act-title">{task.title}</div>
-          <div className="act-sub">{[tx(typeName(task.type)), task.source, task.by && t('started by {name}', { name: task.by }), t('started {when}', { when: fmtAgo(task.startedAt) })].filter(Boolean).join(' · ')}</div>
+          <div className="act-sub">{[tx(typeName(task.type)), task.source, task.by && t('started by {name}', { name: task.by }), t('started {when}', { when: fmtAgo(task.startedAt) })].filter(Boolean).map(bidi).join(' · ')}</div>
         </div>
         {/* Asked to pause, and carrying on to the next point it can stop at. */}
         <span className={'act-state ' + task.state}>{task.state === 'running' && task.canResume ? t('Pausing…') : tx(STATE_NAMES[task.state])}</span>
@@ -91,7 +91,7 @@ function LiveTask({ task }: { task: Task }) {
         : <Progress label={task.title} value={task.percent >= 0 ? task.percent : undefined} showValue />}
       {!!task.steps?.length && <Steps task={task} />}
       {task.phase && task.phase !== task.steps?.[(task.step ?? 0) - 1] && <div className="act-phase">{tx(task.phase)}</div>}
-      {facts.length > 0 && <div className="act-facts">{facts.join(' · ')}</div>}
+      {facts.length > 0 && <div className="act-facts">{facts.map(bidi).join(' · ')}</div>}
       {task.item && <div className="act-item" title={task.path || task.item}>{task.item}</div>}
       {task.path && task.path !== task.item && <div className="act-path">{task.path}</div>}
       {!!task.problemCount && <Problems task={task} />}
@@ -188,7 +188,7 @@ function PastTask({ task, readOnly, onRemoved }: { task: Task; readOnly: boolean
       <div className="act-task-head">
         <div>
           <div className="act-title">{task.title}</div>
-          <div className="act-sub">{[task.finishedAt ? fmtAgo(task.finishedAt) : '', took > 0 ? t('took {time}', { time: fmtDuration(took) }) : '', task.by && t('started by {name}', { name: task.by })].filter(Boolean).join(' · ')}</div>
+          <div className="act-sub">{[task.finishedAt ? fmtAgo(task.finishedAt) : '', took > 0 ? t('took {time}', { time: fmtDuration(took) }) : '', task.by && t('started by {name}', { name: task.by })].filter(Boolean).map(bidi).join(' · ')}</div>
         </div>
         <span className={'act-state ' + task.state}>
           {task.state === 'done' ? <IconCheck size={14} /> : task.state === 'failed' ? <IconClose size={14} /> : task.state === 'cancelled' ? <IconStop size={14} /> : null}

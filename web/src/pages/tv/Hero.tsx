@@ -79,7 +79,7 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
           {ch ? <>
             <b className="ctv-hero-num">{ch.number}</b>
             <ChannelLogo ch={ch} look={look} on={surfaceOf(look)} />
-            <span className="ctv-hero-chtext"><b>{ch.name}</b>{ch.description && <span>{ch.description}</span>}</span>
+            <span className="ctv-hero-chtext"><b>{ch.name}</b>{ch.description && <span>{tx(ch.description)}</span>}</span>
           </> : <IconTv size={22} />}
         </div>
         {titleArt && p
@@ -117,12 +117,12 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
           {onFromStart && ch && p && canCatchup(ch, p, now) && <button className="ctv-btn" onClick={() => onFromStart(ch, p)} title={t('Watch this programme from its start')}><IconPrev size={16} /> <span>{t('Watch from the start')}</span></button>}
           {isTitle && p && <button className="ctv-btn" onClick={() => nav(`/play/${p.itemId}?mode=title&start=${p.clip?.start ? Math.floor(p.clip.start) : 0}${p.clip ? `&ttn=${p.clip.title}` : ''}`)} title={t('Play it from the beginning, on your own')}><IconPrev size={16} /> <span>{t('Start over')}</span></button>}
           {isTitle && p && <Link className="ctv-btn" aria-label={isFilm ? t('Open the film') : t('Open the show')} to={p.showId ? `/show/${p.showId}` : `/item/${p.itemId}`}><IconFilm size={16} /> <span>{isFilm ? t('Open the film') : t('Open the show')}</span></Link>}
-          {canOfferRecord(ch, p, now) && <button className="ctv-btn" onClick={onRecord}>● {t('Record')}</button>}
+          {canOfferRecord(ch, p, now) && <button className="ctv-btn" onClick={onRecord}><span aria-hidden="true">●</span> {t('Record')}</button>}
           {ch && <button className={'ctv-btn icon' + (ch.favourite ? ' fav' : '')} aria-pressed={!!ch.favourite} onClick={onFav} aria-label={t('Favourite channel')} title={t('Favourite channel (F)')}><IconStar size={17} /></button>}
           <button className="ctv-btn icon" onClick={onDown} aria-label={t('Channel down')} title={t('Channel down')}><IconDown size={18} /></button>
           <button className="ctv-btn icon" onClick={onUp} aria-label={t('Channel up')} title={t('Channel up')}><IconUp size={18} /></button>
           <button className="ctv-btn icon" onClick={onDetails} aria-haspopup="dialog" aria-label={t('More about this programme')} title={t('More (I)')}><IconInfo size={18} /></button>
-          <button className="ctv-btn sm" onClick={onDay} aria-haspopup="dialog" title={t('The whole day on this channel (D)')}>{t('Day')}</button>
+          <button className="ctv-btn sm" onClick={onDay} aria-haspopup="dialog" aria-label={t('The whole day on this channel')} title={t('The whole day on this channel (D)')}>{t('Day')}</button>
           {look.preview === 'off' && <button className="ctv-btn sm" onClick={() => setLook({ preview: 'highlight' })}>{t('Show preview')}</button>}
         </div>
       </div>

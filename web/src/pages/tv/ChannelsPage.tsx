@@ -12,11 +12,11 @@ import { PageHead, Row, Section, Switch } from '../settings/ui'
 import ChannelEditor from './ChannelEditor'
 import { brandOf, forgetLineup, type Channel, type Suggestion } from './tvApi'
 import './tvsettings.css'
-import { t, tk, tn } from '../../i18n'
+import { t, tk, tn, tx } from '../../i18n'
 
 // WittyTV's channels from your library, on a page of their own: the list, the
 // channels it suggests, and an editor per channel at /tv/channels/<id>. Tuners,
-// guide data and the options stay in Settings, Channels & tuners.
+// guide data and the options stay in Settings, Library channels & WittyTV.
 
 export default function ChannelsPage() {
   const { user } = useApp()
@@ -85,7 +85,7 @@ function ChannelList() {
     <>
       <div className="tvc-back"><BackLink to="/tv" label={t('Guide')} /></div>
       <PageHead title={t('Channels')} desc={t('Always-on TV channels made from your library. They run all the time, like real TV: tune in and you join the show part-way through. FFmpeg only runs while someone is watching.')}
-        actions={<Link className="btn primary" to="new"><IconPlus /> {t('New channel')}</Link>} />
+        actions={<><Link className="btn" to="new" state={{ clone: true }}>{t('Clone a station')}</Link><Link className="btn primary" to="new"><IconPlus /> {t('New channel')}</Link></>} />
       <Section title={tk('Your channels')} desc={list && list.length > 0 ? tn('{count} channel, {on} on the air.', '{count} channels, {on} on the air.', list.length, { on: list.filter((c) => c.enabled).length }) : undefined}>
         {!list && <div className="center"><div className="spinner" /></div>}
         {list && list.length === 0 && <p className="muted">{t('No channels from your library yet. Press New channel, or add one of those below with one click.')}</p>}
@@ -95,7 +95,7 @@ function ChannelList() {
               <li key={c.id} className="tvs-item">
                 <span className="tvs-num">{c.number}</span>
                 {c.logo ? <img className="tvs-logo" src={mediaUrl(`/api/channels/${c.id}/logo?v=${c.logo}`)} alt="" /> : brandOf(c.definition, c.look) ? <span className="tvs-logo"><BrandLogo kind={brandOf(c.definition, c.look)!.kind} name={brandOf(c.definition, c.look)!.name} label={false} /></span> : null}
-                <div className="tvs-item-text"><b>{c.name}</b><span>{c.description || ({ simple: t('Simple'), rules: t('Rules'), timetable: t('Timetable') })[c.definition.mode]}</span></div>
+                <div className="tvs-item-text"><b>{c.name}</b><span>{c.description || ({ simple: t('Simple'), rules: t('Rules'), timetable: t('Timetable'), clone: c.definition.clone ? t('Clone of {station}', { station: c.definition.clone.station }) : t('Clone a station') })[c.definition.mode]}</span></div>
                 <Switch checked={c.enabled} label={t('{name} is on the air', { name: c.name })} onChange={(v) => void setOn(c, v)} />
                 <Link className="btn sm ghost" to={String(c.id)} aria-label={t('Edit {name}', { name: c.name })}><IconEdit /> {t('Edit')}</Link>
                 <button className="btn sm ghost" onClick={() => void remove(c)} aria-label={t('Delete {name}', { name: c.name })}><IconTrash /></button>
@@ -113,7 +113,7 @@ function ChannelList() {
                 {items.map((s) => (
                   <div key={s.key} className="tvs-sug">
                     {brandOf(s.definition) ? <b className="tvs-sug-name"><BrandLogo kind={brandOf(s.definition)!.kind} name={brandOf(s.definition)!.name} label={false} className="tvs-sug-logo" /><span>{s.name}</span></b> : <b>{s.name}</b>}
-                    <span>{s.description}</span>
+                    <span>{tx(s.description)}</span>
                     <span className="tvs-dim">{tn('{count} title', '{count} titles', s.stats.titles)} · {fmtRuntime(s.stats.seconds)}</span>
                     <div className="tvs-sug-actions">
                       <button className="btn sm primary" disabled={busy === s.key} onClick={() => void add(s)} aria-label={t('Add {name}', { name: s.name })}><IconPlus /> {t('Add')}</button>
@@ -134,7 +134,7 @@ function ChannelList() {
           </button>
         </Row>
         <Row label={t('Tuners, IPTV and guide data')} desc={t("Live TV sources, their channels, XMLTV listings and WittyTV's options are in Settings.")}>
-          <Link className="btn sm" to="/settings/channels"><IconSettings /> {t('Open Channels & tuners')}</Link>
+          <Link className="btn sm" to="/settings/channels"><IconSettings /> {t('Open Library channels & WittyTV')}</Link>
         </Row>
       </Section>
     </>

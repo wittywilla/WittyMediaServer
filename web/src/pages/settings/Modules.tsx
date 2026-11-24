@@ -236,11 +236,11 @@ export default function ModulesSettings() {
 
   if (failed) return (
     <div>
-      <PageHead title={tk('Modules')} />
+      <PageHead title={tk('Module store')} />
       <div className="set-card set-empty big"><IconPlug size={34} /><b>{t('Modules aren’t available')}</b><p>{failed}</p></div>
     </div>
   )
-  if (!r) return <div><PageHead title={tk('Modules')} /><Spinner /></div>
+  if (!r) return <div><PageHead title={tk('Module store')} /><Spinner /></div>
   const canUpload = !!features?.has('module-upload')
   const canAudit = !!features?.has('module-audit') && !!user?.isAdmin
 
@@ -261,7 +261,7 @@ export default function ModulesSettings() {
 
   return (
     <div className="ms-page">
-      <PageHead title={tk('Modules')} desc={t('What this server can do, one piece at a time. Add what you want and remove what you don’t.')}
+      <PageHead title={tk('Module store')} desc={<>{t('What this server can do, one piece at a time. Add what you want and remove what you don’t.')} <Link to="/settings/module-settings">{t('Each module’s own settings are in Module settings.')}</Link></>}
         actions={<LinkButton variant="primary" to="/settings/modules/store" icon={<IconPlug />}>{t('Browse the store')}</LinkButton>} />
 
       {store.view && <WhatsNew view={store.view} />}
@@ -763,7 +763,7 @@ function VersionRow({ v, working, onChoose }: { v: VersionInfo; working: boolean
       {v.blocked && !v.withdrawn && <p className="ms-why">{t('Taken out of use before: {reason}', { reason: v.blocked })}</p>}
       <details className="ms-more">
         <summary>{t('Release notes')}</summary>
-        <ChangeNotes text={v.notes} />
+        <ChangeNotes text={v.notes} developer />
       </details>
     </li>
   )

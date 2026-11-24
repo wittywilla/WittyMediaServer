@@ -34,7 +34,7 @@ import './tvsets.css'
 import LegalNote from '../../components/LegalNote'
 import { Dialog } from '../../ui/Overlay'
 import { useTvMode } from '../../tvmode/mode'
-import { date, t, tn, tx } from '../../i18n'
+import { date, t, tn, tx, bidi } from '../../i18n'
 
 // The programme guide. A real ARIA grid under any of WittyTV's themes (tvThemes.ts). At the
 // top, the highlighted channel: its programme, what's next, what can be done with it and a
@@ -706,9 +706,9 @@ export default function GuidePage() {
           </label>
         </div>
         <div className="ctv-bar-group ctv-bar-time" role="group" aria-label={t('Time')} data-nav-group>
-          <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label={t('Half an hour earlier')}><IconLeft size={16} /></button>
+          <button className="ctv-btn sm icon" onClick={() => shiftTime(-SLOT)} aria-label={t('Half an hour earlier')} title={t('Half an hour earlier')}><IconLeft size={16} /></button>
           <button className={'ctv-btn sm' + (floorSlot(now) === from ? ' on' : '')} onClick={goNow}>{t('Now')}</button>
-          <button className="ctv-btn sm icon" onClick={() => shiftTime(SLOT)} aria-label={t('Half an hour later')}><IconRight size={16} /></button>
+          <button className="ctv-btn sm icon" onClick={() => shiftTime(SLOT)} aria-label={t('Half an hour later')} title={t('Half an hour later')}><IconRight size={16} /></button>
           <button className="ctv-btn sm icon" onClick={openSearch} aria-haspopup="dialog" aria-label={t('Search the schedule')} title={t('Search the schedule (S)')}><IconSearch size={16} /></button>
           {user?.isAdmin && <Link className="ctv-btn sm" to="/tv/channels" aria-label={t('Edit channels')}><IconSettings size={16} /> <span className="hide-narrow">{t('Edit channels')}</span></Link>}
         </div>
@@ -850,7 +850,7 @@ const GuideRow = memo(function GuideRow({ r, ch, top, rowH, from, to, pxPerSec, 
           const wide = pxPerSec ? (end - start) * pxPerSec : 200
           const tiny = wide < 34
           const small = wide < 96
-          const details = [p.kind === 'none' || small ? '' : fmtClock(p.start), p.year ? String(p.year) : '', p.genre || ''].filter(Boolean).join(' · ')
+          const details = [p.kind === 'none' || small ? '' : fmtClock(p.start), p.year ? String(p.year) : '', p.genre || ''].filter(Boolean).map(bidi).join(' · ')
           return (
             <button key={p.start + '-' + p.end} type="button" role="gridcell" aria-colindex={colStart + 2} aria-colspan={colSpan}
               aria-label={programmeLabel(ch, p, now)} aria-selected={focused} tabIndex={focused ? 0 : -1} data-focused={focused ? '1' : undefined} data-nav-skip={focused ? undefined : ''}

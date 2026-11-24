@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"os"
@@ -38,8 +39,11 @@ type Options struct {
 	// SecretSettings are settings that hold keys and passwords, on top of those that
 	// look like it by their name.
 	SecretSettings []string
-	ServerVersion  string
-	Auto           bool
+	// ScrubSettings are settings that are kept, with the secrets inside them
+	// taken out by the function given for each.
+	ScrubSettings map[string]func(string) string
+	ServerVersion string
+	Auto          bool
 	// Output is the archive's path. Empty: a new name in the backups folder.
 	Output string
 	// Progress is told how far along it is. It may be nil.
@@ -147,7 +151,13 @@ func newName(f Folders, auto bool, at time.Time) string {
 	}
 	name := prefix + at.Format(stampForm) + nameSuffix
 	for i := 2; ; i++ {
-		if _, err := os.Lstat(filepath.Join(f.Dir(), name)); errors.Is(err, fs.ErrNotExist) {
+		free := true
+		for _, dir := range f.archiveDirs() {
+			if _, err := os.Lstat(filepath.Join(dir, name)); !errors.Is(err, fs.ErrNotExist) {
+				free = false
+			}
+		}
+		if free {
 			return name
 		}
 		name = fmt.Sprintf("%s%s-%d%s", prefix, at.Format(stampForm), i, nameSuffix)
@@ -268,13 +278,19 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 			return "", nil, err
 		}
 	}
-	if err := os.MkdirAll(o.Folders.Dir(), 0o700); err != nil {
-		return "", nil, err
-	}
 	at := time.Now()
 	out = o.Output
 	if out == "" {
-		out = filepath.Join(o.Folders.Dir(), newName(o.Folders, o.Auto, at))
+		// A chosen folder isn't made: it's checked, as it may be a drive that isn't there.
+		if err := o.Folders.StoreReady(); err != nil {
+			return "", nil, err
+		}
+		if o.Folders.Store == "" {
+			if err := os.MkdirAll(o.Folders.Dir(), 0o700); err != nil {
+				return "", nil, err
+			}
+		}
+		out = filepath.Join(o.Folders.ArchiveDir(), newName(o.Folders, o.Auto, at))
 	}
 	work, err := os.MkdirTemp(filepath.Dir(out), ".backup-work-")
 	if err != nil {
@@ -288,7 +304,7 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 		}
 	}
 	// What's coming, to check there's room and to say how far along it is.
-	report("Working out what to include")
+	report(i18n.T("Working out what to include"))
 	sizes := Estimate(ctx, o.Folders, o.LiveDB)
 	var estimate int64
 	for _, s := range sizes {
@@ -311,7 +327,7 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 		}
 	}
 	if hasDB {
-		report("Copying the database")
+		report(i18n.T("Copying the database"))
 		if man.Schema, err = copyDatabase(ctx, o, dbFile, want, key != nil); err != nil {
 			return "", nil, err
 		}
@@ -356,7 +372,7 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 		inner = seal
 	}
 	zw := zip.NewWriter(inner)
-	sink := &zipSink{zw: zw, opts: &o, man: man, step: Step{Phase: "Writing the backup", Total: estimate}}
+	sink := &zipSink{zw: zw, opts: &o, man: man, step: Step{Phase: i18n.T("Writing the backup"), Total: estimate}}
 
 	if hasDB {
 		if err = sink.addFile(ctx, "", dbEntry, dbFile); err != nil {
@@ -581,7 +597,7 @@ func copyDatabase(ctx context.Context, o Options, out string, want map[string]bo
 		}
 	}
 	if !protected {
-		if err := stripSecrets(ctx, d, o.SecretSettings); err != nil {
+		if err := stripSecrets(ctx, d, o.SecretSettings, o.ScrubSettings); err != nil {
 			return none, err
 		}
 	}
@@ -621,7 +637,7 @@ func isSecretSetting(key string, listed map[string]bool) bool {
 }
 
 // stripSecrets leaves out what would let someone in or cost someone money.
-func stripSecrets(ctx context.Context, d *sql.DB, secret []string) error {
+func stripSecrets(ctx context.Context, d *sql.DB, secret []string, scrub map[string]func(string) string) error {
 	listed := map[string]bool{}
 	for _, k := range secret {
 		listed[k] = true
@@ -640,6 +656,8 @@ func stripSecrets(ctx context.Context, d *sql.DB, secret []string) error {
 		}
 		if isSecretSetting(k, listed) {
 			drop = append(drop, kv{k: k})
+		} else if f := scrub[k]; f != nil {
+			clean = append(clean, kv{k, f(v)})
 		} else if c := scrubAddress(v); c != v {
 			clean = append(clean, kv{k, c})
 		}
@@ -658,6 +676,8 @@ func stripSecrets(ctx context.Context, d *sql.DB, secret []string) error {
 	for _, stmt := range []string{
 		`UPDATE users SET totp_secret = NULL, totp_on = 0, recovery_codes = NULL`,
 		`DELETE FROM share_links`,
+		// A webhook's address is often its password (the token is in the path), and the secret signs for this server.
+		`UPDATE notify_channels SET webhook_on = 0, webhook_url = '', webhook_secret = ''`,
 	} {
 		if _, err := d.ExecContext(ctx, stmt); err != nil {
 			return err

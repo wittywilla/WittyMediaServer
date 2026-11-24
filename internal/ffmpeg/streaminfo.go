@@ -4,7 +4,7 @@
 package ffmpeg
 
 import (
-	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -80,7 +80,7 @@ func (s *Stream) Range() string {
 // DynamicRange names what the range alone doesn't say, for the player's information.
 func (s *Stream) DynamicRange() string {
 	if p, c, ok := s.DolbyVision(); ok {
-		return fmt.Sprintf("Dolby Vision profile %d.%d", p, c)
+		return i18n.F("Dolby Vision profile {p}.{c}", "p", p, "c", c)
 	}
 	for _, sd := range s.SideData {
 		if t, _ := sd["side_data_type"].(string); t == "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)" {

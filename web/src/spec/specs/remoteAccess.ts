@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { Cc, R, mk, secF, secN, secP, secR } from '../model.ts'
 import type { SpecChip, SpecField, SpecPageData, SpecRow, SpecSection } from '../types.ts'
-import { t, tk, tn } from '../../sdui/words.ts'
+import { bidi, t, tk, tn } from '../../sdui/words.ts'
 
 // Settings, Remote Access (canvas "remoteaccess"): who can connect, limits for viewers away, who is connected from
 // outside, sign-in protection, advanced addresses. Real data from GET /remote and GET /sessions?all=1.
@@ -43,7 +43,7 @@ const SHORT: Record<string, string> = { machine: tk('This computer'), home: tk('
 export function outsideSpec(list: OutsideSession[], viaLabel: (where: string, via: string) => string, ago: (at: number) => string): SpecPageData {
   const rows: SpecRow[] = list.map((v) => ({
     id: 'who:' + v.id, title: `${v.userName} · ${v.device || t('Unknown device')}`,
-    value: [v.current ? t('This device') : '', v.streaming ? t('Streaming') : '', v.plainAway ? t('Signed in unencrypted') : ''].filter(Boolean).join(' · ') || undefined,
+    value: [v.current ? t('This device') : '', v.streaming ? t('Streaming') : '', v.plainAway ? t('Signed in unencrypted') : ''].filter(Boolean).map(bidi).join(' · ') || undefined,
     sub: `${SHORT[v.where] ? t(SHORT[v.where]) : v.where} · ${viaLabel(v.where, v.via)} · ${v.ip} · ${ago(v.lastSeen)}`, on: v.current,
   }))
   const chips: SpecChip[] = list.filter((v) => !v.current).map((v) => ({ ...Cc(v.device ? t('Sign {name} out on {device}', { name: v.userName, device: v.device }) : t('Sign {name} out on this device', { name: v.userName })), id: 'out:' + v.id }))

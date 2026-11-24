@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNod
 import { api, downloadFile, mediaUrl, uploadFile } from '../api'
 import { IconBack, IconClose, IconDownload, IconFolder, IconPause, IconPlay, IconPlus, IconRight, IconTrash } from '../icons'
 import { ask, Field, IconButton, Input, Notice, Select, Tabs, Textarea, toast } from '../ui'
-import { t, tn, tx, useLanguage } from '../i18n'
+import { t, tn, tx, useLanguage, bidi } from '../i18n'
 import { skipAt, sourceWords } from '../player/markers'
 import Timeline, { type Pick } from './Timeline'
 import {
@@ -533,7 +533,7 @@ export default function InfoEditor({ base, scope, player: givenPlayer, onPreview
               {d.subtitles.map((s) => (
                 <li key={s.file} className="wi-item wi-sub-item">
                   <b>{s.title || (s.language ? langName(s.language) : s.file.replace(/^subtitles\//, ''))}</b>
-                  <span className="muted">{[s.language && langName(s.language), s.forced && t('forced'), s.sdh && t('for the deaf and hard of hearing')].filter(Boolean).join(' · ')}</span>
+                  <span className="muted">{[s.language && langName(s.language), s.forced && t('forced'), s.sdh && t('for the deaf and hard of hearing')].filter(Boolean).map(bidi).join(' · ')}</span>
                   <span className="wi-row-btns"><IconButton size="sm" label={t('Remove {what}', { what: s.file })} onClick={() => run(() => api.del<InfoAnswer>(under(base, `/subtitles/${encodeURIComponent(s.file.replace(/^subtitles\//, ''))}`)), t('Taken out'))}><IconTrash size={16} /></IconButton></span>
                 </li>
               ))}

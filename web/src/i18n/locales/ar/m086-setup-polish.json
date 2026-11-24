@@ -1,0 +1,22 @@
+{
+  "Change the {name} key": "تغيير مفتاح {name}",
+  "Keep the saved key": "الاحتفاظ بالمفتاح المحفوظ",
+  "Address copied": "تم نسخ العنوان",
+  "Couldn’t copy it: select the address and copy it": "تعذّر النسخ: حدّد العنوان وانسخه",
+  "Right now this server only answers on this computer, at:": "حاليًا لا يستجيب هذا الخادم إلا على هذا الكمبيوتر، على العنوان:",
+  "Copy the address {url}": "نسخ العنوان {url}",
+  "It also answers at {url}.": "يستجيب أيضًا على {url}.",
+  "QR code holding the address {url}": "رمز QR يحمل العنوان {url}",
+  "To use it from your TV or phone, set {listen} to {port} where it’s set (its config file, {flag} or {env}) and restart it.": "لاستخدامه من التلفاز أو الهاتف، اضبط {listen} على {port} حيث يُضبط (ملف إعداداته أو {flag} أو {env}) ثم أعد تشغيله.",
+  "Then other devices at home can open it at {url}.": "بعدها تستطيع الأجهزة الأخرى في المنزل فتحه على {url}.",
+  "Write {standard} from {ext} files: there are none yet": "كتابة {standard} من ملفات {ext}: لا يوجد أي منها بعد",
+  "{done} of {count} films and episodes converted": "الأفلام والحلقات المحوّلة: {done} من {count}",
+  "{done} of {count} shows": "المسلسلات: {done} من {count}",
+  "{done} of {count} albums converted": "الألبومات المحوّلة: {done} من {count}",
+  "lyrics for {done} of {count} songs": "كلمات الأغاني: {done} من {count}",
+  "{count} old files renamed to .bak": "ملفات قديمة أعيدت تسميتها إلى ‎.bak: {count}",
+  "{count} couldn’t be converted (see the log)": "تعذّر تحويلها (راجع السجل): {count}",
+  "{done} of {count} films, episodes and shows": "الأفلام والحلقات والمسلسلات: {done} من {count}",
+  "{done} of {count} songs": "الأغاني: {done} من {count}",
+  "{done} of {count} games": "الألعاب: {done} من {count}"
+}

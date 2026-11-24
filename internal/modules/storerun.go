@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"sort"
@@ -181,7 +182,7 @@ func (s *Stores) updatePlan() []RunItem {
 		case st.Source != nil:
 			it.State, it.Why = RunSkipped, "It's from another publisher, so you choose each of its versions on its own page."
 		case st.Latest.Blocked != "":
-			it.State, it.Why = RunSkipped, "This version was taken out of use before ("+st.Latest.Blocked+"), so it won't come back unless you choose it."
+			it.State, it.Why = RunSkipped, i18n.F("This version was taken out of use before ({blocked}), so it won't come back unless you choose it.", "blocked", st.Latest.Blocked)
 		case st.Phase == PhaseDownloading || st.Phase == PhaseVerifying || st.Phase == PhaseInstalling:
 			it.State, it.Why = RunSkipped, "It's already being changed."
 		}
@@ -427,7 +428,7 @@ func (s *Stores) runOne(r *Run, i int, it RunItem) *Failure {
 		if errors.As(err, &need) {
 			s.setItem(r, i, func(x *RunItem) { x.Why = need.Warning })
 			return &Failure{Kind: FailOther, Title: "This one needs your say", Message: need.Warning, Detail: need.Warning,
-				Try: []string{"Open the module and choose this version yourself."}}
+				Try: []string{i18n.T("Open the module and choose this version yourself.")}}
 		}
 		return explainErr(it.Name, err)
 	}

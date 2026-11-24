@@ -904,5 +904,9 @@
   "and {count} more invitations": {
     "one": "en nog {count} uitnodiging",
     "other": "en nog {count} uitnodigingen"
-  }
+  },
+  "Pause for scenes": "Pauzeren bij scènes",
+  "Pause the film while the scenes are open": "De film pauzeren terwijl de scènes open zijn",
+  "Phones and TVs": "Telefoons en tv's",
+  "Every screen": "Alle schermen"
 }

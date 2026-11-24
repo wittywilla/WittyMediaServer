@@ -6,6 +6,7 @@ package mediatypes
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"os"
 	"slices"
@@ -209,7 +210,7 @@ func sniff(b []byte) string {
 		return "au"
 	case has("caff"):
 		return "caf"
-	case has("Creative Voice File"):
+	case has(i18n.T("Creative Voice File")):
 		return "voc"
 	case has("\x0B\x77") && len(b) > 5:
 		if b[5]>>3 > 10 {

@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { announce } from '../../../a11y'
-import { t, tk, tn, tx } from '../../../i18n'
+import { t, tk, tn, tx, bidi } from '../../../i18n'
 import { IconPlus } from '../../../icons'
 import { ArrangeList, type ArrangeRow } from '../../../sdui/ArrangeList'
 import { sduiIcon } from '../../../sdui/render/icons'
@@ -139,7 +139,7 @@ function Editor({ start, source, reload }: { start: Navigation; source: string; 
     const problems = located.filter((l) => l.at.item === i && l.issue.severity !== 'warning').length
     return {
       id: `${i}:${it.id}`, title: navTitle(cat, it, status.pages, libraries), icon: sduiIcon(it.icon || iconOf(it)), hideFixed: isSettingsEntry(it),
-      note: [tx(NAV_TYPES.find((n) => n.value === it.type)?.label).toLowerCase(), it.when && Object.keys(it.when).length ? t('sometimes') : '', hiddenOn.length ? t('not on {devices}', { devices: hiddenOn.join(', ') }) : '', problems ? tn('{count} problem', '{count} problems', problems) : ''].filter(Boolean).join(' · '),
+      note: [tx(NAV_TYPES.find((n) => n.value === it.type)?.label).toLowerCase(), it.when && Object.keys(it.when).length ? t('sometimes') : '', hiddenOn.length ? t('not on {devices}', { devices: hiddenOn.join(', ') }) : '', problems ? tn('{count} problem', '{count} problems', problems) : ''].filter(Boolean).map(bidi).join(' · '),
     }
   })
   function iconOf(it: NavItem): string {

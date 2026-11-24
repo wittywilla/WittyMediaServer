@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 )
@@ -55,7 +55,7 @@ func (c *sessionCapture) all() []capturedRecord {
 }
 
 func TestScanLeavesARecord(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

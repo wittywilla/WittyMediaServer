@@ -20,7 +20,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/config"
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
@@ -41,7 +41,7 @@ type galleryServer struct {
 func newGalleryServer(t *testing.T) *galleryServer {
 	t.Helper()
 	dir := t.TempDir()
-	d, err := db.Open(dir)
+	d, err := dbtest.Open(dir)
 	if err != nil {
 		t.Fatal(err)
 	}

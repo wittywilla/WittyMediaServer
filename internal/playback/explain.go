@@ -5,6 +5,7 @@ package playback
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/mediatypes"
@@ -32,29 +33,29 @@ type Explanation struct {
 }
 
 var reasonWords = map[string]string{
-	ReasonForced:       "A conversion was asked for.",
-	ReasonDirectOff:    "Direct play is turned off in the server's settings.",
-	ReasonContainer:    "This player can't open this kind of file, though it may play what's inside.",
-	ReasonVideoCodec:   "This player can't decode the picture.",
-	ReasonVideoTag:     "This player needs HEVC labelled in a different way.",
-	ReasonVideoHeight:  "The picture has more lines than allowed for this player or by the server.",
-	ReasonVideoBitrate: "The picture needs more data than this connection is allowed.",
-	ReasonVideoDepth:   "This player can't show a picture of this colour depth.",
-	ReasonVideoRange:   "This screen doesn't show HDR, so the picture is converted to look right on it.",
-	ReasonInterlaced:   "The picture is interlaced, and this player wouldn't deinterlace it.",
-	ReasonAudioCodec:   "This player can't decode the sound.",
-	ReasonAudioChans:   "The sound has more channels than this player takes.",
-	ReasonAudioTrack:   "This player can only change sound tracks if the server rewraps the file.",
-	ReasonSubtitle:     "These subtitles are pictures, so the server draws them into the picture.",
-	ReasonNoVideo:      "This file only has sound.",
-	ReasonBurnAsked:    "Subtitles drawn into the picture were asked for, to keep their styling.",
-	ReasonHLSVideo:     "This player can't take the picture as a stream without converting it.",
-	ReasonRemuxDisable: "This player doesn't take rewrapped streams.",
-	ReasonSplit:        "The film is split across files, which play as one stream.",
-	ReasonVideoTrack:   "Another video stream of the file was chosen.",
-	ReasonFlatten3D:    "A 3D picture is being shown in 2D.",
-	ReasonRemoteLimit:  "The file holds more data than this server allows for viewers away from home.",
-	ReasonRobust:       "Robust streaming is on, and the file holds more data than this connection comfortably carries, so it's sent at steady rates the player can step down between.",
+	ReasonForced:       i18n.T("A conversion was asked for."),
+	ReasonDirectOff:    i18n.T("Direct play is turned off in the server's settings."),
+	ReasonContainer:    i18n.T("This player can't open this kind of file, though it may play what's inside."),
+	ReasonVideoCodec:   i18n.T("This player can't decode the picture."),
+	ReasonVideoTag:     i18n.T("This player needs HEVC labelled in a different way."),
+	ReasonVideoHeight:  i18n.T("The picture has more lines than allowed for this player or by the server."),
+	ReasonVideoBitrate: i18n.T("The picture needs more data than this connection is allowed."),
+	ReasonVideoDepth:   i18n.T("This player can't show a picture of this colour depth."),
+	ReasonVideoRange:   i18n.T("This screen doesn't show HDR, so the picture is converted to look right on it."),
+	ReasonInterlaced:   i18n.T("The picture is interlaced, and this player wouldn't deinterlace it."),
+	ReasonAudioCodec:   i18n.T("This player can't decode the sound."),
+	ReasonAudioChans:   i18n.T("The sound has more channels than this player takes."),
+	ReasonAudioTrack:   i18n.T("This player can only change sound tracks if the server rewraps the file."),
+	ReasonSubtitle:     i18n.T("These subtitles are pictures, so the server draws them into the picture."),
+	ReasonNoVideo:      i18n.T("This file only has sound."),
+	ReasonBurnAsked:    i18n.T("Subtitles drawn into the picture were asked for, to keep their styling."),
+	ReasonHLSVideo:     i18n.T("This player can't take the picture as a stream without converting it."),
+	ReasonRemuxDisable: i18n.T("This player doesn't take rewrapped streams."),
+	ReasonSplit:        i18n.T("The film is split across files, which play as one stream."),
+	ReasonVideoTrack:   i18n.T("Another video stream of the file was chosen."),
+	ReasonFlatten3D:    i18n.T("A 3D picture is being shown in 2D."),
+	ReasonRemoteLimit:  i18n.T("The file holds more data than this server allows for viewers away from home."),
+	ReasonRobust:       i18n.T("Robust streaming is on, and the file holds more data than this connection comfortably carries, so it's sent at steady rates the player can step down between."),
 }
 
 // ReasonText puts a reason in words.
@@ -146,51 +147,51 @@ func Explain(d Decision, src Source, q Request) Explanation {
 	switch d.Mode {
 	case Direct:
 		e.Summary = "Playing the file as it is: your player does the work, and the server only sends it."
-		e.Picture = "Passed on untouched."
-		e.Sound = "Passed on untouched."
+		e.Picture = i18n.T("Passed on untouched.")
+		e.Sound = i18n.T("Passed on untouched.")
 		e.Load = "none"
 	case Remux:
-		e.Picture = "Passed on untouched, in a wrapper this player can open."
+		e.Picture = i18n.T("Passed on untouched, in a wrapper this player can open.")
 		if d.CopyAudio {
 			e.Summary = "Rewrapping the file: nothing is converted, only the wrapper changes. This costs the server very little."
-			e.Sound = "Passed on untouched."
+			e.Sound = i18n.T("Passed on untouched.")
 		} else {
 			e.Summary = "Converting only the sound, which costs the server little. The picture is passed on untouched."
-			e.Sound = fmt.Sprintf("Converted to AAC %s.", channelWords(d.AudioChannels))
+			e.Sound = i18n.F("Converted to AAC {channelWords}.", "channelWords", channelWords(d.AudioChannels))
 		}
 		e.Load = "light"
 	default:
 		e.Summary = "Converting the picture and sound. This is the most work for the server, so it's only done when nothing simpler would play."
-		e.Picture = "Converted to H.264."
+		e.Picture = i18n.T("Converted to H.264.")
 		if !src.HasVideo {
 			e.Summary = "Converting the sound."
-			e.Picture = "There's no picture in this file."
+			e.Picture = i18n.T("There's no picture in this file.")
 		}
 		if d.ToneMap {
-			e.Picture = "Converted to H.264, with HDR mapped to fit this screen."
+			e.Picture = i18n.T("Converted to H.264, with HDR mapped to fit this screen.")
 			if src.Range == "dv5" {
-				e.Picture = "Converted to H.264. This Dolby Vision profile has no plain HDR layer, so colours may look a little off."
+				e.Picture = i18n.T("Converted to H.264. This Dolby Vision profile has no plain HDR layer, so colours may look a little off.")
 			}
 		}
-		e.Sound = fmt.Sprintf("Converted to AAC %s.", channelWords(d.AudioChannels))
+		e.Sound = i18n.F("Converted to AAC {channelWords}.", "channelWords", channelWords(d.AudioChannels))
 		e.Load = "heavy"
 		if !src.HasVideo {
 			e.Load = "light"
 		}
 	}
 	if a == nil {
-		e.Sound = "There's no sound in this file."
+		e.Sound = i18n.T("There's no sound in this file.")
 	}
 	switch d.Subtitle {
 	case SubNone:
 	case SubEmbedded:
-		e.Subtitles = "Drawn by the player, from inside the file."
+		e.Subtitles = i18n.T("Drawn by the player, from inside the file.")
 	case SubSidecar:
-		e.Subtitles = "Sent beside the picture as text, and drawn by the player."
+		e.Subtitles = i18n.T("Sent beside the picture as text, and drawn by the player.")
 	case SubHLS:
-		e.Subtitles = "Sent as a text track of the stream, and drawn by the player."
+		e.Subtitles = i18n.T("Sent as a text track of the stream, and drawn by the player.")
 	case SubBurn:
-		e.Subtitles = "Drawn into the picture by the server."
+		e.Subtitles = i18n.T("Drawn into the picture by the server.")
 	}
 	return e
 }
@@ -199,11 +200,11 @@ func Explain(d Decision, src Source, q Request) Explanation {
 func ExplainAudio(direct bool, container, codec string) Explanation {
 	source := fmt.Sprintf("%s in %s", codecName(codec), containerName(container))
 	if direct {
-		return Explanation{Summary: "Playing the file as it is.", Source: source, Sound: "Passed on untouched.", Reasons: []string{}, Load: "none"}
+		return Explanation{Summary: "Playing the file as it is.", Source: source, Sound: i18n.T("Passed on untouched."), Reasons: []string{}, Load: "none"}
 	}
 	why := ReasonText(ReasonAudioCodec)
 	if codec == "midi" {
-		return Explanation{Summary: "The server's synthesiser plays this file once, and keeps the sound.", Source: source, Sound: "Made into FLAC.", Reasons: []string{"A MIDI file holds notes rather than sound."}, Load: "light"}
+		return Explanation{Summary: "The server's synthesiser plays this file once, and keeps the sound.", Source: source, Sound: i18n.T("Made into FLAC."), Reasons: []string{i18n.T("A MIDI file holds notes rather than sound.")}, Load: "light"}
 	}
-	return Explanation{Summary: "Converting the sound on the way to your player.", Source: source, Sound: "Converted to AAC.", Reasons: []string{why}, Load: "light"}
+	return Explanation{Summary: "Converting the sound on the way to your player.", Source: source, Sound: i18n.T("Converted to AAC."), Reasons: []string{why}, Load: "light"}
 }

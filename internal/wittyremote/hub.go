@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"slices"
 	"sort"
 	"sync"
@@ -519,11 +520,11 @@ func (h *Hub) Send(ctx context.Context, id string, ownerID int64, cmd Command) e
 	d := h.devices[id]
 	if d == nil || d.UserID != ownerID || d.conn == nil {
 		h.mu.Unlock()
-		return &CommandError{CodeOffline, "That device isn't connected."}
+		return &CommandError{CodeOffline, i18n.T("That device isn't connected.")}
 	}
 	if need := cmd.Needs(); need != "" && !d.Caps.Has(need) {
 		h.mu.Unlock()
-		return &CommandError{CodeUnsupported, "That device can't do that."}
+		return &CommandError{CodeUnsupported, i18n.T("That device can't do that.")}
 	}
 	cmd.V, cmd.ID, cmd.SentAt = d.V, h.newID(), now.UnixMilli()
 	p := &pending{device: id, done: make(chan *CommandError, 1)}
@@ -532,7 +533,7 @@ func (h *Hub) Send(ctx context.Context, id string, ownerID int64, cmd Command) e
 		h.pending[cmd.ID] = p
 	default:
 		h.mu.Unlock()
-		return &CommandError{CodeBusy, "That device has too many commands waiting. Try again in a moment."}
+		return &CommandError{CodeBusy, i18n.T("That device has too many commands waiting. Try again in a moment.")}
 	}
 	h.mu.Unlock()
 
@@ -546,9 +547,9 @@ func (h *Hub) Send(ctx context.Context, id string, ownerID int64, cmd Command) e
 		}
 		return e
 	case <-wait.C:
-		timeout = &CommandError{CodeTimeout, "That device didn't answer."}
+		timeout = &CommandError{CodeTimeout, i18n.T("That device didn't answer.")}
 	case <-ctx.Done():
-		timeout = &CommandError{CodeTimeout, "The request ended before that device answered."}
+		timeout = &CommandError{CodeTimeout, i18n.T("The request ended before that device answered.")}
 	}
 	h.mu.Lock()
 	delete(h.pending, cmd.ID)
@@ -584,7 +585,7 @@ func (h *Hub) Ack(id string, userID int64, session, commandID string, ok bool, w
 		return nil
 	}
 	if why = Clip(why, 200); why == "" {
-		why = "That device couldn't do that."
+		why = i18n.T("That device couldn't do that.")
 	}
 	p.done <- &CommandError{CodeRefused, why}
 	return nil

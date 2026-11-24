@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"net"
@@ -66,8 +67,8 @@ func checkConfigFile(_ context.Context, e *DoctorEnv) []Issue {
 			Fix:  "Correct the file, or rename it to use the defaults.",
 			Steps: []string{
 				"Open " + name + " in a text editor. It's JSON: names and text in double quotes, with a comma between entries and none after the last.",
-				"Only the names in Help, Config file and folders, are allowed, so a misspelled one stops the server. Correct it or remove it.",
-				"Or rename the file to wms.json.old, and the server starts with its defaults. wittymediaserver config init writes a new one.",
+				i18n.T("Only the names in Help, Config file and folders, are allowed, so a misspelled one stops the server. Correct it or remove it."),
+				i18n.T("Or rename the file to wms.json.old, and the server starts with its defaults. wittymediaserver config init writes a new one."),
 			}})
 		return out
 	}
@@ -90,7 +91,7 @@ func checkConfigFile(_ context.Context, e *DoctorEnv) []Issue {
 		if _, err := os.Stat(p); errors.Is(err, fs.ErrNotExist) {
 			out = append(out, Issue{Key: "config-file:" + c.name, Severity: SevProblem, Title: "wms.json names a " + c.name + " that isn't there", Safety: SafetyManual,
 				What:  c.name + " is set to " + c.val + ", and there's no such file.",
-				Fix:   "Correct the path in " + e.ConfigFile + ", or remove the setting.",
+				Fix:   i18n.F("Correct the path in {configFile}, or remove the setting.", "configFile", e.ConfigFile),
 				Steps: []string{"Open " + e.ConfigFile + " and correct or remove \"" + c.name + "\". Without it the server looks beside itself and on PATH."}})
 		}
 	}
@@ -134,7 +135,7 @@ func checkFFmpeg(_ context.Context, e *DoctorEnv) []Issue {
 		return nil
 	}
 	return []Issue{{Key: "ffmpeg", Severity: SevProblem, Title: "FFmpeg is missing or won't run", Safety: SafetyManual,
-		What: "The server needs FFmpeg to start and to convert video. It says: " + a.err.Error() + ".",
+		What: i18n.F("The server needs FFmpeg to start and to convert video. It says: {error}.", "error", a.err.Error()),
 		Fix:  "Install FFmpeg, or say where it is.", Steps: ffmpegSteps()}}
 }
 
@@ -142,13 +143,13 @@ func ffmpegSteps() []string {
 	last := "If it's somewhere else, set WMS_FFMPEG to its full path, or \"ffmpeg\" in wms.json. Then run wittymediaserver doctor again."
 	switch runtime.GOOS {
 	case "windows":
-		return []string{"Reinstall WittyMediaServer, which brings its own copy; or install one: winget install Gyan.FFmpeg", "Open a new terminal and check that this works: ffmpeg -version", last}
+		return []string{i18n.T("Reinstall WittyMediaServer, which brings its own copy; or install one: winget install Gyan.FFmpeg"), i18n.T("Open a new terminal and check that this works: ffmpeg -version"), last}
 	case "darwin":
-		return []string{"Install it with Homebrew: brew install ffmpeg", "Check that this works: ffmpeg -version", last}
+		return []string{i18n.T("Install it with Homebrew: brew install ffmpeg"), i18n.T("Check that this works: ffmpeg -version"), last}
 	case "linux":
-		return []string{"Install it with your system's packages, such as: sudo apt install ffmpeg, or: sudo dnf install ffmpeg", "Check that this works: ffmpeg -version", last}
+		return []string{i18n.T("Install it with your system's packages, such as: sudo apt install ffmpeg, or: sudo dnf install ffmpeg"), i18n.T("Check that this works: ffmpeg -version"), last}
 	}
-	return []string{"Install FFmpeg with your system's packages, such as: pkg install ffmpeg", "Check that this works: ffmpeg -version", last}
+	return []string{i18n.T("Install FFmpeg with your system's packages, such as: pkg install ffmpeg"), i18n.T("Check that this works: ffmpeg -version"), last}
 }
 
 // --------------------------------------------------------------- folders
@@ -170,7 +171,7 @@ func checkFolders(_ context.Context, e *DoctorEnv) []Issue {
 		if err == nil && !st.IsDir() {
 			out = append(out, Issue{Key: "folders:" + f.name, Severity: SevProblem, Title: "The " + f.name + " folder is a file", Safety: SafetyManual,
 				What: f.dir + " should be a folder, and it's a file.", Fix: "Move that file away, or choose another folder in wms.json.",
-				Steps: []string{"Rename or move " + f.dir + ".", "Run wittymediaserver doctor again."}})
+				Steps: []string{i18n.F("Rename or move {dir}.", "dir", f.dir), i18n.T("Run wittymediaserver doctor again.")}})
 			continue
 		}
 		if err != nil {
@@ -203,13 +204,13 @@ func folderDenied(name, dir string, err error) Issue {
 	var steps []string
 	switch runtime.GOOS {
 	case "windows":
-		steps = []string{"In File Explorer, right-click " + dir + ", then Properties, Security, and give the account that runs the server Modify.", "Or in a terminal: icacls \"" + dir + "\" /grant \"%USERNAME%:(OI)(CI)M\" /T"}
+		steps = []string{i18n.F("In File Explorer, right-click {dir}, then Properties, Security, and give the account that runs the server Modify.", "dir", dir), i18n.T("Or in a terminal: icacls \"") + dir + "\" /grant \"%USERNAME%:(OI)(CI)M\" /T"}
 	case "darwin":
-		steps = []string{"In a terminal: sudo chown -R \"$(whoami)\" \"" + dir + "\"", "Or in Finder, Get Info on the folder, and give your account Read & Write."}
+		steps = []string{i18n.F("In a terminal: sudo chown -R \"$(whoami)\" \"{dir}\"", "dir", dir), i18n.T("Or in Finder, Get Info on the folder, and give your account Read & Write.")}
 	default:
-		steps = []string{"In a terminal, as the account that runs the server: sudo chown -R \"$(whoami)\" \"" + dir + "\"", "For a service, use its user: sudo chown -R wms:wms \"" + dir + "\". Docker: check the volume's owner and PUID."}
+		steps = []string{i18n.F("In a terminal, as the account that runs the server: sudo chown -R \"$(whoami)\" \"{dir}\"", "dir", dir), i18n.T("For a service, use its user: sudo chown -R wms:wms \"") + dir + "\". Docker: check the volume's owner and PUID."}
 	}
-	return Issue{Key: "folders:denied:" + name, Severity: SevProblem, Title: "The server can't write to its " + name + " folder", Safety: SafetyManual,
+	return Issue{Key: "folders:denied:" + name, Severity: SevProblem, Title: i18n.F("The server can't write to its {name} folder", "name", name), Safety: SafetyManual,
 		What:  "Writing to " + dir + " failed: " + err.Error() + ".",
 		Fix:   "Change who may write there. This program won't change permissions by itself.",
 		Steps: steps}
@@ -256,12 +257,12 @@ func checkDiskSpace(_ context.Context, e *DoctorEnv) []Issue {
 		if free < diskVeryLow {
 			sev = SevProblem
 		}
-		out = append(out, Issue{Key: "disk-space:" + f.name, Severity: sev, Title: "The disk holding the " + f.name + " folder is nearly full", Safety: SafetyManual,
+		out = append(out, Issue{Key: "disk-space:" + f.name, Severity: sev, Title: i18n.F("The disk holding the {name} folder is nearly full", "name", f.name), Safety: SafetyManual,
 			What: fmt.Sprintf("%s free where %s is. The database, artwork and converted video all need room, and a full disk can damage the database.", sizeWords(free), f.dir),
 			Fix:  "Make room, or move a folder to a bigger drive.",
 			Steps: []string{
-				"Delete what you don't need from that drive. The safety copies in " + BackupsDir(e.Data) + " and copies under Settings, Reset can go.",
-				"To move folders that fill up to another drive, set transcodeDir and metadataDir in wms.json (see Help, Config file and folders).",
+				i18n.F("Delete what you don't need from that drive. The safety copies in {backupsDir} and copies under Settings, Reset can go.", "backupsDir", BackupsDir(e.Data)),
+				i18n.T("To move folders that fill up to another drive, set transcodeDir and metadataDir in wms.json (see Help, Config file and folders)."),
 			}})
 	}
 	return out
@@ -317,10 +318,10 @@ func checkPort(ctx context.Context, e *DoctorEnv) []Issue {
 	_, port, ok := listenPort(e.Listen)
 	if !ok {
 		return []Issue{{Key: "port:address", Severity: SevProblem, Title: "The listen address can't be used", Safety: SafetyManual,
-			What: "The server is told to listen on \"" + e.Listen + "\", which isn't an address and a port.",
+			What: i18n.F("The server is told to listen on \"{listen}\", which isn't an address and a port.", "listen", e.Listen),
 			Fix:  "Correct it, such as :9797.",
 			Steps: []string{"Correct \"listen\" in wms.json, -listen or WMS_LISTEN. :9797 means every network card on port 9797.",
-				"To change only the port, remove that, and set it in settings.ini or Settings → Network: wittymediaserver config port says where."}}}
+				i18n.T("To change only the port, remove that, and set it in settings.ini or Settings → Network: wittymediaserver config port says where.")}}}
 	}
 	if e.InServer {
 		return nil // that's this server
@@ -331,7 +332,7 @@ func checkPort(ctx context.Context, e *DoctorEnv) []Issue {
 			// Only when asked, only on this machine, and let go of at once.
 			l, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
 			if err != nil {
-				return portBusy(ctx, e, port, "Trying it says: "+err.Error()+".")
+				return portBusy(ctx, e, port, i18n.F("Trying it says: {error}.", "error", err.Error()))
 			}
 			_ = l.Close()
 		}
@@ -345,21 +346,21 @@ func checkPort(ctx context.Context, e *DoctorEnv) []Issue {
 		}
 		if ver != e.Version {
 			return []Issue{{Key: "port:version", Severity: SevWarn, Title: "A server of a different version is already running", Safety: SafetyManual,
-				What:  fmt.Sprintf("WittyMediaServer %s answers on port %d, and this program is %s. Running a command from one install against another's folder can change its files.", ver, port, e.Version),
+				What:  i18n.F("WittyMediaServer {ver} answers on port {port}, and this program is {version}. Running a command from one install against another's folder can change its files.", "ver", ver, "port", port, "version", e.Version),
 				Fix:   "Stop the other server, or point this command at its folder.",
-				Steps: []string{"If it's an older install, stop it, from its tray icon or service, before starting this one.", "If that's the install you meant, use its own program: run wittymediaserver config path beside it to see where it is."}}}
+				Steps: []string{i18n.T("If it's an older install, stop it, from its tray icon or service, before starting this one."), i18n.T("If that's the install you meant, use its own program: run wittymediaserver config path beside it to see where it is.")}}}
 		}
 		return []Issue{{Key: "port:other", Severity: SevWarn, Title: "Another copy of this server is using the port", Safety: SafetyManual,
-			What:  fmt.Sprintf("A WittyMediaServer on a different data folder answers on port %d, so a server on this folder can't start there.", port),
+			What:  i18n.F("A WittyMediaServer on a different data folder answers on port {port}, so a server on this folder can't start there.", "port", port),
 			Fix:   "Stop the other copy, or give this one another port.",
-			Steps: []string{"Stop the other copy, from its tray icon or service.", "Or start this one with: -listen :9798"}}}
+			Steps: []string{i18n.T("Stop the other copy, from its tray icon or service."), i18n.T("Or start this one with: -listen :9798")}}}
 	}
 	return portBusy(ctx, e, port, "")
 }
 
 func portBusy(ctx context.Context, _ *DoctorEnv, port int, extra string) []Issue {
 	who := portOwner(ctx, port)
-	what := fmt.Sprintf("Something else on this computer is using port %d, so the server can't start there.", port)
+	what := i18n.F("Something else on this computer is using port {port}, so the server can't start there.", "port", port)
 	if who != "" {
 		what += " It looks like: " + who + "."
 	}
@@ -368,7 +369,7 @@ func portBusy(ctx context.Context, _ *DoctorEnv, port int, extra string) []Issue
 	}
 	return []Issue{{Key: "port", Severity: SevProblem, Title: "The server's port is taken", Safety: SafetyManual, What: what,
 		Fix:   "Stop that program, or give the server another port.",
-		Steps: []string{"Stop the program named above, if it's not needed.", "Or give the server another port: -listen :9798, or \"listen\" in wms.json, and use that port in your browser."}}}
+		Steps: []string{i18n.T("Stop the program named above, if it's not needed."), i18n.T("Or give the server another port: -listen :9798, or \"listen\" in wms.json, and use that port in your browser.")}}}
 }
 
 // --------------------------------------------------------------- firewall
@@ -386,23 +387,23 @@ func checkFirewall(_ context.Context, e *DoctorEnv) []Issue {
 	switch runtime.GOOS {
 	case "windows":
 		steps = []string{
-			"Open Windows Security, Firewall & network protection, Allow an app through firewall, and tick WittyMediaServer for Private networks.",
+			i18n.T("Open Windows Security, Firewall & network protection, Allow an app through firewall, and tick WittyMediaServer for Private networks."),
 			"Or in a terminal opened as administrator: netsh advfirewall firewall add rule name=\"WittyMediaServer\" dir=in action=allow protocol=TCP localport=" + p + " profile=private",
-			"Apps find the server over UDP ports 5353 and 9797, so allow those too if apps don't list it.",
+			i18n.T("Apps find the server over UDP ports 5353 and 9797, so allow those too if apps don't list it."),
 		}
 	case "darwin":
-		steps = []string{"Open System Settings, Network, Firewall, Options, and allow wms to receive incoming connections.", "Apps find the server over UDP ports 5353 and 9797."}
+		steps = []string{i18n.T("Open System Settings, Network, Firewall, Options, and allow wms to receive incoming connections."), i18n.T("Apps find the server over UDP ports 5353 and 9797.")}
 	case "linux":
 		steps = []string{
-			"With ufw: sudo ufw allow " + p + "/tcp",
+			i18n.F("With ufw: sudo ufw allow {p}/tcp", "p", p),
 			"With firewalld: sudo firewall-cmd --add-port=" + p + "/tcp --permanent, then sudo firewall-cmd --reload",
-			"Apps find the server over UDP ports 5353 and 9797. In Docker, use host networking for that to work.",
+			i18n.T("Apps find the server over UDP ports 5353 and 9797. In Docker, use host networking for that to work."),
 		}
 	default:
-		steps = []string{"Allow TCP port " + p + " in your firewall.", "Apps find the server over UDP ports 5353 and 9797."}
+		steps = []string{i18n.F("Allow TCP port {p} in your firewall.", "p", p), i18n.T("Apps find the server over UDP ports 5353 and 9797.")}
 	}
 	return []Issue{{Key: "firewall", Severity: SevInfo, Title: "If other devices can't connect, check the firewall", Safety: SafetyManual,
-		What:  "This program can't tell what your firewall allows. If the server works on this computer and nowhere else, that's the likely reason.",
+		What:  i18n.T("This program can't tell what your firewall allows. If the server works on this computer and nowhere else, that's the likely reason."),
 		Fix:   "Allow the server through. Nothing here changes firewall settings.",
 		Steps: steps}}
 }
@@ -452,7 +453,7 @@ func checkLeftoverFFmpeg(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	list, err := listProcesses(ctx)
 	if err != nil {
-		return notChecked("leftover-processes:failed", "FFmpeg left running", "The list of running programs couldn't be read: "+err.Error()+".")
+		return notChecked("leftover-processes:failed", i18n.T("FFmpeg left running"), i18n.F("The list of running programs couldn't be read: {error}.", "error", err.Error()))
 	}
 	found := ffmpegsOf(list, e.Transcode)
 	if len(found) == 0 {
@@ -516,8 +517,8 @@ func checkLayout(_ context.Context, e *DoctorEnv) []Issue {
 		What: "Data at " + e.Data + " sits in with the program at " + e.Program + ". Reinstalling or uninstalling can remove it.",
 		Fix:  "Move the data somewhere of its own, or make this a portable install on purpose.",
 		Steps: []string{
-			"Stop the server, and move the folder somewhere outside the program's folder.",
-			"Point the server at it with dataDir in wms.json, or -data.",
+			i18n.T("Stop the server, and move the folder somewhere outside the program's folder."),
+			i18n.T("Point the server at it with dataDir in wms.json, or -data."),
 			"Or, if you do want it all in one folder, run wittymediaserver config init --portable.",
 		}}}
 }

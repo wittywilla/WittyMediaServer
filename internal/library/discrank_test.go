@@ -9,7 +9,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/bdsession"
 	"github.com/wittywilla/wittymediaserver/internal/bluray"
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	"github.com/wittywilla/wittymediaserver/internal/dvd"
 	"github.com/wittywilla/wittymediaserver/internal/dvdsession"
 )
@@ -64,7 +64,7 @@ func TestDVDRankKeepsWhatAPageShows(t *testing.T) {
 }
 
 func TestAChosenFilmBeatsTheEngineUntilCleared(t *testing.T) {
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

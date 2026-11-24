@@ -17,10 +17,11 @@ export const LAYERS: { id: LayerId; label: string; desc: string }[] = [
 export interface DeviceLine { id: string; user?: string; name: string; platform: string; how: string; created: number; lastSeen: number; connected: boolean; path?: string }
 const PATH: Record<string, string> = { direct: tk('Connected directly'), relayed: tk('Connected through a relay') }
 
-// Devices that may connect: a row each, and a Remove chip each (ids remove:<id>) and the invite chip (invite).
+// Devices that may connect: a row each, and a Remove chip each (ids remove:<id>). New devices come in by
+// Connect a device, at the top of the page.
 export function devicesSpec(devices: DeviceLine[], ago: (at?: number) => string): SpecPageData {
   const sections: SpecSection[] = []
-  if (!devices.length) sections.push(secN('', t('None yet. Open the app on a phone, TV or computer while it’s at home and signed in: it adds itself. Or invite a device that isn’t at home.')))
+  if (!devices.length) sections.push(secN('', t('None yet. A device you connect with Connect a device, above, adds itself here, and so does an app that is signed in at home.')))
   else {
     sections.push(secR('', devices.map((d): SpecRow => {
       const vars = { platform: d.platform || t('app'), added: ago(d.created), seen: ago(d.lastSeen), id: d.id.slice(-8) }
@@ -33,8 +34,7 @@ export function devicesSpec(devices: DeviceLine[], ago: (at?: number) => string)
     })))
   }
   const chips: SpecChip[] = devices.map((d) => ({ ...Cc(t('Remove {name}', { name: d.name })), id: 'remove:' + d.id }))
-  chips.push({ ...Cc(t('Invite a device that isn’t at home')), id: 'invite' })
-  sections.push(secP('', chips))
+  if (chips.length) sections.push(secP('', chips))
   return mk('remoteaccess', t('Settings · Remote access'), t('Devices that may connect'), '', sections)
 }
 

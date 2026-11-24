@@ -53,11 +53,16 @@ var (
 	repeat   = flag.Int("repeat", 30, "how many times each API route is asked")
 	scanWait = flag.Duration("scan-timeout", 60*time.Minute, "longest wait for one library's scan")
 	again    = flag.Bool("report", false, "report the run in -out again, with the query plans made again, instead of running")
+	profile  = flag.Bool("profile", false, "record CPU and allocation profiles of each scan (they allocate too: compare scans without it)")
+	budget   = flag.String("budget", "", "a budget file (scripts/perf/budget.json): the run fails when it goes over it")
+	transN   = flag.Int("transcodes", 3, "how many times to time a transcode's start (0: none)")
 	libs     libFlag
+	sets     libFlag
 )
 
 func main() {
 	flag.Var(&libs, "lib", "type=folder of a library to add and scan (repeatable), e.g. movies=D:\\Media\\Movies")
+	flag.Var(&sets, "set", "key=value of a server setting to change before measuring (repeatable), e.g. logFlight=0")
 	flag.Parse()
 	if *exe == "" && !*again {
 		fmt.Fprintln(os.Stderr, "-exe is needed: a server built with -tags wmsprofile")
@@ -86,6 +91,16 @@ func main() {
 	check(os.WriteFile(filepath.Join(*outDir, "results.json"), b, 0o644))
 	report(&res, os.Stdout)
 	fmt.Println("\nresults and profiles are in", *outDir)
+	if *budget != "" {
+		if over := checkBudget(&res, *budget); len(over) > 0 {
+			fmt.Println("\nOVER BUDGET (" + *budget + "):")
+			for _, o := range over {
+				fmt.Println("  - " + o)
+			}
+			os.Exit(1)
+		}
+		fmt.Println("\nwithin the budget in", *budget)
+	}
 }
 
 // Results is everything one run measured.
@@ -98,6 +113,7 @@ type Results struct {
 	Rescans   []Scan // the same again, with nothing changed
 	IdleAfter Idle   // after every scan has finished
 	Routes    []Route
+	Transcode Transcode
 	SQL       []Statement // every statement run, the costliest first
 }
 
@@ -317,10 +333,18 @@ func runMain(res *Results) {
 	if code, b = s.call("POST", "/api/setup/complete", nil); code != 200 {
 		panic(fmt.Sprintf("setup complete: %d %s", code, b))
 	}
-	code, b = s.call("PUT", "/api/settings", map[string]string{
+	settings := map[string]string{
 		"saveMetadata": "0", "updateCheck": "0", "moduleUpdateCheck": "0",
 		"tvmaze": "0", "wikidata": "0", "musicbrainz": "0",
-	})
+	}
+	for _, kv := range sets {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok {
+			panic("-set wants key=value: " + kv)
+		}
+		settings[k] = v
+	}
+	code, b = s.call("PUT", "/api/settings", settings)
 	if code != 200 {
 		panic(fmt.Sprintf("settings: %d %s", code, b))
 	}
@@ -346,6 +370,10 @@ func runMain(res *Results) {
 	fmt.Println("idle, after the scans...")
 	res.IdleAfter = s.idle("after")
 	res.Routes = s.routes()
+	if *transN > 0 {
+		res.Transcode = s.transcodeStart(*transN)
+		fmt.Printf("transcode start: %s ms %s\n", spread(res.Transcode.Ms), res.Transcode.Error)
+	}
 	res.SQL = s.statements()
 }
 
@@ -507,6 +535,7 @@ func topStacks(dump []byte) []string {
 
 func (s *server) scan(typ, path string) Scan {
 	sc := Scan{Type: typ, Path: path}
+	defer s.profileStep("scan-" + typ)()
 	before := s.vars()
 	t0 := time.Now()
 	code, b := s.call("POST", "/api/libraries", map[string]any{"name": typ + " " + filepath.Base(path), "type": typ, "paths": []string{path}})
@@ -524,6 +553,7 @@ func (s *server) scan(typ, path string) Scan {
 // rescan scans a library again with nothing changed, as the six-hourly scan does.
 func (s *server) rescan(was Scan) Scan {
 	sc := Scan{Type: was.Type, Path: was.Path, ID: was.ID}
+	defer s.profileStep("rescan-" + was.Type)()
 	before := s.vars()
 	last := s.lastScan(was.ID)
 	// last_scan_at is in whole seconds: one second on, this scan's end can be told apart.
@@ -535,6 +565,36 @@ func (s *server) rescan(was Scan) Scan {
 	}
 	s.waitScan(&sc, before, t0, last)
 	return sc
+}
+
+// profileStep records, with -profile, where the server's processor time and allocations go while a step runs:
+// CPU profiles of 10 s each, one after another until the step ends, and the allocations
+// profile before and after it. go tool pprof reads the CPU pieces together
+// (go tool pprof cpu-scan-music-*.pprof), and the allocations as a difference
+// (go tool pprof -sample_index=alloc_space -diff_base allocs-scan-music-before.pprof allocs-scan-music-after.pprof).
+func (s *server) profileStep(step string) (done func()) {
+	if !*profile {
+		return func() {}
+	}
+	s.save("/debug/pprof/allocs", "allocs-"+step+"-before.pprof")
+	stop := make(chan struct{})
+	finished := make(chan struct{})
+	go func() {
+		defer close(finished)
+		for n := 1; ; n++ {
+			s.save("/debug/pprof/profile?seconds=10", fmt.Sprintf("cpu-%s-%02d.pprof", step, n))
+			select {
+			case <-stop:
+				return
+			default:
+			}
+		}
+	}()
+	return func() {
+		close(stop)
+		<-finished
+		s.save("/debug/pprof/allocs", "allocs-"+step+"-after.pprof")
+	}
 }
 
 // lastScan is when a library's last scan finished, in Unix seconds, 0 for never.
@@ -591,7 +651,8 @@ func (s *server) waitScan(sc *Scan, before vars, t0 time.Time, was int64) {
 // routes asks each route in turn, one request at a time, so that what the process
 // allocates meanwhile is that route's.
 func (s *server) routes() []Route {
-	paths := []string{"/api/status", "/api/me", "/api/libraries", "/api/home", "/api/settings", "/api/modules", "/api/system", "/api/media-types", "/api/views", "/api/prefs"}
+	paths := []string{"/api/status", "/api/me", "/api/libraries", "/api/home", "/api/sdui/pages/home", "/api/settings", "/api/modules", "/api/system", "/api/media-types", "/api/views", "/api/prefs",
+		"/api/items?search=film&limit=60", "/api/shows?search=film", "/api/items?search=zzzz&limit=60"}
 	_, b := s.call("GET", "/api/libraries", nil)
 	var ls []struct {
 		ID   int64
@@ -600,7 +661,7 @@ func (s *server) routes() []Route {
 	_ = json.Unmarshal(b, &ls)
 	for _, l := range ls {
 		q := "?library=" + strconv.FormatInt(l.ID, 10)
-		paths = append(paths, "/api/items"+q+"&limit=60", "/api/items"+q+"&limit=60&sort=added&desc=1", "/api/items"+q+"&search=a&limit=60", "/api/genres"+q)
+		paths = append(paths, "/api/sdui/pages/library?library="+strconv.FormatInt(l.ID, 10), "/api/items"+q+"&limit=60", "/api/items"+q+"&limit=60&sort=added&desc=1", "/api/items"+q+"&search=a&limit=60", "/api/genres"+q)
 		switch l.Type {
 		case "movies", "anime", "videos", "musicvideos", "commercials":
 			paths = append(paths, "/api/browse"+q, "/api/browse/shelves"+q, "/api/browse/facets"+q)
@@ -687,6 +748,9 @@ func report(r *Results, w io.Writer) {
 	sort.SliceStable(rs, func(i, j int) bool { return rs[i].AllocKiB > rs[j].AllocKiB })
 	for _, x := range rs {
 		fmt.Fprintf(w, "| `%s` | %d | %.1f | %.0f | %.0f | %.1f | %.2f | %.2f |\n", x.Path, x.Status, float64(x.Bytes)/1024, x.AllocKiB, x.AllocObjects, x.Statements, x.P50Ms, x.P95Ms)
+	}
+	if len(r.Transcode.Ms) > 0 || r.Transcode.Error != "" {
+		fmt.Fprintf(w, "\nTranscode start (item %d, forced, to the first segment): %s ms %s\n", r.Transcode.Item, spread(r.Transcode.Ms), r.Transcode.Error)
 	}
 	var n int64
 	var sec float64

@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"log/slog"
@@ -554,7 +555,7 @@ func (m *Manager) AddCustom(c Custom) (*Meta, error) {
 	if len(id) > 64 {
 		id = strings.TrimRight(id[:64], "-")
 	}
-	meta := Meta{ID: id, Name: name, Author: "Made in the app", Scheme: c.Scheme, Radius: float64(c.Radius), Colors: map[string]string{}}
+	meta := Meta{ID: id, Name: name, Author: i18n.T("Made in the app"), Scheme: c.Scheme, Radius: float64(c.Radius), Colors: map[string]string{}}
 	meta.Preview.BG, meta.Preview.Surface, meta.Preview.Text, meta.Preview.Accent = c.Colors["bg"], c.Colors["bg-3"], c.Colors["fg"], c.Colors["accent"]
 	raw, err := json.Marshal(meta)
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -52,7 +53,7 @@ type discMenu struct {
 
 var menuLabels = map[string]string{
 	"title": "Title menu", "root": "Main menu", "chapter": "Scene selection",
-	"audio": "Audio & languages", "subpicture": "Subtitles", "angle": "Angles",
+	"audio": i18n.T("Audio & languages"), "subpicture": "Subtitles", "angle": "Angles",
 }
 
 // discPageView is a disc's page: the film, the other titles worth watching, and the disc's

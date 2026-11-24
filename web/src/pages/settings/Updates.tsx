@@ -13,7 +13,7 @@ import { toast, useApp } from '../../state'
 import { ask } from '../../ui/Overlay'
 import SpecPage from '../../spec/SpecPage'
 import { NEWEST, updatesSpec, type UpdatesView } from '../../spec/specs/updates'
-import { date, t } from '../../i18n'
+import { date, t, bidi, tx } from '../../i18n'
 
 // Updates: what is installed, what GitHub has, what changed since, and the one way this copy
 // updates. A copy that can replace its own files does it with one click: the server verifies the
@@ -104,7 +104,7 @@ export function Updates() {
   const view: UpdatesView = {
     current: st?.current || '', checkedAt: st?.checkedAt ? fmtDateTime(st.checkedAt) : '', withdrawn: st?.withdrawn || '', checkError: st?.checkError || '',
     upToDate: !!st && !l && !st.checkError && !!st.checkedAt,
-    latest: l ? { title: l.title || '', version: l.version, meta: [t('Version {version}', { version: l.version }), l.prerelease ? t('pre-release') : '', l.published ? date(l.published, { dateStyle: 'short' }) : '', size ? t('{size} MB', { size: mb(size) }) : ''].filter(Boolean).join(' · ') } : null,
+    latest: l ? { title: l.title || '', version: l.version, meta: [t('Version {version}', { version: l.version }), l.prerelease ? t('pre-release') : '', l.published ? date(l.published, { dateStyle: 'short' }) : '', size ? t('{size} MB', { size: mb(size) }) : ''].filter(Boolean).map(bidi).join(' · ') } : null,
     method: st?.method || '', hasInstallerPhase: !!st?.installer?.phase, active, checking, auto,
   }
   const page = updatesSpec(view)
@@ -131,7 +131,7 @@ export function Updates() {
         0: progress || undefined,
         ...(newAt >= 0 && st && l ? { [newAt]: (
           <div className="upd-new">
-            {st.method !== 'apply' && st.reason && <p className="upd-msg">{st.reason}</p>}
+            {st.method !== 'apply' && st.reason && <p className="upd-msg">{tx(st.reason)}</p>}
             {st.method === 'installer' && st.installer && <InstallerSteps st={st} installer={st.installer} retry={fetchInstaller} />}
             {st.method === 'docker' && <DockerSteps image={st.image || 'ghcr.io/wittywilla/wittymediaserver:alpha'} />}
             <WhatsNew info={l} />

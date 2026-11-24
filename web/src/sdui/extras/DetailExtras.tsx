@@ -8,7 +8,7 @@
 
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { api, codecName, discName, getPrefs, isBluray, isDisc, langName, type Item, type Show } from '../../api'
+import { api, codecName, discName, getPrefs, isBluray, isDisc, type Item, type Show } from '../../api'
 import { toast, useApp } from '../../state'
 import { fileSizeText } from '../../sizeText'
 import { onEpisodeViewChosen, setEpisodeView, useEpisodeView, type EpisodeView } from './episodeView'
@@ -23,6 +23,7 @@ import { bump } from '../client'
 import { useModuleItemMenu } from '../../moduleRegistry'
 import type { Document, Node } from '../types'
 import { t, tn, tx } from '../../i18n'
+import { LangList } from '../../components/LangList'
 
 const EditDetails = lazy(() => import('../../components/edit/EditDetails'))
 const RefreshDialog = lazy(() => import('../../components/edit/RefreshDialog'))
@@ -125,8 +126,8 @@ export default function DetailExtras({ place, header, doc }: { place: 'tools' | 
       {item && (item.width > 0 || item.container || disc) && (
         <div className="facts">
           {item.width > 0 && <div className="fact"><div className="k">{t('Video')}</div><div className="v">{item.width}×{item.height} {codecName(item.videoCodec)}{disc && main ? ` · ${isBluray(item) ? main.standard : ''}` : ''}</div></div>}
-          {(item.audioLangs || []).length > 0 && <div className="fact"><div className="k">{t('Audio')}</div><div className="v">{[...new Set(item.audioLangs.map(langName))].join(', ')}</div></div>}
-          {(item.subLangs || []).length > 0 && <div className="fact"><div className="k">{t('Subtitles')}</div><div className="v">{[...new Set(item.subLangs.map(langName))].join(', ')}</div></div>}
+          {(item.audioLangs || []).length > 0 && <div className="fact"><div className="k">{t('Audio')}</div><div className="v"><LangList codes={item.audioLangs} /></div></div>}
+          {(item.subLangs || []).length > 0 && <div className="fact wide-list"><div className="k">{t('Subtitles')}</div><div className="v"><LangList codes={item.subLangs} /></div></div>}
           <div className="fact"><div className="k">{t('Source')}</div><div className="v">{disc ? (item.kind.endsWith('-iso') ? t('{disc} image', { disc: discName(item) }) : t('{disc} folder', { disc: discName(item) })) : item.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>
           {disc && item.disc && <div className="fact"><div className="k">{t('Disc')}</div><div className="v">{item.disc.label} · {tn('{count} title', '{count} titles', item.disc.titles.length)}{item.disc.hasMenus ? ' · ' + t('menus') : ''}</div></div>}
           {user?.isAdmin && <div className="fact wide"><div className="k">{t('File')}</div><div className="v">{item.path}</div></div>}

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -185,7 +186,7 @@ func (s *Scanner) ArtworkFor(ctx context.Context, t *Title, kind string) ([]ArtC
 			key = s.TMDBKey()
 		}
 		if key == "" {
-			warnings = append(warnings, "Add a free TMDB key under Metadata agents for film artwork. Without one, films have only what's in their folder.")
+			warnings = append(warnings, i18n.T("Add a free TMDB key under Metadata agents for film artwork. Without one, films have only what's in their folder."))
 		}
 	}
 	return out, warnings

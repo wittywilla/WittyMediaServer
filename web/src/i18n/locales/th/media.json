@@ -889,5 +889,9 @@
   },
   "and {count} more invitations": {
     "other": "และคำเชิญอีก {count} รายการ"
-  }
+  },
+  "Pause for scenes": "หยุดชั่วคราวเมื่อเลือกฉาก",
+  "Pause the film while the scenes are open": "หยุดภาพยนตร์ชั่วคราวขณะเปิดรายการฉาก",
+  "Phones and TVs": "โทรศัพท์และทีวี",
+  "Every screen": "ทุกหน้าจอ"
 }

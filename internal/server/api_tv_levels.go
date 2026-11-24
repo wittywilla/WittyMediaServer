@@ -5,6 +5,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"sort"
 	"strings"
@@ -111,10 +112,15 @@ func (s *Server) handleTVSummary(w http.ResponseWriter, r *http.Request) {
 		}
 		sc := s.loadBackupSchedule(ctx)
 		if sc.Frequency == "" || sc.Frequency == "off" {
-			out.Lines = append(out.Lines, "Automatic backups: off")
+			out.Lines = append(out.Lines, i18n.T("Automatic backups: off"))
 		} else {
-			out.Lines = append(out.Lines, fmt.Sprintf("Automatic backups: %s at %02d:00, keeping %d", sc.Frequency, sc.Hour, sc.Keep))
+			out.Lines = append(out.Lines, fmt.Sprintf(i18n.T("Automatic backups: %s at %02d:00, keeping %d"), sc.Frequency, sc.Hour, sc.Keep))
 		}
+	case "libraryhealth":
+		if !u.IsAdmin {
+			break
+		}
+		out.Lines = append(out.Lines, s.healthSummary(ctx)...)
 	case "transcoding":
 		if !u.IsAdmin {
 			break
@@ -124,7 +130,7 @@ func (s *Server) handleTVSummary(w http.ResponseWriter, r *http.Request) {
 			hw = "any"
 		}
 		if hw == "" || hw == "none" {
-			out.Lines = append(out.Lines, "Graphics chip: not used")
+			out.Lines = append(out.Lines, i18n.T("Graphics chip: not used"))
 		} else {
 			out.Lines = append(out.Lines, "Graphics chip: "+hw)
 		}
@@ -136,6 +142,35 @@ func (s *Server) handleTVSummary(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		out.Lines = append(out.Lines, "Listening on "+s.Cfg.Listen)
+	case "remote":
+		if !u.IsAdmin {
+			break
+		}
+		st := s.state()
+		if !st.on {
+			out.Lines = append(out.Lines, "Off")
+			break
+		}
+		out.Lines = append(out.Lines, "On")
+		if st.publicURL != "" {
+			out.Lines = append(out.Lines, st.publicURL)
+		}
+	case "data-folder":
+		if !u.IsAdmin || s.Cfg == nil {
+			break
+		}
+		out.Lines = append(out.Lines, s.Cfg.DataDir)
+	case "metadata":
+		if !u.IsAdmin {
+			break
+		}
+		on := 0
+		for _, a := range s.agents(ctx) {
+			if a.Enabled {
+				on++
+			}
+		}
+		out.Lines = append(out.Lines, plural(on, "agent on", "agents on"))
 	}
 	writeJSON(w, 200, out)
 }

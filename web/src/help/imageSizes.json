@@ -123,14 +123,6 @@
 720,
 405
 ],
-"hdhomerun-channels.webp": [
-720,
-405
-],
-"hdhomerun-details.webp": [
-720,
-405
-],
 "help-setup-guide.webp": [
 720,
 405
@@ -148,18 +140,6 @@
 405
 ],
 "home-videos.webp": [
-720,
-405
-],
-"karaoke-mix.webp": [
-720,
-405
-],
-"karaoke-voice-advanced.webp": [
-720,
-405
-],
-"karaoke-voice-presets.webp": [
 720,
 405
 ],
@@ -244,10 +224,6 @@
 405
 ],
 "photos.webp": [
-720,
-405
-],
-"player-quality.webp": [
 720,
 405
 ],
@@ -371,109 +347,81 @@
 720,
 405
 ],
-"setup-account.webp": [
+"setup-01-welcome.webp": [
 720,
-671
+500
 ],
-"setup-details.webp": [
+"setup-02-welcome-customize.webp": [
 720,
-991
+269
 ],
-"setup-discs.webp": [
+"setup-03-account.webp": [
 720,
-520
+619
 ],
-"setup-done.webp": [
+"setup-03-data-folder.webp": [
 720,
-867
+540
 ],
-"setup-games.webp": [
+"setup-04-modules.webp": [
+720,
+842
+],
+"setup-05-modules-installing.webp": [
+720,
+390
+],
+"setup-06-media.webp": [
+720,
+1131
+],
+"setup-07-media-customize.webp": [
+720,
+293
+],
+"setup-08-media-movies.webp": [
+720,
+415
+],
+"setup-09-media-added.webp": [
+720,
+1215
+],
+"setup-10-games.webp": [
 720,
 2116
 ],
-"setup-karaoke.webp": [
+"setup-11-look.webp": [
 720,
-423
+793
 ],
-"setup-language.webp": [
+"setup-12-look-customize.webp": [
 720,
-485
+621
 ],
-"setup-listings.webp": [
+"setup-13-done.webp": [
 720,
-396
+507
 ],
-"setup-logos.webp": [
+"setup-14-done-customize.webp": [
 720,
-539
+438
 ],
-"setup-look.webp": [
+"setup-22-advanced-name.webp": [
 720,
-1308
+1297
 ],
-"setup-media-added.webp": [
+"setup-23-advanced-people.webp": [
 720,
-1389
+490
 ],
-"setup-media-movies.webp": [
+"setup-25-advanced-details.webp": [
 720,
-432
+644
 ],
-"setup-media.webp": [
+"setup-32-advanced-remote.webp": [
 720,
-1271
-],
-"setup-modules-chosen.webp": [
-720,
-1422
-],
-"setup-modules-installing.webp": [
-720,
-882
-],
-"setup-modules-ready.webp": [
-720,
-911
-],
-"setup-music.webp": [
-720,
-402
-],
-"setup-name.webp": [
-720,
-937
-],
-"setup-network.webp": [
-720,
-537
-],
-"setup-people.webp": [
-720,
-564
-],
-"setup-remote.webp": [
-720,
-989
-],
-"setup-storage.webp": [
-720,
-363
-],
-"setup-theme.webp": [
-720,
-924
-],
-"setup-tv.webp": [
-720,
-376
-],
-"setup-welcome.webp": [
-720,
-579
-],
-"setup-wittytv.webp": [
-720,
-923
+391
 ],
 "shorts.webp": [
 720,
@@ -507,14 +455,6 @@
 720,
 405
 ],
-"tv-album.webp": [
-720,
-405
-],
-"tv-guide-shortcuts.webp": [
-720,
-405
-],
 "tv-mode.webp": [
 720,
 405
@@ -524,10 +464,6 @@
 405
 ],
 "tv-shows.webp": [
-720,
-405
-],
-"wittyinfo-editor.webp": [
 720,
 405
 ],

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -198,7 +199,7 @@ func (e *Engine) SendToTdarr(ctx context.Context, libraryID int64, items []int64
 		if err := c.ScanLibrary(ctx, m.TdarrID, folder); err != nil {
 			return "", err
 		}
-		return "Tdarr has been asked to look through this library for files it hasn't seen.", nil
+		return i18n.T("Tdarr has been asked to look through this library for files it hasn't seen."), nil
 	}
 	all, err := e.Store.ConversionItems(ctx, libraryID)
 	if err != nil {
@@ -224,9 +225,9 @@ func (e *Engine) SendToTdarr(ctx context.Context, libraryID int64, items []int64
 		return "", err
 	}
 	if skipped > 0 {
-		return fmt.Sprintf("Sent %d files to Tdarr. %d couldn't be named in Tdarr's terms and were left out.", len(paths), skipped), nil
+		return i18n.F("Sent {len} files to Tdarr. {skipped} couldn't be named in Tdarr's terms and were left out.", "len", len(paths), "skipped", skipped), nil
 	}
-	return fmt.Sprintf("Sent %d files to Tdarr.", len(paths)), nil
+	return i18n.F("Sent {len} files to Tdarr.", "len", len(paths)), nil
 }
 
 // tdarrWatch follows what a connected Tdarr is doing, for the activity panel. There's no
@@ -288,14 +289,14 @@ func (e *Engine) followTdarr(ctx context.Context) {
 			misses++
 			// A restart of Tdarr isn't worth a word. Being gone for good is.
 			if misses == 3 && t != nil {
-				finish("Tdarr stopped answering, so there's no telling what it's doing now.", nil)
+				finish(i18n.T("Tdarr stopped answering, so there's no telling what it's doing now."), nil)
 			}
 		default:
 			misses = 0
 			active, percent, item, path := tdarrActivity(nodes)
 			switch {
 			case active == 0:
-				finish("Tdarr finished what it was doing.", nil)
+				finish(i18n.T("Tdarr finished what it was doing."), nil)
 			default:
 				if t == nil {
 					t = e.Tasks.Start(tasks.Spec{Type: TdarrTaskType, Title: "Tdarr is working", Unit: "percent", AdminOnly: true, Quiet: true})

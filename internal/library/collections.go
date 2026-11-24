@@ -390,8 +390,9 @@ func (s *Store) CollectionItems(ctx context.Context, c *Collection, userID int64
 		return nil, nil, err
 	}
 	items := []*Item{}
+	var sc itemScanner
 	for rows.Next() {
-		it, err := scanItem(rows)
+		it, err := sc.scan(rows)
 		if err != nil {
 			rows.Close()
 			return nil, nil, err

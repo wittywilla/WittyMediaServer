@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"strings"
 	"time"
@@ -85,10 +86,10 @@ func (s *Server) forgetMetadata(w http.ResponseWriter, r *http.Request, libs []l
 	defer release()
 
 	u := userFrom(r)
-	title := "Removing downloaded details from every library"
+	title := i18n.T("Removing downloaded details from every library")
 	spec := tasks.Spec{Type: tasks.TypeMetadata, Title: title, Unit: "libraries", By: byUser(u), AdminOnly: true}
 	if !every && len(libs) == 1 {
-		spec.Title, spec.LibraryID, spec.LibraryName = "Removing downloaded details from "+libs[0].Name, libs[0].ID, libs[0].Name
+		spec.Title, spec.LibraryID, spec.LibraryName = i18n.F("Removing downloaded details from {name}", "name", libs[0].Name), libs[0].ID, libs[0].Name
 	}
 	task := s.Tasks.Start(spec)
 	ctx := context.WithoutCancel(r.Context()) // half done would be worse than done

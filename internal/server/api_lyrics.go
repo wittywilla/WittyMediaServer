@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net"
 	"net/http"
@@ -90,9 +91,9 @@ type lyricsReply struct {
 }
 
 var lyricsNames = map[string][2]string{
-	"override":   {"Corrected on this server", ""},
-	"sidecar":    {"A file beside the song", ""},
-	"embedded":   {"The song's own tags", ""},
+	"override":   {i18n.T("Corrected on this server"), ""},
+	"sidecar":    {i18n.T("A file beside the song"), ""},
+	"embedded":   {i18n.T("The song's own tags"), ""},
 	"lrclib":     {"LRCLIB", "https://lrclib.net"},
 	"mirror":     {"Your LRCLIB server", ""},
 	"musixmatch": {"Musixmatch", "https://www.musixmatch.com"},

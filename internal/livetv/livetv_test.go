@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wittywilla/wittymediaserver/internal/db"
+	"github.com/wittywilla/wittymediaserver/internal/db/dbtest"
 	wittytuner "github.com/wittywilla/wittymediaserver/internal/tuner"
 )
 
@@ -32,7 +32,7 @@ func tsData(n int, scrambled bool) []byte {
 
 func bareManager(t *testing.T) *Manager {
 	t.Helper()
-	d, err := db.Open(t.TempDir())
+	d, err := dbtest.Open(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,12 +268,23 @@ func TestRecordingRefusesEncrypted(t *testing.T) {
 		t.Fatal(err)
 	}
 	full, _ := m.recording(ctx, r.ID)
-	// This test runs it, not the scheduler.
-	if _, err := m.DB.Exec(`UPDATE recordings SET status = 'recording' WHERE id = ?`, r.ID); err != nil {
+	// Schedule woke the scheduler, and this airing is due now: whichever of the two claims it
+	// first, as startDue does, runs it. Both running it was the flaky failure, the second one
+	// writing a file after the first had cleaned up.
+	res, err := m.DB.Exec(`UPDATE recordings SET status = 'recording' WHERE id = ? AND status = 'scheduled'`, r.ID)
+	if err != nil {
 		t.Fatal(err)
 	}
-	m.record(full)
-	got, _ := m.recording(ctx, r.ID)
+	if n, _ := res.RowsAffected(); n == 1 {
+		m.record(full)
+	}
+	var got *Recording
+	for end := time.Now().Add(10 * time.Second); ; time.Sleep(20 * time.Millisecond) {
+		got, _ = m.recording(ctx, r.ID)
+		if got.Status != "scheduled" && got.Status != "recording" || time.Now().After(end) {
+			break
+		}
+	}
 	if got.Status != "failed" || !strings.Contains(got.Error, "does not decrypt") {
 		t.Fatalf("%+v", got)
 	}

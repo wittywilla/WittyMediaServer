@@ -122,7 +122,9 @@ export default function AddLibrary({ onAdded, compact, onPanel, existing = [], g
     setFocusKind('')
   }, [focusKind])
   useEffect(() => {
-    if (focusForm) form.current?.querySelector<HTMLElement>('input, select, button:not([disabled])')?.focus()
+    // The form takes the place of the kinds, which may have been scrolled past: it's brought into view, not left
+    // above the window where nothing seems to have happened (#550).
+    if (focusForm) { form.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }); form.current?.querySelector<HTMLElement>('input, select, button:not([disabled])')?.focus({ preventScroll: true }) }
     setFocusForm(false)
   }, [focusForm])
   const kind = LIB_TYPES.find((x) => x.type === type)

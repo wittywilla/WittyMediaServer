@@ -48,9 +48,13 @@ export default function MusicShell({ lib }: { lib: Library }) {
   else if (tab === 'videos') page = <MusicVideosPage lib={lib} />
   else page = <MusicHome lib={lib} />
   const shape = where === 'album' || where === 'artist' || tab === 'songs' || tab === 'playlist' ? 'list' : tab ? 'grid' : 'shelves'
+  // On a television an album's or an artist's page takes the whole width (#566): the library
+  // panel would take 40% of the screen, and its text field needs a keyboard. Home, Search and
+  // Your library keep it.
+  const side = !(tv && (where === 'album' || where === 'artist'))
   return (
-    <div className={'mus' + (tv ? ' tv' : '')}>
-      <Side lib={lib} />
+    <div className={'mus' + (tv ? ' tv' : '') + (side ? '' : ' no-side')}>
+      {side && <Side lib={lib} />}
       <div className="mus-main" key={where + tab}>
         <Suspense fallback={<PageShape kind={shape} />}>{page}</Suspense>
       </div>

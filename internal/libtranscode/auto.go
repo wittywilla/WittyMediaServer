@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"time"
@@ -265,7 +266,7 @@ func (e *Engine) watchLibrary(ctx context.Context, libraryID int64, w *autoWatch
 		hold := e.holdWords(s)
 		if t == nil {
 			watchCtx := w.cancel
-			t = e.Tasks.Start(tasks.Spec{Type: TaskType, Title: "New files in " + lib.Name, LibraryID: lib.ID, LibraryName: lib.Name, Unit: "files",
+			t = e.Tasks.Start(tasks.Spec{Type: TaskType, Title: i18n.F("New files in {name}", "name", lib.Name), LibraryID: lib.ID, LibraryName: lib.Name, Unit: "files",
 				Cancel: func() { cancelled = true; watchCtx() }, Quiet: true})
 		}
 		switch {

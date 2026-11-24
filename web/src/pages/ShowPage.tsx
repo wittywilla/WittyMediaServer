@@ -19,7 +19,7 @@ import { useMedia } from '../shell/useNav'
 import { toast, useApp } from '../state'
 import LegalNote from '../components/LegalNote'
 import LogoNotice from '../components/LogoNotice'
-import { t, tn, tx } from '../i18n'
+import { t, tn, tx, bidi } from '../i18n'
 
 const TitleCanvas = lazy(() => import('../canvas/CanvasVideo').then((m) => ({ default: m.TitleCanvas })))
 const FindIntros = lazy(() => import('../components/FindIntros'))
@@ -56,7 +56,7 @@ export default function ShowPage() {
   const next = episodes.find((e) => e.id === d.nextUpId)
   const nextResume = next?.progress?.resumeSec ? next.progress : null
   // On another device: the episode that's next here, and the ones after it as its queue.
-  const playOnSource = (): PlayOnSource => ({ kind: 'item', itemId: next!.id, itemKind: next!.kind, title: [show.title, episodeLabel(next!)].filter(Boolean).join(' · '), ...queueOf(episodes.map((e) => e.id), episodes.indexOf(next!)) })
+  const playOnSource = (): PlayOnSource => ({ kind: 'item', itemId: next!.id, itemKind: next!.kind, title: [show.title, episodeLabel(next!)].filter(Boolean).map(bidi).join(' · '), ...queueOf(episodes.map((e) => e.id), episodes.indexOf(next!)) })
   const unmatched = episodes.filter((e) => e.season == null)
   // Layout: this show's own choice, else the server-wide default.
   const showView = viewOverride ?? show.view
@@ -202,7 +202,7 @@ function EpisodeRow({ ep }: { ep: Item }) {
       </button>
       <div className="info">
         <Link className="t" to={`/item/${ep.id}`}><span className="num">{episodeLabel(ep)}</span> {ep.title}</Link>
-        <div className="sub">{[ep.aired, fmtRuntime(ep.runtimeSec)].filter(Boolean).join(' · ')}</div>
+        <div className="sub">{[ep.aired, fmtRuntime(ep.runtimeSec)].filter(Boolean).map(bidi).join(' · ')}</div>
         {ep.overview && <p>{ep.overview}</p>}
       </div>
     </div>

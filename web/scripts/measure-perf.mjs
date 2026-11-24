@@ -30,7 +30,7 @@ const kb = (n) => Math.round(n / 102.4) / 10
 // components that really ran their render: a fiber that is a fresh copy since the last commit and
 // carries React's PerformedWork flag. Mounts are counted apart.
 const HOOK = `(() => {
-  const r = window.__wmsRenders = { commits: 0, renders: 0, mounts: 0, on: true }
+  const r = window.__wmsRenders = { commits: 0, renders: 0, mounts: 0, on: true, components: {} }
   const last = new WeakMap()
   const COMPONENT = new Set([0, 1, 11, 14, 15])
   window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
@@ -45,7 +45,7 @@ const HOOK = `(() => {
         if (COMPONENT.has(f.tag)) {
           const seen = last.get(f) || (f.alternate && last.get(f.alternate))
           if (!seen) r.mounts++
-          else if (seen.fiber !== f && (f.flags & 1)) r.renders++
+          else if (seen.fiber !== f && (f.flags & 1)) { r.renders++; const n = f.type?.displayName || f.type?.name || f.type?.render?.name || f.type?.type?.name || '?'; r.components[n] = (r.components[n] || 0) + 1 }
           const rec = seen || {}
           rec.fiber = f
           last.set(f, rec)
@@ -160,7 +160,7 @@ if (only('scroll')) {
   await until(PAGES[1][2], 30000, 'the grid')
   await idle()
   reqs = new Map()
-  await page.eval(`(window.__wmsRenders.commits = window.__wmsRenders.renders = window.__wmsRenders.mounts = 0)`)
+  await page.eval(`(window.__wmsRenders.commits = window.__wmsRenders.renders = window.__wmsRenders.mounts = 0, window.__wmsRenders.components = {})`)
   const t0 = Date.now()
   // At the bottom, the next page may still be on its way: wait for it before calling it the end.
   let lastHeight = 0, same = 0
@@ -172,7 +172,7 @@ if (only('scroll')) {
     await wait(120)
   }
   await idle()
-  const r = await page.eval(`({ ...window.__wmsRenders, cards: document.querySelectorAll('main .grid > *').length, imgs: document.querySelectorAll('main .grid img').length, decodedMB: Math.round([...document.querySelectorAll('main .grid img')].filter((i) => i.complete).reduce((s, i) => s + i.naturalWidth * i.naturalHeight * 4, 0) / 1048576) })`)
+  const r = await page.eval(`({ ...window.__wmsRenders, components: Object.fromEntries(Object.entries(window.__wmsRenders.components).sort((a, b) => b[1] - a[1]).slice(0, 12)), cards: document.querySelectorAll('main .grid > *').length, imgs: document.querySelectorAll('main .grid img').length, decodedMB: Math.round([...document.querySelectorAll('main .grid img')].filter((i) => i.complete).reduce((s, i) => s + i.naturalWidth * i.naturalHeight * 4, 0) / 1048576) })`)
   await page.send('HeapProfiler.collectGarbage')
   const m = await metrics()
   result.scroll = { ...r, ...traffic(), heapMB: Math.round(m.JSHeapUsedSize / 104857.6) / 10, domNodes: m.Nodes, listeners: m.JSEventListeners }

@@ -12,7 +12,7 @@ import { ChannelMark } from './ChannelLogo'
 import { useLook } from './look'
 import { useReminders } from './reminders'
 import { fmtClock, fmtDay, fmtSpan } from './tvApi'
-import { t, tc, tx } from '../../i18n'
+import { t, tc, tx, bidi } from '../../i18n'
 
 type Person = { name: string; role?: string; character?: string; personId?: number }
 type Answer = {
@@ -69,7 +69,7 @@ export default function MoreInfo({ channelKey, at, onClose }: { channelKey: stri
         <div><b>{ch.number} {ch.name}</b><br /><span className="muted">{fmtDay(p.start)}, {fmtSpan({ start: p.start, end: p.end } as never)}{live ? ` · ${t('on now')}` : ''}</span></div>
       </header>
       {p.sub && <h3 className="ctv-more-sub">{p.sub}</h3>}
-      {facts.length > 0 && <p className="ctv-more-facts">{facts.join(' · ')}{p.scores?.length ? ' · ' + p.scores.map((s) => `${s.value} ${s.system}`).join(' · ') : ''}</p>}
+      {facts.length > 0 && <p className="ctv-more-facts">{facts.map(bidi).join(' · ')}{p.scores?.length ? ' · ' + p.scores.map((s) => `${s.value} ${s.system}`).map(bidi).join(' · ') : ''}</p>}
       {p.desc && <p>{p.desc}</p>}
       {details.length > 0 && <dl className="ctv-info-list">{details.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
       {(a.credits?.cast?.length || a.credits?.guests?.length || a.credits?.crew?.length) ? (

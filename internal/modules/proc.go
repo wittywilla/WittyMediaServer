@@ -49,6 +49,9 @@ var helloTimeout = 45 * time.Second
 // errSlowHello: the helper was still starting when its time ran out.
 var errSlowHello = errors.New("it was still starting when its time ran out")
 
+// errHelperGone: a helper its owner starts (once) has ended, and isn't started again by a call.
+var errHelperGone = errors.New("its helper has ended")
+
 // errUntrusted: a helper's files no longer match their signature.
 var errUntrusted = errors.New("files have changed since they were installed")
 
@@ -71,6 +74,11 @@ type proc struct {
 	// background: a kept helper that reports tasks between calls, and so can't stream.
 	background bool
 	timeout    time.Duration // for one call; 0 is callTimeout
+	// once: the owner starts it, with a start sequence of its own (a service: MethodStart with
+	// where the host API is). After it has run, a call finds it gone instead of starting a bare
+	// process the owner never set up (errHelperGone); the owner starts it again its own way.
+	once bool
+	ran  bool
 
 	mu      sync.Mutex
 	cmd     *exec.Cmd
@@ -80,6 +88,7 @@ type proc struct {
 	release func() // what the sandbox holds for a running helper
 	idle    *time.Timer
 	stderr  *logging.Tail
+	outDone chan struct{} // closed once all it wrote to stderr has been read
 	started time.Time
 	closed  bool
 
@@ -341,6 +350,22 @@ func (p *proc) start() error {
 	return err
 }
 
+// helloFailure says, for the log, why a helper that didn't say hello ended. One the server stopped
+// because its time ran out says so: on Windows a killed process reads as "exit code 1", which looks
+// like the helper failing by itself. And a helper that wrote nothing to stderr says that too, so
+// a missing stderr isn't taken for one the server failed to keep.
+func helloFailure(slow bool, waited time.Duration, said *logging.Tail, attrs ...any) []any {
+	why := "failed to start"
+	if slow {
+		why = "stopped by the server: no hello within " + waited.String()
+	}
+	attrs = append(attrs, "why", why)
+	if said.Empty() {
+		attrs = append(attrs, "stderr", "(it wrote nothing)")
+	}
+	return attrs
+}
+
 func (p *proc) startWithin(helloWait time.Duration) error {
 	if p.closed {
 		return errors.New("this version is no longer in use")
@@ -402,7 +427,9 @@ func (p *proc) startWithin(helloWait time.Duration) error {
 	}
 	release := lockDown(cmd, memory, p.programs, p.log)
 	t := &logging.Tail{}
+	outDone := make(chan struct{})
 	logging.Go("module stderr", func() {
+		defer close(outDone)
 		o := &helperOutput{tail: t, log: p.log}
 		_, _ = io.Copy(o, stderr)
 		o.flush()
@@ -417,7 +444,8 @@ func (p *proc) startWithin(helloWait time.Duration) error {
 	hello, err := conn.ReadHello()
 	stop.Stop()
 	if err != nil && slow.Load() {
-		err = fmt.Errorf("%w (%s): %v", errSlowHello, helloWait, err)
+		// What the read said then ("file already closed") is only the server closing the pipe.
+		err = fmt.Errorf("%w (%s), with no hello", errSlowHello, helloWait)
 	}
 	if err == nil {
 		switch {
@@ -432,7 +460,8 @@ func (p *proc) startWithin(helloWait time.Duration) error {
 	if err != nil {
 		stdin.Close()
 		_ = cmd.Process.Kill()
-		logging.ChildExit(p.log, "module helper", cmd.Wait(), false, t, started, "topic", "lifecycle", "why", "failed to start", "version", p.man.Version)
+		drained(outDone, time.Second) // what it said before it ended is why: Wait closes the pipe
+		logging.ChildExit(p.log, "module helper", cmd.Wait(), false, t, started, helloFailure(slow.Load(), helloWait, t, "topic", "lifecycle", "version", p.man.Version)...)
 		release()
 		if launcherMayFail && p.launch != "" && !p.strict {
 			// This way of starting one has never been run on this system. Better a working helper
@@ -445,7 +474,8 @@ func (p *proc) startWithin(helloWait time.Duration) error {
 		return fmt.Errorf("%w %s", err, t.Last(errStderr))
 	}
 	p.hearTasks(conn)
-	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr, p.started = cmd, stdin, stdout, conn, release, t, started
+	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr, p.outDone, p.started = cmd, stdin, stdout, conn, release, t, outDone, started
+	p.ran = true
 	if p.notify != nil {
 		// Beside the tasks it reports: what it says goes to each, and they know their own.
 		tasksHeard, heard := conn.OnNotify, p.notify
@@ -503,6 +533,12 @@ func (p *proc) haltErr(why string) error {
 	}
 	cmd := p.cmd
 	p.stdin.Close()
+	// Everything it wrote to stderr is read before Wait, which closes the pipe: the last lines
+	// are most often why it ended. Its stderr ends as it does; it has a moment to leave.
+	if !drained(p.outDone, 2*time.Second) {
+		_ = cmd.Process.Kill()
+		drained(p.outDone, time.Second) // a program it started may still hold the pipe
+	}
 	done := make(chan struct{})
 	var werr error
 	logging.Go("module wait", func() { werr = cmd.Wait(); close(done) }, "cat", "modules")
@@ -515,8 +551,21 @@ func (p *proc) haltErr(why string) error {
 	logging.ChildExit(p.log, "module helper", werr, false, p.stderr, p.started, "topic", "lifecycle", "why", why, "version", p.man.Version)
 	p.endTasks(why)
 	p.release()
-	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr = nil, nil, nil, nil, nil, nil
+	p.cmd, p.stdin, p.stdout, p.conn, p.release, p.stderr, p.outDone = nil, nil, nil, nil, nil, nil, nil
 	return werr
+}
+
+// drained waits up to d for a helper's stderr to have been read to its end.
+func drained(done chan struct{}, d time.Duration) bool {
+	if done == nil {
+		return true
+	}
+	select {
+	case <-done:
+		return true
+	case <-time.After(d):
+		return false
+	}
 }
 
 // Call asks the helper one thing. A *wittymodule.CallError is a working helper
@@ -526,7 +575,7 @@ func (p *proc) Call(method string, params, out any) ([]byte, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	blob, err, left := p.callOnce(method, params, out)
-	if left {
+	if left && !p.once {
 		// The helper had already ended, by itself and cleanly: one that answers one call
 		// and leaves, as a helper serving a stream does. That is no failure; a new one
 		// answers.
@@ -540,6 +589,9 @@ func (p *proc) Call(method string, params, out any) ([]byte, error) {
 // asked; the helper is then gone and nothing is counted against it.
 func (p *proc) callOnce(method string, params, out any) (blob []byte, err error, left bool) {
 	if p.cmd == nil {
+		if p.once && p.ran {
+			return nil, errHelperGone, false
+		}
 		if err := p.start(); err != nil {
 			return nil, err, false
 		}
@@ -560,7 +612,7 @@ func (p *proc) callOnce(method string, params, out any) (blob []byte, err error,
 	}
 	var ce *wittymodule.CallError
 	if err != nil && !errors.As(err, &ce) {
-		msg := p.stderr.Last(errStderr)
+		tail := p.stderr // read once it has ended: its last words are why
 		if !timedOut.Load() && pipeEnded(err) {
 			// Perhaps it left by itself: let it end, and see how.
 			if werr := p.haltErr("ended by itself"); werr == nil {
@@ -568,8 +620,9 @@ func (p *proc) callOnce(method string, params, out any) (blob []byte, err error,
 			}
 		} else {
 			_ = cmd.Process.Kill()
-			p.halt("failed") // which logs how it ended
+			p.halt("failed") // which logs how it ended, with what it wrote to stderr
 		}
+		msg := tail.Last(errStderr)
 		p.log.Warn("module call failed", "version", p.man.Version, "method", method, "err", err)
 		if msg != "" {
 			return nil, fmt.Errorf("%w (%s)", err, msg), false
@@ -592,6 +645,9 @@ func (p *proc) Stream(method string, params, out any) (io.Reader, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.cmd == nil {
+		if p.once && p.ran {
+			return nil, errHelperGone
+		}
 		if err := p.start(); err != nil {
 			return nil, err
 		}

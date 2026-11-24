@@ -4,7 +4,7 @@ import { mk, secF, secN, secP, secR } from '../model.ts'
 import type { SpecPageData, SpecSection } from '../types.ts'
 import { t, tn } from '../../sdui/words.ts'
 
-// Settings, Modules, the store (canvas "modstore", "modfile") and Other stores. The module cards under the search
+// Settings, Module store (canvas "modstore", "modfile") and Other stores. The module cards under the search
 // are the page's own (they carry artwork and their own buttons). Ids: field q, publisher, platform, kind, status;
 // chips cat:<id>, show:installed, show:updates, check.
 export interface StoreSearch {

@@ -8,7 +8,7 @@ import { AddToPlaylist, Like, Seek, Volume } from './controls'
 import { musicCatalogue } from '../sdui/catalogue'
 import { IconKaraoke, IconList, IconRepeat, IconRepeatOne, IconShuffle } from './icons'
 import type { PlayerView } from './types'
-import { t } from '../i18n'
+import { t, bidi } from '../i18n'
 import ArtView from './ArtView'
 import { lookFor, useLookState } from './look'
 import { useCanvas } from '../canvas/useCanvas'
@@ -33,7 +33,7 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
   const listed = musicCatalogue()?.miniPlayer
   const wants = (id: string) => !listed || listed.includes(id)
   const sing = p.mode === 'music' && !p.cdActive && !p.live && !p.books
-  const sub = p.live ? (p.retrying ? t('Reconnecting…') : p.stationNow || t('Live')) : [it.artist || it.albumArtist, it.album].filter(Boolean).join(' · ')
+  const sub = p.live ? (p.retrying ? t('Reconnecting…') : p.stationNow || t('Live')) : [it.artist || it.albumArtist, it.album].filter(Boolean).map(bidi).join(' · ')
   // A song's cover in its look (look.ts), the Canvas video in its place when that's chosen: the same as the full player.
   const art = sing && look.art !== 'square'
     ? <ArtView look={{ art: look.art, pulse: false }} src={it.poster ? sized(posterUrl(it), fitWidth(96)) : ''} size="bar" playing={p.playing}
@@ -68,17 +68,17 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
           <div className="ab-sub">{sub}</div>
         </button>
         <span className="ab-side ab-like"><Like p={p} /></span>
-        {!p.live && <span className="ab-side wide"><AddToPlaylist items={[it]} up /></span>}
+        {!p.live && <span className="ab-side wide extra"><AddToPlaylist items={[it]} up /></span>}
       </div>
       <div className="ab-centre">
         <div className="ab-ctl">
-          {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.shuffle ? ' on' : '')} aria-pressed={p.shuffle} aria-label={t('Shuffle')} title={t('Shuffle')} onClick={() => p.setShuffle(!p.shuffle)}><IconShuffle /></button>}
+          {!p.books && !p.live && <button className={'mp-ibtn wide extra' + (p.shuffle ? ' on' : '')} aria-pressed={p.shuffle} aria-label={t('Shuffle')} title={t('Shuffle')} onClick={() => p.setShuffle(!p.shuffle)}><IconShuffle /></button>}
           {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(Math.max(0, p.position() - 15))} aria-label={t('Back 15 seconds')}><IconBack15 /></button>}
           <button className="mp-ibtn wide" onClick={p.prev} aria-label={t('Previous')} title={t('Previous')}><IconPrev /></button>
           <button className="mp-ibtn big" onClick={p.toggle} aria-label={p.playing ? t('Pause') : t('Play')}>{p.playing ? <IconPause /> : <IconPlay />}</button>
           <button className="mp-ibtn" onClick={p.next} aria-label={t('Next')} title={t('Next')}><IconNext /></button>
           {p.books && <button className="mp-ibtn wide" onClick={() => p.seek(p.position() + 30)} aria-label={t('Forward 30 seconds')}><IconForward30 /></button>}
-          {!p.books && !p.live && <button className={'mp-ibtn wide' + (p.repeat !== 'off' ? ' on' : '')} aria-label={p.repeat === 'one' ? t('Repeat this song') : p.repeat === 'all' ? t('Repeat all') : t('Repeat off')} title={t('Repeat')} onClick={p.cycleRepeat}>{p.repeat === 'one' ? <IconRepeatOne /> : <IconRepeat />}</button>}
+          {!p.books && !p.live && <button className={'mp-ibtn wide extra' + (p.repeat !== 'off' ? ' on' : '')} aria-label={p.repeat === 'one' ? t('Repeat this song') : p.repeat === 'all' ? t('Repeat all') : t('Repeat off')} title={t('Repeat')} onClick={p.cycleRepeat}>{p.repeat === 'one' ? <IconRepeatOne /> : <IconRepeat />}</button>}
         </div>
         {!p.live && (
           <div className="ab-progress">
@@ -90,11 +90,11 @@ export default function MiniPlayer({ p, cdSpin }: { p: PlayerView; cdSpin: boole
       </div>
       <div className="ab-right">
         <div className="ab-side wide">
-          {wants('queue') && <button className="mp-ibtn" onClick={() => p.openFull({ panel: 'queue' })} aria-label={t('Queue')} title={t('Queue')}><IconList /></button>}
-          {more.length > 0 && <Menu label={t('More')} align="end" items={more} trigger={(tp, open) => <button {...tp} className={'mp-ibtn' + (open ? ' on' : '')} aria-label={t('More')} title={t('More')}><IconMore /></button>} />}
+          {wants('queue') && <button className="mp-ibtn extra" onClick={() => p.openFull({ panel: 'queue' })} aria-label={t('Queue')} title={t('Queue')}><IconList /></button>}
+          {more.length > 0 && <Menu label={t('More')} align="end" items={more} trigger={(tp, open) => <button {...tp} className={'mp-ibtn extra' + (open ? ' on' : '')} aria-label={t('More')} title={t('More')}><IconMore /></button>} />}
           <Volume p={p} up />
           <button className="mp-ibtn ab-expand" onClick={() => p.openFull()} aria-label={t('Full screen')} title={t('Full screen')}><IconExpand /></button>
-          <button className="mp-ibtn" onClick={() => p.setCollapsed(true)} aria-label={t('Collapse the player')} title={t('Collapse')}><IconDown /></button>
+          <button className="mp-ibtn extra" onClick={() => p.setCollapsed(true)} aria-label={t('Collapse the player')} title={t('Collapse')}><IconDown /></button>
           <button className="mp-ibtn" onClick={p.stop} aria-label={t('Stop playing and close')} title={t('Stop and close')}><IconClose /></button>
         </div>
         <button className="mp-ibtn phone-only" onClick={() => p.openFull()} aria-label={t('Full screen')}><IconUp /></button>

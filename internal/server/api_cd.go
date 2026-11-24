@@ -6,6 +6,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"os"
@@ -178,7 +179,7 @@ func cdErrorText(err error) string {
 	case errors.Is(err, os.ErrNotExist):
 		return "This disc's image is no longer where it was. A scan of its library will tidy it away."
 	}
-	return "This disc's image can't be read. It may be damaged."
+	return i18n.T("This disc's image can't be read. It may be damaged.")
 }
 
 // cdTrackView is one track as players use it. Positions are in sectors from the

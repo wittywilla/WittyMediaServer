@@ -7,7 +7,8 @@ import { fmtTime, getPrefs } from '../api'
 import { Thumb } from './ChapterThumb'
 import { announce } from '../a11y'
 import { SPEEDS, setSpeed } from './speed'
-import { IconAngle, IconAudio, IconBolt, IconChapters, IconCheck, IconTune, IconBack, IconClose, IconFull, IconMute, IconInfo, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
+import { useMedia } from '../shell/useNav'
+import { IconAngle, IconAudio, IconBolt, IconChapters, IconCheck, IconTune, IconBack, IconClose, IconFull, IconMute, IconInfo, IconMini, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
 import { t, tk, tn, tx } from '../i18n'
 
 export type TrackOpt = { id: number; label: string; active: boolean }
@@ -51,13 +52,26 @@ type Props = {
   // A phone (or a phone on its side): the picture first. Play and the skips sit big in the middle of the picture, the
   // time, Options and Full screen along the bottom over the seek bar, and everything else in the Options sheet.
   compact?: boolean
+  // pauseForScenes: the film waits while the scenes panel is open, and plays on when it closes (ViewSettings, Pause for
+  // scenes: phones, tablets and TVs by default, every screen if chosen).
+  pauseForScenes?: boolean
   // More rows for the Options sheet from the player around these controls (watch party, mini player).
   sheetItems?: SheetItem[]
+  // Live TV: what's on can't be sped up or slowed down, so there is no speed (chip, sheet row or < and > keys).
+  live?: boolean
 }
 
 export type SheetItem = { key: string; icon: React.ReactNode; label: string; value?: string; on?: boolean; onClick: () => void }
 
 export { SPEEDS, setSpeed }
+
+// Which bar a player gets, one rule for every player (films, episodes, live TV): the simple bar on a phone or tablet,
+// upright or on its side, or in a narrow window (the full bar needs about 900 px for one row); the detailed bar on a
+// TV and on a computer. A viewer's choice in Viewing settings ("detailed" or "simple") wins.
+export function useCompactBar(choice: 'auto' | 'detailed' | 'simple' = 'auto') {
+  const narrow = useMedia('(max-width: 900px), (max-height: 500px) and (pointer: coarse)')
+  return choice === 'simple' || (choice !== 'detailed' && narrow && !getTvMode())
+}
 
 export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
   const [playing, setPlaying] = useState(false)
@@ -86,9 +100,20 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, onEditInfo, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen, compact = false, sheetItems = [] }: Props) {
+  onFullscreen, onSettings, onEditInfo, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen, compact = false, sheetItems = [], live = false, pauseForScenes = false }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | 'more' | null>(null)
+  const resumeAfterScenes = useRef(false)
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    if (pop === 'chapters') {
+      if (pauseForScenes && !v.paused) { v.pause(); resumeAfterScenes.current = true }
+    } else if (resumeAfterScenes.current) {
+      resumeAfterScenes.current = false
+      v.play().catch(() => {})
+    }
+  }, [pop]) // eslint-disable-line react-hooks/exhaustive-deps
   const barRef = useRef<HTMLDivElement | null>(null)
   const [sheet, setSheet] = useState<SheetPage | null>(null)
   useEffect(() => { if (!compact) setSheet(null) }, [compact])
@@ -104,12 +129,21 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
   const [rate, setRate] = useState(() => video.current?.playbackRate || 1)
   useEffect(() => { getPrefs().then((p) => setMaxSpeed(p.maxSpeed || 4)).catch(() => {}) }, [])
   const speeds = SPEEDS.filter((s) => s <= maxSpeed)
+  // The browser's own picture in picture: the film in a small window of its own over everything else, on a computer or
+  // a phone's browser that has it. Not on a TV, and the apps use their system's own (docs/plans/PLAYER-UI-PORTING.md).
+  const canPip = !getTvMode() && typeof document !== 'undefined' && !!document.pictureInPictureEnabled
+  const togglePip = () => {
+    const v = video.current
+    if (!v) return
+    if (document.pictureInPictureElement) void document.exitPictureInPicture().catch(() => {})
+    else void v.requestPictureInPicture().catch(() => announce(t('Picture in picture isn’t available for this video.')))
+  }
   const changeSpeed = (r: number) => { const v = video.current; if (v) { setSpeed(v, r); setRate(r) } }
   // "<" and ">" step through the speeds, like most video players.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.key !== '<' && e.key !== '>')) return
+      if (live || tag === 'INPUT' || tag === 'TEXTAREA' || (e.key !== '<' && e.key !== '>')) return
       const i = speeds.indexOf(rate)
       const next = speeds[Math.max(0, Math.min(speeds.length - 1, (i < 0 ? speeds.indexOf(1) : i) + (e.key === '>' ? 1 : -1)))]
       if (next) changeSpeed(next)
@@ -234,7 +268,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {quality && (onQualityMenu
             ? <button className={'cbtn chip-q' + (qualityMenuOpen ? ' on' : '')} title={t('Quality (Q)')} aria-label={t('Quality: {quality}', { quality })} aria-haspopup="dialog" aria-expanded={!!qualityMenuOpen} onClick={onQualityMenu}><span className="lbl always">{quality}</span></button>
             : <button className="cbtn chip-q" title={t('How this is playing (I)')} aria-label={t('Picture {quality}. How this is playing', { quality })} onClick={onQuality} disabled={!onQuality}><span className="lbl always">{quality}</span></button>)}
-          <button className="cbtn chip-s" title={t('Playback speed (< and >)')} aria-label={t('Playback speed {rate} times', { rate })} aria-haspopup="menu" aria-expanded={pop === 'speed'} onClick={() => setPop(pop === 'speed' ? null : 'speed')}><span className="lbl always">{rate}×</span></button>
+          {!live && <button className="cbtn chip-s" title={t('Playback speed (< and >)')} aria-label={t('Playback speed {rate} times', { rate })} aria-haspopup="menu" aria-expanded={pop === 'speed'} onClick={() => setPop(pop === 'speed' ? null : 'speed')}><span className="lbl always">{rate}×</span></button>}
           {chapters.length > 1 && <button className={'cbtn' + (pop === 'chapters' ? ' on' : '')} title={t('Scenes')} aria-label={t('Chapters')} aria-expanded={pop === 'chapters'} onClick={() => setPop(pop === 'chapters' ? null : 'chapters')}><IconChapters /><span className="lbl">{t('Chapters')}</span></button>}
           {onRemote && (
             <button className={'cbtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-pressed={remoteOn} title={t('Show or hide WittyRemote (R)')}>
@@ -256,9 +290,10 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           ...(subtitles && subtitles.length > 0 ? [{ key: 'subs', icon: <IconSubs />, label: t('Subtitles'), value: activeSub?.label || t('Off'), onClick: onPick ? then(() => onPick('subtitle')) : () => setSheet('subs') }] : []),
           ...(onPick && angles > 1 ? [{ key: 'angle', icon: <IconAngle />, label: t('Video version'), onClick: then(() => onPick('angle')) }] : []),
           ...(quality && (onQualityMenu || onQuality) ? [{ key: 'quality', icon: <IconTune />, label: t('Quality'), value: quality, onClick: then(onQualityMenu || onQuality) }] : []),
-          { key: 'speed', icon: <IconBolt />, label: t('Playback speed'), value: rate === 1 ? t('Normal') : `${rate}×`, onClick: () => setSheet('speed') },
+          ...(live ? [] : [{ key: 'speed', icon: <IconBolt />, label: t('Playback speed'), value: rate === 1 ? t('Normal') : `${rate}×`, onClick: () => setSheet('speed') }]),
           ...(chapters.length > 1 ? [{ key: 'scenes', icon: <IconChapters />, label: t('Scenes'), value: chapName(Math.max(0, curChapter - 1)), onClick: then(() => setPop('chapters')) }] : []),
           ...sheetItems.map((x) => ({ ...x, onClick: then(x.onClick) })),
+          ...(canPip ? [{ key: 'pip', icon: <IconMini />, label: t('Picture in picture'), onClick: then(togglePip) }] : []),
           ...(onSettings ? [{ key: 'view', icon: <IconSettings />, label: t('Viewing settings'), onClick: then(onSettings) }] : []),
           ...(onQuality && onQualityMenu ? [{ key: 'info', icon: <IconInfo />, label: t('How this is playing'), onClick: then(onQuality) }] : []),
           ...(onEditInfo ? [{ key: 'wittyinfo', icon: <IconChapters />, label: t('Edit scenes and skips'), onClick: then(onEditInfo) }] : []),
@@ -275,6 +310,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {onSettings && <button role="menuitem" onClick={() => { setPop(null); onSettings() }}><IconSettings /> {t('Viewing settings')}</button>}
           {onQuality && <button role="menuitem" onClick={() => { setPop(null); onQuality() }}><IconInfo /> {t('How this is playing')}</button>}
           {onEditInfo && <button role="menuitem" onClick={() => { setPop(null); onEditInfo() }}><IconChapters /> {t('Edit scenes and skips')}</button>}
+          {canPip && <button role="menuitem" onClick={() => { setPop(null); togglePip() }}><IconMini /> {t('Picture in picture')}</button>}
           {/* A TV shows the remote's keys (the app's Keys dialog), never a keyboard's shortcuts. */}
           {getTvMode()
             ? <button role="menuitem" onClick={() => { setPop(null); window.dispatchEvent(new Event(HELP_EVENT)) }}><IconInfo /> {t('Keys')}</button>

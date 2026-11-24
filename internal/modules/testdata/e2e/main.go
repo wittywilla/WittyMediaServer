@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"image"
 	"image/jpeg"
 	"io"
@@ -169,7 +170,7 @@ func (f *feed) publish(repoName, ver string, key ed25519.PrivateKey, helper []by
 	}
 	sums := []byte(list.String())
 	sumsName := wittymodule.SumsName(id, ver)
-	g := update.GHRelease{TagName: "v" + ver, Name: "WittyPhotos " + ver, Body: "What changed in " + ver, HTMLURL: "https://github.com/wittywilla/" + repoName + "/releases/tag/v" + ver, PublishedAt: time.Now()}
+	g := update.GHRelease{TagName: "v" + ver, Name: "WittyPhotos " + ver, Body: i18n.F("What changed in {ver}", "ver", ver), HTMLURL: "https://github.com/wittywilla/" + repoName + "/releases/tag/v" + ver, PublishedAt: time.Now()}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	for n, b := range map[string][]byte{archiveName: archive, manName: raw, sumsName: sums, sumsName + ".sig": update.Sign(key, sums)} {

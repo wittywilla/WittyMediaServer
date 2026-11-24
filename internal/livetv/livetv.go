@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -129,6 +128,9 @@ type Manager struct {
 	DB    *db.DB
 	Tools *ffmpeg.Tools
 	Log   *slog.Logger
+	// OnRecorded, if set, hears each recording that has ended, done or failed: the bell of
+	// whoever set it up. It runs on the recording's own goroutine and must not block for long.
+	OnRecorded func(r Recording, status, msg string)
 
 	internet *http.Client // what internetClient gives, for a test
 
@@ -266,22 +268,6 @@ func (c *Channel) guideBase() string { return firstNonEmpty(c.EPGSet, c.EPGID) }
 
 // shiftedKey is where a shifted channel's programmes are kept: its guide id's, moved.
 func shiftedKey(base string, minutes int) string { return base + "@" + strconv.Itoa(minutes) }
-
-func sortChannels(l []*Channel) {
-	sort.SliceStable(l, func(i, j int) bool {
-		a, ea := strconv.ParseFloat(l[i].Number, 64)
-		b, eb := strconv.ParseFloat(l[j].Number, 64)
-		switch {
-		case ea == nil && eb == nil:
-			return a < b
-		case ea == nil:
-			return true
-		case eb == nil:
-			return false
-		}
-		return l[i].Number < l[j].Number
-	})
-}
 
 // channelsLife is how long WittyTuner's channels are kept before they're asked for again.
 const channelsLife = 2 * time.Second

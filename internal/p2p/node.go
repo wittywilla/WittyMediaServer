@@ -74,6 +74,25 @@ type NodeConfig struct {
 	Mapper    *portmap.Holder
 	// PunchTimeout: see HostConfig.
 	PunchTimeout time.Duration
+	// TalkWait replaces how long an invite's or a code's conversation may
+	// take, so tests of slow peers don't wait.
+	TalkWait time.Duration
+}
+
+// enrolWait and joinWait are the most an invite's or a code's whole
+// conversation may take, however slowly the other end sends: a stream that
+// trickles a byte at a time is cut off then.
+const (
+	enrolWait = 15 * time.Second
+	joinWait  = 20 * time.Second
+)
+
+// talkWait is how long one of those conversations may take on this node.
+func (n *Node) talkWait(d time.Duration) time.Duration {
+	if n.cfg.TalkWait > 0 {
+		return n.cfg.TalkWait
+	}
+	return d
 }
 
 // maxStreamsPerPeer is how many HTTP connections one device may hold open: a
@@ -102,6 +121,7 @@ type Node struct {
 	streams        map[peer.ID]int
 	buckets        map[network.Conn]*bucket
 	temp           map[peer.ID]time.Time // keys let in for a moment: the connection test
+	tempNow        func() time.Time      // the time temp is judged by (tests); nil: now
 	reachability   network.Reachability
 	natUDP         network.NATDeviceType
 	natTCP         network.NATDeviceType
@@ -369,7 +389,7 @@ func (n *Node) AllowBriefly(id string, d time.Duration) {
 	}
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	now := time.Now()
+	now := n.tempTime()
 	for k, until := range n.temp {
 		if now.After(until) {
 			delete(n.temp, k)
@@ -384,7 +404,15 @@ func (n *Node) briefly(p peer.ID) bool {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	until, ok := n.temp[p]
-	return ok && time.Now().Before(until)
+	return ok && n.tempTime().Before(until)
+}
+
+// tempTime is the time keys let in for a moment are judged by. Call with mu held.
+func (n *Node) tempTime() time.Time {
+	if n.tempNow != nil {
+		return n.tempNow()
+	}
+	return time.Now()
 }
 
 // remoteOf describes the other end of a stream.
@@ -521,14 +549,11 @@ func relayIDs(list []ma.Multiaddr) string {
 
 func (n *Node) handleEnrol(s network.Stream) {
 	defer s.Close()
-	_ = s.SetDeadline(time.Now().Add(15 * time.Second))
+	_ = s.SetDeadline(time.Now().Add(n.talkWait(enrolWait)))
 	id := s.Conn().RemotePeer().String()
 	addr := n.remoteOf(s, false)
 	answer := func(r EnrolResponse) { _ = writeMessage(s, r) }
-	// Each is counted, so no "or": a stranger over one limit still uses up
-	// their share of the others.
-	okAll, okPeer, okAddr := n.enrolAll.allow("all"), n.enrolPeer.allow(id), n.enrolAddr.allow(addr.IP.String())
-	if !okAll || !okPeer || !okAddr {
+	if !n.allowTry(id, addr.IP) {
 		n.count.enrolsRefused.Add(1)
 		n.noteRefused(s, "too many tries at an invite")
 		answer(EnrolResponse{Reason: "too-many-tries", Error: "Too many tries. Wait a minute and try again."})
@@ -551,6 +576,27 @@ func (n *Node) handleEnrol(s network.Stream) {
 		res.Addrs = n.Addrs()
 	}
 	answer(res)
+}
+
+// allowTry counts one try at an invite or a code. The narrowest limit is
+// asked first, and a try it refuses goes no further: whoever is over their own
+// share can't use up the share of every other key, or everyone's together.
+// Making new keys costs nothing, so the address is what holds a stranger.
+func (n *Node) allowTry(id string, ip netip.Addr) bool {
+	return n.enrolAddr.allow(tryKey(ip)) && n.enrolPeer.allow(id) && n.enrolAll.allow("all")
+}
+
+// tryKey is what tries are counted under for an address: an IPv6 address by
+// its /64, as one home or one machine is given a whole /64 to pick from.
+func tryKey(ip netip.Addr) string {
+	ip = ip.Unmap()
+	if ip.Is6() {
+		p, err := ip.Prefix(64)
+		if err == nil {
+			return p.String()
+		}
+	}
+	return ip.String()
 }
 
 // Kick closes every connection from a device: what revoking it does at once.

@@ -8,7 +8,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"net/url"
@@ -350,6 +350,9 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 		writeErr(w, 404, "channel not found")
 		return
 	}
+	if s.liveRefused(w, r, "tun", id, time.Now()) { // the programme's rating (parental_live.go)
+		return
+	}
 	c, err := s.TV.Channel(r.Context(), id)
 	if err != nil {
 		writeErr(w, 404, "channel not found")
@@ -372,7 +375,7 @@ func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int6
 	now := time.Now()
 	logo, brand := tunerLogo(c)
 	info := tuneInfo{Key: r.PathValue("key"), Kind: "tuner", Number: c.Number, Name: c.Name, Logo: logo, Brand: brand, URL: s.liveURL(r, ls, "/api/tv/"+r.PathValue("key")+"/live/playlist.m3u8"),
-		ServerTime: now.Unix(), CanRecord: s.canRecord(r, c), BackgroundPlay: s.backgroundPlay(r.Context()), BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60),
+		ServerTime: now.Unix(), CanRecord: s.canRecord(r, c), BackgroundPlay: s.backgroundPlay(r.Context()), BufferSec: float64(s.tvSettingInt(r.Context(), "tvTunerBufferMin") * 60), StartOver: c.CatchupDays > 0,
 		Notices: s.channelNotices(c), ATSC3: c.ATSC3, Security: securityOf(c)}
 	if s.silentChannel(c) {
 		info.Alternative = s.clearAlternative(r, id)
@@ -721,7 +724,7 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 	if u := userFrom(r); !u.IsAdmin {
 		if n, err := s.TV.PendingRecordings(r.Context(), u.ID); err != nil || n >= maxPendingRecordings {
-			writeErr(w, 409, fmt.Sprintf("You have %d recordings waiting, which is as many as you can have. Cancel one first.", maxPendingRecordings))
+			writeErr(w, 409, i18n.F("You have {maxPendingRecordings} recordings waiting, which is as many as you can have. Cancel one first.", "maxPendingRecordings", maxPendingRecordings))
 			return
 		}
 	}
@@ -801,7 +804,7 @@ func (s *Server) handleAddRecordingRule(w http.ResponseWriter, r *http.Request) 
 	}
 	if u := userFrom(r); !u.IsAdmin {
 		if n, err := s.TV.RuleCount(r.Context(), u.ID); err != nil || n >= maxRecordingRules {
-			writeErr(w, 409, fmt.Sprintf("You have %d series recordings, which is as many as you can have. Remove one first.", maxRecordingRules))
+			writeErr(w, 409, i18n.F("You have {maxRecordingRules} series recordings, which is as many as you can have. Remove one first.", "maxRecordingRules", maxRecordingRules))
 			return
 		}
 	}

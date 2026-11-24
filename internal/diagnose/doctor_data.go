@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -42,21 +43,21 @@ func checkAccounts(ctx context.Context, e *DoctorEnv) []Issue {
 		if errors.Is(err, db.ErrNoDatabase) {
 			return nil
 		}
-		return notChecked("accounts:failed", "accounts", "The database couldn't be read: "+err.Error()+".")
+		return notChecked("accounts:failed", "accounts", i18n.F("The database couldn't be read: {error}.", "error", err.Error()))
 	}
 	var accounts, admins int
 	if err := d.QueryRowContext(ctx, `SELECT COUNT(*), COALESCE(SUM(is_admin = 1 AND password_hash <> ''), 0) FROM users`).Scan(&accounts, &admins); err != nil {
-		return notChecked("accounts:failed", "accounts", "The accounts couldn't be read: "+err.Error()+".")
+		return notChecked("accounts:failed", "accounts", i18n.F("The accounts couldn't be read: {error}.", "error", err.Error()))
 	}
 	if accounts == 0 || admins > 0 {
 		return nil
 	}
 	return []Issue{{Key: "accounts:no-admin", Severity: SevProblem, Title: "No administrator can sign in", Safety: SafetyManual,
-		What: "There are accounts here, but none is an administrator with a password, so nobody can change this server's settings.",
+		What: i18n.T("There are accounts here, but none is an administrator with a password, so nobody can change this server's settings."),
 		Fix:  "Give an account a new password from a terminal on this machine. It's kept off this page, so that it can't be done from another device.",
-		Steps: []string{"On this machine, run: wittymediaserver reset-password --list",
+		Steps: []string{i18n.T("On this machine, run: wittymediaserver reset-password --list"),
 			"Then run: wittymediaserver reset-password <username>",
-			"If nobody on the list is an administrator, a backup or a reset is the way back. See Backup and restore."}}}
+			i18n.T("If nobody on the list is an administrator, a backup or a reset is the way back. See Backup and restore.")}}}
 }
 
 // --------------------------------------------------------------- is the database sound
@@ -71,13 +72,13 @@ func checkDatabase(ctx context.Context, e *DoctorEnv) []Issue {
 		if _, statErr := os.Stat(filepath.Join(e.Data, "wms.db-wal")); statErr == nil {
 			e.damaged = "the database file is missing"
 			return []Issue{{Key: "database:gone", Severity: SevProblem, Title: "The database file is missing", Safety: SafetyManual,
-				What:  "Its journal is there, but wms.db itself isn't, so it was moved or deleted while the server had it.",
+				What:  i18n.T("Its journal is there, but wms.db itself isn't, so it was moved or deleted while the server had it."),
 				Fix:   "Put wms.db back if you moved it, or restore a backup.",
-				Steps: []string{"Look for wms.db where you may have moved it, and put it back in " + e.Data + ".", "If it has gone, restore a backup in Settings, Backup, or from first-time setup."}}}
+				Steps: []string{i18n.F("Look for wms.db where you may have moved it, and put it back in {data}.", "data", e.Data), i18n.T("If it has gone, restore a backup in Settings, Backup, or from first-time setup.")}}}
 		}
 		e.damaged = "there's no database yet"
 		return []Issue{{Key: "database:new", Severity: SevInfo, Title: "This data folder has no database yet", Safety: SafetyManual,
-			What: "That's what a new install looks like. The server makes one when it first starts."}}
+			What: i18n.T("That's what a new install looks like. The server makes one when it first starts.")}}
 	}
 	if err != nil {
 		e.damaged = err.Error()
@@ -90,7 +91,7 @@ func checkDatabase(ctx context.Context, e *DoctorEnv) []Issue {
 	if err != nil {
 		e.damaged = err.Error()
 		return []Issue{{Key: "database:unreadable", Severity: SevProblem, Title: "The database can't be read to the end", Safety: SafetyCareful, Exclusive: true,
-			What: "Checking it stopped with: " + err.Error() + ".",
+			What: i18n.F("Checking it stopped with: {error}.", "error", err.Error()),
 			Fix:  "Builds a new database from whatever can still be read, and keeps the old file.",
 			data: damage{}}}
 	}
@@ -108,12 +109,12 @@ func checkDatabase(ctx context.Context, e *DoctorEnv) []Issue {
 	if allIndex {
 		e.damaged = ""
 		return []Issue{{Key: "database:indexes", Severity: SevWarn, Title: "The database's indexes are out of step with its rows", Safety: SafetySafe, Count: len(lines), Details: lines,
-			What: "Your data is intact, but lists can come out wrong or incomplete until the indexes are rebuilt.",
+			What: i18n.T("Your data is intact, but lists can come out wrong or incomplete until the indexes are rebuilt."),
 			Fix:  "Rebuilds every index from the rows. Nothing is lost.",
 			data: "reindex"}}
 	}
 	return []Issue{{Key: "database:damaged", Severity: SevProblem, Title: "The database is damaged", Safety: SafetyCareful, Exclusive: true, Count: len(lines), Details: lines,
-		What: "Part of the file can't be trusted. A power cut, a failing drive or a copy taken while the server was running can all do this.",
+		What: i18n.T("Part of the file can't be trusted. A power cut, a failing drive or a copy taken while the server was running can all do this."),
 		Fix:  "Builds a new database from whatever can still be read, says what couldn't be saved, and keeps the old file. If you have a recent backup, restoring it may save more.",
 		data: damage{lines}}}
 }
@@ -150,7 +151,7 @@ func fixDatabase(ctx context.Context, e *DoctorEnv, i *Issue, f *FixContext) (st
 		if err != nil {
 			return "", err
 		}
-		return "Every index was rebuilt.", nil
+		return i18n.T("Every index was rebuilt."), nil
 	}
 	e.closeDB()
 	return recoverDatabase(ctx, e, f)
@@ -233,7 +234,7 @@ func checkLinks(ctx context.Context, e *DoctorEnv) []Issue {
 	}
 	rows, err := d.QueryContext(ctx, `PRAGMA foreign_key_check`)
 	if err != nil {
-		return notChecked("database-links:failed", "links between rows", "The check couldn't run: "+err.Error()+".")
+		return notChecked("database-links:failed", "links between rows", i18n.F("The check couldn't run: {error}.", "error", err.Error()))
 	}
 	defer rows.Close()
 	counts := map[string]int{}
@@ -243,7 +244,7 @@ func checkLinks(ctx context.Context, e *DoctorEnv) []Issue {
 		var rowid *int64
 		var fk int64
 		if err := rows.Scan(&t, &rowid, &parent, &fk); err != nil {
-			return notChecked("database-links:failed", "links between rows", "The check couldn't run: "+err.Error()+".")
+			return notChecked("database-links:failed", "links between rows", i18n.F("The check couldn't run: {error}.", "error", err.Error()))
 		}
 		counts[t+" points at something missing in "+parent]++
 		total++
@@ -256,7 +257,7 @@ func checkLinks(ctx context.Context, e *DoctorEnv) []Issue {
 		details = append(details, fmt.Sprintf("%d rows of %s", n, k))
 	}
 	return []Issue{{Key: "database-links", Severity: SevWarn, Title: "Some rows point at things that no longer exist", Safety: SafetyCareful, Count: total, Details: details,
-		What: "These are left over from something that was removed, such as watch progress for a title that's gone.",
+		What: i18n.T("These are left over from something that was removed, such as watch progress for a title that's gone."),
 		Fix:  "Removes those leftover rows. They can't be used by anything. A safety copy is made first."}}
 }
 
@@ -330,7 +331,7 @@ func checkDBSize(ctx context.Context, e *DoctorEnv) []Issue {
 	var out []Issue
 	if st, err := os.Stat(filepath.Join(e.Data, "wms.db-wal")); err == nil && st.Size() > walTooBig && !e.ServerUp() {
 		out = append(out, Issue{Key: "database-size:wal", Severity: SevInfo, Title: "The database's journal has grown large", Safety: SafetySafe,
-			What: fmt.Sprintf("Its journal is %d MB and nothing is using it. Starts are slower until it's folded in.", st.Size()>>20),
+			What: i18n.F("Its journal is {value} MB and nothing is using it. Starts are slower until it's folded in.", "value", st.Size()>>20),
 			Fix:  "Folds the journal into the database. Nothing is lost.", data: "checkpoint"})
 	}
 	var pageSize, free, pages int64
@@ -346,9 +347,9 @@ func checkDBSize(ctx context.Context, e *DoctorEnv) []Issue {
 }
 
 func fixDBSize(ctx context.Context, e *DoctorEnv, i *Issue, _ *FixContext) (string, error) {
-	q, said := `PRAGMA wal_checkpoint(TRUNCATE)`, "The journal was folded into the database."
+	q, said := `PRAGMA wal_checkpoint(TRUNCATE)`, i18n.T("The journal was folded into the database.")
 	if i.data == "vacuum" {
-		q, said = `VACUUM`, "The database was compacted."
+		q, said = `VACUUM`, i18n.T("The database was compacted.")
 	}
 	err := withWrite(ctx, e, func(d *db.DB) error {
 		_, err := d.ExecContext(ctx, q)
@@ -477,21 +478,21 @@ func checkResetState(_ context.Context, e *DoctorEnv) []Issue {
 				What: "reset-request.json is there, but it isn't a request this version understands. The server would ignore it.",
 				Fix:  "Moves the file to the safety copy. Nothing else changes."})
 		case now.Sub(b.ModTime()) > staleRequest:
-			out = append(out, Issue{Key: "reset-state:stale", Severity: SevWarn, Title: "A reset is still waiting from " + b.ModTime().Format("2 Jan 2006 15:04"), Safety: SafetyCareful, data: "reset",
-				What: "Someone asked for this server to be reset, and it will happen the next time the server starts. Every account and setting would go" + resetKeeps(r.Mode) + ".",
+			out = append(out, Issue{Key: "reset-state:stale", Severity: SevWarn, Title: i18n.F("A reset is still waiting from {format}", "format", b.ModTime().Format("2 Jan 2006 15:04")), Safety: SafetyCareful, data: "reset",
+				What: i18n.F("Someone asked for this server to be reset, and it will happen the next time the server starts. Every account and setting would go{resetKeeps}.", "resetKeeps", resetKeeps(r.Mode)),
 				Fix:  "Takes the request back, so the next start is an ordinary one. If you do want the reset, leave this and restart the server."})
 		}
 	}
 	if b, err := os.Stat(filepath.Join(e.Data, "repair-request.json")); err == nil && now.Sub(b.ModTime()) > staleRequest {
-		out = append(out, Issue{Key: "reset-state:repair", Severity: SevWarn, Title: "A repaired database is waiting from " + b.ModTime().Format("2 Jan 2006 15:04"), Safety: SafetyCareful, data: "repair",
-			What: "A new database was built by an earlier repair, and takes over at the next start. It may be older than what's in use now.",
+		out = append(out, Issue{Key: "reset-state:repair", Severity: SevWarn, Title: i18n.F("A repaired database is waiting from {format}", "format", b.ModTime().Format("2 Jan 2006 15:04")), Safety: SafetyCareful, data: "repair",
+			What: i18n.T("A new database was built by an earlier repair, and takes over at the next start. It may be older than what's in use now."),
 			Fix:  "Takes the request back and removes the new database. The one in use stays. If you do want it, leave this and restart the server."})
 	}
 	if l := reset.Last(e.Data); l != nil && !l.OK && l.Error != "" {
 		if b, err := os.Stat(filepath.Join(e.Data, "reset-result.json")); err == nil {
 			if now.Sub(b.ModTime()) < 7*24*time.Hour {
 				out = append(out, Issue{Key: "reset-state:failed", Severity: SevInfo, Title: "The last reset didn't happen", Safety: SafetyManual,
-					What: "It stopped with: " + l.Error + ". Nothing was changed by it, and you can try it again in Settings, Reset."})
+					What: i18n.F("It stopped with: {error}. Nothing was changed by it, and you can try it again in Settings, Reset.", "error", l.Error)})
 			}
 		}
 	}
@@ -501,7 +502,7 @@ func checkResetState(_ context.Context, e *DoctorEnv) []Issue {
 		_, dbErr := os.Stat(filepath.Join(e.Data, "wms.db"))
 		if errors.Is(dbErr, fs.ErrNotExist) {
 			out = append(out, Issue{Key: "reset-state:half", Severity: SevProblem, Title: "A reset stopped halfway", Safety: SafetyCareful, Exclusive: true, data: copies[0].Name,
-				What: "There's no database here, but a copy from a reset is: " + copies[0].Name + ". Your data is in that copy.",
+				What: i18n.F("There's no database here, but a copy from a reset is: {name}. Your data is in that copy.", "name", copies[0].Name),
 				Fix:  "Brings that copy back the next time the server starts. If you meant to start again from new, leave this and just start the server: it makes a new database."})
 		} else {
 			var total int64
@@ -534,12 +535,12 @@ func fixResetState(_ context.Context, e *DoctorEnv, i *Issue, f *FixContext) (st
 			if err := f.Remove(filepath.Join(e.Data, "reset-request.json")); err != nil {
 				return "", err
 			}
-			return "The waiting reset was taken back. The next start is an ordinary one.", nil
+			return i18n.T("The waiting reset was taken back. The next start is an ordinary one."), nil
 		case "repair":
 			if err := reset.CancelRepair(e.Data); err != nil {
 				return "", err
 			}
-			return "The waiting database was removed, and the one in use stays.", nil
+			return i18n.T("The waiting database was removed, and the one in use stays."), nil
 		default:
 			if err := reset.Ask(e.Data, reset.Request{Mode: reset.ModeRestore, Copy: v, At: e.now()}); err != nil {
 				return "", err
@@ -547,7 +548,7 @@ func fixResetState(_ context.Context, e *DoctorEnv, i *Issue, f *FixContext) (st
 			if e.ServerUp() {
 				f.restart = true
 			}
-			return "That copy comes back when the server next starts. What's there now is kept as another copy.", nil
+			return i18n.T("That copy comes back when the server next starts. What's there now is kept as another copy."), nil
 		}
 	}
 	return "", errors.New("run the check again first")

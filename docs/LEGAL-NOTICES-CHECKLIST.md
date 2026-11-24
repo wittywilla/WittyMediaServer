@@ -26,13 +26,13 @@ a notice of its own.
 | Results fetched from a service on the web: lookups, directories, artwork choices | `webResults` | Artwork picker, podcast search, Metadata agents, setup wizard's agents step |
 | A title's page with details or artwork from outside | `metadata` | Movie and episode pages, shows, albums |
 | Media streaming from outside: podcasts, stations | `webMedia` | Radio, podcast libraries and pages |
-| TV channels and guide data | `tv` | TV guide, Channels & tuners |
-| Studio, network, channel or console logos, and any screen choosing one | `logos` | Library pages with logo cards, a show or title with one, the brand page, the guide, Channels & tuners, a channel's editor, a tuner's channel table, the edit dialog's Logos, the logo chooser, Metadata agents. `components/LogoNotice` shows it only when one is on the screen |
+| TV channels and guide data | `tv` | TV guide, Library channels & WittyTV |
+| Studio, network, channel or console logos, and any screen choosing one | `logos` | Library pages with logo cards, a show or title with one, the brand page, the guide, Library channels & WittyTV, a channel's editor, a tuner's channel table, the edit dialog's Logos, the logo chooser, Metadata agents. `components/LogoNotice` shows it only when one is on the screen |
 | A logo on something that's only up for a moment | `logosBrief` | The banner in the TV player |
 | Which streaming services list a title | `listings` | Library pages and the brand page showing listings, the disclosure screen |
 | Games and game details | `games` | Games library, game pages |
 | Downloading cores | `cores` | Settings, Games & emulators, Consoles & cores, and the install dialog |
-| Modules and their updates | `modules` | Settings, Modules |
+| Modules and their updates | `modules` | Settings, Module store |
 | Creator videos and the people named in them | `creators` | Creator libraries, channels, watch page, vertical videos' creators and About |
 | Books and comics, reader content | `reader` | Books library, book pages |
 | A connection to a server someone else runs | `thirdPartyServer` | Game PCs: `pages/Couch.tsx`, `pages/Rigs.tsx`, Settings, Game PCs |

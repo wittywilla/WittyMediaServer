@@ -283,7 +283,9 @@ type Catalogue struct {
 	// TVLevels say how much of each screen a television offers (data/tvlevels.json, docs/TV-MODE.md):
 	// "full", "view" (values shown, nothing changed) or "desktopOnly" (a card that says to use a
 	// computer, with the page's address). Screens are matched by address, parts by id.
-	TVLevels      json.RawMessage `json:"tvLevels"`
+	TVLevels json.RawMessage `json:"tvLevels"`
+	// SettingsMenu is the settings menu every client draws (data/settingsmenu.json, docs/SETTINGS-MENU.md).
+	SettingsMenu  json.RawMessage `json:"settingsMenu"`
 	Icons         []string        `json:"icons"`
 	Placeholders  []EnumOption    `json:"placeholders"`
 	Repeats       []EnumOption    `json:"repeats"`

@@ -19,8 +19,8 @@ import { focusMap, next as nextFocus, type Dir } from './focus'
 import { applyItems, buildPage, sectionGap, type View } from './model'
 import { hasTools, nativeInstead } from './native'
 import { plan, withQuery } from './routes'
-import { changedRows, refreshDelay } from './refresh'
-import { Ctx, px, type PageCtx } from './render/context'
+import { changedRows, refreshDelay, sectionRetryDelay } from './refresh'
+import { Ctx, PressContext, px, type PageCtx, type PressCtx } from './render/context'
 import { scopeStyle, Sections } from './render/components'
 import { setPageMove } from '../tv'
 import { useTvMode } from '../tvmode/mode'
@@ -29,7 +29,7 @@ import type { Action, Document, Node } from './types'
 import { useDevice } from './useSdui'
 import { ask } from '../ui/Overlay'
 import { setPageRegions } from './regions'
-import { date, t, tn, tx } from '../i18n'
+import { date, t, tn, tx, bidi } from '../i18n'
 import { setWords } from './words'
 import './sdui.css'
 import './play.css'
@@ -41,7 +41,7 @@ const LayerHost = lazy(() => import('./render/LayerHost'))
 const PageTools = lazy(() => import('./extras/PageTools'))
 
 // The layout step (model.ts) is also run by node's tests, so it is handed the app's words here.
-setWords(t, tn, tx)
+setWords(t, tn, tx, bidi)
 
 // ---------------------------------------------------------------- the tree, changed without changing it
 
@@ -122,6 +122,12 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
     act: h.act, more: h.more, busy: h.busy, failed: h.failed, setQuery: h.setQuery, menu: h.menu,
     columns: (id, n) => { cols.current[id] = n },
   }), [doc, l, device, tv, reducedMotion, pt, inert, h.act, h.more, h.busy, h.failed, h.setQuery, h.menu])
+  // What cards need to be pressed, the same from one page of items to the next (render/context.tsx).
+  const latest = useRef(h)
+  useLayoutEffect(() => { latest.current = h })
+  const press = useMemo<PressCtx>(() => ({
+    act: (a, from) => latest.current.act(a, from), menu: (card, at) => latest.current.menu(card, at), inert, externalLinks: l.externalLinks,
+  }), [inert, l.externalLinks])
 
   // A page whose sections have all taken themselves off (each had nothing to show) says so, instead of a title over a blank page.
   const [blank, setBlank] = useState(false)
@@ -166,6 +172,7 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
   const title = model.root.label || tx(doc.page.title)
   return (
     <Ctx.Provider value={ctx}>
+      <PressContext.Provider value={press}>
       <div ref={box} className={`sdui ff-${l.formFactor} bp-${l.breakpoint} density-${l.density || 'comfortable'} kind-${doc.page.kind}` + (inert ? ' inert' : '')} style={style}
         data-sdui-page={doc.page.id} data-scope={doc.theme?.scope || undefined} data-source={doc.meta?.source === 'draft' ? 'draft' : undefined}>
         {title && <h1 className={tv || ownHeading ? 'sr-only' : 'sdui-page-title'}>{title}</h1>}
@@ -175,6 +182,7 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
         {doc.page.kind === 'detail' && <div className="sdui-page-end" data-sdui-end />}
         {blank && <div className="sdui-nothing"><EmptyState icon={<IconInfo />} title={t('Nothing here yet')} text={t('When there is something for this page, it will appear here. Check back after you add media or turn a module on.')} /></div>}
       </div>
+      </PressContext.Provider>
     </Ctx.Provider>
   )
 }
@@ -361,23 +369,39 @@ export default function SduiPage({ page, params, fallback }: { page: string; par
     return () => clearTimeout(t)
   }, [problem])
 
-  const more = useCallback((sectionId: string, url?: string, replace?: boolean) => {
+  // A section that failed: how often, when it may be asked again by itself, and its timer. Asked
+  // again only after its wait (1, 2, 5, then every 15 s), and its error stays up meanwhile rather
+  // than flickering with each try. Retry (now) asks at once.
+  const tries = useRef(new Map<string, { n: number; next: number; timer: number }>())
+  useEffect(() => () => { tries.current.forEach((x) => window.clearTimeout(x.timer)); tries.current.clear() }, [key])
+  const more = useCallback(function more(sectionId: string, url?: string, replace?: boolean, now?: boolean) {
     const d = drawn.current
     const node = d ? findNode(d.root, sectionId) : null
     const from = url || (node?.props?.more as { url?: string } | undefined)?.url
     if (!d || !node || !from) return
+    const tried = tries.current.get(sectionId)
+    if (tried && !now && Date.now() < tried.next) return // its timer asks when the wait is over
     let going = false
     setBusy((b) => { if (b.has(sectionId)) { going = true; return b } return new Set(b).add(sectionId) })
     if (going) return
-    setFailed((f) => { if (!f.has(sectionId)) return f; const n = new Set(f); n.delete(sectionId); return n })
+    if (tried) window.clearTimeout(tried.timer)
+    if (now) setFailed((f) => { if (!f.has(sectionId)) return f; const n = new Set(f); n.delete(sectionId); return n })
     fetchItems(from, device).then((answer) => {
+      tries.current.delete(sectionId)
+      setFailed((f) => { if (!f.has(sectionId)) return f; const n = new Set(f); n.delete(sectionId); return n })
       setDoc((was) => {
         if (!was) return was
         const next = { ...was, root: replaceNode(was.root, sectionId, (n) => applyItems(n, { ...answer, replace: replace || answer.replace })) }
         remember(page, device, params, next)
         return next
       })
-    }).catch(() => setFailed((f) => new Set(f).add(sectionId))).finally(() => setBusy((b) => { const n = new Set(b); n.delete(sectionId); return n }))
+    }).catch(() => {
+      setFailed((f) => (f.has(sectionId) ? f : new Set(f).add(sectionId)))
+      const n = (tries.current.get(sectionId)?.n || 0) + 1
+      const wait = sectionRetryDelay(n)
+      const timer = window.setTimeout(() => more(sectionId, url, replace), wait)
+      tries.current.set(sectionId, { n, next: Date.now() + wait, timer })
+    }).finally(() => setBusy((b) => { const n = new Set(b); n.delete(sectionId); return n }))
   }, [device, page, key]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const setQuery = useCallback((change: Record<string, string>) => {

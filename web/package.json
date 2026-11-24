@@ -1,7 +1,7 @@
 {
   "name": "wittymediaserver-web",
   "private": true,
-  "version": "0.8.1-alpha",
+  "version": "0.8.4-alpha",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {
@@ -10,14 +10,22 @@
     "preview": "vite preview",
     "test:music": "node scripts/test-music.mjs",
     "test:pads": "node scripts/test-pads.mjs",
+    "test:links": "node scripts/test-links.mjs",
+    "test:names": "node scripts/test-button-names.mjs",
     "test:cards": "node scripts/test-module-cards.mjs",
     "test:setup": "node scripts/test-setup.mjs",
+    "test:connect": "node scripts/test-connect.mjs",
+    "test:standalone": "node scripts/test-standalone.mjs",
     "test:keys": "node scripts/test-keys.mjs",
     "test:tv": "node scripts/test-tv-themes.mjs",
     "test:quality": "node scripts/test-quality-menu.mjs",
     "test:contrast": "node scripts/test-contrast.mjs",
     "test:tv-levels": "node scripts/test-tv-levels.mjs",
-    "test:tv-keys": "node scripts/test-tv-keys.mjs"
+    "test:tv-keys": "node scripts/test-tv-keys.mjs",
+    "test:clone": "node scripts/test-clone.mjs",
+    "test:settings-menu": "node scripts/test-settings-menu.mjs",
+    "test:notifications": "node scripts/test-notifications.mjs",
+    "test:rtl": "node scripts/test-rtl.mjs"
   },
   "dependencies": {
     "hls.js": "^1.7.4",

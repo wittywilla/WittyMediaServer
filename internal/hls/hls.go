@@ -217,6 +217,9 @@ type Manager struct {
 	// other streams of the same kind don't each fail once first. Guarded by hwMu.
 	gpuFailed map[string]bool
 	hwRunning map[string]int // jobs running on each hardware encoder (see hwCaps); guarded by hwMu
+	// neededFaster: a stream here went to the faster setting to keep up (pace.go), so on a small
+	// machine the next ones start with it.
+	neededFaster atomic.Bool
 }
 
 // ErrBusy: as many transcodes are running as the server allows

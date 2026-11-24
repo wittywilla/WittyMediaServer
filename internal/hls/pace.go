@@ -156,7 +156,7 @@ func (s *Session) Pace() Pace {
 	s.mu.Lock()
 	j := s.job
 	s.mu.Unlock()
-	p := Pace{Rate: s.Rate(), KeepingUp: true, Fastest: s.paceStep.Load() >= maxPaceStep}
+	p := Pace{Rate: s.Rate(), KeepingUp: true, Fastest: s.step() >= maxPaceStep}
 	if s.Spec.Growing || s.Spec.CopyVideo {
 		return p
 	}
@@ -193,16 +193,17 @@ func (s *Session) checkPace(j *job, now time.Time) {
 		// Behind: say so once, and give it half a window more before acting, so a moment's
 		// hiccup (another stream starting, a scan) doesn't change anything.
 		j.slowSince = now
-		s.logger().Info("the conversion is slower than the player", "speed", round2(speed), "rate", rate, "aheadSegments", lead, "step", s.paceStep.Load())
+		s.logger().Info("the conversion is slower than the player", "speed", round2(speed), "rate", rate, "aheadSegments", lead, "step", s.step())
 		return
 	}
-	step := s.paceStep.Load()
+	step := s.step()
 	if step >= maxPaceStep || !s.fasterHelps() {
 		return
 	}
 	if !s.paceStep.CompareAndSwap(step, step+1) {
 		return
 	}
+	s.m.neededFaster.Store(true) // the next streams here start with it
 	from := int(j.lastSeg.Load()) + 1
 	s.logger().Warn("the conversion can't keep up with the player: going on with a faster setting", "speed", round2(speed), "rate", rate, "fromSegment", from, "preset", s.preset())
 	go func() {
@@ -233,6 +234,21 @@ func (s *Session) fasterHelps() bool {
 	return len(s.Spec.Quality.VideoArgs) == 0 && s.m.chooseHW(s.Spec.Quality, s.Spec.Preset, s.fallback.Load(), hwSourceOf(s.Spec)).plan.Name == "libx264"
 }
 
+// fastStartRate: on a small machine a player this fast starts with the faster setting.
+const fastStartRate = 1.5
+
+// step is the faster setting this stream's jobs use: the steps it took itself, or, on a small
+// machine, the first one from the start for a player at 1.5× or more, or once any stream on this
+// server has needed it. Going faster half-way costs a stall when the lead is short; a NAS that
+// needed it once needs it again.
+func (s *Session) step() int32 {
+	st := s.paceStep.Load()
+	if st == 0 && smallMachine() && (s.Rate() >= fastStartRate || s.m.neededFaster.Load()) && s.fasterHelps() {
+		return 1
+	}
+	return st
+}
+
 // x264Presets from slowest to fastest.
 var x264Presets = []string{"placebo", "veryslow", "slower", "slow", "medium", "fast", "faster", "veryfast", "superfast", "ultrafast"}
 
@@ -251,7 +267,7 @@ func fasterPreset(p string, steps int) string {
 // preset is the libx264 preset this stream's next job uses: its own, or the profile's, made
 // faster for a stream that couldn't keep up. "" leaves it to the profile.
 func (s *Session) preset() string {
-	if s.paceStep.Load() == 0 {
+	if s.step() == 0 {
 		return s.Spec.Preset
 	}
 	p := s.Spec.Preset

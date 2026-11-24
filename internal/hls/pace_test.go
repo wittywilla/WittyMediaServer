@@ -187,3 +187,32 @@ func TestSmallMachineConvertsTo1080(t *testing.T) {
 		t.Fatal("a roomy machine keeps 4K")
 	}
 }
+
+// On a small machine a fast player, and every stream once one here needed it, start with the faster
+// setting: going faster half-way stalled the player while the new FFmpeg started.
+func TestSmallMachineStartsFaster(t *testing.T) {
+	m := testManager(t, 4)
+	m.tools = &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}
+	defer func(f func() bool) { smallMachine = f }(smallMachine)
+	smallMachine = func() bool { return true }
+	s := m.Ensure(Spec{ID: "v-a", Duration: 60, SegmentSec: 4})
+	if s.preset() != "" || s.Pace().Fastest {
+		t.Fatalf("1×: %q", s.preset())
+	}
+	s.SetRate(2)
+	if s.preset() != "ultrafast" || !s.Pace().Fastest {
+		t.Fatalf("2× on a small machine: %q", s.preset())
+	}
+	b := m.Ensure(Spec{ID: "v-b", Duration: 60, SegmentSec: 4})
+	if b.preset() != "" {
+		t.Fatal("another stream at 1× is left alone until one needed it")
+	}
+	m.neededFaster.Store(true)
+	if b.preset() != "ultrafast" {
+		t.Fatal("once one stream needed it, the next starts with it")
+	}
+	smallMachine = func() bool { return false }
+	if s.preset() != "" || b.preset() != "" {
+		t.Fatal("a roomy machine goes faster only when a stream falls behind")
+	}
+}

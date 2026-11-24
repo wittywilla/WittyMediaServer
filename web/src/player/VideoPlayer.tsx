@@ -36,6 +36,7 @@ import { announce } from '../a11y'
 import { t, tk, tn, tx } from '../i18n'
 import { trackLang } from './trackLang'
 import { useMedia } from '../shell/useNav'
+import { ownPageTitle } from '../theme'
 
 // Opened from the player's top bar, and not before.
 const PlayOn = lazy(() => import('../remote/PlayOn'))
@@ -88,6 +89,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const compact = prefs.controls === 'simple' || (prefs.controls !== 'detailed' && narrow && !getTvMode())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [picker, setPicker] = useState<'audio' | 'subtitle' | null>(null)
+  const closePicker = useCallback(() => setPicker(null), [])
+  // The window is named after what plays (a show's episode with its show), not the server, while the player is full size.
+  const windowTitle = mini ? '' : item.showTitle ? `${item.showTitle} · ${item.title}` : item.title
+  useEffect(() => { ownPageTitle(windowTitle); return () => ownPageTitle('') }, [windowTitle])
   const video = useRef<HTMLVideoElement | null>(null)
   const root = useIdle(prefs.hideAfter * 1000, [mini])
   const [info, setInfo] = useState<PlaybackAnswer | null>(null)
@@ -676,7 +681,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
             audio={info?.audio.map((a) => ({ id: a.index, label: [trackLang(a.language), ownName(a), a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
-            onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker(k) }}
+            onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker((p) => (p === k ? null : k)) }}
             compact={compact} sheetItems={[
               ...((may.party || party.room) ? [{ key: 'party', icon: <IconUsers />, label: t('Watch party'), value: party.room ? tn('{count} watching', '{count} watching', party.room.members.length) : undefined, on: party.active, onClick: () => setPartyOpen(true) }] : []),
               { key: 'mini', icon: <IconMini />, label: t('Keep playing in a corner'), onClick: chrome.minimize },
@@ -686,14 +691,14 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           {settingsOpen && <ViewSettings prefs={prefs} scope={view.scope} isDisc={false} onClose={() => setSettingsOpen(false)} onChange={(p) => view.update(p, view.scope)} onScope={view.setScope}
             streaming={streamPref} onStreaming={(v) => { setDeviceStreaming(v); setStreamPref(v); ask({ reopen: (want.reopen || 0) + 1 }) }} />}
           {picker && info && (
-            <TrackPicker heading={picker === 'audio' ? t('Audio & language') : t('Subtitles')} onClose={() => setPicker(null)}
+            <TrackPicker heading={picker === 'audio' ? t('Audio & language') : t('Subtitles')} kind={picker} onClose={closePicker}
               onPick={(id) => switchTrack(picker === 'audio' ? 'audio' : 'sub', id)}
               tiles={picker === 'audio'
-                ? info.audio.map((a) => ({ id: a.index, title: trackLang(a.language), sub: ownName(a), detail: [a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))
+                ? info.audio.map((a) => ({ id: a.index, lang: a.language, title: trackLang(a.language), sub: ownName(a), detail: [a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))
                 : [{ id: -1, title: t('Off'), active: sub == null || sub < 0 }, ...info.subtitles.flatMap((x) => {
-                  const plain = { id: x.index, title: trackLang(x.language), sub: ownName(x), detail: subKind(x.codec), active: x.index === sub && !burn?.styled }
+                  const plain = { id: x.index, lang: x.language, title: trackLang(x.language), sub: ownName(x), detail: subKind(x.codec), active: x.index === sub && !burn?.styled }
                   // ASS can carry placement and styling that plain text loses: keeping it means drawing it into the picture.
-                  return x.codec === 'ass' || x.codec === 'ssa' ? [plain, { id: x.index + STYLED, title: trackLang(x.language), sub: t('With its styling'), detail: t('Drawn into the picture'), active: x.index === sub && !!burn?.styled }] : [plain]
+                  return x.codec === 'ass' || x.codec === 'ssa' ? [plain, { id: x.index + STYLED, lang: x.language, title: trackLang(x.language), sub: t('With its styling'), detail: t('Drawn into the picture'), active: x.index === sub && !!burn?.styled }] : [plain]
                 })]} />
           )}
           {statsOn && <StreamInfo lines={statLines} />}

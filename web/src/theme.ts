@@ -211,6 +211,14 @@ export function applyBrand(name: string) {
 // applyPageTitle puts the page's own name before the server's in the window's title, so browser
 // tabs, history and a screen reader's list of windows can tell the pages apart.
 export function applyPageTitle(name: string) {
-  page = name
-  document.title = name && name !== brand ? `${name} · ${brand}` : brand
+  page = name || own
+  document.title = page && page !== brand ? `${page} · ${brand}` : brand
+}
+
+// ownPageTitle: a page that covers the app (the player, the reader) names the window after what it
+// shows, the film or the book, whatever heading the page has. '' gives the title back.
+let own = ''
+export function ownPageTitle(name: string) {
+  own = name
+  applyPageTitle(name)
 }

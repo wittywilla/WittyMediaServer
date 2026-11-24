@@ -194,10 +194,15 @@ func BenchmarkBuild200k(b *testing.B) {
 }
 
 // TestSearchBudget holds every search on a 200,000-title library to the budget of
-// 100 ms, with room for a slow computer running the tests: the worst of a few tries.
+// 100 ms, with room for a slow computer running the tests: the best of a few tries.
+// Under the race detector, which runs code 5 to 10 times slower, the times mean nothing
+// (release CI's race shard once took 133 ms): it's skipped there.
 func TestSearchBudget(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds a large index")
+	}
+	if raceEnabled {
+		t.Skip("timings mean nothing under the race detector")
 	}
 	x := big(200_000)
 	for _, q := range benchQueries {

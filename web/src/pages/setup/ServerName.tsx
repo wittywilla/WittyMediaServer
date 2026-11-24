@@ -56,7 +56,7 @@ export function ServerName({ next, back, onTry }: StepProps & { onTry: (t: { nam
     } catch (e) { setErr((e as Error).message); toast(t('The name couldn’t be saved'), { tone: 'danger' }) } finally { setBusy(false) }
   }
   return (
-    <section>
+    <section className="su-narrow">
       <StepHead title={t('Your server’s name')} lead={t('It’s shown in every app, so everyone knows which server they’re on.')} />
       {!draft ? <Spinner /> : plain
         ? <>

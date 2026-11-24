@@ -64,7 +64,7 @@ export function People({ next, back }: StepProps) {
     </div>
   )
   return (
-    <section>
+    <section className="su-narrow">
       <StepHead title={t('Who else watches?')} lead={t('Each person gets their own profile and place in what they’re watching.')} />
       {people.length > 0 && <><h2 className="oobe-sub">{t('Profiles')}</h2><ul className="tvs-list" aria-label={t('Profiles')}>{people.map((u) => <li key={u.id} className="tvs-item"><b>{profileName(u)}</b> <span className="muted">{u.isAdmin ? t('Administrator') : u.kind === 'kids' ? t('Kids') : u.kind === 'guest' ? t('Guest') : t('Adult')}</span></li>)}</ul></>}
       <div className="su-gap">

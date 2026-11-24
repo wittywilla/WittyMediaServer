@@ -388,3 +388,4 @@ html.tv-mode .su-address .qr { inline-size: 11rem; block-size: 11rem; }
 .oobe-card .su-address-text { flex-wrap: wrap; gap: var(--sp-2); }
 .oobe-card .su-address-url { flex: 1 1 0; min-width: 0; font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .oobe-card .su-address-text small { flex-basis: 100%; }
+@media (max-width: 600px) { .oobe-card .su-actions .btn { width: 100%; justify-content: center; } .oobe-card .su-actions-go { width: 100%; } }

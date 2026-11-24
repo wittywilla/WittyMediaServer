@@ -262,6 +262,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/hls/{id}/playlist.m3u8` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. An account with limits is checked against what it plays |
 | `GET /api/hls/{id}/seg/{n}` | Signed-in; ticket; address token | Stream exists, and for a ticket is of the ticket's item. Segment number. An account with limits is checked against what it plays |
 | `GET /api/hls/{id}/work` | Signed-in | Stream exists. An account with limits is checked against what it plays |
+| `PUT /api/hls/{id}/rate` | Signed-in | Stream exists. An account with limits is checked against what it plays |
 | `DELETE /api/hls/{id}` | Signed-in | Removes the caller as a viewer. The stream stops when no viewer is left. An account with limits is checked against what it plays |
 | `GET /api/settings` | Admin | Secrets masked |
 | `PUT /api/settings` | Admin | Known keys. Numbers, lists and FFmpeg options checked for each setting |

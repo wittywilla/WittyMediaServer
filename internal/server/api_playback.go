@@ -59,6 +59,9 @@ type playbackRequest struct {
 	// MeasuredKbps is what this device's connection carried when it last measured it
 	// (GET /playback/speedtest), for a robust stream to start at a rate that fits.
 	MeasuredKbps int `json:"measuredKbps"`
+	// Rate is the player's playback rate (2 for 2×), so a stream is made far enough ahead from
+	// its start. Left out, 1. Players say when it changes: X-WMS-Playback-Rate or PUT /hls/{id}/rate.
+	Rate float64 `json:"rate"`
 	// Quality is the viewer's choice of size and rate, as in the X-WMS-Quality header, which
 	// it replaces: "auto" (or left out) goes by the profile's saved default, "original" asks
 	// for no limits of the viewer's own, "h720-b4000" for at most 720p and 4 Mbps. The
@@ -706,6 +709,7 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		ItemID:    it.ID,
 		InputArgs: inputArgs, Source: input, Duration: out.DurationSec, SeekMargin: pr.SeekMargin(), VideoFilter: vf, ToneMap: toneMap, AudioIndex: audioIdx, AudioChannels: channels,
 		SubtitleIndex: burn, Quality: q, MaxHeight: req.MaxHeight, AudioCodec: audioCodec, VideoIndex: pr.VideoIndex() + videoPick, NoVideo: !src.HasVideo,
+		Rate: b.Rate,
 	}
 	if burn >= 0 {
 		if st := src.Subtitles[burn]; st.File != "" {
@@ -797,6 +801,9 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 	}
 	ex.Streaming = playback.ExplainStreaming(mode, modeFrom, out.Streaming.Ladder, b.MeasuredKbps)
 	out.Output = hlsOutput(src, d, spec, chosen.Audio, srcW)
+	if sess := s.HLS.Get(out.StreamID); sess != nil && b.Rate > 0 {
+		sess.SetRate(b.Rate) // a stream someone else started has their rate until now
+	}
 	if sess := s.HLS.Get(out.StreamID); sess != nil && src.HasVideo {
 		// What the stream's first job will use: the graphics chip where it can (the GPU
 		// pipeline), else the processor. GET /hls/{id}/work says what it really does.

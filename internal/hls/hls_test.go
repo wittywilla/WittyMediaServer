@@ -690,4 +690,21 @@ func TestTooSlowSaysHowFarItGot(t *testing.T) {
 	if err := j.tooSlow(9).Error(); !strings.Contains(err, "segment 9") || !strings.Contains(err, "4 to 6") {
 		t.Fatal(err)
 	}
+	// Still running and making the ones before: the player is to ask again (503), not give up (500).
+	if err := j.tooSlow(9); !errors.Is(err, ErrStillMaking) {
+		t.Fatalf("a job still making segments: %v", err)
+	}
+	if err := j.tooSlow(4); errors.Is(err, ErrStillMaking) {
+		t.Fatalf("one it has made already isn't coming: %v", err)
+	}
+	j.done = make(chan struct{})
+	close(j.done)
+	if err := j.tooSlow(9); errors.Is(err, ErrStillMaking) {
+		t.Fatalf("FFmpeg is gone: %v", err)
+	}
+	j2 := &job{startSeg: 4}
+	j2.lastSeg.Store(3)
+	if err := j2.tooSlow(4); errors.Is(err, ErrStillMaking) {
+		t.Fatalf("never got going: %v", err)
+	}
 }

@@ -57,6 +57,7 @@ var routeClasses = map[string]string{
 	"GET /api/hls/{id}/master.m3u8":                   "play",
 	"GET /api/hls/{id}/playlist.m3u8":                 "play",
 	"GET /api/hls/{id}/work":                          "play",
+	"PUT /api/hls/{id}/rate":                          "play",
 	"GET /api/hls/{id}/seg/{n}":                       "play",
 	"GET /api/hls/{id}/subs/{file}":                   "play",
 	"GET /api/items/{id}/comments":                    "comments",

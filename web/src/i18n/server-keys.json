@@ -2216,6 +2216,7 @@
   "expected lyrics of at most 256 KB",
   "expected {\"direction\": \"gather\" or \"spread\", \"libraries\": [...], \"subtitles\", \"retire\"}",
   "expected {\"info\": the manifest}",
+  "expected {\"rate\": a number above 0}",
   "expected {\"use\": true or false}",
   "expected {controlOthers: true or false}",
   "expected {startMs, endMs}",

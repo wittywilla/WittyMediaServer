@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -126,6 +127,9 @@ type Spec struct {
 	// shown for many seconds; without this the stream would be one frame
 	// long and players stall waiting for more.
 	HoldLastFrame bool
+	// Rate is the player's playback rate when it asked for the stream (0 = 1×); see SetRate. It
+	// is where a new stream starts from, and decides nothing about which stream it is.
+	Rate float64
 }
 
 // Variant is the single stream a master playlist points at.
@@ -157,6 +161,9 @@ type job struct {
 	stderr   logging.Tail // FFmpeg can warn for every frame of a damaged file for hours
 	lastSeg  atomic.Int64 // the newest finished segment, kept current by watch
 	stopped  atomic.Bool  // ended on purpose: how it exits says nothing
+	pace     pace         // how fast it makes segments (pace.go)
+	// slowSince: when watch first saw it fall behind the player (pace.go); only watch uses it.
+	slowSince time.Time
 }
 
 // Session is a running or idle transcode.
@@ -186,6 +193,10 @@ type Session struct {
 	// fallback is how much of the graphics chip this stream's next jobs use (levelGPU, …): a
 	// job that failed takes it a step down, so the next one does without what failed.
 	fallback atomic.Int32
+	// rate is the player's playback rate (float64 bits; 0 = never said, which is 1×), and
+	// paceStep how many times the stream went to a faster setting to keep up with it (pace.go).
+	rate     atomic.Uint64
+	paceStep atomic.Int32
 }
 
 // Manager owns sessions and the temp directory.
@@ -390,6 +401,9 @@ func (m *Manager) ensure(spec Spec) (s *Session, created bool) {
 	m.dirSeq++
 	s = &Session{Spec: spec, Dir: filepath.Join(m.root, fmt.Sprintf("%s-r%d", spec.ID, m.dirSeq)), lastUsed: time.Now(), tools: m.tools, log: m.sessionLog(logID), logID: logID, m: m, viewers: map[string]time.Time{}}
 	s.used.Store(time.Now().UnixNano())
+	if spec.Rate > 0 {
+		s.rate.Store(math.Float64bits(min(max(spec.Rate, minRate), maxRate)))
+	}
 	_ = os.MkdirAll(s.Dir, 0o755) // tried again before FFmpeg starts, which logs a failure
 	if spec.Growing {
 		m.evictGrowing(maxGrowing - 1)
@@ -853,7 +867,7 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 		return "", err
 	}
 
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(segmentWait)
 	for time.Now().Before(deadline) {
 		if fileReady(p) {
 			return p, nil
@@ -895,14 +909,25 @@ func (s *Session) Segment(ctx context.Context, n int) (string, error) {
 	return "", j.tooSlow(n)
 }
 
+// ErrStillMaking: the wait for a segment ran out while FFmpeg, still running, was making the ones
+// before it: a machine slower than the stream (a small NAS converting a big film). Nothing failed,
+// and the segment is coming, so the server answers 503 with Retry-After, which every player tries
+// again, rather than 500, which the apps took for a failure and stopped on.
+var ErrStillMaking = errors.New("the server is still converting this part; ask again")
+
 // tooSlow says how far FFmpeg got before a wait for segment n ran out, which tells a machine too
-// busy to keep up (some finished) from a conversion that never got going (none).
+// busy to keep up (some finished) from a conversion that never got going (none). A job that is
+// still running and finished one lately is ErrStillMaking.
 func (j *job) tooSlow(n int) error {
 	got := "none of them yet"
 	if last := int(j.lastSeg.Load()); last >= j.startSeg {
 		got = fmt.Sprintf("%d to %d", j.startSeg, last)
 	}
-	return fmt.Errorf("timed out waiting for segment %d: FFmpeg started at %d and had finished %s", n, j.startSeg, got)
+	err := fmt.Errorf("timed out waiting for segment %d: FFmpeg started at %d and had finished %s", n, j.startSeg, got)
+	if !j.finished() && j.lastSeg.Load() >= int64(j.startSeg) && n > int(j.lastSeg.Load()) {
+		return fmt.Errorf("%w (%v)", ErrStillMaking, err)
+	}
+	return err
 }
 
 // stderrTail is the end of what FFmpeg printed, at most max bytes.
@@ -1047,7 +1072,7 @@ func (s *Session) wake(n int) {
 	if !idle {
 		return
 	}
-	for i, end := n+1, min(n+wakeSegs, s.SegmentCount()); i < end; i++ {
+	for i, end := n+1, min(n+s.wakeAhead(), s.SegmentCount()); i < end; i++ {
 		if !fileReady(s.segPath(i)) {
 			if _, err := s.ensureJob(i, i); err != nil {
 				s.logFailedStart("could not resume a transcode", err)
@@ -1143,6 +1168,7 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 		cmd.Dir = dir
 	}
 	j := &job{startSeg: fromSeg, cmd: cmd, done: make(chan struct{}), hw: hc}
+	j.pace.started = time.Now()
 	j.lastSeg.Store(int64(fromSeg) - 1)
 	cmd.Stderr = &j.stderr
 	cmdline := ffmpeg.RedactArgs(args)
@@ -1177,7 +1203,7 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string, 
 	// would abort once 2/3 of the frames failed to decode and leave the
 	// stream unfinished, so decode errors never end a transcode.
 	args = []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y", "-max_error_rate", "1"}
-	hc = s.m.chooseHW(sp.Quality, sp.Preset, s.fallback.Load(), hwSourceOf(sp))
+	hc = s.m.chooseHW(sp.Quality, s.preset(), s.fallback.Load(), hwSourceOf(sp))
 	plan := hc.plan
 	if hc.placebo {
 		args = append(args, ffmpeg.VulkanDevice...)
@@ -1218,7 +1244,8 @@ func (s *Session) commandLine(fromSeg int) (args []string, encoder, dir string, 
 		// plenty ahead of the viewer without filling the disk for nothing.
 		// The first seconds as fast as they come, so a stream with far-apart keyframes
 		// doesn't keep the viewer waiting for its first whole segment.
-		args = append(args, "-readrate", "4")
+		// A player faster than 2× would catch up with 4×: twice its rate.
+		args = append(args, "-readrate", strconv.FormatFloat(max(4, math.Ceil(2*s.Rate())), 'f', 0, 64))
 		if s.m.burstSupported() {
 			args = append(args, "-readrate_initial_burst", "30")
 		}
@@ -1586,8 +1613,9 @@ func (s *Session) watch(j *job) {
 				break
 			}
 		}
+		s.checkPace(j, time.Now())
 		// Far enough ahead of the viewer: rest (wake starts it again).
-		if !s.Spec.HoldLastFrame && j.lastSeg.Load()-s.lastAsked.Load() > maxAheadSegs {
+		if !s.Spec.HoldLastFrame && j.lastSeg.Load()-s.lastAsked.Load() > int64(s.restAhead()) {
 			s.mu.Lock()
 			if s.job == j {
 				s.log.Debug("resting: far ahead of the viewer", "at", j.lastSeg.Load())
@@ -1682,12 +1710,17 @@ func Key(path string) string {
 	return hex.EncodeToString(m.Sum(nil)[:12])
 }
 
+// segmentWait is how long a request waits for a segment being made. Players give up on one after a
+// minute (hls.js), so the server answers first: 503 when FFmpeg is still at it (ErrStillMaking), and the
+// player asks again rather than counting a failure.
+var segmentWait = 50 * time.Second
+
 // pollEvery is how often a request waiting for a segment looks for it, given when its wait of a
 // minute ends. A segment that starts a stream or follows a seek is usually there within a second
 // or two, and each look is one stat of a file, so those are looked for every 20 ms rather than
 // adding up to a tenth of a second to the wait; a long wait looks less often.
 func pollEvery(deadline time.Time) time.Duration {
-	if time.Until(deadline) > 57*time.Second {
+	if time.Until(deadline) > segmentWait-3*time.Second {
 		return 20 * time.Millisecond
 	}
 	return 100 * time.Millisecond

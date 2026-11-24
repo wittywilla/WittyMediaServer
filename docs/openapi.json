@@ -22027,6 +22027,65 @@
         "x-wms-stream-token": true
       }
     },
+    "/hls/{id}/rate": {
+      "put": {
+        "operationId": "putHlsRate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "rate": {
+                    "description": "The player's playback speed: 2 for 2×.",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "rate"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The player's playback speed changed, so the server converts as far ahead as it needs. Answers the stream's `pace`.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/hls/{id}/work": {
       "get": {
         "operationId": "getHlsWork",
@@ -22060,7 +22119,7 @@
             "bearer": []
           }
         ],
-        "summary": "What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). For stream information.",
+        "summary": "What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). `pace`: how the conversion keeps up with the player (`speed`, `rate`, `leadSec`, `keepingUp`, `fastest`). For stream information.",
         "tags": [
           "Playback"
         ],

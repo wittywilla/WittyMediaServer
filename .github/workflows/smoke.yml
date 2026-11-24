@@ -90,6 +90,9 @@ jobs:
           code=0
           node scripts/smoke/web.mjs "$SMOKE_OUT" || code=1
           node scripts/smoke/game-stream.mjs "$SMOKE_OUT" || code=1
+          # Connect a device: its code and QR code, More options, a code really signing a device in (web/scripts/test-connect.mjs).
+          WMS_SERVER="$WMS_URL" WMS_USER="$WMS_NAME" WMS_PASSWORD="$WMS_PASS" node web/scripts/test-connect.mjs "$SMOKE_OUT/connect" 2>&1 | tee "$SMOKE_OUT/30-connect-a-device.log"
+          [ "${PIPESTATUS[0]}" = 0 ] || { code=1; echo "::error title=Smoke: Connect a device::see 30-connect-a-device.log and connect/*.png"; }
           exit $code
       - name: Stop the server
         if: always()
@@ -103,6 +106,7 @@ jobs:
           path: |
             ${{ runner.temp }}/smoke-out/*.log
             ${{ runner.temp }}/smoke-out/*.png
+            ${{ runner.temp }}/smoke-out/connect
             ${{ runner.temp }}/smoke-out/*.txt
             ${{ runner.temp }}/smoke-out/data/logs
           retention-days: 14
@@ -140,5 +144,6 @@ jobs:
             ${{ runner.temp }}/smoke-out/*.log
             ${{ runner.temp }}/smoke-out/*.txt
             ${{ runner.temp }}/smoke-out/connect.*
+            ${{ runner.temp }}/smoke-out/c-*
             ${{ runner.temp }}/smoke-out/data/logs
           retention-days: 14

@@ -163,4 +163,43 @@ sapi DELETE "/api/p2p/devices/$dev" >>"$LOG"
 gone() { [ "$(ns sm-cli curl -s -o /dev/null -w '%{http_code}' -m 10 -H "X-Witty-Connect: $LSECRET" "$L/api/status")" != 200 ]; }
 until_ok 60 "the removed device refused" gone || exit 1
 exec 7>&-
+
+# A device that has never been at home: a new invite link alone gets it in, through the server's own relay (#614).
+step "Away, never at home: a new link alone puts a device on the list, through the relay"
+INV2=$(sapi POST /api/p2p/invite "{\"name\":\"Away phone\",\"password\":\"$PW\"}")
+read -r SID2 SECRET2 HINTS2 < <(python3 - "$(json "d.get('link') or d.get('url') or ''" <<<"$INV2")" <<'EOF'
+import sys, json, urllib.parse as u
+p = u.urlparse(sys.argv[1]); q = u.parse_qs(p.query)
+print(p.path.strip('/').split('/')[-1], q['s'][0], json.dumps(q.get('a', [])).replace(' ', ''))
+EOF
+)
+[ -n "$SECRET2" ] || fail "no second invite"
+# connector <name> <secret>: a new device's connector, started away, that shows the server that secret.
+connector() {
+  local n=$1 k
+  k=$("$build/bin/wittyconnect" keygen | json "d['key']")
+  rm -f "$SMOKE_OUT/c-$n.in"; mkfifo "$SMOKE_OUT/c-$n.in"
+  asuser sm-cli "$build/bin/wittyconnect" <"$SMOKE_OUT/c-$n.in" >"$SMOKE_OUT/c-$n.out" 2>"$SMOKE_OUT/c-$n.err" &
+  exec 8<>"$SMOKE_OUT/c-$n.in"
+  echo "{\"key\":\"$k\",\"serverId\":\"$SID2\",\"hints\":$HINTS2,\"noDht\":true}" >&8
+  until_ok 60 "connector $n ready" grep -q '"event":"ready"' "$SMOKE_OUT/c-$n.out" || return 1
+  echo "{\"cmd\":\"enrol\",\"secret\":\"$2\",\"name\":\"$n\",\"platform\":\"android\"}" >&8
+  until_ok 150 "connector $n answered" grep -q '"event":"enrol"' "$SMOKE_OUT/c-$n.out" || return 1
+  grep '"event":"enrol"' "$SMOKE_OUT/c-$n.out" | sed 's/"code":"[0-9]*"/"code":"…"/' >>"$LOG"
+}
+connector away "$SECRET2" || exit 1
+grep '"event":"enrol"' "$SMOKE_OUT/c-away.out" | grep -q '"ok":true' || fail "the link didn't get a device that was never at home listed"
+read -r PORT2 LSECRET2 < <(grep -m1 '"event":"ready"' "$SMOKE_OUT/c-away.out" | json "d['port'], d['secret']" | tr -d "(),'")
+away2() { ns sm-cli curl -sS -m 15 -H "X-Witty-Connect: $LSECRET2" "http://127.0.0.1:$PORT2/api/status" | grep -q '"version"'; }
+until_ok 120 "the server answering it through the relay" away2 || exit 1
+grep '"event":"state"' "$SMOKE_OUT/c-away.out" | tail -1 | tee -a "$LOG" | grep -q '"path":"relay' || fail "not through the relay"
+exec 8>&-
+
+step "A used link and a made-up one list nobody"
+connector stranger-used "$SECRET2" || exit 1
+exec 8>&-
+connector stranger-madeup "madeUpSecret$(head -c 8 /dev/urandom | base64 | tr -dc A-Za-z0-9)xx" || exit 1
+exec 8>&-
+grep -h '"event":"enrol"' "$SMOKE_OUT"/c-stranger-*.out | grep -q '"ok":true' && fail "a used or made-up link listed a device"
+sapi GET /api/p2p/devices | grep -q stranger && fail "a stranger is on the list"
 finish

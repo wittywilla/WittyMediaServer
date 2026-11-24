@@ -3,6 +3,32 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+**Layout outside Settings (#679)**
+
+- **Nothing slides under the top bar, whatever its style.** Every part that stays put as a page scrolls (a library's
+  sort bar, the music bars, Help's list of guides, the design page, the theme preview) sticks where the bar really
+  ends, as the bar measures it, not at a fixed 64 pixels, so the floating glass bar and the taller bars no longer cover
+  them. Jumping to a month on the photo timeline or to Albums on an artist lands below the page's own sticky bar too,
+  and so does a control reached with Tab.
+- **A book, a photo or a home video with no backdrop starts below the bar.** Its cover and title were pulled up under
+  the bar, as if a picture ran behind it, on a laptop's 1280 by 720.
+- **Live TV no longer slides under the bar when you press Tab.** The page fills the window again (the guide had
+  stopped doing so when Live TV moved into the server-drawn page), and a box that hides what overflows it can't be
+  scrolled by focus any more: Tab to the guide's buttons moved the whole page up under the bar, with no way back.
+- **A page reads from one edge.** Help's title and lead start where its sections start, instead of a centred title
+  over left-aligned guides, and its search box and guides line up. Only a standalone page (signing in, Who's watching,
+  an error) centres its card's title. On a phone a library's ⋯ and search line up with its title, and setup's
+  Customize is as wide as the buttons under it.
+- **Photos says "Photos" once.** A page whose first row has the page's name shows that row's heading only.
+- **TV mode: everything a remote lands on is at least 48 by 48.** Page tabs, sort menus, the links under a sign-in
+  card, the player's corner buttons and episode links grow to it.
+- **A layout check for every page outside Settings** (`npm run test:layout-pages`, in the smoke tests) opens home, the
+  libraries and a title of each, search, music, games, Live TV, Help, the review pages and the signed-out pages at a
+  computer's sizes, a phone and in TV mode, and under the floating glass bar. It fails on anything under the bar,
+  sideways scroll, a title and its sections in different alignments, centred words in an off-centre box, a heading
+  said twice, a control with no focus ring, Tab scrolling a box that hides its overflow, and a TV target under 48.
 ## 0.8.5-alpha
 
 Not released yet.
@@ -31,6 +57,15 @@ Not released yet.
 
 **Games in Docker**
 
+- **Games can use an Intel or AMD graphics chip in Docker.** The image had no OpenGL library (libEGL) and no Vulkan
+  drivers, so WittyPlay found "no graphics card" on every NAS, even with `/dev/dri` passed in. It now has Mesa's EGL,
+  OpenGL and Vulkan drivers on every architecture (iris and anv for Intel, radeonsi and radv for AMD, and llvmpipe and
+  lavapipe on the processor), about 21 MB more. With no card, GameCube and Wii can now draw on the processor too. An
+  NVIDIA card gets its graphics libraries for games (`NVIDIA_DRIVER_CAPABILITIES` includes `graphics`). With WittyPlay
+  0.7.21, a chip that can't be used says why: no `/dev/dri` passed in, or the group to add under `group_add:`.
+  [docs/DOCKER.md](docs/DOCKER.md#intel-and-amd-graphics-for-games) and the
+  [UGREEN guide](docs/DOCKER-UGREEN.md#5-games-on-the-graphics-chip) say how to set it up and check it. CI checks
+  the image's OpenGL and Vulkan on the processor, with no card, on amd64 and arm64.
 - **Games play in Docker, with WittyPlay 0.7.19.** On a NAS with Docker's usual network, games started but no picture
   ever arrived: WebRTC could only offer the container's private address, and the WebSocket the player should have
   fallen back to was refused. The fix is all in WittyPlay, which updates from Settings, Modules on any 0.8 server.

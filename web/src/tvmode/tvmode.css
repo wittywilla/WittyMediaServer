@@ -242,3 +242,18 @@ html.tv-mode .dock:not(.ctv-dock) .dock-btn { min-height: var(--tvm-pill-h); fon
 .tvm-bar:not(.tvm-side) { display: flex; align-items: center; gap: calc(var(--tvu) * 32); }
 .tvm-brand { display: inline-flex; align-items: center; gap: calc(var(--tvu) * 12); flex: none; font-size: calc(var(--tvu) * 30); font-weight: 700; }
 .tvm-side .tvm-brand { justify-content: center; margin-bottom: calc(var(--tvu) * 24); }
+
+/* ---- the floor for anything a remote lands on: 48 by 48 at the very least (WittyMediaClient's docs/APP-DESIGN.md,
+   On a TV). Controls drawn for a pointer (a page's tabs and chips, sort menus, a player's corner buttons, the links
+   under a sign-in card) keep their look and grow to it, so no page has to remember. Words inside a sentence are
+   left alone. */
+html.tv-mode :is(button, select, [role=button], [role=tab], [role=option], input:not([type=checkbox], [type=radio], [type=range], [type=hidden])):not(.sr-only, [hidden]) {
+  min-height: max(48px, calc(var(--tvu) * 48)); min-width: max(48px, calc(var(--tvu) * 48));
+}
+html.tv-mode a[href]:not(.card, .sr-only, .skip, p a, li > p a) { min-height: max(48px, calc(var(--tvu) * 48)); }
+/* A link with no box of its own (the links under a sign-in card, a list of episodes) gets one, so the floor applies. */
+html.tv-mode :is(.sa-foot, .legal-foot, footer, nav, li) > a[href]:not(.card), html.tv-mode a.t { display: inline-flex; align-items: center; }
+/* A section's name that is also its link (a music library's "Albums", "Your artists") is a target of its own. */
+html.tv-mode :is(h1, h2, h3, h4) > a[href] { display: inline-flex; align-items: center; }
+/* The live preview's corner handle resizes it by dragging, which a remote can't do: the preview keeps its size. */
+html.tv-mode .ctv-preview-handle { display: none; }

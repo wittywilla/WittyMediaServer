@@ -88,7 +88,8 @@ echo "relay: $RELAY" >>"$LOG"
 
 step "The server, at home"
 mkdir -p "$SMOKE_OUT/data"; chown "$RUNAS" "$SMOKE_OUT" "$SMOKE_OUT/data"
-asuser sm-srv env WMS_NO_BROWSER=1 "$build/bin/wittymediaserver" serve -data "$SMOKE_OUT/data" -listen "0.0.0.0:$HTTP" -open-browser=false \
+# sudo -u resets PATH: FFmpeg is named, wherever scripts/smoke/ffmpeg.sh or the system put it.
+asuser sm-srv env WMS_NO_BROWSER=1 WMS_FFMPEG="$(command -v ffmpeg)" "$build/bin/wittymediaserver" serve -data "$SMOKE_OUT/data" -listen "0.0.0.0:$HTTP" -open-browser=false \
   </dev/null >"$SMOKE_OUT/server.log" 2>&1 &
 S=http://127.0.0.1:$HTTP
 sapi() { ns sm-srv curl -sS -m 30 -X "$1" -H "Authorization: Bearer ${TOK:-}" -H 'Content-Type: application/json' ${3:+--data "$3"} "$S$2"; }

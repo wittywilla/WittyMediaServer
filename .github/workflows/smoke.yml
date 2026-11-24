@@ -66,8 +66,14 @@ jobs:
         with:
           name: smoke-build
           path: ${{ runner.temp }}/smoke-build
+      # The static FFmpeg scripts/ffmpeg.lock names, kept between runs: no waiting on Ubuntu's mirrors.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/smoke-ffmpeg
+          key: smoke-ffmpeg-${{ hashFiles('scripts/ffmpeg.lock') }}
       - name: FFmpeg
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+        timeout-minutes: 8
+        run: bash scripts/smoke/ffmpeg.sh "$RUNNER_TEMP/smoke-ffmpeg"
       # The Game Boy core, downloaded once a week rather than on every run.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -123,8 +129,14 @@ jobs:
         with:
           name: smoke-build
           path: ${{ runner.temp }}/smoke-build
+      # The static FFmpeg scripts/ffmpeg.lock names, kept between runs: no waiting on Ubuntu's mirrors.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/smoke-ffmpeg
+          key: smoke-ffmpeg-${{ hashFiles('scripts/ffmpeg.lock') }}
       - name: FFmpeg
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+        timeout-minutes: 8
+        run: bash scripts/smoke/ffmpeg.sh "$RUNNER_TEMP/smoke-ffmpeg"
       - name: Two networks, a WittyRelay between them, and an invite link
         env:
           SMOKE_OUT: ${{ runner.temp }}/smoke-out

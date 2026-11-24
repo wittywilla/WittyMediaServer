@@ -115,7 +115,7 @@ try {
     await card('setup-04-modules', CARD)
     await press(/Install \d+ module/)
     await wait(1000)
-    await card('setup-05-modules-installing', CARD)
+    await card('setup-05-modules-installing', CARD, 16, { allow: ['loading'] }) // the modules being installed, on purpose
     await until(`/ready|didn.t install/i.test(document.querySelector('main h1')?.textContent || '')`, 300000, 'modules to install')
     await onward()
     await atStep('media'); await wait(800)

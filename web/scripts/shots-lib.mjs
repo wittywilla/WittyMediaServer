@@ -14,14 +14,30 @@ export async function open(server, out, { width = 1920, height = 1080, path = '/
   const page = await browser.open(server + path)
   const size = (w, h, mobile = false, scale = 1) => page.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: scale, mobile })
   await size(width, height)
-  const shot = async (name) => {
+  // What must never be in a picture: a prompt left over from setting up the test server, its crash notice, or a
+  // page still loading. A picture that means to show one names it in allow ('setup', 'crash', 'loading').
+  const leftovers = (allow = []) => page.eval(`(() => {
+    const allow = ${JSON.stringify(allow)}
+    const seen = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 1 && r.height > 1 && r.bottom > 0 && r.top < innerHeight && s.visibility !== 'hidden' && +s.opacity > 0.05 }
+    const leaves = (rx) => [...document.querySelectorAll('body *')].filter((e) => e.children.length === 0 && rx.test(e.textContent.trim()) && seen(e) && !e.closest('article, .help-article, [data-help]'))
+    const found = []
+    if (!allow.includes('setup') && leaves(/^Finish setting up\\b/).length) found.push('a "Finish setting up" notice')
+    if (!allow.includes('crash') && leaves(/stopped unexpectedly/).length) found.push('the "stopped unexpectedly" notice')
+    if (!allow.includes('loading') && [...document.querySelectorAll('.spinner, .sdui-loading, [aria-busy="true"]')].some(seen)) found.push('a page still loading')
+    return found
+  })()`)
+  const shot = async (name, { allow } = {}) => {
     await page.eval(`document.fonts?.ready`)
+    const found = await leftovers(allow)
+    if (found.length) throw new Error(`${name}: not taken, ${found.join(' and ')} is in the picture`)
     writeFileSync(join(out, `${name}.png`), await page.shot())
     console.log('shot', name)
   }
   // A picture of one element at twice the size, however long it is, for guides read at phone width.
-  const card = async (name, selector, pad = 16) => {
+  const card = async (name, selector, pad = 16, { allow } = {}) => {
     const box = await page.eval(`(() => { const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height } })()`)
+    const found = await leftovers(allow)
+    if (found.length) throw new Error(`${name}: not taken, ${found.join(' and ')} is on the page`)
     const clip = { x: Math.max(0, box.x - pad), y: Math.max(0, box.y - pad), width: box.width + pad * 2, height: box.height + pad * 2, scale: 2 }
     const { data } = await page.send('Page.captureScreenshot', { format: 'png', clip, captureBeyondViewport: true })
     writeFileSync(join(out, `${name}.png`), Buffer.from(data, 'base64'))
@@ -59,5 +75,5 @@ export async function open(server, out, { width = 1920, height = 1080, path = '/
     await wait(400)
   }
   const words = () => page.eval(`document.body.innerText.slice(0, 1500)`)
-  return { browser, page, size, shot, card, call, press, typeIn, until, go, words, maskAddresses }
+  return { browser, page, size, shot, card, call, press, typeIn, until, go, words, maskAddresses, leftovers }
 }

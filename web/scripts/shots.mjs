@@ -15,6 +15,17 @@ const { page, press, shot, call, go, until, size, maskAddresses } = s
 const login = await call('POST', '/login', { name: process.env.WMS_USER || 'owner', password: process.env.WMS_PASSWORD })
 await page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(login.token)})`)
 await call('POST', '/legal/acknowledge')
+// The test server is set up all the way: every module step Home would still offer ("Finish setting up WittyTuner")
+// is recorded as done in the server's own setup state, so no picture shows it. shot() refuses one that does.
+if ((await call('GET', '/setup/state'))?.complete === false) await call('POST', '/setup/complete', {})
+for (let i = 0; i < 5; i++) {
+  const home = await call('GET', '/sdui/pages/home')
+  const left = []
+  const walk = (x) => { if (!x || typeof x !== 'object') return; if (x.props?.dismiss?.op === 'setup.skip') left.push(x.props.dismiss.params); Object.values(x).forEach(walk) }
+  walk(home)
+  if (!left.length) break
+  for (const st of left) await call('POST', '/setup/module-steps/skip', { ...st, done: true })
+}
 // A notice left by an earlier test server stopping isn't part of any page: dismissed once.
 await go('/settings/about', 3000)
 await page.eval(`(() => { let e = [...document.querySelectorAll('main *')].find((x) => x.children.length === 0 && /stopped unexpectedly/.test(x.textContent)); for (let i = 0; e && i < 5; i++, e = e.parentElement) { const b = [...e.querySelectorAll('button')].find((x) => !/stopped/.test(x.textContent)); if (b) { b.click(); return } } })()`)
@@ -34,6 +45,8 @@ const setTheme = async (theme) => {
   await call('PUT', '/settings', { theme })
   await page.eval(`(async () => { const t = localStorage.getItem('wms.token'); await fetch('/api/me/preferences', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + t }, body: JSON.stringify({ theme: ${JSON.stringify(theme)} }) }).catch(() => {}) })()`)
 }
+// The usual look, in case an earlier run stopped part way through the themes.
+await setTheme('witty')
 const move = async (x = 900, y = 600) => { await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y }); await wait(300) }
 const key = async (k, code = k, windowsVirtualKeyCode = 0) => {
   await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: k, code, windowsVirtualKeyCode, text: k === 'Enter' ? '\r' : undefined })
@@ -403,6 +416,10 @@ const scenes = {
     await call('DELETE', '/sessions')
     for (const path of ['libraries', 'pages', 'metadata', 'playback', 'channels', 'couch', 'transcoding', 'library-transcoding', 'network', 'data-folder', 'remote', 'users', 'security', 'quality', 'games', 'activity', 'appearance', 'notifications', 'sharing', 'wittyrigs', 'module-settings', 'logs', 'diagnoser', 'modules', 'backup', 'health', 'repair', 'reset', 'about', 'legal']) {
       await go(`/settings/${path}`, 3500)
+      // A module's settings page (Couch, WittyRigs) loads after the page around it: wait for it, and for the
+      // page to finish coming in, before the picture.
+      await until(`![...document.querySelectorAll('.spinner, [aria-busy="true"]')].some((e) => e.getClientRects().length)`, 45000, `settings/${path} to load`).catch((e) => console.log(e.message))
+      await wait(1200)
       await closeDialogs()
       await maskAddresses()
       await maskPaths()
@@ -447,13 +464,17 @@ const scenes = {
     await shot('help-guide')
   },
   async themes() {
-    await setTheme('light'); await go('/', 4000); await shot('theme-light-home')
-    const l = await lib('Movies')
-    await go(`/library/${l.id}`, 4000); await shot('theme-light-movies')
-    await setTheme('cinema'); await go('/', 4000); await shot('theme-cinema-home')
-    await setTheme('paper'); await go(`/library/${l.id}`, 4000); await shot('theme-paper-movies')
-    await setTheme('midnight'); await go('/', 4000); await shot('theme-midnight-home')
-    await setTheme('witty')
+    // Back to the usual look however this ends, so the scenes after it aren't taken in another one.
+    try {
+      await setTheme('light'); await go('/', 4000); await shot('theme-light-home')
+      const l = await lib('Movies')
+      await go(`/library/${l.id}`, 4000); await shot('theme-light-movies')
+      await setTheme('cinema'); await go('/', 4000); await shot('theme-cinema-home')
+      await setTheme('paper'); await go(`/library/${l.id}`, 4000); await shot('theme-paper-movies')
+      await setTheme('midnight'); await go('/', 4000); await shot('theme-midnight-home')
+    } finally {
+      await setTheme('witty')
+    }
   },
   async phone() {
     await size(390, 844, true, 2)

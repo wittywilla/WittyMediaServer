@@ -24,6 +24,22 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   couldn't join when the server's only way in was its own relay, which lets through only devices the server has
   listed. While an invite is open, the server now also lists a single-use key made from it, which the app uses only to
   show the invite; the relay still lets through no key the server hasn't listed.
+## 0.8.4-alpha
+
+Not released yet.
+
+**Settings, the same everywhere (#612)**
+
+- **One settings menu on every device.** The web (computer and phone), its TV mode, the desktop app, and the
+  Android and Apple apps show the same groups and rows, in the same order and words: the Android phone app's You
+  page. On a computer and a TV the person is on the left and the groups on the right, and each settings page has the
+  same rows beside it. The list comes from the server (`settingsMenu` in its catalogue, docs/SETTINGS-MENU.md).
+- **A TV shows every row, and says where to change the ones it can't.** Such a row stays in its place, says what is
+  set (Remote access: Off, Live transcoding: Graphics chip…), and opens a panel with that setting's own address and
+  QR code to open on a computer or phone.
+- **Module settings and Module store sit side by side** under Modules (both were called Modules before, in two
+  places), and each page links to the other. **Look** is now **Layout**, beside Edit layout and Theme.
+- **Choose colours has no preview,** only the theme cards, like Choose a layout.
 
 ## 0.8.3-alpha
 
@@ -44,19 +60,6 @@ Released 2026-11-24.
 - **The QR code for joining from away is drawn again.** The link it held had grown too long for one, so none appeared.
 - **The code a TV shows for joining from away is no longer offered on the server**: it depended on the public address
   book finding the server, which too often it didn't. A TV signs in at home with **Sign in a TV**, as before.
-
-**Settings, the same everywhere (#612)**
-
-- **One settings menu on every device.** The web (computer and phone), its TV mode, the desktop app, and the
-  Android and Apple apps show the same groups and rows, in the same order and words: the Android phone app's You
-  page. On a computer and a TV the person is on the left and the groups on the right, and each settings page has the
-  same rows beside it. The list comes from the server (`settingsMenu` in its catalogue, docs/SETTINGS-MENU.md).
-- **A TV shows every row, and says where to change the ones it can't.** Such a row stays in its place, says what is
-  set (Remote access: Off, Live transcoding: Graphics chip…), and opens a panel with that setting's own address and
-  QR code to open on a computer or phone.
-- **Module settings and Module store sit side by side** under Modules (both were called Modules before, in two
-  places), and each page links to the other. **Look** is now **Layout**, beside Edit layout and Theme.
-- **Choose colours has no preview,** only the theme cards, like Choose a layout.
 
 **Games on a phone**
 

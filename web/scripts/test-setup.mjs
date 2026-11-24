@@ -47,6 +47,8 @@ const tagAll = () => page.eval(`(() => {
   for (const el of scope.querySelectorAll(FOCUSABLE)) {
     const r = el.getBoundingClientRect()
     if (r.width < 2 || r.height < 2 || (el.closest('details:not([open])') && !el.closest('summary'))) continue
+    // A group of choices (ui/Choice.tsx) is one stop: the arrows move the choice along it, so its other options aren't stops.
+    if (el.matches('[role=radiogroup].seg > [role=radio][tabindex="-1"]')) continue
     if (!el.dataset.t) el.dataset.t = String(++n)
     seen.push(el.dataset.t)
   }
@@ -108,6 +110,20 @@ async function arrowTo(label, wanted) {
   }
 }
 const ok = async (label, wanted) => { await arrowTo(label, wanted); await press('Enter'); await wait(250) }
+// A module draws its own page (Games, Live TV): its layout is the module's, so instead of mapping it, Down is pressed
+// from the top the way a remote would, until the button is reached.
+const downTo = async (label, name) => {
+  await page.eval(`[...document.querySelectorAll('main button, main input, main select, main a[href], main [tabindex]:not([tabindex="-1"])')].find((e) => e.getBoundingClientRect().height > 2)?.focus()`)
+  const trail = []
+  for (let i = 0; i < 80; i++) {
+    const at = await page.eval(`(document.activeElement?.textContent || '').trim()`)
+    trail.push(at.slice(0, 24))
+    if (at === name) { await press('Enter'); await wait(250); return }
+    await press('ArrowDown')
+    await page.eval(`new Promise((r) => setTimeout(r, 150))`)
+  }
+  throw new Error(`${label}: Down never reaches "${name}": ${[...new Set(trail)].join(' > ')}`)
+}
 const says = (t) => (n) => n.includes(t)
 const named = (t) => (n) => n === t
 
@@ -157,7 +173,7 @@ try {
   await ok('media', named('Continue'))
   await atStep('games'); await wait(400)
   expect('the games line is word for word', await page.eval(`document.querySelector('.lead').textContent`) === 'Point it at your games folder and leave it. Anything it can’t prove is listed for you to look at.')
-  await ok('games', named('Continue'))
+  await downTo('games', 'Continue')
   expect('the look comes after the media', await atStep('look'))
   await wait(800)
   await ok('look', named('Customize'))

@@ -79,7 +79,7 @@ export const STEPS: StepInfo[] = [
   { id: 'tvguide', drawn: 'look', label: tk('TV guide'), needs: ['wittytuner'], advanced: true },
   { id: 'network', drawn: 'ready', label: tk('Home network'), needs: 'server', advanced: true },
   { id: 'remote', drawn: 'ready', label: tk('Away from home'), needs: 'server', advanced: true },
-  { id: 'done', drawn: 'ready', label: tk('Ready'), needs: 'server' },
+  { id: 'done', drawn: 'ready', label: tk('Finish'), needs: 'server' },
 ]
 
 // Before an account there is nothing past it to show.

@@ -6,4 +6,4 @@
 package modules
 
 // forkLimits is what this system can really take away from a fork's helper.
-const forkLimits = "This system can't box in a fork's helper, so forks aren't let in here. Settings, Modules says what limits a module has."
+const forkLimits = "This system can't box in a fork's helper, so forks aren't let in here. Settings, Module store says what limits a module has."

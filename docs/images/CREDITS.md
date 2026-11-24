@@ -88,7 +88,7 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `settings-library-transcoding.webp` | Settings, Library transcoding. |
 | `settings-logs.webp` | Settings, WittyLog. |
 | `settings-metadata.webp` | Settings, Metadata agents. |
-| `settings-modules.webp` | Settings, Modules. |
+| `settings-modules.webp` | Settings, Module store. |
 | `settings-playback.webp` | Settings, Playback. |
 | `settings-remote.webp` | Settings, Remote Access. The address is an example. |
 | `settings-repair.webp` | Settings, Repair. |
@@ -103,7 +103,7 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `setup-03-data-folder.webp` | Documents is chosen to begin with. The line under the choices says how much room there is. |
 | `setup-04-modules-chosen.webp` | Tick what you want. The folder browser is ticked for you, as it's how you choose a folder from a TV or a phone. |
 | `setup-05-modules-installing.webp` | Each module downloads, and its signature is checked before it goes in. |
-| `setup-06-modules-ready.webp` | If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Modules. |
+| `setup-06-modules-ready.webp` | If one fails, you can try again or carry on without it. No internet? Carry on, and add them later from Settings, Module store. |
 | `setup-07-media.webp` | Choose a kind. A kind you didn't add the module for isn't offered. |
 | `setup-08-media-movies.webp` | Three ways to give the folder. |
 | `setup-09-media-added.webp` | Add another kind, or press Continue. |

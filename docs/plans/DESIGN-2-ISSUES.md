@@ -35,7 +35,7 @@ not filed.
 - **Smaller:** long drive names overflow the folder browser tile in Aero (module CSS); WittyIntegratedFileBrowser's
   `sdui.json` declares no pages or navigation; book and comic tiles with no cover show a gradient without a title.
 - **Owner decisions:** whether the player should fade out for the sleep timer; whether Speed and Colour also appear in
-  Settings, Modules, Visualizer (the stored keys already match).
+  Settings, Module store, Visualizer (the stored keys already match).
 
 ## Android (W9) and web looks (W13)
 

@@ -15,6 +15,7 @@ import { LibraryPicks, useShortLibraries } from './VideoPicks'
 import SpecPage from '../../spec/SpecPage'
 import { audienceSpec, basicsSpec, moreSpec } from '../../spec/specs/channelEditor'
 import DiscScenes from './DiscScenes'
+import CloneStation from './CloneStation'
 import { resetChannel } from './resetChannel'
 import './tveditor.css'
 import { brandOf, dayNames, emptyDefinition, type ChannelLook, type CommercialPick, fmtClock, forgetLineup, uploadLogo, type Block, type Channel, type Definition, type EditorOptions, type Order, type PoolStats, type Programme, type Rules, type Suggestion, type Visibility } from './tvApi'
@@ -81,8 +82,10 @@ export default function ChannelEditor() {
       }).catch((e) => setErr(e.message))
       api.get<typeof history>(`/channels/${id}/history`).then(setHistory).catch(() => {})
     } else {
-      const s = (loc.state as { suggestion?: Suggestion } | null)?.suggestion
+      const st = loc.state as { suggestion?: Suggestion; clone?: boolean } | null
+      const s = st?.suggestion
       const d = blankDraft()
+      if (st?.clone) d.definition.mode = 'clone'
       if (s) { d.name = s.name; d.description = s.description; d.definition = { ...emptyDefinition(), ...s.definition, blocks: s.definition.blocks || [] } }
       finish(d)
     }
@@ -173,6 +176,7 @@ export default function ChannelEditor() {
     { v: 'simple', label: t('Simple'), hint: t('What it plays. That is all it needs.') },
     { v: 'rules', label: t('Rules'), hint: t('Exactly what it may play, day parts and bumpers.') },
     { v: 'timetable', label: t('Full timetable'), hint: t('Your own week, slot by slot.') },
+    { v: 'clone', label: t('Clone a station'), hint: t('A real station’s schedule, from your own files.') },
   ]
   return (
     <>
@@ -193,7 +197,7 @@ export default function ChannelEditor() {
 
       <nav className="tve-jump" aria-label={t('Parts of this channel')}>
         <a href="#ch-plays" onClick={jump('ch-plays')}>{t('What it plays')}</a>
-        <a href="#ch-discs" onClick={jump('ch-discs')}>{t('Discs and scenes')}</a>
+        {def.mode !== 'clone' && <a href="#ch-discs" onClick={jump('ch-discs')}>{t('Discs and scenes')}</a>}
         <a href="#ch-commercials" onClick={jump('ch-commercials')}>{t('Commercials')}</a>
         <a href="#ch-bumpers" onClick={jump('ch-bumpers')}>{t('Bumpers')}</a>
         <a href="#ch-bumpers-trim" onClick={jump('ch-bumpers-trim')}>{t('Timetable')}</a>
@@ -212,10 +216,11 @@ export default function ChannelEditor() {
       {def.mode === 'simple' && opts && <SimpleLevel def={def} setRules={setRules} setDef={setDef} opts={opts} />}
       {def.mode === 'rules' && opts && <RulesLevel def={def} setRules={setRules} setDef={setDef} opts={opts} />}
       {def.mode === 'timetable' && opts && <TimetableLevel def={def} setDef={setDef} setRules={setRules} opts={opts} />}
+      {def.mode === 'clone' && <CloneStation def={def} setDef={setDef} name={draft.name} setName={(n) => setDraft((d) => (d && !d.name.trim() ? { ...d, name: n.slice(0, 200) } : d))} />}
 
-      <DiscScenes id="ch-discs" rules={def.rules} set={setRules} />
-      <CommercialsSection def={def} setDef={setDef} />
-      {def.mode !== 'simple' && opts && <FillerSection def={def} setDef={setDef} opts={opts} />}
+      {def.mode !== 'clone' && <DiscScenes id="ch-discs" rules={def.rules} set={setRules} />}
+      <CommercialsSection def={def} setDef={setDef} clone={def.mode === 'clone'} />
+      {def.mode !== 'simple' && def.mode !== 'clone' && opts && <FillerSection def={def} setDef={setDef} opts={opts} />}
       {opts && <BumperSection id="ch-bumpers" def={def} setDef={setDef} opts={opts} />}
 
       <Preview def={def} />
@@ -626,7 +631,7 @@ function BlockEditor({ n, b, opts, up, remove, copy }: { n: number; b: Block; op
 
 // Commercials: any number of libraries of them, each whole or only the videos
 // chosen here, per channel.
-function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Partial<Definition>) => void }) {
+function CommercialsSection({ def, setDef, clone }: { def: Definition; setDef: (p: Partial<Definition>) => void; clone?: boolean }) {
   const libs = useShortLibraries()
   const f = def.filler || {}
   const picks = f.commercials || []
@@ -647,7 +652,8 @@ function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Part
         <input type="checkbox" checked={!!f.fromBumpers} onChange={(e) => setDef({ filler: { ...f, fromBumpers: e.target.checked || undefined } })} /> {t('Commercials may also come from the bumper libraries')}
       </label>
       {f.fromBumpers && bumperLibs.length === 0 && <p className="tvs-note" role="status">{t('This channel has no bumper libraries yet: choose them under Bumpers.')}</p>}
-      {inUse && (
+      {clone && <p className="tvs-note">{t('On a cloned station, commercials fill the time each programme leaves: some in breaks through it, the rest after it. Choose how many breaks under Advanced options.')}</p>}
+      {inUse && !clone && (
         <div className="tvs-three">
           <label>{t('After each show, play')}
             <select className="select" value={f.between || 0} onChange={(e) => setDef({ filler: { ...f, between: Number(e.target.value) } })}>
@@ -669,7 +675,7 @@ function CommercialsSection({ def, setDef }: { def: Definition; setDef: (p: Part
           )}
         </div>
       )}
-      {!!f.breakEveryMin && <p className="muted" style={{ fontSize: 13 }}>{t("No break comes so near the end that you'd just wait for the programme to finish. With “Cut commercials short” on, these give way too, once those after the programme have.")}</p>}
+      {!!f.breakEveryMin && !clone && <p className="muted" style={{ fontSize: 13 }}>{t("No break comes so near the end that you'd just wait for the programme to finish. With “Cut commercials short” on, these give way too, once those after the programme have.")}</p>}
       <p className="muted" style={{ fontSize: 13 }}>{t("Commercials count as part of the channel for parental limits. A Kids profile won't see this channel unless these videos have a suitable rating (edit a video to give it one).")}</p>
     </Section>
   )

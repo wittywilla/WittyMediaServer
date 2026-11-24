@@ -343,7 +343,7 @@ Versions stay below v1 while the APIs settle, so a minor version may change them
 
 ### What's new, and developer notes
 
-A version's section of the module's `CHANGELOG.md` is what the catalogue lists for it, and what **Settings, Modules, What's new** shows. People read that, so split it in two:
+A version's section of the module's `CHANGELOG.md` is what the catalogue lists for it, and what **Settings, Module store, What's new** shows. People read that, so split it in two:
 
 ```markdown
 ## 0.7.3

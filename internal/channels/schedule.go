@@ -63,6 +63,8 @@ type Programme struct {
 	Trimmed int64 `json:"trimmed,omitempty"`
 	// Clip: this plays a scene from a disc, not the whole title.
 	Clip *ClipRef `json:"clip,omitempty"`
+	// For: on a cloned station, the programme this one stands in for.
+	For string `json:"for,omitempty"`
 }
 
 // ClipRef says which part of a disc plays. Times are in the disc's title.
@@ -91,6 +93,9 @@ type Entry struct {
 	Season  *int
 	Episode *int
 	ShowID  int64
+	// Breaks are natural places for a break, in seconds into the title, where known: loaded
+	// only for the one-title pools of a cloned station.
+	Breaks []int64
 }
 
 func (e *Entry) itemID() int64 {
@@ -497,9 +502,11 @@ type generator struct {
 	fillerR rng
 	// recent: the commercials picked last, newest at the end.
 	recent []int64
-	rules  []*ruleState
-	out    []Programme
-	err    error
+	// era: the year of the programme commercials are being picked for; 0 = any.
+	era   int
+	rules []*ruleState
+	out   []Programme
+	err   error
 }
 
 // ruleState is a bumper rule ready to use.
@@ -785,6 +792,9 @@ func (g *generator) fill(seg segment, t int64) int64 {
 	if err != nil {
 		g.err = err
 		return t
+	}
+	if seg.block != nil && seg.block.Once {
+		return g.playOnce(seg, t, p)
 	}
 	fit := "fill"
 	if seg.block != nil && seg.block.Fit != "" {
@@ -1122,6 +1132,16 @@ func (g *generator) pickFiller(room int64) *Entry {
 		return nil
 	}
 	start := g.fillerR.intn(len(g.filler))
+	// One from the programme's own years first, when there is one that fits.
+	if g.era != 0 {
+		for i := range g.filler {
+			e := &g.filler[(start+i)%len(g.filler)]
+			if e.Year != 0 && e.Dur <= room && inEra(e.Year, g.era) && !slices.Contains(g.recent, e.itemID()) {
+				g.played(e)
+				return e
+			}
+		}
+	}
 	var again *Entry
 	for i := range g.filler {
 		e := &g.filler[(start+i)%len(g.filler)]

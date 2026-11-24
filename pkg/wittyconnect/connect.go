@@ -143,6 +143,7 @@ func Join(ctx context.Context, cfg JoinConfig) (JoinResult, error) {
 // Connector is a running connection and its local address.
 type Connector struct {
 	client *p2p.Client
+	cc     p2p.ClientConfig // what it was started with, for enrolling through a relay
 	ln     net.Listener
 	srv    *http.Server
 	secret string
@@ -189,7 +190,7 @@ func Start(cfg Config) (*Connector, error) {
 		_ = ln.Close()
 		return nil, err
 	}
-	c := &Connector{client: client, ln: ln, secret: base64.RawURLEncoding.EncodeToString(raw), host: ln.Addr().String(), log: lg, done: make(chan struct{})}
+	c := &Connector{client: client, cc: cc, ln: ln, secret: base64.RawURLEncoding.EncodeToString(raw), host: ln.Addr().String(), log: lg, done: make(chan struct{})}
 	target, _ := url.Parse("http://server")
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(r *httputil.ProxyRequest) {
@@ -339,10 +340,30 @@ func (c *Connector) KnownAddrs() []string { return c.client.KnownAddrs() }
 // NetworkChanged tells the connector the device moved to another network.
 func (c *Connector) NetworkChanged() { c.client.NetworkChanged() }
 
+// enrolDirectWait is how long Enrol waits for this device's own connection
+// before showing the invite another way.
+var enrolDirectWait = 20 * time.Second
+
 // Enrol shows the server an invite's secret, which puts this device on its
 // list. The answer may hold a sign-in code to redeem over the local address.
+// When this device's own key can't reach the server (its only way in is its
+// own WittyRelay, which admits only keys it lists), the invite is shown from
+// the invite's own enrol key instead, which the server lists with its relay
+// while the invite is open (p2p.EnrolThroughRelay); this connection then gets
+// through once the server has listed this device.
 func (c *Connector) Enrol(ctx context.Context, secret, name, platform string) (p2p.EnrolResponse, error) {
-	return c.client.Enrol(ctx, secret, name, platform)
+	wctx, cancel := context.WithTimeout(ctx, enrolDirectWait)
+	connected := c.client.WaitConnected(wctx)
+	cancel()
+	if connected {
+		return c.client.Enrol(ctx, secret, name, platform)
+	}
+	c.log.Info("peer-to-peer: not connected yet, so the invite is shown through the server's relay")
+	res, err := p2p.EnrolThroughRelay(ctx, c.cc, secret, name, platform)
+	if err == nil && res.OK {
+		c.client.NetworkChanged() // look again now: this device is listed with the relay
+	}
+	return res, err
 }
 
 // Close ends the connection and closes the local address.

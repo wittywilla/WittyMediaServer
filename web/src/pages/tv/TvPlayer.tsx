@@ -6,8 +6,8 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import Hls from 'hls.js'
 import { api, type StreamWork } from '../../api'
 import { announce } from '../../a11y'
-import { IconBack, IconPlay } from '../../icons'
-import { Controls } from '../../player/Controls'
+import { IconBack, IconChannels, IconDown, IconHistory, IconPlay, IconTv, IconUp } from '../../icons'
+import { Controls, useCompactBar } from '../../player/Controls'
 import { haveHls, toggleFullscreen, useIdle } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
 import { Dialog } from '../../ui'
@@ -60,6 +60,8 @@ export default function TvPlayer() {
   const video = useRef<HTMLVideoElement | null>(liveVideo())
   const stage = useRef<HTMLDivElement | null>(null)
   const root = useIdle(4000, [])
+  // A phone or tablet gets the simple bar, as films do; the channel keys go into its Options sheet.
+  const compact = useCompactBar()
   const live = useLive(liveKey, stage)
   const mine = live.key === liveKey
   const info = mine ? live.info : null
@@ -359,6 +361,14 @@ export default function TvPlayer() {
         quality={info?.quality ? sizeName(video.current?.videoHeight || 0, video.current?.videoWidth || 0) || describe(info.quality.asked, info.quality.presets) : undefined}
         onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
         audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
+        live compact={compact} sheetItems={[
+          ...(fromStart || isBehind ? [{ key: 'live', icon: <IconTv />, label: t('Back to live'), onClick: goLive }] : []),
+          { key: 'chup', icon: <IconUp />, label: t('Channel up'), onClick: () => void step(1) },
+          { key: 'chdown', icon: <IconDown />, label: t('Channel down'), onClick: () => void step(-1) },
+          ...(lastKey.current ? [{ key: 'last', icon: <IconHistory />, label: t('Last channel'), onClick: last }] : []),
+          { key: 'mini', icon: <IconChannels />, label: t('Now and next'), onClick: () => setMini(true) },
+          { key: 'guide', icon: <IconChannels />, label: t('The full guide'), onClick: guide },
+        ]}
         extra={<>
           {fromStart ? <button className="btn sm primary" onClick={goLive} title={t('Back to live (L)')}>● {t('Back to live')}</button>
             : isBehind && <button className="btn sm" onClick={goLive} title={t('Back to live (L)')}>● {t('Live')}</button>}

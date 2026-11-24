@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useId, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
+import { useApp } from '../../state'
 import { announce } from '../../a11y'
 import { api, ApiError } from '../../api'
 import { EmptyState, LoadError, Spinner } from '../../components/common'
@@ -35,13 +36,14 @@ const BASE = '/sdui/modules'
 
 // The modules that have settings this profile may see.
 export function ModuleSettingsList() {
+  const admin = !!useApp().user?.isAdmin
   const [list, setList] = useState<Listed[] | null>(null)
   const [failed, setFailed] = useState('')
   const load = useCallback(() => { setFailed(''); api.get<{ modules: Listed[] }>(`${BASE}/settings`).then((r) => setList(r.modules || [])).catch((e) => setFailed((e as Error).message)) }, [])
   useEffect(load, [load])
   return (
     <>
-      <PageHead title={tk('Module settings')} desc={t('What the modules on this server let you set. Some are for the whole server and only an administrator changes them; others are your own.')} />
+      <PageHead title={tk('Module settings')} desc={<>{t('What the modules on this server let you set. Some are for the whole server and only an administrator changes them; others are your own.')}{admin && <> <Link to="/settings/modules">{t('Add, remove or update modules in the Module store.')}</Link></>}</>} />
       {failed ? <LoadError what={t('Module settings')} onRetry={load} />
         : !list ? <Spinner />
           : list.length === 0 ? <EmptyState icon={<IconPlug />} title={t('No module settings')} text={t('None of the modules in use has settings for you.')} />

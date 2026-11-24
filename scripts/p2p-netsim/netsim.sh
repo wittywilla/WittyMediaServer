@@ -23,7 +23,7 @@ set -uo pipefail
 BIN=${1:?folder with p2p-netsim and wittyrelay}
 OUT=${2:?folder for results}
 shift 2
-SCENARIOS=${*:-"cone symmetric-app both-symmetric cgnat-server udp-blocked lossy relay-limit no-relay link-drop address-change many-apps harsh stranger stranger-relayed revoke revoke-relayed wire"}
+SCENARIOS=${*:-"cone symmetric-app both-symmetric cgnat-server udp-blocked lossy relay-limit no-relay link-drop address-change many-apps harsh stranger stranger-relayed revoke revoke-relayed wire invite-relayed"}
 mkdir -p "$OUT"
 BIN=$(cd "$BIN" && pwd)
 OUT=$(cd "$OUT" && pwd)
@@ -142,6 +142,7 @@ start_parts() {
   fi
   for _ in $(seq 1 50); do [ -s "$dir/observers.txt" ] && break; sleep 0.2; done
   [ -n "${REVOKE:-}" ] && relay_arg="$relay_arg -revoke-after $REVOKE"
+  [ -n "${INVITE:-}" ] && relay_arg="$relay_arg -invite $INVITE"
   # shellcheck disable=SC2086
   ns srv "$BIN/p2p-netsim" server $relay_arg -device "$devices" -observers "$dir/observers.txt" -out "$dir/server.json" >"$dir/server.log" 2>&1 &
   # Wait until the server holds a place on the relay (its addresses then
@@ -181,6 +182,12 @@ run() {
     # Everything on the simulated internet is recorded while a whole file goes
     # through the relay: the file's bytes must never be seen there.
     wire) anat=symmetric; extra=udp-blocked; capture=yes ;;
+    # A new device, on no list, holding an invite link, when the only way in
+    # is the server's own WittyRelay: both routers symmetric, no address book,
+    # no other relay. It shows the relay the invite's ticket, gets through,
+    # joins and stays. Beside it a stranger with a made-up invite, and after
+    # it a device with the same, now used, link: neither gets anything.
+    invite-relayed) snat=symmetric; anat=symmetric; expect=invite ;;
     *) echo "unknown scenario $name"; return ;;
   esac
   echo "== $name (server: $snat, app: $anat, $extra, relay: $relay)"
@@ -192,7 +199,12 @@ run() {
     ns inet tcpdump -i br0 -s 0 -U -w "$dir/wire.pcap" >/dev/null 2>&1 &
     sleep 1
   fi
-  REVOKE="$revoke" start_parts "$dir" "$kbps" "$relay" "${ids#,}"
+  local invite=""
+  if [ "$expect" = invite ]; then
+    invite=netsim-invite-$(head -c 12 /dev/urandom | od -An -tx1 | tr -dc '0-9a-f')
+    ids=""
+  fi
+  REVOKE="$revoke" INVITE="$invite" start_parts "$dir" "$kbps" "$relay" "${ids#,}"
   local pids=""
   for i in $(seq 2 $((clients + 1))); do
     local s=$i
@@ -202,10 +214,21 @@ run() {
     [ "$expect" = refused ] && args="$args -expect-refused -wait 60s"
     [ "$expect" = revoked ] && args="$args -expect-revoked"
     [ "$relay" = no ] && args="$args -wait 60s"
+    [ "$expect" = invite ] && args="$args -invite $invite"
     # shellcheck disable=SC2086
     ns cli "$BIN/p2p-netsim" client $args >"$dir/client$i.log" 2>&1 &
     pids="$pids $!"
   done
+  if [ "$expect" = invite ]; then
+    ns cli "$BIN/p2p-netsim" client -server "$dir/server.json" -observers "$dir/observers.txt" -seed 9 \
+      -invite "netsim-made-up-invite-0000000000" -expect-refused -wait 60s -out "$dir/client9.json" >"$dir/client9.log" 2>&1 &
+    pids="$pids $!"
+    # Once the first device has joined, the same link again, from another device.
+    for _ in $(seq 1 240); do [ -s "$dir/client2.json" ] && break; sleep 0.5; done
+    ns cli "$BIN/p2p-netsim" client -server "$dir/server.json" -observers "$dir/observers.txt" -seed 8 \
+      -invite "$invite" -expect-refused -wait 45s -out "$dir/client8.json" >"$dir/client8.log" 2>&1 &
+    pids="$pids $!"
+  fi
   case "$during" in
     link-drop) # the app's connection drops for 12 seconds (a tunnel, a lift)
       # The app has connected, fetched and settled by about 15 s, and keeps asking until about 90 s.

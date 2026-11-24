@@ -169,6 +169,12 @@ Released 2026-11-24.
 - **Pause for scenes:** opening the scenes panel pauses the film on phones and TVs, or on every screen if you choose
   (#632).
 
+**Modules**
+
+- **A module that is only slow to start no longer looks like a crash in the log.** When a module's helper doesn't say
+  hello in time, the log now says the server stopped it, and says so when it wrote nothing, rather than "exit code 1"
+  with nothing to go on.
+
 **Modules in this release:** WittyPlay 0.7.18 (console photo switches a remote can reach; N64 homebrew and the
 graphics card check on Linux; games on phones).
 

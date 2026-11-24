@@ -350,6 +350,22 @@ func (p *proc) start() error {
 	return err
 }
 
+// helloFailure says, for the log, why a helper that didn't say hello ended. One the server stopped
+// because its time ran out says so: on Windows a killed process reads as "exit code 1", which looks
+// like the helper failing by itself. And a helper that wrote nothing to stderr says that too, so
+// a missing stderr isn't taken for one the server failed to keep.
+func helloFailure(slow bool, waited time.Duration, said *logging.Tail, attrs ...any) []any {
+	why := "failed to start"
+	if slow {
+		why = "stopped by the server: no hello within " + waited.String()
+	}
+	attrs = append(attrs, "why", why)
+	if said.Empty() {
+		attrs = append(attrs, "stderr", "(it wrote nothing)")
+	}
+	return attrs
+}
+
 func (p *proc) startWithin(helloWait time.Duration) error {
 	if p.closed {
 		return errors.New("this version is no longer in use")
@@ -428,7 +444,8 @@ func (p *proc) startWithin(helloWait time.Duration) error {
 	hello, err := conn.ReadHello()
 	stop.Stop()
 	if err != nil && slow.Load() {
-		err = fmt.Errorf("%w (%s): %v", errSlowHello, helloWait, err)
+		// What the read said then ("file already closed") is only the server closing the pipe.
+		err = fmt.Errorf("%w (%s), with no hello", errSlowHello, helloWait)
 	}
 	if err == nil {
 		switch {
@@ -444,7 +461,7 @@ func (p *proc) startWithin(helloWait time.Duration) error {
 		stdin.Close()
 		_ = cmd.Process.Kill()
 		drained(outDone, time.Second) // what it said before it ended is why: Wait closes the pipe
-		logging.ChildExit(p.log, "module helper", cmd.Wait(), false, t, started, "topic", "lifecycle", "why", "failed to start", "version", p.man.Version)
+		logging.ChildExit(p.log, "module helper", cmd.Wait(), false, t, started, helloFailure(slow.Load(), helloWait, t, "topic", "lifecycle", "version", p.man.Version)...)
 		release()
 		if launcherMayFail && p.launch != "" && !p.strict {
 			// This way of starting one has never been run on this system. Better a working helper

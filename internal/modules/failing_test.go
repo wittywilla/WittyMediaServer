@@ -36,6 +36,32 @@ func TestASlowStartGetsASecondGo(t *testing.T) {
 	}
 }
 
+// A helper too slow to say hello even on its second go: the install says it ran out of time, not
+// the read error the server's own closing of the pipe causes, and the log says the server stopped
+// it (on Windows a killed helper reads as "exit code 1") and that it wrote nothing to stderr.
+func TestAHelperStoppedForNoHelloSaysSo(t *testing.T) {
+	old := helloTimeout
+	helloTimeout = 200 * time.Millisecond // the helper takes 1.5 s: too long twice
+	defer func() { helloTimeout = old }()
+	logs := &syncBuffer{}
+	w := newWorld(t)
+	w.logs = logs
+	w.publish("0.2.0", manifestJSON("0.2.0", "0.4.0", "0.5.x", MinAPI, "slow-hello"))
+	m := w.manager()
+	defer m.Close()
+	check(t, m)
+	s := installWait(t, m)
+	if !strings.Contains(s.Error, "still starting when its time ran out (400ms), with no hello") || strings.Contains(s.Error, "closed") {
+		t.Fatalf("the install's error: %q", s.Error)
+	}
+	said := logs.String()
+	for _, want := range []string{`why="stopped by the server: no hello within 200ms"`, `why="stopped by the server: no hello within 400ms"`, `stderr="(it wrote nothing)"`} {
+		if !strings.Contains(said, want) {
+			t.Errorf("the log has no %s:\n%s", want, said)
+		}
+	}
+}
+
 func TestFailuresTogetherCountOnce(t *testing.T) {
 	old := failSpacing
 	failSpacing = time.Hour

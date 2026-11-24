@@ -5,7 +5,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.8.3-alpha
 
-Released 2026-11-23.
+Released 2026-11-24.
 
 **Connecting another device (#605)**
 

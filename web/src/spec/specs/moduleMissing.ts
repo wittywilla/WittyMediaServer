@@ -25,7 +25,7 @@ export function moduleMissingSpec(i: MissingInput): SpecPageData {
   const noBuild = i.mods?.find((m) => m.unavailable)
   const sections: SpecSection[] = []
   for (const m of i.mods || []) if (m.summary) sections.push(secN('', `${m.name}: ${m.summary}`))
-  if (!i.admin) sections.push(secN('', t('An administrator of this server can install it in Settings, Modules.'), true))
+  if (!i.admin) sections.push(secN('', t('An administrator of this server can install it in Settings, Module store.'), true))
   if (noBuild) sections.push(secN('', noBuild.unavailable || '', true))
   if (busy) sections.push(secN('', busy.total ? t('Installing {name}: {percent}% There’s no need to restart anything.', { name: busy.name, percent: Math.round((busy.done || 0) * 100 / busy.total) }) : t('Installing {name}… There’s no need to restart anything.', { name: busy.name }), true))
   if (i.error) sections.push(secN('', i.error, true))

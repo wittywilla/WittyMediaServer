@@ -47,7 +47,7 @@ Decided since (2026-11-12): the peer-to-peer "address book" (public DHT rendezvo
 9. **Series recording `keep` deletes recordings and files of a rule regardless of who made it** (before, only an admin could
    delete a recording file). Sources: HO s6 #6.
 10. **Sleep timer fade-out** (board says volume fades over the last 20 s; player has none) and **whether Visualizer Speed and
-    Colour also appear in Settings, Modules, Visualizer.** Sources: DESIGN-ISSUES (owner decisions).
+    Colour also appear in Settings, Module store, Visualizer.** Sources: DESIGN-ISSUES (owner decisions).
 11. **Karaoke control set**: board has Vocals, Instruments, Backing vocals sliders and Key, Mic; the app has Voice on/lower/lowest,
     Key, Words on time. Also "Mix page as rows". Sources: QA-5 P3, RELEASE.
 12. **Apple apps starting offline**: show kept pages (needs a signed-in connection to a server not re-identified) or keep going to

@@ -48,6 +48,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **An episode whose title starts with a number keeps it.** "S01E05 - 80's Cats" is episode 5, "80's Cats", not
   episodes 5 to 80 called "'s Cats". Run **Scan for changes** to correct ones already scanned.
 
+**Settings, the same everywhere (#612)**
+
+- **One settings menu on every device.** The web (computer and phone), its TV mode, the desktop app, and the
+  Android and Apple apps show the same groups and rows, in the same order and words: the Android phone app's You
+  page. On a computer and a TV the person is on the left and the groups on the right, and each settings page has the
+  same rows beside it. The list comes from the server (`settingsMenu` in its catalogue, docs/SETTINGS-MENU.md).
+- **A TV shows every row, and says where to change the ones it can't.** Such a row stays in its place, says what is
+  set (Remote access: Off, Live transcoding: Graphics chip…), and opens a panel with that setting's own address and
+  QR code to open on a computer or phone.
+- **Module settings and Module store sit side by side** under Modules (both were called Modules before, in two
+  places), and each page links to the other. **Look** is now **Layout**, beside Edit layout and Theme.
+- **Choose colours has no preview,** only the theme cards, like Choose a layout.
+
 ## 0.8.3-alpha
 
 Released 2026-11-24.
@@ -1520,7 +1533,6 @@ as well (see its section below).
 - Pictures load when the browser holds another server's (or an expired) sign-in cookie.
 - The docked music player no longer moves the profile button; the profile's name shows beside it.
 
-
 ### Updates
 
 - **One-click updates**: *Settings → About & legal → Updates* shows the installed and the newest
@@ -1586,7 +1598,6 @@ as well (see its section below).
 
 - **Version and modules**, in *About & legal* and at the foot of the settings menu: this server's
   version and those of WittyDVD, WittyBluray, WittyDisc and the readers inside it.
-
 
 ### Disc engines as Go modules
 

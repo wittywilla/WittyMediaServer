@@ -137,7 +137,8 @@ const DETECT = (phase) => `(() => {
       if (Math.abs(d) > 3) add('off-centre', e, 'centred words, but their box is ' + d + 'px off the middle of ' + name(p))
     }
     // The same heading twice.
-    const hs = [...main.querySelectorAll('h1, h2, h3')].filter(vis).map((h) => h.textContent.trim().toLowerCase().replace(/\\s+/g, ' ')).filter(Boolean)
+    // The page's own, not the menu's group names beside it.
+    const hs = [...main.querySelectorAll('h1, h2, h3')].filter((h) => vis(h) && !h.closest('nav')).map((h) => h.textContent.trim().toLowerCase().replace(/\\s+/g, ' ')).filter(Boolean)
     const dup = hs.filter((h, i) => hs.indexOf(h) !== i)
     if (dup.length) add('repeated', null, 'headings said twice: ' + [...new Set(dup)].join(', '))
   }
@@ -249,9 +250,9 @@ try {
             await s.page.until(`!!document.getElementById(${JSON.stringify(id)})`, 15000, id).catch(() => {})
             await wait(500)
             await s.page.eval(`location.hash = ${JSON.stringify('#' + id)}`)
-            // The page scrolls to the section once it's drawn (settings/jump.ts): wait for it to come into view.
-            await s.page.until(`(() => { const t = document.getElementById(${JSON.stringify(id)}); return !!t && t.getBoundingClientRect().top < innerHeight / 2 })()`, 8000, '#' + id).catch(() => {})
-            await wait(400)
+            // The page scrolls to the section once it's drawn and holds it there while the page settles (settings/jump.ts):
+            // wait until it has stayed put for a second, for up to fifteen.
+            await s.page.eval(`new Promise((done) => { let last = NaN, still = 0, n = 0; const t = setInterval(() => { const e = document.getElementById(${JSON.stringify(id)}); const y = e ? Math.round(e.getBoundingClientRect().top) : NaN; still = y === last ? still + 1 : 0; last = y; if (still >= 5 || ++n > 75) { clearInterval(t); done() } }, 200) })`)
             const a = await s.page.eval(ANCHOR_CHECK(id))
             if (a.missing) { console.log('SKIP', link, sizeName, lookName, 'no such section here'); continue }
             // Below the bar, and in view: a section left far down the page means the link didn't take you there.

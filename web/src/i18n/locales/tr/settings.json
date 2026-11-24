@@ -2259,6 +2259,6 @@
     "other": "{count} şey kapatıldı"
   },
   "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Tüm ayarlar ve API anahtarları, Uzaktan Erişim, TV alıcıları, kanallar ve zamanlanmış kayıtlar.",
-  "Remote access": "Uzaktan Erişim",
+  "Remote access": "Uzaktan erişim",
   "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Oturum açarken telefonunuzdaki bir uygulamadan 6 haneli bir kod da istenir, böylece çalınan bir parola yetmez. İsteğe bağlıdır ve Uzaktan Erişim kullanıyorsanız değerlidir. Her kimlik doğrulayıcı uygulama çalışır."
 }

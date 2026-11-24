@@ -21,7 +21,7 @@ export function jumpTo(id: string): boolean {
   return true
 }
 
-// A page that's still loading has nothing to jump to yet: try for a few seconds. What's above it
+// A page that's still loading has nothing to jump to yet: try for up to ten seconds. What's above it
 // may still be arriving after that and push it down, so it's kept in place until the page has
 // been still for a second (ten at most), or the person scrolls or presses something. Returns a way to stop, for when the page
 // changes again first.
@@ -48,7 +48,7 @@ export function jumpWhenReady(id: string): () => void {
   }
   const go = () => {
     if (jumpTo(id)) hold()
-    else if (++tries < 40) timer = window.setTimeout(go, 100)
+    else if (++tries < 100) timer = window.setTimeout(go, 100) // ten seconds: a slow server's long page (About's licences)
   }
   timer = window.setTimeout(go, 0)
   return stop

@@ -5,7 +5,10 @@ package server
 
 import (
 	"compress/gzip"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net"
@@ -17,6 +20,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/appcontrol"
@@ -393,6 +397,12 @@ func (s *Server) spa() http.Handler {
 				}
 				if !strings.HasPrefix(p, "assets/") {
 					w.Header().Set("Cache-Control", "no-cache") // the page names the assets of this version
+					// The embedded files have no modification time, so without a tag the browser
+					// had nothing to ask again with, and fetched each font (350 KB) on every
+					// visit (#643). With one, a visit after the first gets 304 Not Modified.
+					if tag := s.webTag(p, st); tag != "" {
+						w.Header().Set("ETag", tag)
+					}
 				} else {
 					w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 					if s.serveGzipped(w, r, p) {
@@ -572,4 +582,25 @@ func mainLANIP() net.IP {
 		return a.IP
 	}
 	return nil
+}
+
+// webTags: each client file's tag, from its content, worked out once per file as it is.
+var webTags sync.Map // "path size modtime" -> `"sha256 prefix"`
+
+// webTag is a strong ETag for one of the client's files: the first 16 bytes of its SHA-256.
+// Kept by path, size and time, so a development build reading web/dist from disk gets a new
+// tag when a file changes.
+func (s *Server) webTag(p string, st fs.FileInfo) string {
+	key := fmt.Sprintf("%s %d %d", p, st.Size(), st.ModTime().UnixNano())
+	if v, ok := webTags.Load(key); ok {
+		return v.(string)
+	}
+	b, err := fs.ReadFile(s.Web, p)
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(b)
+	tag := `"` + hex.EncodeToString(sum[:16]) + `"`
+	webTags.Store(key, tag)
+	return tag
 }

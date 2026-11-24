@@ -11,8 +11,7 @@ import { handledIds } from '../spec/model'
 import { codeSpec, signInSpec } from '../spec/specs/auth'
 import { isSubmitKey } from '../spec/specs/submit'
 import { useApp } from '../state'
-import { avatarColor } from '../ui/avatarColor'
-import { AvatarShape, parseAvatar } from '../ui/avatars'
+import { Avatar } from '../ui/Avatar'
 import { useTvMode } from '../tvmode/mode'
 import { t } from '../i18n'
 
@@ -138,13 +137,4 @@ function PasswordForm({ profile, onBack }: { profile: Profile | null; onBack?: (
       <SpecPage page={page} handled={handledIds(page)} onAction={act} onField={field} />
     </div>
   )
-}
-
-// Avatar: the profile's initial on a colour picked from its name, so each
-// person keeps the same colour on every device (see ui/avatarColor).
-// A profile that chose a picture shows that instead (ui/avatars).
-export function Avatar({ name, big, avatar }: { name: string; big?: boolean; avatar?: string }) {
-  const chosen = parseAvatar(avatar)
-  if (chosen) return <span className={'avatar-tile' + (big ? ' big' : '')} style={{ background: chosen.background }} aria-hidden="true"><AvatarShape shape={chosen.shape} /></span>
-  return <span className={'avatar-tile' + (big ? ' big' : '')} style={{ background: avatarColor(name) }} aria-hidden="true">{name.trim()[0]?.toUpperCase() || '?'}</span>
 }

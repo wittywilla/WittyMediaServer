@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { createContext, useContext } from 'react'
+import { createContext, use, useContext } from 'react'
 import type { Device } from '../device'
 import type { View } from '../model'
 import type { Action, Document, Layout } from '../types'
@@ -31,5 +31,18 @@ export type PageCtx = {
 
 export const Ctx = createContext<PageCtx>(null!)
 export const usePage = () => useContext(Ctx)
+
+// What a card needs to be pressed, kept apart from the page: the page changes with every page of
+// a grid's items, and every card reading it was drawn again each time (#643). The page gives this
+// once; its act and menu always reach the page's latest handlers. Where nothing gives it (another
+// renderer of the same components), it is read from the page.
+export type PressCtx = { act: PageCtx['act']; menu: PageCtx['menu']; inert: boolean; externalLinks?: boolean }
+export const PressContext = createContext<PressCtx | null>(null)
+export function usePress(): PressCtx {
+  const given = useContext(PressContext)
+  if (given) return given
+  const page = use(Ctx) // read only when nothing gave the press context (use, unlike useContext, may be)
+  return { act: page.act, menu: page.menu, inert: !!page.inert, externalLinks: page.layout.externalLinks }
+}
 
 export const px = (points: number, pt: number) => Math.round(points * pt * 100) / 100 + 'px'

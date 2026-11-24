@@ -1,0 +1,28 @@
+{
+  "_": "The server's budget (#643), for scripts/perf -budget on the CI library (scripts/perf/make-media.sh with 300 films and 20 albums), held to two processors, each route asked 10 times. Set from CI's own run with about 30 % to spare; docs/PERFORMANCE.md#budgets says what each catches. Memory and allocations are counts a busy machine doesn't change much; times and rates vary with the machine, so their floors are about half what CI measures.",
+  "idleRssMiB": 110,
+  "idleHeapLiveMiB": 20,
+  "scanPeakRssMiB": 120,
+  "scanItemsPerSecond": { "movies": 4, "music": 10 },
+  "routeAllocKiB": {
+    "/api/home": 450,
+    "/api/sdui/pages/home": 320,
+    "/api/sdui/pages/library?library={id}": 280,
+    "/api/browse?library={id}": 550,
+    "/api/browse/facets?library={id}": 260,
+    "/api/items?limit=60&search=film": 300,
+    "/api/items?library={id}&limit=60": 370,
+    "/api/music/home?library={id}": 340
+  },
+  "routeStatements": {
+    "/api/home": 14,
+    "/api/sdui/pages/home": 7,
+    "/api/sdui/pages/library?library={id}": 6,
+    "/api/browse?library={id}": 10,
+    "/api/browse/facets?library={id}": 12,
+    "/api/items?limit=60&search=film": 7,
+    "/api/items?library={id}&limit=60": 7,
+    "/api/music/home?library={id}": 16
+  },
+  "transcodeStartSeconds": 8
+}

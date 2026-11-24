@@ -63,9 +63,9 @@ type timeline struct {
 // startOverBack is how far back a viewer may start a library channel from.
 const startOverBack = 6 * time.Hour
 
-// programmeAt finds the programme on a library channel at t as the guide tells it, and its
+// timelineAt finds the programme on a library channel at t as the guide tells it, and its
 // breaks: the runs of anything but the programme itself between its start and the next.
-func (s *Server) programmeAt(ctx context.Context, c *channels.Channel, t time.Time) (*timeline, error) {
+func (s *Server) timelineAt(ctx context.Context, c *channels.Channel, t time.Time) (*timeline, error) {
 	cur, _, err := s.Channels.GuideNow(ctx, c, t)
 	if err != nil {
 		return nil, err
@@ -170,7 +170,7 @@ func (s *Server) handleTimeline(w http.ResponseWriter, r *http.Request) {
 	if v, err := strconv.ParseInt(r.URL.Query().Get("at"), 10, 64); err == nil && v > 0 && v <= now.Unix() {
 		at = time.Unix(v, 0)
 	}
-	tl, err := s.programmeAt(r.Context(), c, at)
+	tl, err := s.timelineAt(r.Context(), c, at)
 	if err != nil {
 		writeErr(w, 404, "nothing is on then")
 		return
@@ -212,7 +212,7 @@ func (s *Server) handleStartOver(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		from = n
-	} else if tl, err := s.programmeAt(r.Context(), c, now); err == nil {
+	} else if tl, err := s.timelineAt(r.Context(), c, now); err == nil {
 		from = tl.Programme.Start
 	}
 	if from > now.Unix()-liveEdgeSec {
@@ -222,7 +222,7 @@ func (s *Server) handleStartOver(w http.ResponseWriter, r *http.Request) {
 	if from < now.Add(-startOverBack).Unix() {
 		from = now.Add(-startOverBack).Unix()
 	}
-	tl, err := s.programmeAt(r.Context(), c, time.Unix(from, 0))
+	tl, err := s.timelineAt(r.Context(), c, time.Unix(from, 0))
 	if err != nil {
 		writeErr(w, 404, "nothing was on then")
 		return
@@ -232,11 +232,9 @@ func (s *Server) handleStartOver(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	if cur.ItemID != 0 {
-		if _, err := s.visibleItem(r, cur.ItemID); err != nil && s.access(r) != nil {
-			writeErr(w, 403, "what was on then is not available to this profile")
-			return
-		}
+	// The profile's live TV limits, for what was on at from (parental_live.go).
+	if s.liveRefused(w, r, "lib", c.ID, time.Unix(from, 0)) {
+		return
 	}
 	sid := s.shiftID(r, c.ID, viewer)
 	// A new moment is a new stream: the old one of this viewer stops first.
@@ -326,6 +324,11 @@ func (s *Server) shiftTarget(w http.ResponseWriter, r *http.Request) *hls.LiveSe
 		// It stopped (left too long, or the server restarted): the player starts over again
 		// from where it was, which it knows from the program date-times.
 		writeErr(w, 410, "this start-over stream has ended")
+		return nil
+	}
+	// Every playlist and part, as on the shared stream, but for the moment of the schedule this
+	// stream is at: a shifted stream stops when it reaches a programme the profile may not watch.
+	if s.liveRefused(w, r, "lib", c.ID, time.Now().Add(-ls.Spec.Shift)) {
 		return nil
 	}
 	return ls

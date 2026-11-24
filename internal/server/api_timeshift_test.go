@@ -4,6 +4,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -11,7 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/auth"
 	"github.com/wittywilla/wittymediaserver/internal/channels"
+	"github.com/wittywilla/wittymediaserver/internal/library"
 )
 
 // A programme's breaks are the runs of bumpers and commercials inside it and after it, up to
@@ -134,5 +137,54 @@ func TestStartOverRoutes(t *testing.T) {
 	}
 	if w := tvCall(h, "GET", "/api/tv/"+key+"/startover?viewer=tv1", admin, ""); w.Code != 403 {
 		t.Errorf("start over turned off: %d", w.Code)
+	}
+}
+
+// Start over and the stream it makes keep to the profile's limits: a title the profile may
+// not watch can't be started over, and a shifted stream stops at its next part once what it
+// plays is no longer allowed (parental_live.go, asked at the stream's moment of the schedule).
+func TestStartOverKeepsTheProfilesLimits(t *testing.T) {
+	h, admin, _, s := tvServer(t)
+	_, video, _ := tvWorld(t, s)
+	ctx := context.Background()
+	rate := func(r string) {
+		t.Helper()
+		if _, err := s.DB.Exec(`UPDATE items SET content_rating = ?, min_age = ? WHERE id = ?`, r, *library.AgeFor(r), video); err != nil {
+			t.Fatal(err)
+		}
+		s.forgetRules()
+	}
+	rate("G")
+	if _, err := s.Auth.CreateProfile(ctx, "teen", "", auth.KindKids, false, `{"maxAge":13,"liveTv":true,"libraryChannels":true,"tunerChannels":true}`); err != nil {
+		t.Fatal(err)
+	}
+	teen, _, err := s.Auth.Login(ctx, "teen", "", "t", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := fmt.Sprintf(`{"name":"Films","number":"7","definition":{"mode":"simple","rules":{"items":[%d]},"order":{"mode":"sequential"},"filler":{},"alignMin":0}}`, video)
+	w := tvCall(h, "POST", "/api/channels", admin, body)
+	if w.Code != 200 {
+		t.Fatalf("channel: %d %s", w.Code, w.Body)
+	}
+	var ch struct {
+		ID int64 `json:"id"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &ch)
+	key := "lib-" + strconv.FormatInt(ch.ID, 10)
+	from := strconv.FormatInt(time.Now().Unix()-600, 10)
+
+	if w := tvCall(h, "GET", "/api/tv/"+key+"/startover?viewer=tv2&from="+from, teen, ""); w.Code != 200 {
+		t.Fatalf("start over of a G title by a profile limited to 13: %d %s", w.Code, w.Body)
+	}
+	rate("R")
+	for _, p := range []string{"/shift/tv2/playlist.m3u8", "/shift/tv2/seg/x.ts", "/startover?viewer=tv2&from=" + from} {
+		if w := tvCall(h, "GET", "/api/tv/"+key+p, teen, ""); w.Code != 403 && w.Code != 404 {
+			t.Errorf("%s once the title is R: %d %s", p, w.Code, w.Body)
+		}
+	}
+	// Nothing changes for an account with no limits.
+	if w := tvCall(h, "GET", "/api/tv/"+key+"/startover?viewer=tv1&from="+from, admin, ""); w.Code != 200 {
+		t.Errorf("start over, no limits: %d %s", w.Code, w.Body)
 	}
 }

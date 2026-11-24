@@ -751,6 +751,9 @@ a pause longer than `bufferSec`, start over from where it paused. When the pictu
 only offered on a start-over stream: watching live keeps the breaks. Leave with
 `POST /tv/{key}/leave?viewer=<name>&shift=1`, which stops the viewer's stream at once. The owner can turn start over
 off (`tvStartOver` in `PUT /tv/settings`); `startOver` is then false and `/startover` answers 403.
+A profile's live TV limits apply as on the shared stream, at the moment of the schedule the
+stream is at: `/startover` and each playlist and part of a shifted stream answer 403 with
+`code: "programme-rating"` (and `until`) when what is on then is not for the profile.
 
 A tuner channel has `startOver` when its source has an archive (`catchupDays`): `/startover` then answers as
 `/catchup` does for the programme on now. Without an archive, pause and rewind work within the rolling buffer kept on

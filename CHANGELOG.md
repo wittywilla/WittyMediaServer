@@ -18,6 +18,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   breaks where your files mark them, from the programme's own era first. **Advanced options** has the matching rules,
   how many breaks, repeating, the time zone, a shift, and **Follow the station**, which reads the guide again each week.
   Only the guide's words are used: nothing is recorded or decrypted. See docs/CHANNELS.md, "Clone a station".
+**Connecting another device**
+
+- **A link or QR code works from away through your own WittyRelay (#614).** A device that had never been at home
+  couldn't join when the server's only way in was its own relay, which lets through only devices the server has
+  listed. While an invite is open, the server now also lists a single-use key made from it, which the app uses only to
+  show the invite; the relay still lets through no key the server hasn't listed.
 
 ## 0.8.3-alpha
 

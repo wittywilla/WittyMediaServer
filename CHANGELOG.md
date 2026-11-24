@@ -51,7 +51,7 @@ Not released yet.
   public relay, which carries an invite and nothing more) it says that and what to do.
 - **The QR code carries the owner's own WittyRelay** when there is one, first, ahead of the server's name if they
   don't both fit: away from home it's often the only way in. QR codes now go up to 412 bytes (version 15); a pairing
-  link stays under 300.
+  link stays under 330.
 - **Each device's Remove button is in its own row** under **Devices that may connect**, not below the list beside the
   next heading.
 **Live TV (#687, #688)**

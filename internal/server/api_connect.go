@@ -160,10 +160,11 @@ func (co *connectOffers) ask(find string) (*connectOffer, []byte) {
 
 const p2pJoinNonceLen = 16
 
-// connectQRMax is how long a link the QR code holds: version 13 at level M
-// (web/src/ui/qr.ts goes to 15), still easy to read at the page's size. It fits
-// the address at home, the code and one relay of the owner's (#683).
-const connectQRMax = 300
+// connectQRMax is how long a link the QR code holds: all of version 13 at level
+// M (331 bytes; web/src/ui/qr.ts goes to 15), still easy to read at the page's
+// size. It fits the address at home, the code and one relay of the owner's
+// (#683); when they don't all fit, the relay stays (qrInvite).
+const connectQRMax = 330
 
 // connectHome is where another device at home can reach this server's web
 // port: the address the page making the code was opened at, when it is one
@@ -235,11 +236,24 @@ func hostHints(ip netip.Addr, port int) []string {
 // the home address and code, which a device at home needs most, go only when
 // nothing else would make it fit (a very long name for the computer).
 func qrInvite(inv p2p.Invite, home []string, own map[string]bool, max int) string {
-	if link := qrFit(inv, home, own, max); len(link) <= max || inv.Home == "" {
+	noHome := inv
+	noHome.Home, noHome.Code = "", ""
+	// Everything that matters: the address at home and the code, and the first relayed address.
+	if link, ok := qrFit(inv, home, own, max, true); ok {
 		return link
 	}
-	inv.Home, inv.Code = "", ""
-	return qrFit(inv, home, own, max)
+	// Then the relayed address before the address at home: it works at home too, and the home address doesn't
+	// away from it (the pairing lab's relay-only cases).
+	if inv.Home != "" {
+		if link, ok := qrFit(noHome, home, own, max, true); ok {
+			return link
+		}
+	}
+	if link, ok := qrFit(inv, home, own, max, false); ok {
+		return link
+	}
+	link, _ := qrFit(noHome, home, own, max, false)
+	return link
 }
 
 // circuitRelay is the relay a /p2p-circuit address goes through, by its ID; "" for any other address.
@@ -270,7 +284,9 @@ func (s *Server) ownRelayIDs(ctx context.Context) map[string]bool {
 	return own
 }
 
-func qrFit(inv p2p.Invite, home []string, own map[string]bool, max int) string {
+// qrFit cuts addresses from the end, then the name, until the link fits; with keepRelay it never cuts the first
+// relayed address (nor what ranks before it), and says false when that can't fit.
+func qrFit(inv p2p.Invite, home []string, own map[string]bool, max int, keepRelay bool) (string, bool) {
 	// 0 the owner's relays' circuits, 1 public addresses, 2 any other relay's circuit (an ordinary public relay,
 	// which carries the invite and lets the two ends try for a direct connection), 3 this server's addresses at home,
 	// 4 other private ones. Away from home the first three are what work; at home the QR code's web address does.
@@ -329,14 +345,16 @@ func qrFit(inv p2p.Invite, home []string, own map[string]bool, max int) string {
 		}
 		return "", false
 	}
+	if !keepRelay {
+		ownCount = 0
+	}
 	if link, ok := fit(ownCount); ok {
-		return link
+		return link, true
 	}
-	short.Name = inv.Name
-	if link, ok := fit(0); ok {
-		return link
+	if keepRelay {
+		return "", false
 	}
-	return short.String()
+	return short.String(), false
 }
 
 // answer checks a device's proof for a challenge it was given, once. On a good

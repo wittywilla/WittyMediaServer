@@ -283,7 +283,7 @@ offer
 [ "$HOMES" = "http://$HOST:$WEB2" ] || fail "the address at home is '$HOMES', not the host's (a container's own address leads nowhere)"
 read -r _ _ _ QRHOME QRCODE < <(parse "$QR")
 [ "$QRHOME" = "http://$HOST:$WEB2" ] && [ "$QRCODE" != - ] || fail "the QR code holds no address at home or no code: $(sed 's/s=[^&]*/s=…/; s/c=[^&]*/c=…/' <<<"$QR")"
-[ "${#QR}" -le 300 ] || fail "the QR link is ${#QR} bytes, more than the page's QR codes hold (300)"
+[ "${#QR}" -le 330 ] || fail "the QR link is ${#QR} bytes, more than the page's QR codes hold (330)"
 ns sm-ph python3 "$(dirname "$0")/webjoin.py" "$QRHOME" "$QRCODE" "Homelab phone" android | tee -a "$LOG" | grep -q '"ok": true' || fail "the QR code's address and code didn't sign the phone in"
 
 step "Only a public relay between them: the invite gets through, and the app is told what didn't"

@@ -353,7 +353,7 @@ func TestQRInviteFits(t *testing.T) {
 		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
 	}
 	// The owner's own WittyRelay (#683): its circuit comes first and fits beside the address at home and the code, in
-	// the QR code's real 300 bytes; a phone away from home then has the one way in that works.
+	// the QR code's real budget; a phone away from home then has the one way in that works.
 	relay := "12D3KooWD8PWB8C8WmfLx4KZELLzAQbUpRQxbVJVHt94e8zKt8qj"
 	ownCircuit := "/ip4/80.0.0.10/udp/4001/quic-v1/p2p/" + relay + "/p2p-circuit"
 	inv.Addrs = append(inv.Addrs, ownCircuit)
@@ -361,6 +361,22 @@ func TestQRInviteFits(t *testing.T) {
 	got, err = p2p.ParseInvite(link)
 	if err != nil || len(link) > connectQRMax || len(got.Addrs) == 0 || got.Addrs[0] != ownCircuit || got.Home != inv.Home || got.Code != inv.Code {
 		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
+	}
+	// The owner's relay is never what goes: with a long name the name goes first, and when even the address at home
+	// and the code can't fit beside it, they go and the relay stays (it works at home too; they don't away).
+	named := inv
+	named.Name = strings.Repeat("Long name ", 30)
+	link = qrInvite(named, []string{"http://192.168.1.20:9797"}, map[string]bool{relay: true}, connectQRMax)
+	got, _ = p2p.ParseInvite(link)
+	if len(link) > connectQRMax || len(got.Addrs) == 0 || got.Addrs[0] != ownCircuit || got.Home == "" {
+		t.Fatalf("a long name: %d bytes %+v", len(link), got)
+	}
+	far := inv
+	far.Home = "http://" + strings.Repeat("n", 120) + ".local"
+	link = qrInvite(far, []string{"http://192.168.1.20:9797"}, map[string]bool{relay: true}, connectQRMax)
+	got, _ = p2p.ParseInvite(link)
+	if len(link) > connectQRMax || len(got.Addrs) == 0 || got.Addrs[0] != ownCircuit || got.Home != "" {
+		t.Fatalf("the relay before the address at home: %d bytes %+v", len(link), got)
 	}
 	if circuitRelay(ownCircuit) != relay || circuitRelay("/ip4/1.2.3.4/tcp/1") != "" {
 		t.Fatal("circuitRelay")

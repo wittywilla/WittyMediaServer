@@ -5,6 +5,19 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+**Settings, the same everywhere (#612)**
+
+- **One settings menu on every device.** The web (computer and phone), its TV mode, the desktop app, and the
+  Android and Apple apps show the same groups and rows, in the same order and words: the Android phone app's You
+  page. On a computer and a TV the person is on the left and the groups on the right, and each settings page has the
+  same rows beside it. The list comes from the server (`settingsMenu` in its catalogue, docs/SETTINGS-MENU.md).
+- **A TV shows every row, and says where to change the ones it can't.** Such a row stays in its place, says what is
+  set (Remote access: Off, Live transcoding: Graphics chip…), and opens a panel with that setting's own address and
+  QR code to open on a computer or phone.
+- **Module settings and Module store sit side by side** under Modules (both were called Modules before, in two
+  places), and each page links to the other. **Look** is now **Layout**, beside Edit layout and Theme.
+- **Choose colours has no preview,** only the theme cards, like Choose a layout.
+
 **Clone a station (#622)**
 
 - **A channel can follow a real TV station's schedule, played from your own files.** On **Channels**, press

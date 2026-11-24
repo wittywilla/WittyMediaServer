@@ -25,7 +25,7 @@ import QualityMenu, { StreamInfo } from '../../player/QualityMenu'
 import { describe, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from '../../player/quality'
 import { fmtClock, fmtSpan, getLineup, type Alternative, type GuideChannel, type GuidePage, type TuneInfo } from './tvApi'
 import { catchupKey } from './guideLogic'
-import { breakAt, isLibraryKey, LIVE_EDGE_SEC, liveNowFrom, planSeek, resumePlan, startOverPath, type Timeline } from './timeshift'
+import { breakAt, isLibraryKey, knownEndAfter, LIVE_EDGE_SEC, liveNowFrom, planSeek, resumePlan, startOverPath, type Timeline } from './timeshift'
 import { useTvRemote } from '../../remote/tvTarget'
 import './tv.css'
 import './tvthemes.css'
@@ -251,7 +251,13 @@ export default function TvPlayer() {
     restartAt(plan.at)
     return true
   }
-  const restartAt = (at: number) => nav(startOverPath(key, at, tl?.programme.end ?? info?.now?.end ?? at + 3600), { replace: true, state: from })
+  // Past the programme it knows of (Skip break on the break that ends it), the next one's end comes from the
+  // server first, so the address holds the programme that's on and not to=from+1 (#669).
+  const restartAt = async (at: number) => {
+    let end = knownEndAfter(at, tl?.programme.end, info?.now?.end)
+    if (end == null) end = await api.get<Timeline>(`/tv/${key}/timeline?at=${Math.floor(at)}`).then((t) => knownEndAfter(at, t.programme.end)).catch(() => null)
+    nav(startOverPath(key, at, end ?? at + 3600), { replace: true, state: from })
+  }
   const startOver = () => { if (info?.now) nav(startOverPath(key, info.now.start, info.now.end), { replace: true, state: from }) }
   const canStartOver = !fromStart && !!info?.startOver && !!info.now && info.now.kind !== 'slate' && liveNow() - info.now.start > LIVE_EDGE_SEC
   // In a break on a start-over stream: one press skips all of it. Live keeps its breaks.

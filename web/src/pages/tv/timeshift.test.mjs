@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { breakAt, isLibraryKey, liveNowFrom, planSeek, resumePlan, startOverPath, LIVE_EDGE_SEC } from './timeshift.ts'
+import { breakAt, isLibraryKey, knownEndAfter, liveNowFrom, planSeek, resumePlan, startOverPath, LIVE_EDGE_SEC } from './timeshift.ts'
 
 const breaks = [{ start: 600, end: 660 }, { start: 1200, end: 1290 }]
 
@@ -51,4 +51,12 @@ test('start-over addresses and keys', () => {
   assert.equal(startOverPath('lib-4', 1000, 900), '/tv/watch/lib-4?from=1000&to=1001')
   assert.ok(isLibraryKey('lib-4'))
   assert.ok(!isLibraryKey('tun-4'))
+})
+
+test('a restart past the programme it knows of asks for the next one, not to=from+1 (#669)', () => {
+  // Skip break on the break that ends the programme: at is the old programme's end.
+  assert.equal(knownEndAfter(2000.5, 2000, 2000), null)
+  assert.equal(knownEndAfter(1500, 2000, 1800), 2000)
+  assert.equal(knownEndAfter(2100, null, 2000, 3800), 3800)
+  assert.equal(knownEndAfter(1999.5, 2000), null)
 })

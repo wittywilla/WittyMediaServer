@@ -54,6 +54,11 @@ export function resumePlan(pausedAtMs: number, nowMs: number, bufferSec: number)
 // The address that starts this channel over from a moment, ending with the programme.
 export const startOverPath = (key: string, from: number, end: number) => `/tv/watch/${key}?from=${Math.floor(from)}&to=${Math.floor(Math.max(end, from + 1))}`
 
+// The end to give a restart at moment at: the first programme end it knows of that comes after at, or
+// null when at is past them all, for the timeline at that moment to tell (#669).
+export const knownEndAfter = (at: number, ...ends: Array<number | null | undefined>): number | null =>
+  ends.find((e): e is number => e != null && e > at + 1) ?? null
+
 // Whether a key is a library channel's: those start over on a stream of the viewer's own;
 // a tuner channel starts over from its archive.
 export const isLibraryKey = (key: string) => key.startsWith('lib-')

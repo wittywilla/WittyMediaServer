@@ -78,9 +78,9 @@ export function CardRow({ children }: { children: ReactNode }) {
   const by = (dir: number) => { const el = row.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }) }
   return (
     <div className="row-wrap">
-      <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
+      <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" aria-label={t('Back in this row')} title={t('Back in this row')} onClick={() => by(-1)} hidden><IconLeft /></button>
       <div className="row" ref={row} data-nav-group>{children}</div>
-      <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)} hidden><IconRight /></button>
+      <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" aria-label={t('More in this row')} title={t('More in this row')} onClick={() => by(1)} hidden><IconRight /></button>
     </div>
   )
 }

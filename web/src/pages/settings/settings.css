@@ -106,6 +106,8 @@
 }
 @media (max-width: 600px) {
   .set-card-head { padding: var(--sp-4) var(--sp-4) var(--sp-1); flex-direction: column; }
+  /* In a column the words' 24rem basis would be their height: a 320px gap in every card on a phone (#551). */
+  .set-card-head > :first-child { flex: none; }
   .set-card-body, .set-main .panel { padding-left: 16px; padding-right: 16px; }
   .set-row { flex-direction: column; align-items: stretch; gap: 10px; }
   .set-row-ctl .select { min-width: 0; width: 100%; }

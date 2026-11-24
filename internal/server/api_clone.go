@@ -149,11 +149,18 @@ func (s *Server) openXMLTV(ctx context.Context, src string) (io.ReadCloser, erro
 		return f, nil
 	}
 	link := strings.TrimSpace(src)
-	if strings.Contains(link, "{key}") {
-		key := s.DB.GetSetting(ctx, "guideKey", "")
+	keyed, keyHost, key := strings.Contains(link, "{key}"), "", ""
+	if keyed {
+		var err error
+		if keyHost, err = s.guideKeyHost(ctx, link); err != nil {
+			return nil, err
+		}
+		key = s.DB.GetSetting(ctx, "guideKey", "")
 		if key == "" {
 			return nil, errors.New("this link needs your guide key: add it under Advanced")
 		}
+		logging.AddSecret(key)
+		logging.AddSecret(url.QueryEscape(key))
 		link = strings.ReplaceAll(link, "{key}", url.QueryEscape(key))
 	}
 	u, err := url.Parse(link)
@@ -173,14 +180,23 @@ func (s *Server) openXMLTV(ctx context.Context, src string) (io.ReadCloser, erro
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("that guide link can't be read")
 	}
 	req.Header.Set("User-Agent", "WittyMediaServer guide import")
 	// Links on the internet only: a guide on the home network is added in WittyTuner, or
 	// uploaded, so that a link can't be used to reach other devices.
-	resp, err := library.SafeClient.Do(req)
+	client := library.SafeClient
+	if keyed {
+		client = keyedGuideClient(keyHost)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("the guide couldn't be read from that link (a guide on your own network: upload the file, or add it to WittyTuner): %s", logging.Redact(err.Error()))
+		msg := err.Error()
+		if keyed {
+			// The address in the error holds the key: never echo it, whatever the log would hide.
+			msg = strings.ReplaceAll(strings.ReplaceAll(msg, url.QueryEscape(key), "…"), key, "…")
+		}
+		return nil, fmt.Errorf("the guide couldn't be read from that link (a guide on your own network: upload the file, or add it to WittyTuner): %s", logging.Redact(msg))
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {

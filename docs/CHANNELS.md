@@ -353,7 +353,7 @@ You need commercials of your own: see [Commercials](#commercials). For old adver
 | **Same moment as the station** | Off (the default): the station's own clock times, here, so 8 pm on a New York station is 8 pm where you are. On: the very moment it airs, in this server's time zone |
 | **Shift everything by** | Moves the whole schedule by up to 12 hours either way |
 | **Follow the station** | Reads the guide again each week for the coming week, so the channel keeps up with the station's new schedule. What you chose by hand stays wherever the same programme is in the same slot. Not for a guide you uploaded |
-| **Guide key** | Your own key, for a guide link that says `{key}` where it goes. It's kept on this server only, never in the channel, and shows as dots once saved |
+| **Guide key** | Your own key, for a guide link that says `{key}` where it goes. It's kept on this server only, never in the channel, and shows as dots once saved. It goes only over `https://`, in a link's path or query, and only to the first site a link uses it with: to use it with another site, enter the key again |
 
 **Read the guide again** imports the same days once more, and **Clone another station** starts over, keeping everything else about the channel.
 

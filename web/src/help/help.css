@@ -6,7 +6,7 @@
 .help-public { padding: var(--sp-5) var(--gutter) var(--section-gap); }
 .help-public-head { max-width: 1100px; margin: 0 auto var(--sp-3); }
 
-.help-side { position: sticky; top: var(--sp-4); max-height: calc(100vh - var(--sp-8)); overflow-y: auto; overscroll-behavior: contain; padding-right: var(--sp-2); }
+.help-side { position: sticky; top: calc(var(--bar-space) + var(--sp-4)); max-height: calc(100vh - var(--bar-space) - var(--sp-8)); overflow-y: auto; overscroll-behavior: contain; padding-right: var(--sp-2); }
 .help-side-title { font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--sp-2); }
 .help-side-title a { color: var(--fg); }
 .help-side-group { margin-bottom: var(--sp-4); }
@@ -17,6 +17,8 @@
 
 .help-main { min-width: 0; padding-bottom: var(--section-gap); }
 .help-search { max-width: none; margin-bottom: var(--sp-5); }
+/* The guide list under the search box fills the same column, so the two start and end on one edge. */
+.help-main .spec-page { max-width: none; margin-inline: 0; }
 .help-back { margin-bottom: var(--sp-2); }
 
 

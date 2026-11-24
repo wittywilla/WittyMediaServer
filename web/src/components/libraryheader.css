@@ -3,7 +3,7 @@
 /* One header for every library page. The bar stays in view as the page scrolls, and
    the rest of the header doesn't, so display: contents lets the bar stick to the page. */
 .lh { display: contents; }
-.lh-bar { position: sticky; top: var(--topbar-h); z-index: var(--z-sticky); display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); margin: 0 calc(-1 * var(--gutter)); padding: var(--sp-3) var(--gutter); background: var(--bg); }
+.lh-bar { position: sticky; top: var(--bar-space); z-index: var(--z-sticky); display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); margin: 0 calc(-1 * var(--gutter)); padding: var(--sp-3) var(--gutter); background: var(--bg); }
 .lh-name { display: flex; align-items: baseline; gap: var(--sp-3); min-width: 0; }
 .lh-name h1 { margin: 0; font-size: var(--page-title); letter-spacing: var(--tracking-display); }
 .lh-name h1 .muted { font-weight: 500; }
@@ -30,4 +30,8 @@
   .lh-bar { position: static; }
   .lh-sort-btn { min-height: 44px; }
   .lh-actions { margin-left: 0; width: 100%; }
+  /* Its tools (the page's ⋯ and its search) take their own line, from the title's edge across the width, rather than
+     hanging off to the right part way along. */
+  .lh-end { flex: 1 1 100%; margin-left: 0; }
+  .lh-end > :is(input, :has(input)) { flex: 1 1 auto; min-width: 0; }
 }

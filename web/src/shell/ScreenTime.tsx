@@ -122,7 +122,7 @@ export default function ScreenTimeWatch() {
   if (telling && !st.allowed && user.kind === 'kids') return <KidsTimeUp st={st} pin={!!limits?.parentPin} onClose={close} onMore={more} />
   if (telling && !st.allowed) return <TimeUp st={st} pin={!!limits?.parentPin} onClose={close} onMore={more} />
   if (st.allowed && st.remainingSec >= 0 && st.remainingSec <= 600) {
-    return <div className="st-left" role="status">{t('{time} of screen time left', { time: minutes(st.remainingSec) })}</div>
+    return <div className="scr-left" role="status">{t('{time} of screen time left', { time: minutes(st.remainingSec) })}</div>
   }
   return null
 }
@@ -172,11 +172,11 @@ function KidsTimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean
   // A video in the browser's own full screen would sit over the page.
   useEffect(() => { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}) }, [])
   return (
-    <div className="st-page" role="alertdialog" aria-modal="true" aria-labelledby="st-page-title">
-      <StandaloneCard className="st-card">
+    <div className="scr-page" role="alertdialog" aria-modal="true" aria-labelledby="scr-page-title">
+      <StandaloneCard className="scr-card">
         {asking ? (
-          <form className="st-ask" onSubmit={(e) => { e.preventDefault(); if (ask.ready && !ask.busy) void ask.give() }}>
-            <h1 id="st-page-title">{t('Ask a parent')}</h1>
+          <form className="scr-ask" onSubmit={(e) => { e.preventDefault(); if (ask.ready && !ask.busy) void ask.give() }}>
+            <h1 id="scr-page-title">{t('Ask a parent')}</h1>
             <SpecPage embedded page={ask.page} handled={ask.handled} onAction={ask.onAction} onField={ask.onField} />
             <div className="sa-actions">
               <Button variant="primary" busy={ask.busy} disabled={!ask.ready} type="submit">{t('Give more time')}</Button>
@@ -185,7 +185,7 @@ function KidsTimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean
           </form>
         ) : (
           <>
-            <h1 id="st-page-title">{words.title}</h1>
+            <h1 id="scr-page-title">{words.title}</h1>
             <p className="sa-lead">{words.lead}</p>
             <div className="sa-actions">
               <Button variant="primary" autoFocus onClick={onClose}>{t('OK')}</Button>
@@ -225,7 +225,7 @@ function TimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean; on
     return (
       <Dialog title={t('Ask a parent')} size="sm" onClose={onClose}
         actions={<><Button variant="ghost" onClick={() => { setAsking(false); setErr('') }}>{t('Back')}</Button><Button variant="primary" busy={busy} disabled={!ready} onClick={give}>{t('Give more time')}</Button></>}>
-        <form className="st-ask" onSubmit={(e) => { e.preventDefault(); if (ready && !busy) give() }}>
+        <form className="scr-ask" onSubmit={(e) => { e.preventDefault(); if (ready && !busy) give() }}>
           <SpecPage embedded page={page} handled={handled} onAction={(id) => { if (id.startsWith('more:')) setMore(id.slice(5)); else if (id === 'switch') { setByPassword(!byPassword); setErr('') } }}
             onField={(id, v) => { if (id === 'code') setCode(String(v).replace(/\D/g, '').slice(0, 12)); else if (id === 'name') setName(String(v)); else if (id === 'password') setPassword(String(v)) }} />
           <button type="submit" hidden aria-hidden="true" tabIndex={-1} />
@@ -238,7 +238,7 @@ function TimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean; on
       <Dialog title={title} size="sm" alert onClose={onClose}
         actions={<><Button variant="ghost" onClick={sw.start}>{t('Switch profile')}</Button><Button onClick={() => setAsking(true)}>{t('Ask a parent')}</Button><Button variant="primary" onClick={onClose}>{t('OK')}</Button></>}>
         <p>{tx(st.message) || t('This profile can’t watch any more right now.')}</p>
-        <p className="st-when">{nextText(st)}</p>
+        <p className="scr-when">{nextText(st)}</p>
       </Dialog>
       {sw.dialog}
     </>

@@ -11,6 +11,7 @@ import { shuffledCopy } from './parts'
 import { useMusic } from './store'
 import { AlbumCard, ArtistCard, ListCard, PageShape } from './ui'
 import { VirtualRows } from './Virtual'
+import { useSubBar } from '../../shell/useSubBar'
 import { num, t, tk, tn, tx } from '../../i18n'
 
 // Your library: playlists, artists or albums as a grid, picked with chips and sorted. The
@@ -27,6 +28,8 @@ const SORTS: Record<Kind, [string, string][]> = {
 }
 
 export default function MusicLibraryView({ lib }: { lib: Library }) {
+  const libBar = useRef<HTMLDivElement>(null)
+  useSubBar(libBar)
   const [params, setParams] = useSearchParams()
   const audio = useAudio()
   const old = params.get('tab')
@@ -78,7 +81,7 @@ export default function MusicLibraryView({ lib }: { lib: Library }) {
         <span className="mus-grow" />
         <ScanButton lib={lib} />
       </div>
-      <div className="mus-lib-bar">
+      <div className="mus-lib-bar" ref={libBar}>
         <div className="mus-chips" role="group" aria-label={t('Show')}>
           {chips.map(([k, l], i) => <button key={k} type="button" data-tv-first={i === 0 || undefined} className={'mus-chip' + (kind === k ? ' on' : '')} aria-pressed={kind === k} onClick={() => choose('show', k)}>{l}</button>)}
         </div>

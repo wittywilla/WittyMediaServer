@@ -163,13 +163,17 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
   // Home never shows the word "Home" over its own picture: with a featured picture anywhere on it (even below a
   // "Finish setting up" notice) the page's name is for screen readers only. A look whose Home has no picture keeps it.
   const homeWithPicture = doc.page.kind === 'home' && model.root.children.some((c) => c.type === 'Hero')
+  const title = model.root.label || tx(doc.page.title)
+  // A page whose first row says the page's name (Photos with one library, "Photos") shows that row's heading only:
+  // the same word twice, one above the other, reads as a mistake.
+  const sameWords = (a?: string, b?: string) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase()
   const ownHeading = !first || homeWithPicture || first.type === 'Hero' || first.type === 'DetailHeader' || first.type === 'NativeView' || (first.type === 'Text' && first.role === 'heading 1')
+    || ((first.type === 'Shelf' || first.type === 'Grid') && sameWords(first.label, title))
   const style = {
     '--sdui-gap': px(sectionGap(l), pt), '--section-gap': px(sectionGap(l), pt), '--sdui-pt': String(pt),
     '--sdui-xs': px(l.spacing.xs || 4, pt), '--sdui-s': px(l.spacing.s || 8, pt), '--sdui-m': px(l.spacing.m || 16, pt), '--sdui-l': px(l.spacing.l || 24, pt), '--sdui-xl': px(l.spacing.xl || 48, pt),
     ...scopeStyle(doc.theme), ...scopeStyle(doc.root),
   } as CSSProperties
-  const title = model.root.label || tx(doc.page.title)
   return (
     <Ctx.Provider value={ctx}>
       <PressContext.Provider value={press}>

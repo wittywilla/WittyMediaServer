@@ -40,7 +40,9 @@ PY
 chmod -R a+rX "$games"
 
 hard=(--read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true)
-docker run -d --name "$name" "${hard[@]}" -p 127.0.0.1::9797 -v "$vol":/config -v "$games":/media/games:ro \
+# DOCKER_ARGS: more for docker run, such as --cpus=1 --memory=1g for a small NAS.
+# shellcheck disable=SC2086
+docker run -d ${DOCKER_ARGS:-} --name "$name" "${hard[@]}" -p 127.0.0.1::9797 -v "$vol":/config -v "$games":/media/games:ro \
   -e WMS_UPDATE_KEY="$(cat "$CAT/test-key.pub")" -e WMS_MODULE_CATALOG=http://127.0.0.1:8099/catalog.json "$IMG" >/dev/null || { bad "it didn't start"; exit 1; }
 # The catalogue, served on the container's own loopback address, the only one a test build reads from.
 docker pull -q busybox:1.37 >/dev/null
@@ -89,12 +91,14 @@ done
 
 for pair in $ids; do
   id=${pair%%:*}; ext=${pair##*:}
+  t0=$(date +%s%3N)
   r=$(curl -s -m 120 -H "$H" -H 'Content-Type: application/json' -d '{"client":"browser"}' "$P/games/$id/play")
+  started=$(($(date +%s%3N) - t0))
   sid=$(python3 -c 'import json,sys;print(json.load(sys.stdin).get("id",""))' <<<"$r" 2>/dev/null)
   if [ -z "$sid" ]; then bad "$ext: it didn't start: $r"; continue; fi
   modes=$(python3 -c 'import json,sys;print(",".join(m["id"] for m in json.load(sys.stdin).get("modes",[])))' <<<"$r")
   # On Docker's own network WebRTC can't get through, so it mustn't be offered first.
-  case $modes in webrtc*) bad "$ext: WebRTC offered behind Docker's network ($modes)";; *) ok "$ext: modes $modes";; esac
+  case $modes in webrtc*) bad "$ext: WebRTC offered behind Docker's network ($modes)";; *) ok "$ext: started in $started ms, modes $modes";; esac
   for kind in h264 jpeg; do
     got=$(node scripts/test/stream-frames.mjs "ws://127.0.0.1:$port/api/modules/wittyplay/play/$sid/stream?token=$tok" "$kind" 8000)
     n=$(sed -n 's/^pictures \([0-9]*\).*/\1/p' <<<"$got")

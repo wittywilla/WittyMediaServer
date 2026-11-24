@@ -473,6 +473,10 @@ jobs:
           docker build -t wittymediaserver:games --build-arg GOTAGS=updatetest --build-arg VERSION="$version" .
       - name: Play two games in it
         run: scripts/test/docker-games.sh wittymediaserver:games "$RUNNER_TEMP/catalog"
+      - name: The same on one processor and 1 GB, as a small NAS
+        env:
+          DOCKER_ARGS: --cpus=1 --memory=1g
+        run: scripts/test/docker-games.sh wittymediaserver:games "$RUNNER_TEMP/catalog"
 
   # One place to look: what each platform did, and a failure when any did not build.
   summary:

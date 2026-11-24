@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 // Watches a WittyPlay game over its WebSocket (stream version 2) for a while and says how many
-// pictures and sounds came: `pictures N sounds N`, or `error: why`.
+// pictures and sounds came, and how soon the first picture did:
+// `pictures N sounds N, the first after N ms`, or `error: why`.
 //   node scripts/test/stream-frames.mjs <ws url with ?token=> <h264|jpeg> <milliseconds>
 const [url, video = 'jpeg', ms = '8000'] = process.argv.slice(2)
 const MSG_JPEG = 2, MSG_PCM = 3, MSG_VIDEO = 0x11, MSG_OPUS = 0x12
-let pictures = 0, sounds = 0, said = ''
+let pictures = 0, sounds = 0, said = '', first = 0
+const began = Date.now()
 const ws = new WebSocket(url)
 ws.binaryType = 'arraybuffer'
 const done = (why) => {
-  console.log(why || `pictures ${pictures} sounds ${sounds}`)
+  console.log(why || `pictures ${pictures} sounds ${sounds}, the first after ${first} ms`)
   try { ws.close() } catch { /* gone already */ }
   process.exit(0)
 }
@@ -25,7 +27,7 @@ ws.onmessage = (m) => {
     return
   }
   const kind = new Uint8Array(m.data)[0]
-  if (kind === MSG_JPEG || kind === MSG_VIDEO) pictures++
+  if (kind === MSG_JPEG || kind === MSG_VIDEO) { if (!pictures++) first = Date.now() - began }
   else if (kind === MSG_PCM || kind === MSG_OPUS) sounds++
 }
 ws.onerror = (e) => { clearTimeout(timer); done(`error: the connection failed${e?.message ? `: ${e.message}` : ''}`) }

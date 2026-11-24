@@ -17,7 +17,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## 0.8.3-alpha
 
-Released 2026-11-23.
+Released 2026-11-24.
 
 **Connecting another device (#605)**
 
@@ -54,7 +54,7 @@ Released 2026-11-23.
 - **A module's helper that stops is started properly again (#596),** and why it stopped reaches the log.
 - **A 4K screen's backdrop is the 2560-wide copy, not the original (#598),** so it loads faster.
 
-**Modules in this release:** WittyPlay 0.7.14, WittyStats 0.3.1, and updated dependencies in WittyPhotos 0.5.4,
+**Modules in this release:** WittyPlay 0.7.14, WittyStats 0.3.1, and updated dependencies in WittyPhotos 0.5.5,
 WittyPDF 0.4.4, WittyCD 0.3.4, WittyRigs 0.4.3, WittyCouch 0.4.4, WittyBluray 0.5.3, WittyDVD 0.5.3,
 WittyIntegratedFileBrowser 0.4.3 and WittyDisc 0.3.6.
 
@@ -67,6 +67,7 @@ Android app is now signed with one permanent key, so later versions install over
 - docs/GAMING-STREAM.md: nothing is sent before a game stream's hello (#607).
 - CI: jobs side by side, caches from master only, known.json checked, flaky tests fixed (#616).
 - Updated dependencies from dependabot (#625).
+- gorilla/websocket moves to its fixed commit for GO-2026-6278 (a weak random mask key).
 - `scripts/set-tag-rules.sh` covers WittyRelay (#626); docs/PUBLISHING.md lists every repository that needs
   `SITE_BUILD_TOKEN` (#619).
 

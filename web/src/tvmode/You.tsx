@@ -15,6 +15,7 @@ import { settingsPageHidden } from '../profileWords'
 import { AUTO_THEME, deviceTheme, type ThemeMeta } from '../theme'
 import { setTvMode } from './mode'
 import { useSwitchProfile } from '../shell/SwitchProfile'
+import { withParentPin } from '../shell/ParentPin'
 import { tvScreenFor } from './levelTable'
 import { tvElsewhere } from './OnAComputer'
 
@@ -49,7 +50,10 @@ export default function You() {
   const games = libraries.some((l) => l.type === 'games')
   const shown = profileName(user)
   const role = admin ? t('Administrator') : user.kind === 'kids' ? t('Kids') : user.kind === 'guest' ? t('Guest') : t('Adult')
-  const signOut = async () => { try { await api.post('/logout') } catch { /* signed out here all the same */ } nav('/', { replace: true }); setUser(null) }
+  const signOut = async () => {
+    try { if ((await withParentPin((pin) => api.post('/logout', pin ? { pin } : {}))).cancelled) return } catch { /* signed out here all the same */ }
+    nav('/', { replace: true }); setUser(null)
+  }
   const leave = () => { setTvMode(false); nav('/', { replace: true }) }
   const sw = useSwitchProfile()
 

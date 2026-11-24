@@ -113,7 +113,7 @@ export function parentPinSpec(o: { isSet: boolean; pin: string; current: string;
   const actions: SpecPageData['actions'] = [{ id: 'save', title: o.isSet ? t('Change PIN') : t('Set PIN'), kind: 'primary', disabled: !ready || o.busy }]
   if (o.isSet) actions.push({ id: 'remove', title: t('Remove it'), kind: 'secondary', disabled: o.busy || !o.current })
   const lead = o.isSet
-    ? t('When a profile’s screen time runs out, a parent can type this PIN on that device to give it more time today. It does nothing else, so it can be short. A PIN is set.')
-    : t('When a profile’s screen time runs out, a parent can type this PIN on that device to give it more time today. It does nothing else, so it can be short. No PIN is set: a parent’s own username and password work instead.')
+    ? t('A parent types this PIN on a child’s device to give more time, to change that profile’s screen time, or to leave a kids’ profile that stays on its device. Keep it from the children. A PIN is set.')
+    : t('A parent types this PIN on a child’s device to give more time, to change that profile’s screen time, or to leave a kids’ profile that stays on its device. No PIN is set: a parent’s own username and password give more time instead, and kids’ profiles can be left freely.')
   return mk('profiles', t('Settings · People'), t('Parents’ PIN'), lead, [secF('', fields)], actions)
 }

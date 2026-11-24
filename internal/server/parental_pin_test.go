@@ -241,8 +241,8 @@ func TestNewKidsProfilesStartKidSafe(t *testing.T) {
 	}
 	a := accessFor(u)
 	if !a.PinToLeave || a.TunerChannels || a.Time.Empty() || a.Can(library.FeatureRemote) || a.Can(library.FeatureDownloads) ||
-		a.Can(library.FeatureSharing) || a.Can(library.FeatureRecordings) || a.Kinds["music"].MaxAge != 12 || !a.Kinds["music"].AllowUnrated ||
-		a.Kinds["game"].MaxAge != 7 || a.Kinds["book"].AllowUnrated {
+		a.Can(library.FeatureSharing) || a.Can(library.FeatureRecordings) || a.Kinds["music"].MaxAge != 16 || !a.Kinds["music"].AllowUnrated ||
+		a.MaxAge != 7 || a.AllowUnrated {
 		t.Fatalf("not kid-safe: %+v", a)
 	}
 	// Explicit songs are kept from it; songs with no rating aren't.

@@ -28,6 +28,7 @@ import { KeyHelp } from './ui/KeyHelp'
 import { ShellEditorHost } from './pages/ShellEditor'
 import { AskHost } from './ui/Overlay'
 import ScreenTimeWatch from './shell/ScreenTime'
+import { ParentLimitsHost, ParentPinHost } from './shell/ParentPin'
 import { loadUserPrefs, useUserPref } from './ui/userPrefs'
 import { syncTilt } from './ui/tilt'
 import { Sidebar } from './shell/Sidebar'
@@ -92,6 +93,8 @@ export default function App() {
       <ToastHost />
       <ScreenTimeWatch />
       <AskHost />
+      <ParentPinHost />
+      <ParentLimitsHost />
       <KeyHelp />
       <ShellEditorHost />
       <Announcer />

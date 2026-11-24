@@ -7,7 +7,7 @@ import { Button } from '../../ui/Button'
 import SpecPage from '../../spec/SpecPage'
 import { handledIds } from '../../spec/model'
 import { allowanceSpec, collectionRulesSpec, featuresSpec, KIND_LABEL as KIND_LABELS, kindLimitsSpec, parentPinSpec } from '../../spec/specs/profiles'
-import { Field, Input } from '../../ui/Field'
+import { Field, Input, Select } from '../../ui/Field'
 import { ask, Dialog } from '../../ui/Overlay'
 import { AVATAR_COLOUR_NAMES, AVATAR_NAMES, AvatarShape, avatarColourOf, avatarLabel, parseAvatar } from '../../ui/avatars'
 import { date, t, tk, tn, tx } from '../../i18n'
@@ -239,6 +239,34 @@ export function ActivityDialog({ user, onClose }: { user: UserView; onClose: () 
 }
 
 // The parents' PIN: what a parent types on a child's device to give more time.
+// Whose certificates titles keep. Boards in different countries use the same letters for different ages (an
+// Australian M is 15, a New Zealand one 16), so this also says how a rating with no country is read. Changing it
+// works out the age of every title again on the server, in the background.
+export function RatingCountry() {
+  const lists = useParentalLists()
+  const [country, setCountry] = useState('')
+  useEffect(() => { if (lists?.country) setCountry(lists.country) }, [lists?.country])
+  if (!lists?.countries?.length) return null
+  const change = async (code: string) => {
+    const was = country
+    setCountry(code)
+    try {
+      await api.put('/settings', { ratingCountry: code })
+      lists.country = code
+      toast(t('Ratings are read as {country}’s now', { country: lists.countries?.find((c) => c.code === code)?.name || code }), { tone: 'ok' })
+    } catch (e) { setCountry(was); toast((e as Error).message, { tone: 'danger' }) }
+  }
+  return (
+    <div className="panel" id="rating-country">
+      <h2>{t('Ratings country')}</h2>
+      <p className="muted">{t('Titles keep this country’s age rating when it has one, and the US rating when it doesn’t. Age limits go by it.')}</p>
+      <Field label={t('Country')}>
+        <Select value={country} onChange={(e) => void change(e.target.value)} options={lists.countries.map((c) => ({ value: c.code, label: c.name }))} />
+      </Field>
+    </div>
+  )
+}
+
 export function ParentPin() {
   const { user } = useApp()
   const [isSet, setIsSet] = useState<boolean | null>(null)

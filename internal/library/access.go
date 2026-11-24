@@ -204,13 +204,9 @@ func NewProfileAccess(kind string) Access {
 	if kind != "kids" {
 		return a
 	}
-	a.Kinds = map[string]KindLimit{
-		parental.KindFilm:  {MaxAge: 7},
-		parental.KindTV:    {MaxAge: 7},
-		parental.KindGame:  {MaxAge: 7},
-		parental.KindBook:  {MaxAge: 7},
-		parental.KindMusic: {MaxAge: 12, AllowUnrated: true},
-	}
+	// Music has a limit of its own: most songs have no rating, and the one rating songs carry
+	// is the explicit label (17). Everything else follows the age chosen for the profile.
+	a.Kinds = map[string]KindLimit{parental.KindMusic: {MaxAge: 16, AllowUnrated: true}}
 	a.TunerChannels = false
 	a.Off = []string{FeatureRecordings, FeatureDownloads, FeatureSharing, FeatureComments, FeatureSyncplay, FeatureRemoteControl, FeatureRemote}
 	a.Time = &parental.TimeRules{SchoolDayMinutes: 120, WeekendMinutes: 180, From: "07:00", SchoolNightUntil: "19:30", WeekendUntil: "20:30"}

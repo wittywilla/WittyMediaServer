@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { NavLink, useNavigate } from 'react-router-dom'
 import { api, cornerName, profileName } from '../api'
-import { IconDevices, IconDownload, IconFull, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
+import { IconDevices, IconDownload, IconFull, IconGamepad, IconHelp, IconLock, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
 import { Avatar } from '../pages/AuthPage'
 import { UpdateDot } from '../components/common'
 import { useApp } from '../state'
@@ -11,13 +11,18 @@ import { setTvMode } from '../tvmode/mode'
 import { openPlayOn, openWatchParty } from '../remote/RemoteHost'
 import { useRemoteAllowed } from '../remote/allowed'
 import { useSwitchProfile } from './SwitchProfile'
+import { openParentLimits, withParentPin } from './ParentPin'
 import { t } from '../i18n'
 
 // Signing out: back to "Who's watching?". Switching profile without signing out is SwitchProfile.
 export function useSignOut() {
   const { setUser } = useApp()
   const nav = useNavigate()
-  return async () => { try { await api.post('/logout') } catch { /* ignore */ } nav('/', { replace: true }); setUser(null) }
+  return async () => {
+    // A kids' profile kept on this device is left with the parents' PIN (shell/ParentPin.tsx).
+    try { if ((await withParentPin((pin) => api.post('/logout', pin ? { pin } : {}))).cancelled) return } catch { /* signed out here all the same */ }
+    nav('/', { replace: true }); setUser(null)
+  }
 }
 
 // What the account menu holds, in the top bar's corner.
@@ -38,6 +43,8 @@ function useAccount() {
     { key: 'tvmode', label: t('TV mode'), icon: <IconFull />, onSelect: () => { setTvMode(true); nav('/') } },
     ...(libraries.some((l) => l.type === 'games') ? [{ key: 'pads', label: t('Controllers'), icon: <IconGamepad />, to: '/controllers' }] : []),
     { key: 'settings', label: <>{t('Settings')}<UpdateDot /></>, text: t('Settings'), icon: <IconSettings />, to: '/settings' },
+    // A Kids or Guest profile's screen time and age, changed here by a parent with the parents' PIN.
+    ...(user && !user.isAdmin && user.kind !== 'adult' ? [{ key: 'parentlimits', label: t('Limits, for a parent'), icon: <IconLock />, onSelect: openParentLimits }] : []),
     // Admins only: a newer version of the server, and the way to it.
     ...(update && user?.isAdmin ? [{ key: 'update', label: t('Update available: {version}', { version: update }), icon: <IconDownload />, to: '/settings/about#updates' }] : []),
     { key: 'help', label: t('Help'), icon: <IconHelp />, to: '/help' },

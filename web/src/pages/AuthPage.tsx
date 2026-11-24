@@ -14,6 +14,7 @@ import { useApp } from '../state'
 import { avatarColor } from '../ui/avatarColor'
 import { AvatarShape, parseAvatar } from '../ui/avatars'
 import { useTvMode } from '../tvmode/mode'
+import { withParentPin } from '../shell/ParentPin'
 import { t } from '../i18n'
 
 type Profile = { id: number; name: string; displayName?: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; avatar?: string }
@@ -31,9 +32,11 @@ export default function AuthPage() {
     if (p.hasPassword) { setChosen(p); return }
     setTapErr('')
     try {
-      const r = await api.post<{ token: string; user: User }>('/login', { name: p.name, password: '', device: navigator.userAgent.slice(0, 80) })
-      setToken(r.token)
-      setUser(r.user)
+      // On a device a kids' profile is kept on, a profile with no password takes the parents' PIN.
+      const out = await withParentPin((pin) => api.post<{ token: string; user: User }>('/login', { name: p.name, password: '', parentPin: pin, device: navigator.userAgent.slice(0, 80) }))
+      if (out.cancelled) return
+      setToken(out.value.token)
+      setUser(out.value.user)
     } catch (e: any) { setTapErr(e.message) }
   }
   const [profiles, setProfiles] = useState<Profile[] | null>(null)

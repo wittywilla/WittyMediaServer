@@ -243,7 +243,7 @@ until_ok 15 "the public relay's address" grep -q quic-v1 "$SMOKE_OUT/public-rela
 PRELAY=$(grep -m1 quic-v1 "$SMOKE_OUT/public-relay.txt")
 mkdir -p "$SMOKE_OUT/homelab"; chown "$RUNAS" "$SMOKE_OUT/homelab"
 # As the image runs it: WMS_DOCKER says it's a container, WMS_P2P_PORT is the port compose files publish.
-asuser sm-dc env WMS_NO_BROWSER=1 WMS_DOCKER=1 WMS_P2P_PORT=$P2P2 "$build/bin/wittymediaserver" serve -data "$SMOKE_OUT/homelab" -listen "0.0.0.0:$WEB2" \
+asuser sm-dc env WMS_NO_BROWSER=1 WMS_DOCKER=1 WMS_P2P_PORT=$P2P2 WMS_FFMPEG="$(command -v ffmpeg)" "$build/bin/wittymediaserver" serve -data "$SMOKE_OUT/homelab" -listen "0.0.0.0:$WEB2" \
   -open-browser=false </dev/null >"$SMOKE_OUT/homelab.log" 2>&1 &
 S2=http://127.0.0.1:$WEB2
 hapi() { ns sm-dc curl -sS -m 30 -X "$1" -H "Authorization: Bearer ${TOK2:-}" -H 'Content-Type: application/json' ${3:+--data "$3"} "$S2$2"; }

@@ -56,6 +56,10 @@ func newHealthFixture(t *testing.T) *healthFixture {
 	film("Harbour.1080.mkv", "Harbour Lights", 2001, "tmdb", "42", 1080, "matroska", "cache:a.jpg", 0)
 	film("Harbour.2160.mkv", "Harbour Lights", 2001, "tmdb", "42", 2160, "matroska", "cache:b.jpg", 0)
 	film("Treeline.mkv", "The Treeline", 1999, "tmdb", "7", 1080, "matroska", "cache:c.jpg", 0)
+	// A copy with no match beside one matched by its NFO: the same film.
+	film("Treeline.copy.mkv", "The Treeline", 1999, "", "", 720, "matroska", "cache:g.jpg", 0)
+	// The same name and year, matched to another film: not a copy.
+	film("Treeline.other.mkv", "The Treeline", 1999, "tmdb", "77", 1080, "matroska", "cache:h.jpg", 0)
 	// Gone, and removed on purpose (which isn't a problem: Fix matches has it).
 	film("Gone.mkv", "Gone Film", 2003, "tmdb", "8", 1080, "matroska", "cache:d.jpg", 1)
 	film("Removed.mkv", "Removed Film", 2004, "tmdb", "9", 1080, "matroska", "cache:e.jpg", 1)
@@ -109,26 +113,33 @@ func TestHealthFindsEachKind(t *testing.T) {
 		t.Errorf("missing: %+v", secs[HealthMissing])
 	}
 
-	// The same list as Fix matches, No match: the loose file in the shows library is there too.
-	if u := rowIDs(secs[HealthUnmatched]); len(u) != 2 || u[f.ids["Some.Film.2010.1080p.WEB-DL.x264-GRP.mkv"]].Key == "" || u[f.ids["loose.mkv"]].Key == "" {
+	// The same list as Fix matches, No match: the loose file in the shows library and the copy
+	// with no match are there too.
+	if u := rowIDs(secs[HealthUnmatched]); len(u) != 3 || u[f.ids["Some.Film.2010.1080p.WEB-DL.x264-GRP.mkv"]].Key == "" || u[f.ids["loose.mkv"]].Key == "" {
 		t.Errorf("unmatched: %+v", secs[HealthUnmatched])
 	}
 
 	dups := secs[HealthDuplicates]
-	if dups.Count != 2 {
+	if dups.Count != 3 {
 		t.Fatalf("duplicates: %+v", dups)
 	}
-	var films, eps *HealthRow
+	var films, tree, eps *HealthRow
 	for i, r := range dups.Rows {
 		switch {
-		case strings.HasPrefix(r.Key, "duplicates:films:"):
+		case strings.HasPrefix(r.Key, "duplicates:films:") && r.Title == "Harbour Lights":
 			films = &dups.Rows[i]
+		case strings.HasPrefix(r.Key, "duplicates:films:"):
+			tree = &dups.Rows[i]
 		case strings.HasPrefix(r.Key, "duplicates:episode:"):
 			eps = &dups.Rows[i]
 		}
 	}
 	if films == nil || len(films.Members) != 2 || films.Members[0].Height != 2160 || films.ID != f.ids["Harbour.2160.mkv"] {
 		t.Errorf("the better copy comes first: %+v", films)
+	}
+	// The copy with no match joins the matched one; the film matched to another title stays apart.
+	if tree == nil || len(tree.Members) != 2 || tree.ID != f.ids["Treeline.mkv"] || tree.Members[1].ID != f.ids["Treeline.copy.mkv"] {
+		t.Errorf("the copy with no match: %+v", tree)
 	}
 	if eps == nil || len(eps.Members) != 2 {
 		t.Errorf("episodes: %+v", eps)
@@ -164,7 +175,7 @@ func TestHealthFiltersAndSetsAside(t *testing.T) {
 	}
 	key := secs[HealthDuplicates].Rows[0].Key
 	secs = f.sectionsOf(HealthOptions{SetAside: map[string]bool{key: true}, Limit: 1})
-	if secs[HealthDuplicates].Count != 1 || secs[HealthDuplicates].Rows[0].Key == key {
+	if secs[HealthDuplicates].Count != 2 || secs[HealthDuplicates].Rows[0].Key == key {
 		t.Fatalf("set aside: %+v", secs[HealthDuplicates])
 	}
 	if len(secs[HealthNames].Rows) != 1 || secs[HealthNames].Count != 3 {
@@ -194,7 +205,7 @@ func TestHealthMakeVersions(t *testing.T) {
 	if l := f.s.Store.LinkOf(f.ctx, other); l == nil || l.Link != LinkVersion {
 		t.Fatalf("link: %+v", l)
 	}
-	if secs := f.sectionsOf(HealthOptions{}); secs[HealthDuplicates].Count != 1 {
+	if secs := f.sectionsOf(HealthOptions{}); secs[HealthDuplicates].Count != 2 {
 		t.Fatalf("still a duplicate: %+v", secs[HealthDuplicates])
 	}
 }

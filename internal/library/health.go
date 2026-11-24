@@ -368,23 +368,59 @@ func (h *healthRun) duplicates() ([]HealthRow, error) {
 	if err != nil {
 		return nil, err
 	}
-	groups := map[string][]film{}
-	var order []string
-	for _, f := range films {
-		k := ""
+	// Copies are the same match, or the same title and year where one of them has no match
+	// (a copy the NFO matched beside one that found nothing). Two films matched to different
+	// titles are never the same, whatever they're called. Only with a year: remakes share names.
+	parent := make([]int, len(films))
+	for i := range parent {
+		parent[i] = i
+	}
+	var find func(int) int
+	find = func(i int) int {
+		if parent[i] != i {
+			parent[i] = find(parent[i])
+		}
+		return parent[i]
+	}
+	match := make([]string, len(films)) // a group's match, kept on its root
+	join := func(a, b int) {
+		ra, rb := find(a), find(b)
+		if ra == rb || (match[ra] != "" && match[rb] != "" && match[ra] != match[rb]) {
+			return
+		}
+		parent[ra] = rb
+		if match[rb] == "" {
+			match[rb] = match[ra]
+		}
+	}
+	byMatch, byName := map[string]int{}, map[string][]int{}
+	for i, f := range films {
+		lib := strconv.FormatInt(f.lib, 10) + "\x00"
 		if f.provider != "" && f.pi != "" {
-			k = "p\x00" + f.provider + "\x00" + f.pi
-		} else if t := strings.ToLower(strings.TrimSpace(f.title)); t != "" && f.year != nil {
-			k = fmt.Sprintf("t\x00%s\x00%d", t, *f.year) // only with a year: remakes share names
+			k := lib + f.provider + "\x00" + f.pi
+			match[i] = k
+			if j, ok := byMatch[k]; ok {
+				join(i, j)
+			} else {
+				byMatch[k] = i
+			}
 		}
-		if k == "" {
-			continue
+		if t := strings.ToLower(strings.TrimSpace(f.title)); t != "" && f.year != nil {
+			k := fmt.Sprintf("%s%s\x00%d", lib, t, *f.year)
+			for _, j := range byName[k] {
+				join(i, j)
+			}
+			byName[k] = append(byName[k], i)
 		}
-		k = strconv.FormatInt(f.lib, 10) + "\x00" + k
-		if groups[k] == nil {
-			order = append(order, k)
+	}
+	groups := map[int][]film{}
+	var order []int
+	for i, f := range films {
+		r := find(i)
+		if groups[r] == nil {
+			order = append(order, r)
 		}
-		groups[k] = append(groups[k], f)
+		groups[r] = append(groups[r], f)
 	}
 	var out []HealthRow
 	for _, k := range order {

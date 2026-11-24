@@ -114,6 +114,19 @@ await step('Sign in', async (log) => {
   log('signed in')
 })
 
+// Settings, Library health: every section is there, and the NFO check runs and finishes.
+await step('Library health', async (log) => {
+  const h = await api('/api/health/library')
+  if ((h.sections || []).length !== 7) throw new Error('the report: ' + JSON.stringify(h).slice(0, 300))
+  log(h.sections.map((s) => `${s.id} ${s.count}`).join(', '))
+  await p.go(server + '/settings/health')
+  await p.until(`/Library health/.test(document.querySelector('h1')?.textContent || '') && /Possible duplicates/.test(document.body.innerText)`, 20000, 'the Library health page')
+  await click('^\\s*Check NFO files')
+  await p.until(`/Checked /.test(document.body.innerText)`, 90000, 'the NFO check to finish')
+  const crash = await p.eval(`document.body.innerText.match(/Something went wrong/i)?.[0] || ''`)
+  if (crash) throw new Error('the page shows: ' + crash)
+})
+
 await step('Play the film', async (log) => {
   const items = await api(`/api/items?library=${lib('movies').id}`)
   const film = (items.items || items)[0]

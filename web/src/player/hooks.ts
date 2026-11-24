@@ -93,6 +93,12 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
         let gone = 0
         let mediaErrors = 0
         hls.on(Hls.Events.FRAG_LOADED, () => { gone = 0 })
+        // A live channel changes picture size and encoding at every programme, bumper and
+        // commercial (a discontinuity): an error appending the first part of one is about that
+        // change, so each gets its own tries, however close together they come. A stream this
+        // browser can't decode still fails at once within one.
+        let cc = -1
+        hls.on(Hls.Events.FRAG_LOADING, (_e, d) => { if (d.frag.cc !== cc) { cc = d.frag.cc; mediaErrors = 0 } })
         // Media errors count until the picture has played on for a while: a stream this browser
         // really can't decode fails again at once, while a hiccup around a seek, an hour into a
         // film, mustn't add to one from long before and end playback.

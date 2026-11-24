@@ -243,7 +243,8 @@ export default function TvPlayer() {
     if (!v || sched == null) return false
     const now = liveNow()
     const plan = planSeek(target, sched, v.currentTime, win, now, tl?.earliest ?? now - 6 * 3600)
-    if (plan.kind === 'live') { goLive(); return true }
+    // Live on the channel everyone shares: there's no further back to go than its window.
+    if (plan.kind === 'live') { if (!shifted) return false; goLive(); return true }
     if (plan.kind === 'seek') { setLive({ away: true }); v.currentTime = plan.to; return true }
     restartAt(plan.at)
     return true

@@ -18,7 +18,6 @@ import (
 	"compress/gzip"
 	"encoding/binary"
 	"errors"
-	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"hash"
 	"hash/crc32"
 	"io"
@@ -61,14 +60,14 @@ type Error struct {
 func (e *Error) Error() string { return e.Msg }
 
 var (
-	ErrEncrypted   = &Error{"encrypted", i18n.T("This archive is protected by a password, and this server doesn't open those. Unpack it yourself and put what it holds in the folder.")}
-	ErrUnsafe      = &Error{"unsafe", i18n.T("This archive tries to put files outside its own folder, so it was refused.")}
-	ErrTooBig      = &Error{"toobig", i18n.T("This archive unpacks to far more than it should, so it was refused.")}
-	ErrTooMany     = &Error{"toomany", i18n.T("This archive holds too many files to be read, so it was refused.")}
-	ErrDamaged     = &Error{"damaged", i18n.T("This archive is damaged or isn't the kind of file its name says.")}
-	ErrMethod      = &Error{"method", i18n.T("This archive uses a kind of compression this server can't read. Unpack it yourself and put what it holds in the folder.")}
-	ErrNoSpace     = &Error{"nospace", i18n.T("There isn't enough free disk space to unpack this.")}
-	ErrUnavailable = &Error{"unavailable", i18n.T("This archive couldn't be read.")}
+	ErrEncrypted   = &Error{"encrypted", "This archive is protected by a password, and this server doesn't open those. Unpack it yourself and put what it holds in the folder."}
+	ErrUnsafe      = &Error{"unsafe", "This archive tries to put files outside its own folder, so it was refused."}
+	ErrTooBig      = &Error{"toobig", "This archive unpacks to far more than it should, so it was refused."}
+	ErrTooMany     = &Error{"toomany", "This archive holds too many files to be read, so it was refused."}
+	ErrDamaged     = &Error{"damaged", "This archive is damaged or isn't the kind of file its name says."}
+	ErrMethod      = &Error{"method", "This archive uses a kind of compression this server can't read. Unpack it yourself and put what it holds in the folder."}
+	ErrNoSpace     = &Error{"nospace", "There isn't enough free disk space to unpack this."}
+	ErrUnavailable = &Error{"unavailable", "This archive couldn't be read."}
 )
 
 var errorsByCode = map[string]*Error{ErrEncrypted.Code: ErrEncrypted, ErrUnsafe.Code: ErrUnsafe, ErrTooBig.Code: ErrTooBig, ErrTooMany.Code: ErrTooMany,

@@ -26,3 +26,17 @@ file internal/uninstall/
 "HDR Dynamic Metadata SMPTE2094-40 (HDR10+)"
 "Mastering display metadata"
 "Content light level metadata"
+# Packages that are to leave the server (internal/boundaries, docs/plans/module-isolation.md): they may not import the
+# server's i18n, and the generated ones come from the disc modules' own repositories. Their words are marked where
+# they go.
+file internal/dvd/
+file internal/bluray/
+file internal/cd/
+file internal/cdlookup/
+file internal/tuner/
+file internal/zipsafe/
+file internal/hostsandbox/
+file internal/archive/
+file internal/ebook/
+file internal/midi/
+file internal/lyrics/

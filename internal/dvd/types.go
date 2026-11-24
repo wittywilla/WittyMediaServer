@@ -11,7 +11,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"math"
 	"sort"
 	"sync"
@@ -1041,7 +1040,7 @@ func Decode(c Command) Instr {
 			case 6:
 				in.sys, in.sysA = sysSetHLBTNN, src(4, 5)
 			default:
-				return bad(i18n.T("SetSystem operation invalid"))
+				return bad("SetSystem operation invalid")
 			}
 		} else {
 			if setField > 11 {

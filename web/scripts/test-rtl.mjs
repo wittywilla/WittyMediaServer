@@ -154,8 +154,10 @@ const CHECK = `(() => {
 let browser = null
 try {
   const { server, token, call } = process.env.WMS_BIN ? await startServer() : await useServer()
-  // A busy machine (a CI runner, or many builds at once) can take a while to start a browser.
-  browser = await launch({ software: true, width: 1280, height: 800, startMs: 90000 })
+  // A busy machine (a CI runner, or many builds at once) can take a while to start a browser. Ubuntu's runners don't let
+  // Chrome make its sandbox (AppArmor), so there, and only there, it runs without one: it opens nothing but this test's
+  // own server.
+  browser = await launch({ software: true, width: 1280, height: 800, startMs: 90000, args: process.env.CI ? ['--no-sandbox'] : [] })
   const page = await browser.open(server + '/')
   await page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(token)})`)
   const settle = async () => {

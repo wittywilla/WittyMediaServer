@@ -14,8 +14,8 @@
   <Icon>https://raw.githubusercontent.com/wittywilla/WittyMediaServer/master/web/public/icon-512.png</Icon>
   <ExtraParams>--user 99:100 --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true</ExtraParams>
   <Config Name="Web UI" Target="9797" Default="9797" Mode="tcp" Description="The port to open in a browser." Type="Port" Display="always" Required="true" Mask="false">9797</Config>
-  <Config Name="Peer to peer (TCP)" Target="9798" Default="9798" Mode="tcp" Description="For devices away from home (Settings, Remote Access). Forward it on your router too, or use your own WittyRelay." Type="Port" Display="always" Required="false" Mask="false">9798</Config>
-  <Config Name="Peer to peer (UDP)" Target="9798" Default="9798" Mode="udp" Description="The same port, for UDP." Type="Port" Display="always" Required="false" Mask="false">9798</Config>
+  <Config Name="Peer to peer (TCP)" Target="9796" Default="9796" Mode="tcp" Description="For devices away from home (Settings, Remote Access). Forward it on your router too, or use your own WittyRelay." Type="Port" Display="always" Required="false" Mask="false">9796</Config>
+  <Config Name="Peer to peer (UDP)" Target="9796" Default="9796" Mode="udp" Description="The same port, for UDP." Type="Port" Display="always" Required="false" Mask="false">9796</Config>
   <Config Name="Config" Target="/config" Default="/mnt/user/appdata/wittymediaserver" Mode="rw" Description="The database, settings, artwork and logs. Keep it on the cache pool." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/wittymediaserver</Config>
   <Config Name="Media" Target="/media" Default="/mnt/user/Media" Mode="ro" Description="Your media, read-only. Add its folders as libraries in the app." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/Media</Config>
   <Config Name="Intel or AMD graphics" Target="" Default="/dev/dri" Mode="" Description="For hardware transcoding. Remove it on a machine with neither." Type="Device" Display="always" Required="false" Mask="false">/dev/dri</Config>

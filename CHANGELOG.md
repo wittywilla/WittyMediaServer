@@ -3,7 +3,9 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
-## Unreleased
+## 0.8.5-alpha
+
+Not released yet.
 
 **Connecting a phone to a server in Docker (#683)**
 
@@ -11,14 +13,33 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   container's own addresses, which nothing else at home can reach, and apps can't find it on the network. **Connect a
   device** now uses the address its page was opened at: as the address at home, and in the QR code with the code, so
   an app at home that scans it signs in straight away, with no peer-to-peer connection needed.
-- **Peer to peer works from a container.** The image listens for peer-to-peer connections on a fixed port, **9798**
-  (UDP and TCP), and the compose files and NAS guides publish it. Containers made before need the two `9798` lines added
+- **Peer to peer works from a container.** The image listens for peer-to-peer connections on a fixed port, **9796**
+  (UDP and TCP), and the compose files and NAS guides publish it. Containers made before need the two `9796` lines added
   to `ports:` ([Docker](docs/DOCKER.md#devices-away-from-home)). Without them a phone could be added to **Devices that
   may connect** and get no further. Outside a container, set the port with `WMS_P2P_PORT` or `-p2p-port`.
 - **Connect a device says which port to publish** when the server runs in a container and devices away from home
   can't connect yet.
+- **A device isn't shown as connected until it is.** Showing an invite puts a device on **Devices that may connect**,
+  but 0.8.4 then called it "Connected through a relay" though nothing had got through. Until its first request does,
+  it says **Invited — hasn't connected yet**, and when the server knows why not (it reached the server only through a
+  public relay, which carries an invite and nothing more) it says that and what to do.
+- **The QR code carries the owner's own WittyRelay** when there is one, first, ahead of the server's name if they
+  don't both fit: away from home it's often the only way in. QR codes now go up to 412 bytes (version 15); a pairing
+  link stays under 300.
 - **Each device's Remove button is in its own row** under **Devices that may connect**, not below the list beside the
   next heading.
+
+**Games in Docker**
+
+- **Games play in Docker, with WittyPlay 0.7.19.** On a NAS with Docker's usual network, games started but no picture
+  ever arrived: WebRTC could only offer the container's private address, and the WebSocket the player should have
+  fallen back to was refused. The fix is all in WittyPlay, which updates from Settings, Modules on any 0.8 server.
+  [docs/DOCKER.md](docs/DOCKER.md#games) now says which consoles play without a graphics card, how to give games an
+  Intel or AMD card through `/dev/dri`, and how to have WebRTC in Docker (one published UDP port, or the host's
+  network). docker-compose.yml has the UDP port as a commented line.
+- **CI plays games in the image.** `scripts/test/docker-games.sh` runs it locked down with no card, installs WittyPlay
+  from a test catalogue, downloads two real cores and checks both send pictures over the server's port, on amd64 and
+  arm64. The Dockerfile takes `GOTAGS` for that test build.
 
 ## 0.8.4-alpha
 

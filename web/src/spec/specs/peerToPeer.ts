@@ -14,7 +14,9 @@ export const LAYERS: { id: LayerId; label: string; desc: string }[] = [
   { id: 'relay', label: tk('Relays'), desc: tk('Lets a relay introduce an app to this server, and carry the connection when nothing else works. A relay sees addresses and amounts, never what is sent.') },
   { id: 'holePunch', label: tk('Hole punching'), desc: tk('Has the app and this server connect to each other at the same moment, so both routers let the connection through. Needs relays.') },
 ]
-export interface DeviceLine { id: string; user?: string; name: string; platform: string; how: string; created: number; lastSeen: number; connected: boolean; path?: string }
+// pending: the device has never made a request, so it hasn't really connected, whatever else is true (an invite
+// shown through a relay is not a connection). why: what the server knows about why it can't, in a sentence.
+export interface DeviceLine { id: string; user?: string; name: string; platform: string; how: string; created: number; lastSeen: number; connected: boolean; path?: string; pending?: boolean; why?: string }
 const PATH: Record<string, string> = { direct: tk('Connected directly'), relayed: tk('Connected through a relay') }
 
 // Devices that may connect: a row each, with its Remove button in the row (action id remove:<id>), so it can't be
@@ -25,11 +27,19 @@ export function devicesSpec(devices: DeviceLine[], ago: (at?: number) => string)
   else {
     sections.push(secR('', devices.map((d): SpecRow => {
       const vars = { platform: d.platform || t('app'), added: ago(d.created), seen: ago(d.lastSeen), id: d.id.slice(-8) }
-      return {
-        id: 'device:' + d.id, title: d.user ? `${d.name} · ${d.user}` : d.name, value: d.connected ? t(PATH[d.path || 'direct']) : undefined, on: d.connected,
-        sub: d.how === 'invite'
+      const pending = d.pending || !d.lastSeen
+      // Until its first request gets through it is invited, never "connected": showing an invite isn't connecting.
+      const value = pending
+        ? (d.how === 'invite' ? t('Invited — hasn’t connected yet') : t('Hasn’t connected from away yet'))
+        : d.connected ? t(PATH[d.path || 'direct']) : undefined
+      const details = pending
+        ? (d.how === 'invite' ? t('{platform} · invited {added} · ID ending {id}', vars) : t('{platform} · added {added} while signed in · ID ending {id}', vars))
+        : d.how === 'invite'
           ? t('{platform} · added {added} by invite · last connected {seen} · ID ending {id}', vars)
-          : t('{platform} · added {added} while signed in · last connected {seen} · ID ending {id}', vars),
+          : t('{platform} · added {added} while signed in · last connected {seen} · ID ending {id}', vars)
+      return {
+        id: 'device:' + d.id, title: d.user ? `${d.name} · ${d.user}` : d.name, value, on: !pending && d.connected,
+        sub: d.why ? `${details}. ${d.why}` : details,
         actions: [{ id: 'remove:' + d.id, title: t('Remove'), label: t('Remove {name}', { name: d.name }), danger: true }],
       }
     })))

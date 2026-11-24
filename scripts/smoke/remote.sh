@@ -209,7 +209,7 @@ grep -h '"event":"enrol"' "$SMOKE_OUT"/c-stranger-*.out | grep -q '"ok":true' &&
 sapi GET /api/p2p/devices | grep -q stranger && fail "a stranger is on the list"
 
 # ---------------------------------------------------------------- the owner's homelab
-WEB2=9797; P2P2=9798; HOST=192.168.5.50
+WEB2=9797; P2P2=9796; HOST=192.168.5.50
 step "The homelab: a server in a container, only its web port published, a phone on the same network"
 {
   for n in sm-pr sm-hr sm-hl sm-dh sm-dc sm-ph; do ip netns add "$n"; ip -n "$n" link set lo up; done

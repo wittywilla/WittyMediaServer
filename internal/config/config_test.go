@@ -81,8 +81,8 @@ func TestP2PPort(t *testing.T) {
 	if c, err := load(); err != nil || c.P2PPort != 0 {
 		t.Fatalf("%+v %v", c, err)
 	}
-	t.Setenv("WMS_P2P_PORT", "9798")
-	if c, err := load(); err != nil || c.P2PPort != 9798 {
+	t.Setenv("WMS_P2P_PORT", "9796")
+	if c, err := load(); err != nil || c.P2PPort != 9796 {
 		t.Fatalf("%+v %v", c, err)
 	}
 	if c, err := load("-p2p-port", "40000"); err != nil || c.P2PPort != 40000 {

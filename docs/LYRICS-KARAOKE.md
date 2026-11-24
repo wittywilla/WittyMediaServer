@@ -84,11 +84,17 @@ The top row and **Behind the words** step aside when nothing is being done, so t
 
 **Mix** opens a panel (a sheet over the lower half of a phone's screen) with the levels, **Key**, the timing of the words, **Album art beside the words** and the notes about what's playing. M opens it too. On a phone it also has **Words** (**Follow along** or **Read**), **Voice settings**, **Controls** and **Fill the screen**.
 
+![Karaoke with the Mix panel open at the side: Voice, Background Music and Track sliders, Key, the timing of the words and Album art beside the words](images/karaoke-mix.webp)
+*Mix. "Take Me Out to the Ball Game", 1908, public domain.*
+
 **The levels** are three sliders: **Voice** turns the singer down, **Background Music** turns everything else down so the voice stands out, and **Track** turns the whole song down. **Voice off** takes the singer out in one press, **Guide voice** keeps them quietly, and **Reset** puts the sliders back, with the singer out. It plays the server's karaoke version of the song ([below](#karaoke-versions-made-for-you)). While that's being made, the Mix is there but still, and says how far along it is.
 
 **Album art beside the words**, in Mix, puts the album's cover at the side of the lyrics: at their left on a computer or a TV, and above them, smaller, on a phone held upright. It's off until you choose it, it's kept for your account with the music player's other settings, and a song without a cover shows the words alone. **Behind the words** still chooses what fills the screen behind them.
 
 **Voice settings** opens a panel for the singer and the music under them, at the side on a computer or a TV and over the lower half of the screen on a phone. It opens on simple presets: choose the voice closest to the singer's, **Female vocal**, **Mid-range vocal** or **Low vocal**, each **High**, **Medium** or **Low**. They're buttons a remote or a game pad moves along with its arrows. Each one shapes the voice for where it sits: the low cut under the lowest notes that voice sings, a little less warmth and more air for high voices, more presence and evening out for low ones, a touch of doubling and room, and a dip in the music where that voice is. **As recorded** turns everything off.
+
+![Voice settings open at the side, on Presets: Female, Mid-range and Low vocal, each High, Medium or Low, and As recorded](images/karaoke-voice-presets.webp)
+*Voice settings, on Presets. "Take Me Out to the Ball Game", 1908, public domain.*
 
 **Advanced**, beside **Presets**, has every control, starting from the preset chosen:
 
@@ -96,6 +102,9 @@ The top row and **Behind the words** step aside when nothing is being done, so t
 - **Voice dynamics and place:** Compression (evens out loud and quiet lines), Pan, Doubling (a second, slightly late voice).
 - **Voice echo and reverb:** Echo, Echo time, Echo repeats, Reverb, Room size.
 - **Background Music:** Bass, Treble, and Room for the voice, a dip in the music where voices sit.
+
+![Voice settings on Advanced: sliders for the voice's tone, dynamics, echo and reverb, and the music under it](images/karaoke-voice-advanced.webp)
+*Voice settings, Advanced. "Take Me Out to the Ball Game", 1908, public domain.*
 
 Moving one says **Your own settings**, and choosing a voice in **Presets** goes back to a preset. They're heard straight away, kept for your account on that device, and **Reset** turns them all off. On a phone, a tablet or a TV, **Advanced** says where to change them (a computer, or outside TV mode) and the presets work as everywhere else. They work on the karaoke version: with a separated one the voice is a part of its own; with the quick version it's what's left of the song without the music, which is close but not exact.
 

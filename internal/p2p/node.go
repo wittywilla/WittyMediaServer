@@ -25,6 +25,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
+	"github.com/wittywilla/wittymediaserver/pkg/connectsteps"
 )
 
 // Devices is the server's list of devices that may connect.
@@ -136,6 +137,7 @@ type Node struct {
 	registered     chan struct{} // closed once each WittyRelay has been tried once
 	refused        int
 	refusedNote    time.Time
+	tries          *attempts // devices' tries at connecting, for the owner: attempts.go
 }
 
 // StartNode starts the server's node. The feature is on from here on: it
@@ -152,7 +154,7 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	n := &Node{cfg: cfg, log: lg, ctx: ctx, cancel: cancel, started: time.Now(),
 		streams: map[peer.ID]int{}, buckets: map[network.Conn]*bucket{}, temp: map[peer.ID]time.Time{}, paths: map[peer.ID]string{},
-		devicesChanged: make(chan struct{}, 1), registered: make(chan struct{}),
+		devicesChanged: make(chan struct{}, 1), registered: make(chan struct{}), tries: newAttempts(),
 		// An invite's secret is 128 bits, so these are not what keeps guessing
 		// out; they keep strangers from keeping the server busy.
 		enrolAll:  newWindow(60, time.Minute, 1),
@@ -459,6 +461,7 @@ func (n *Node) handleHTTP(s network.Stream) {
 	if n.cfg.DevicesOnly && !known && !n.briefly(p) {
 		n.count.refusedNotListed.Add(1)
 		n.noteRefused(s, "not on the list of devices")
+		n.tries.note(Attempt{Device: p.String(), Kind: "connect", Step: connectsteps.SignIn, Code: "not-listed", Reason: connectsteps.Of("not-listed").Say})
 		_ = s.Reset()
 		return
 	}
@@ -526,6 +529,9 @@ func (n *Node) notePath(p peer.ID, path string) {
 	n.mu.Unlock()
 	switch {
 	case !had:
+		if n.cfg.Devices.Allowed(p.String()) {
+			n.tries.note(Attempt{Device: p.String(), Kind: "connect", OK: true, Path: path})
+		}
 		n.log.Info("peer-to-peer: device connected", "session", ConnSession(p.String()), "device", ShortID(p.String()), "path", path)
 	case was != path:
 		n.count.pathChanges.Add(1)
@@ -556,16 +562,19 @@ func (n *Node) handleEnrol(s network.Stream) {
 	if !n.allowTry(id, addr.IP) {
 		n.count.enrolsRefused.Add(1)
 		n.noteRefused(s, "too many tries at an invite")
+		n.tries.note(refusal(id, "", "invite", "too-many-tries", ""))
 		answer(EnrolResponse{Reason: "too-many-tries", Error: "Too many tries. Wait a minute and try again."})
 		return
 	}
 	n.count.enrols.Add(1)
 	var req EnrolRequest
 	if err := readMessage(s, &req); err != nil || req.V != 1 {
+		n.tries.note(refusal(id, "", "invite", "wrong", ""))
 		answer(EnrolResponse{Reason: "wrong", Error: "That isn't an invite this server understands."})
 		return
 	}
 	if n.cfg.Enrol == nil {
+		n.tries.note(refusal(id, req.Name, "invite", "off", ""))
 		answer(EnrolResponse{Reason: "off", Error: "This server takes no invites."})
 		return
 	}
@@ -575,6 +584,7 @@ func (n *Node) handleEnrol(s network.Stream) {
 	if res.OK {
 		res.Addrs = n.Addrs()
 	}
+	n.noteEnrolled(enrolledFor(id, req, res.OK), req.Name, "invite", res)
 	answer(res)
 }
 
@@ -636,6 +646,9 @@ type DeviceConn struct {
 	Addr    string `json:"addr,omitempty"`
 	Streams int    `json:"streams"`
 	Since   int64  `json:"since"`
+	// Limited: relayed by an ordinary node of the public network, which passes on a few kilobytes (enough to show an
+	// invite) but no requests: the device can't use this server through it, however connected it looks.
+	Limited bool `json:"limited,omitempty"`
 }
 
 // RelayStatus is one relay this node holds a place on.
@@ -745,6 +758,7 @@ func (n *Node) Status() Status {
 		d := DeviceConn{ID: p.String(), Path: "direct", Streams: streams[p], Since: c.Stat().Opened.Unix()}
 		if c.Stat().Limited || isRelayed(c.RemoteMultiaddr()) {
 			d.Path = "relayed"
+			d.Limited = !h.IsCommunityRelay(relayOf(c.RemoteMultiaddr()))
 		} else {
 			d.Addr = ipOf(c.RemoteMultiaddr()).String()
 		}

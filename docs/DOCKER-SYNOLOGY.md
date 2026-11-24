@@ -71,8 +71,8 @@ services:
       - no-new-privileges:true
     ports:
       - "9797:9797"
-      - "9798:9798/tcp" # peer to peer, for devices away from home (Settings → Remote Access)
-      - "9798:9798/udp"
+      - "9796:9796/tcp" # peer to peer, for devices away from home (Settings → Remote Access)
+      - "9796:9796/udp"
     volumes:
       - /volume1/docker/wittymediaserver:/config
       - /volume1/video:/media/video:ro   # <- your media

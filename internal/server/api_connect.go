@@ -4,6 +4,7 @@
 package server
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"encoding/base64"
@@ -159,9 +160,10 @@ func (co *connectOffers) ask(find string) (*connectOffer, []byte) {
 
 const p2pJoinNonceLen = 16
 
-// connectQRMax is what the pages' QR codes hold (versions 1 to 10 at level M:
-// web/src/ui/qr.ts), less a little.
-const connectQRMax = 210
+// connectQRMax is how long a link the QR code holds: version 13 at level M
+// (web/src/ui/qr.ts goes to 15), still easy to read at the page's size. It fits
+// the address at home, the code and one relay of the owner's (#683).
+const connectQRMax = 300
 
 // connectHome is where another device at home can reach this server's web
 // port: the address the page making the code was opened at, when it is one
@@ -224,23 +226,60 @@ func hostHints(ip netip.Addr, port int) []string {
 
 // qrInvite is the same invite, short enough for a QR code: the same server and
 // secret, with the addresses most worth trying first, as many as fit (an app
-// that has none can still look the server up by its ID). Public addresses come
-// first, then the ones this server has on the home network, never a relay's,
-// whose addresses are long. The name is cut last, if even that doesn't fit;
-// the home address and code, which a device at home needs most, go only when
-// nothing else would make it fit (a very long name for the computer).
-func qrInvite(inv p2p.Invite, home []string, max int) string {
-	if link := qrFit(inv, home, max); len(link) <= max || inv.Home == "" {
+// that has none can still look the server up by its ID). A circuit through one
+// of the owner's own relays comes first: from away it is often the only way in,
+// and the public address book is no help to a server behind a router (#683).
+// Then public addresses, then the ones this server has on the home network;
+// never a public relay's circuit, which carries an invite and nothing more. The
+// name is cut last, if even that doesn't fit; the home address and code, which
+// a device at home needs most, go only when nothing else would make it fit (a
+// very long name for the computer).
+func qrInvite(inv p2p.Invite, home []string, own map[string]bool, max int) string {
+	if link := qrFit(inv, home, own, max); len(link) <= max || inv.Home == "" {
 		return link
 	}
 	inv.Home, inv.Code = "", ""
-	return qrFit(inv, home, max)
+	return qrFit(inv, home, own, max)
 }
 
-func qrFit(inv p2p.Invite, home []string, max int) string {
+// circuitRelay is the relay a /p2p-circuit address goes through, by its ID; "" for any other address.
+func circuitRelay(a string) string {
+	before, _, ok := strings.Cut(a, "/p2p-circuit")
+	if !ok {
+		return ""
+	}
+	if i := strings.LastIndex(before, "/p2p/"); i >= 0 {
+		return before[i+len("/p2p/"):]
+	}
+	return ""
+}
+
+// ownRelayIDs are the relays the owner named (their WittyRelays, and relays of their own), by ID.
+func (s *Server) ownRelayIDs(ctx context.Context) map[string]bool {
+	cfg := s.loadP2P(ctx)
+	own := map[string]bool{}
+	addrs := append([]string{}, cfg.StaticRelays...)
+	for _, r := range cfg.OwnRelays {
+		addrs = append(addrs, r.Addr)
+	}
+	for _, a := range addrs {
+		if ai, err := p2p.ParseRelayAddr(a); err == nil {
+			own[ai.ID.String()] = true
+		}
+	}
+	return own
+}
+
+func qrFit(inv p2p.Invite, home []string, own map[string]bool, max int) string {
 	rank := func(a string) int {
 		parts := strings.Split(a, "/")
-		if len(parts) < 3 || strings.Contains(a, "/p2p-circuit") {
+		if r := circuitRelay(a); r != "" {
+			if own[r] {
+				return 0
+			}
+			return -1
+		}
+		if len(parts) < 3 {
 			return -1
 		}
 		ip, err := netip.ParseAddr(parts[2])
@@ -248,35 +287,51 @@ func qrFit(inv p2p.Invite, home []string, max int) string {
 			return -1
 		}
 		if !ip.IsPrivate() {
-			return 0
+			return 1
 		}
 		for _, h := range home {
 			if strings.Contains(h, "//"+ip.String()+":") {
-				return 1
+				return 2
 			}
 		}
-		return 2
+		return 3
 	}
 	var addrs []string
-	for want := 0; want <= 2; want++ {
+	ownCount := 0
+	for want := 0; want <= 3; want++ {
 		for _, a := range inv.Addrs {
 			if rank(a) == want {
 				addrs = append(addrs, a)
+				if want == 0 {
+					ownCount++
+				}
 			}
 		}
 	}
+	// Other addresses go first, then the name (only shown), and the owner's relay circuits last: from away they
+	// may be the only way in.
 	short := inv
-	for n := len(addrs); n >= 0; n-- {
-		short.Addrs = addrs[:n]
-		if link := short.String(); len(link) <= max {
-			return link
+	fit := func(keep int) (string, bool) {
+		for n := len(addrs); n >= keep; n-- {
+			short.Addrs = addrs[:n]
+			if link := short.String(); len(link) <= max {
+				return link, true
+			}
 		}
+		for r := []rune(short.Name); len(r) > 0; r = r[:len(r)-1] {
+			short.Name = string(r[:len(r)-1])
+			if link := short.String(); len(link) <= max {
+				return link, true
+			}
+		}
+		return "", false
 	}
-	for r := []rune(short.Name); len(r) > 0; r = r[:len(r)-1] {
-		short.Name = string(r[:len(r)-1])
-		if link := short.String(); len(link) <= max {
-			return link
-		}
+	if link, ok := fit(min(ownCount, 1)); ok {
+		return link
+	}
+	short.Name = inv.Name
+	if link, ok := fit(0); ok {
+		return link
 	}
 	return short.String()
 }
@@ -449,14 +504,15 @@ func (s *Server) handleConnectOffer(w http.ResponseWriter, r *http.Request) {
 			if bridged {
 				addrs = append(hostHints(homeIP, node.Port()), addrs...)
 			}
-			inv := p2p.Invite{ServerID: node.ID(), Secret: secret, Name: s.ServerName(r.Context()), Addrs: inviteAddrs(addrs)}
+			own := s.ownRelayIDs(r.Context())
+			inv := p2p.Invite{ServerID: node.ID(), Secret: secret, Name: s.ServerName(r.Context()), Addrs: inviteAddrs(addrs, own)}
 			out["link"] = inv.String()
 			// The QR code is scanned by a device in the same room, so it holds the code shown beside it too.
 			qr := inv
 			if clean, err := p2p.CleanJoinCode(code); err == nil && home != "" {
 				qr.Home, qr.Code = home, clean
 			}
-			out["qrLink"] = qrInvite(qr, homes, connectQRMax)
+			out["qrLink"] = qrInvite(qr, homes, own, connectQRMax)
 			away = true
 		} else {
 			s.Log.WarnContext(r.Context(), "a code was made for connecting a device, but no link to go with it", "cat", "p2p", "err", err)

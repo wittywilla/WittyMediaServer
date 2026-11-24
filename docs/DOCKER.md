@@ -21,6 +21,7 @@ WittyMediaServer in a container, on a NAS, a Linux server or Docker Desktop: the
 - [User and group IDs](#user-and-group-ids)
 - [Locked down](#locked-down)
 - [Hardware transcoding](#hardware-transcoding)
+- [Games](#games)
 - [Behind a reverse proxy](#behind-a-reverse-proxy)
 - [Devices away from home](#devices-away-from-home)
 - [Updating and going back](#updating-and-going-back)
@@ -33,14 +34,14 @@ WittyMediaServer in a container, on a NAS, a Linux server or Docker Desktop: the
 
 ```sh
 docker run -d --name wittymediaserver --restart unless-stopped \
-  -p 9797:9797 -p 9798:9798/tcp -p 9798:9798/udp \
+  -p 9797:9797 -p 9796:9796/tcp -p 9796:9796/udp \
   -v wms-config:/config \
   -v /path/to/media:/media:ro \
   ghcr.io/wittywilla/wittymediaserver:alpha
 docker logs wittymediaserver 2>&1 | grep -i "setup code"
 ```
 
-Open `http://<this machine>:9797/`. From another device, setup asks for the code the second line shows. Then add your folders from `/media` as libraries. Port 9798 is for [devices away from home](#devices-away-from-home).
+Open `http://<this machine>:9797/`. From another device, setup asks for the code the second line shows. Then add your folders from `/media` as libraries. Port 9796 is for [devices away from home](#devices-away-from-home).
 
 With Compose, the files in [`deploy/docker`](https://github.com/wittywilla/WittyMediaServer/tree/master/deploy/docker) are ready to copy:
 
@@ -108,7 +109,7 @@ Most settings are in the app. These are the ones a container sets with `environm
 | `WMS_DATA_DIR` | `/config` | The server's own folder |
 | `WMS_TRANSCODE_DIR` | `/config/transcode` | Video while it's being converted |
 | `WMS_LISTEN` | `:9797` | The address and port inside the container. Change the left side of `ports:` instead, as **Settings → Network** says too |
-| `WMS_P2P_PORT` | `9798` | The peer-to-peer port inside the container, UDP and TCP, for [devices away from home](#devices-away-from-home). Publish it with the same number on both sides |
+| `WMS_P2P_PORT` | `9796` | The peer-to-peer port inside the container, UDP and TCP, for [devices away from home](#devices-away-from-home). Publish it with the same number on both sides |
 | `WMS_DOCKER` | `1` | Says it's a container: the server doesn't replace its own files, and its messages talk about compose files |
 | `XDG_CACHE_HOME` | `/config/cache/xdg` | Where graphics drivers keep their caches. Somewhere writable, for any user and a read-only root |
 | `NVIDIA_DRIVER_CAPABILITIES` | `compute,video,utility` | Asks the NVIDIA Container Toolkit for the video encoder as well as the card |
@@ -266,6 +267,45 @@ docker run -d --name wittymediaserver -p 9797:9797 \
 
 That's for Docker running inside WSL. Docker Desktop passes the card with `--gpus all`. For a server on Windows, though, the [Windows installer](INSTALL.md#windows) is simpler and uses every graphics card directly.
 
+## Games
+
+WittyPlay, the games module, runs every game in the container and streams it to the browser or app. It needs nothing extra in Docker: add it in **Settings → Modules**, then the cores in **Settings → Consoles & cores**. The cores are downloaded for the container's processor, amd64 or arm64 (and armv7).
+
+### How the picture gets out
+
+On Docker's usual network the container only knows its own private address, such as `172.17.0.2`, which nothing on your network can reach. So there, games come over the server's own port, 9797, as a WebSocket, with nothing to set up. That works through any NAS, reverse proxy or firewall that lets the web app through.
+
+WebRTC is a little quicker to react, and recovers better from a poor Wi-Fi link. To use it in Docker, either:
+
+- run the container on the host's network (`network_mode: host`, and no `ports:`), or
+- publish one UDP port at the same number inside and out, and tell WittyPlay about it:
+
+  ```yaml
+      ports:
+        - "9797:9797"
+        - "9798:9798/udp"
+  ```
+
+  Then, in **Settings → Consoles & cores → Advanced**, set **UDP port for WebRTC** to `9798` and **Public IP addresses** to the NAS's own address on your network (`192.168.1.20`, say). Both are needed: with only one of them WebRTC still can't get through, and WittyPlay keeps to the WebSocket.
+
+Before WittyPlay 0.7.19 the WebSocket didn't work at all, and in Docker no game showed a picture: the player waited on "Connecting to this device…". Update WittyPlay in **Settings → Modules**.
+
+### Without a graphics card
+
+Most NAS boxes have none that games can use, and most consoles don't need one. Tried in this image with no card, on amd64:
+
+| Plays | Cores |
+|---|---|
+| Yes, on one processor thread or less | NES, SNES, Game Boy, Game Boy Advance, Master System, Mega Drive, PC Engine and the other 8-bit and 16-bit consoles: every core their console offers |
+| Yes, needing a fast processor | Nintendo 64 (Mupen64Plus-Next and ParaLLEl N64 draw with angrylion, on about one core), PlayStation (the software cores, not *Beetle PSX HW* or *SwanStation*), PSP (PPSSPP's software renderer, four or five threads) |
+| No | Nintendo 64 homebrew made with libdragon, which needs a card with Vulkan. Starting one says "This game needs a graphics card with Vulkan on the server to show a picture." GameCube and Wii need a fast processor and play only slowly without a card |
+
+A game that can't run here says why on its start screen, in words, never by hanging.
+
+### Intel and AMD graphics for games
+
+Games use the same device as transcoding. Pass `/dev/dri` in and add its group, as in [Intel and AMD](#intel-and-amd) above: WittyPlay checks for a card when it starts, draws the cores that need one on it, and can encode the stream with it (Quick Sync or VAAPI). An NVIDIA card works as for transcoding, with `NVIDIA_DRIVER_CAPABILITIES=all` in place of the image's own list (`compute,video,utility`), as drawing a game needs the driver's graphics libraries too.
+
 ## Behind a reverse proxy
 
 [`compose.reverse-proxy.yml`](https://github.com/wittywilla/WittyMediaServer/blob/master/deploy/docker/compose.reverse-proxy.yml) runs Caddy beside the server, which gets an HTTPS certificate by itself. The server's port isn't published at all: only Caddy can reach it, on a network of their own, and only Caddy's fixed address is trusted to say who a visitor is (`WMS_TRUSTED_PROXIES`).
@@ -278,13 +318,13 @@ Read [Remote access](REMOTE.md) first: this puts your sign-in page on the intern
 
 **Settings → Remote Access → Connect a device** shows a code and a QR code. At home, scanning the QR code is enough: it holds the address your browser opened the page at, so the app goes straight there. That's the only way an app at home finds a server on Docker's own network, which apps can't discover (below).
 
-Away from home, apps connect peer to peer, through port **9798**, UDP and TCP. The image sets it (`WMS_P2P_PORT`), and the compose files publish it. In a container the server can't ask your router to forward it, so for apps away from home either:
+Away from home, apps connect peer to peer, through port **9796**, UDP and TCP. The image sets it (`WMS_P2P_PORT`), and the compose files publish it. In a container the server can't ask your router to forward it, so for apps away from home either:
 
-- forward port 9798, UDP and TCP, on your router to this machine, or
+- forward port 9796, UDP and TCP, on your router to this machine, or
 - use [your own WittyRelay](P2P.md), or
 - run the container with `network_mode: host`, where the server can ask the router itself (then `ports:` isn't needed).
 
-Publish it with the same number on both sides (`"9798:9798/udp"`): the server tells apps the number it listens on. Containers made before 0.8.5 publish only 9797: add the two `9798` lines to `ports:`. Without them a phone may get as far as being added to **Devices that may connect** and no further.
+Publish it with the same number on both sides (`"9796:9796/udp"`): the server tells apps the number it listens on. Containers made before 0.8.5 publish only 9797: add the two `9796` lines to `ports:`. Without them a phone may get as far as being added to **Devices that may connect** and no further.
 
 ## Updating and going back
 
@@ -312,7 +352,7 @@ The image has a health check: every 30 seconds it asks the server itself, with `
 | The page doesn't load from another device | The NAS's firewall, or another program on port 9797. Change the left side of `ports:` |
 | Hardware encoders all say they can't be used | [Hardware transcoding](#hardware-transcoding); `docker exec wittymediaserver wittymediaserver hardware` says which step |
 | Apps don't list the server under **On your network** | Finding servers uses multicast, which doesn't cross Docker's own network. Scan the QR code from **Connect a device**, type the server's address in the app, or run the container with `network_mode: host` (then `ports:` isn't needed) |
-| A phone is in **Devices that may connect**, "last connected never", and the app says it couldn't reach the server | Port 9798 isn't published, or isn't reachable from where the phone is: [Devices away from home](#devices-away-from-home) |
+| A phone is in **Devices that may connect**, "last connected never", and the app says it couldn't reach the server | Port 9796 isn't published, or isn't reachable from where the phone is: [Devices away from home](#devices-away-from-home) |
 | Media folders are empty in the app | The folder isn't mounted, or the user in `user:` can't read it: see [User and group IDs](#user-and-group-ids). `docker exec wittymediaserver ls -ln /media` shows what the server sees |
 | *read-only file system* in the log | Something wants to write outside `/config` and `/tmp`. With `read_only: true`, `/tmp` must be a `tmpfs`. Anything else is a bug: please report it |
 

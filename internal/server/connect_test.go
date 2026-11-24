@@ -309,18 +309,20 @@ func TestConnectStatusWords(t *testing.T) {
 }
 
 // The link a QR code holds fits it, keeps the server and the secret, and keeps the addresses most worth
-// trying: public first, then this server's own at home, never a relay's or this machine's.
+// trying: a circuit through the owner's own relay first, then public, then this server's own at home; never a
+// public relay's circuit or this machine's. (Checked at 210 bytes, where they have to compete, and at the real 300.)
 func TestQRInviteFits(t *testing.T) {
+	const tight = 210
 	id := "12D3KooWQSZd5NLcWyVkrniKq1MggbNPVhYfcqs6cQP8AXLRVsdW"
 	inv := p2p.Invite{ServerID: id, Secret: "abcdefghijklmnopqrstuv", Name: "The family's media server, downstairs",
 		Addrs: []string{"/ip4/172.17.0.1/tcp/19893", "/ip4/10.255.255.254/udp/19893/quic-v1", "/ip4/192.168.1.20/udp/19893/quic-v1",
 			"/ip4/81.2.69.160/udp/19893/quic-v1", "/ip4/127.0.0.1/tcp/19893", "/ip4/1.2.3.4/tcp/4001/p2p/" + id + "/p2p-circuit"}}
-	if len(inv.String()) <= connectQRMax {
+	if len(inv.String()) <= tight {
 		t.Fatalf("the test needs a link too long for a QR code: %d", len(inv.String()))
 	}
-	link := qrInvite(inv, []string{"http://192.168.1.20:9797"}, connectQRMax)
+	link := qrInvite(inv, []string{"http://192.168.1.20:9797"}, nil, tight)
 	got, err := p2p.ParseInvite(link)
-	if err != nil || len(link) > connectQRMax || got.ServerID != id || got.Secret != inv.Secret {
+	if err != nil || len(link) > tight || got.ServerID != id || got.Secret != inv.Secret {
 		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
 	}
 	if len(got.Addrs) == 0 || got.Addrs[0] != "/ip4/81.2.69.160/udp/19893/quic-v1" {
@@ -329,21 +331,40 @@ func TestQRInviteFits(t *testing.T) {
 	if len(got.Addrs) > 1 && got.Addrs[1] != "/ip4/192.168.1.20/udp/19893/quic-v1" {
 		t.Fatalf("then the one at home: %v", got.Addrs)
 	}
+	for _, a := range got.Addrs {
+		if strings.Contains(a, "p2p-circuit") {
+			t.Fatalf("a public relay's circuit in the QR code: %v", got.Addrs)
+		}
+	}
 	// A short one is left as it is.
 	small := p2p.Invite{ServerID: id, Secret: "abcdefghijklmnopqrstuv", Addrs: []string{"/ip4/192.168.1.20/tcp/19893"}}
-	if qrInvite(small, nil, connectQRMax) != small.String() {
+	if qrInvite(small, nil, nil, connectQRMax) != small.String() {
 		t.Fatal("a link that fits was changed")
 	}
 	// The web address at home and the code stay, addresses going first; a name too long for even that loses them.
 	inv.Home, inv.Code = "http://192.168.1.20:9797", "K7QM2XHD"
-	link = qrInvite(inv, []string{"http://192.168.1.20:9797"}, connectQRMax)
-	if got, err := p2p.ParseInvite(link); err != nil || len(link) > connectQRMax || got.Home != inv.Home || got.Code != inv.Code {
+	link = qrInvite(inv, []string{"http://192.168.1.20:9797"}, nil, tight)
+	if got, err := p2p.ParseInvite(link); err != nil || len(link) > tight || got.Home != inv.Home || got.Code != inv.Code {
 		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
 	}
-	inv.Home = "http://" + strings.Repeat("n", 180) + ".local"
-	link = qrInvite(inv, nil, connectQRMax)
-	if got, err := p2p.ParseInvite(link); err != nil || len(link) > connectQRMax || got.Home != "" || got.Code != "" {
+	long := inv
+	long.Home = "http://" + strings.Repeat("n", 180) + ".local"
+	link = qrInvite(long, nil, nil, tight)
+	if got, err := p2p.ParseInvite(link); err != nil || len(link) > tight || got.Home != "" || got.Code != "" {
 		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
+	}
+	// The owner's own WittyRelay (#683): its circuit comes first and fits beside the address at home and the code, in
+	// the QR code's real 300 bytes; a phone away from home then has the one way in that works.
+	relay := "12D3KooWD8PWB8C8WmfLx4KZELLzAQbUpRQxbVJVHt94e8zKt8qj"
+	ownCircuit := "/ip4/80.0.0.10/udp/4001/quic-v1/p2p/" + relay + "/p2p-circuit"
+	inv.Addrs = append(inv.Addrs, ownCircuit)
+	link = qrInvite(inv, []string{"http://192.168.1.20:9797"}, map[string]bool{relay: true}, connectQRMax)
+	got, err = p2p.ParseInvite(link)
+	if err != nil || len(link) > connectQRMax || len(got.Addrs) == 0 || got.Addrs[0] != ownCircuit || got.Home != inv.Home || got.Code != inv.Code {
+		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
+	}
+	if circuitRelay(ownCircuit) != relay || circuitRelay("/ip4/1.2.3.4/tcp/1") != "" {
+		t.Fatal("circuitRelay")
 	}
 }
 

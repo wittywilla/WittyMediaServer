@@ -23,6 +23,8 @@ RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS build
 ARG VERSION=dev
+# A test build (updatetest) trusts a throwaway key for modules: only CI sets it (docker-games.sh).
+ARG GOTAGS=""
 ARG TARGETOS TARGETARCH TARGETVARIANT
 WORKDIR /src
 ENV GOWORK=off
@@ -30,7 +32,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist
-RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wittymediaserver ./cmd/wittymediaserver
+RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -tags "$GOTAGS" -ldflags="-s -w -X main.version=${VERSION}" -o /out/wittymediaserver ./cmd/wittymediaserver
 
 # Debian, as game cores are prebuilt for glibc: on Alpine the game runner can't even
 # start, and a compatibility layer leaves several cores unable to load. libgl1 is
@@ -75,12 +77,12 @@ COPY --from=build /out/wittymediaserver /usr/local/bin/
 ENV WMS_DOCKER=1 \
     WMS_DATA_DIR=/config \
     WMS_LISTEN=:9797 \
-    WMS_P2P_PORT=9798 \
+    WMS_P2P_PORT=9796 \
     WMS_TRANSCODE_DIR=/config/transcode \
     XDG_CACHE_HOME=/config/cache/xdg \
     NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
-# 9798 is peer to peer (Settings → Remote Access), UDP and TCP: a fixed port, so compose files can publish it.
-EXPOSE 9797 9798/tcp 9798/udp
+# 9796 is peer to peer (Settings → Remote Access), UDP and TCP: a fixed port, so compose files can publish it.
+EXPOSE 9797 9796/tcp 9796/udp
 VOLUME ["/config"]
 USER wms
 # The server checks itself, on the port in WMS_LISTEN, so the image needs no HTTP client.

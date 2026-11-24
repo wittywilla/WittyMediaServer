@@ -22,6 +22,25 @@ test('devices: empty says how to add one; otherwise a row each with its own Remo
   assert.deepEqual(problems(withIds(p)), [])
 })
 
+// 0.8.4 showed a phone that had only shown its invite as connected: the owner read it as a lie. Until its first
+// request gets through it is invited, never connected, and what the server knows about why is said.
+test('devices: an invite shown is not a connection', () => {
+  const why = 'It can reach this server only through a public relay, which carries an invite but nothing more.'
+  const p = devicesSpec([
+    d('invitedxxxxx', { lastSeen: 0, pending: true, connected: false }),
+    d('publicxxxxxx', { lastSeen: 0, pending: true, connected: false, why }),
+    d('athomexxxxxx', { how: 'signed-in', lastSeen: 0, pending: true }),
+  ], () => 'now')
+  const [invited, viaPublic, atHome] = p.sections[0].items
+  assert.equal(invited.value, 'Invited — hasn’t connected yet')
+  assert.equal(invited.on, false)
+  assert.doesNotMatch(invited.sub, /last connected/)
+  assert.match(invited.sub, /invited now · ID ending/)
+  assert.match(viaPublic.sub, /only through a public relay/)
+  assert.equal(atHome.value, 'Hasn’t connected from away yet')
+  assert.deepEqual(problems(withIds(p)), [])
+})
+
 test('options: a switch for each way of connecting; hole punching waits for relays', () => {
   const layers = { dht: true, relay: false, holePunch: true, portMap: false, ipv6: false }
   const p = optionsSpec({ devicesOnly: true, layers, relayKbps: 4000, relayForOthers: false, shareKbps: 8000, shareMaxHeight: 720 })

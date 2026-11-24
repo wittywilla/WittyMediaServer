@@ -78,7 +78,7 @@ type Config struct {
 	// MaxConnections is how many connections can be open at once, on both ports together.
 	MaxConnections int
 	// P2PPort is the peer-to-peer port (UDP and TCP) when it is set on the machine; 0 lets the server choose one
-	// when peer to peer is first turned on. A container sets it (the image: 9798), as only a port known in
+	// when peer to peer is first turned on. A container sets it (the image: 9796), as only a port known in
 	// advance can be published.
 	P2PPort     int
 	WatchStdin  bool // exit when stdin closes (used by the tray launcher)

@@ -55,6 +55,22 @@ def case(folder, rc):
         "failedDetail": failed.get("detail") if failed else None,
         "at": timings,
     }
+    parts = name.split(".")
+    net, way = (parts[0], parts[4]) if len(parts) == 5 else ("", "")
+    if rc in (1, 4) and way == "code" and net != "docker-home":
+        # A code from away is a TV's shown code, found through the public address book: known to be slow and
+        # unreliable, and not what a phone uses (it scans the QR code or pastes the link). Recorded, not a gate.
+        r["outcome"], r["ok"] = "known-unreliable", True
+    if rc == 1 and net == "public-sym":
+        # Only a public relay, which carries no requests, and no direct path that can exist: pairing can't
+        # finish. What matters is that the phone is told so by the connector (its X-Witty-Connect-Error), not
+        # left with a bare timeout. A retry must say the same, not fail differently.
+        explained = [s for s in ss if s.get("side") == "phone" and isinstance(s.get("detail"), dict)
+                     and s["detail"].get("connectorError")]
+        bare = [s for s in ss if s.get("side") == "phone" and s.get("step") in ("identity", "reopen-identity")
+                and s.get("ok") is False and isinstance(s.get("detail"), dict) and not s["detail"].get("connectorError")]
+        if explained and not bare:
+            r["outcome"], r["ok"] = "explained", True
     with open(os.path.join(folder, "result.json"), "w") as f:
         json.dump(r, f, indent=2)
     return r

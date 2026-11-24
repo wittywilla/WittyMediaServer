@@ -55,9 +55,10 @@ import (
 
 // The app's own waits (WittyMediaClient net/PeerRules.kt).
 const (
-	joinWait = 45 * time.Second
-	awayWait = 25 * time.Second
-	poll     = 250 * time.Millisecond
+	joinWait   = 45 * time.Second
+	awayWait   = 25 * time.Second
+	poll       = 250 * time.Millisecond
+	usableWait = 20 * time.Second
 )
 
 var (
@@ -107,6 +108,7 @@ func main() {
 	t0 := flag.Int64("t0", 0, "the case's start, in Unix milliseconds, so both sides share a clock")
 	wh := flag.String("home", "", "webcode mode: the web address the phone finds the server at, at home")
 	wc := flag.String("code", "", "webcode mode: the Connect a device code typed in")
+	retryFile := flag.String("retry", "", "if the first try fails, ask for a new link (this file + .ask) and try once more within 30 s")
 	relayListen := flag.String("public-relay", "", "run an ordinary public relay on these multiaddrs (comma-separated) instead")
 	flag.Parse()
 	if *relayListen != "" {
@@ -140,6 +142,32 @@ func main() {
 	webHome, webCode = *wh, *wc
 	codeWait = *cw
 	err := run(*mode, *link, *state, *stateDir, *codeFile, *name)
+	if err != nil && *retryFile != "" {
+		// The person tries again at once: a new QR code from the server, scanned within 30 s, in the
+		// same app (this process: whatever the library remembers from the first try is still there).
+		failedAt := time.Now()
+		step("first-try", false, err.Error())
+		_ = os.WriteFile(*retryFile+".ask", []byte("1"), 0o644)
+		var again string
+		for time.Since(failedAt) < 30*time.Second {
+			if b, e := os.ReadFile(*retryFile); e == nil && len(b) > 0 {
+				again = strings.TrimSpace(string(b))
+				break
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
+		if again == "" {
+			err = fmt.Errorf("lab error: no second QR code within 30 s (first try: %v)", err)
+		} else {
+			step("retry", true, map[string]any{"afterFailureMs": time.Since(failedAt).Milliseconds()})
+			t := time.Now()
+			err = run("link", again, "retry", *stateDir, "", *name)
+			if err != nil {
+				step("retry-failed", false, map[string]any{"ms": time.Since(t).Milliseconds(), "err": err.Error()})
+				err = fmt.Errorf("the retry failed too, %d ms in: %w", time.Since(t).Milliseconds(), err)
+			}
+		}
+	}
 	if err != nil {
 		step("result", false, err.Error())
 		fmt.Fprintln(os.Stderr, "FAILED:", err)
@@ -180,6 +208,8 @@ func run(mode, link, state, dir, codeFile, name string) error {
 			return err
 		}
 		k = kept{Key: key, Servers: map[string][]string{}}
+		// Kept from its first use (the app's Keystore), so a retry is the same device.
+		save(dir, k)
 	}
 	id, _ := mobile.DeviceID(k.Key)
 	step("device-key", true, map[string]any{"deviceId": id})
@@ -334,6 +364,9 @@ func run(mode, link, state, dir, codeFile, name string) error {
 			if st, ok := waitConnected(sess, joinWait); !ok {
 				return fmt.Errorf("listed, but the server wasn't reached from away in %v (last state %s)", joinWait, st)
 			}
+			// 0.6.3 (PeerManager.join): connected through a public relay, which carries no requests, it waits up to
+			// 20 s (USABLE_WAIT_MS) for a usable path before the first request.
+			waitUsable(sess, usableWait)
 		}
 	} else {
 		signIn = strings.TrimPrefix(secret, "code:")
@@ -447,7 +480,15 @@ func waitConnected(s *mobile.Session, limit time.Duration) (string, bool) {
 
 var client = &http.Client{Timeout: 30 * time.Second}
 
+// quickClient is the apps' quick API client (Api.kt QUICK_SECONDS, callTimeout 5 s), which both 0.6.2 and 0.6.3
+// use for the identity check through the connector.
+var quickClient = &http.Client{Timeout: 5 * time.Second}
+
 func call(method, url, secret, token string, body any) (int, []byte, http.Header, error) {
+	return callWith(client, method, url, secret, token, body)
+}
+
+func callWith(client *http.Client, method, url, secret, token string, body any) (int, []byte, http.Header, error) {
 	var rd io.Reader
 	if body != nil {
 		b, _ := json.Marshal(body)
@@ -473,7 +514,7 @@ func identity(base, secret, name string) error {
 	raw := make([]byte, 24)
 	_, _ = rand.Read(raw)
 	t := time.Now()
-	code, b, h, err := call("POST", base+"/api/v1/identity", secret, "", map[string]string{"nonce": base64.StdEncoding.EncodeToString(raw)})
+	code, b, h, err := callWith(quickClient, "POST", base+"/api/v1/identity", secret, "", map[string]string{"nonce": base64.StdEncoding.EncodeToString(raw)})
 	detail := map[string]any{"ms": time.Since(t).Milliseconds(), "status": code, "err": errText(err)}
 	if h != nil && h.Get("X-Witty-Connect-Error") != "" {
 		detail["connectorError"] = h.Get("X-Witty-Connect-Error")
@@ -582,4 +623,25 @@ func useAtHome(home, tok string) error {
 		return fmt.Errorf("using the server at home: HTTP %d %v", code, err)
 	}
 	return nil
+}
+
+// waitUsable waits for a path that carries requests: local, direct, or a community relay (PeerRules.kt usable).
+func waitUsable(s *mobile.Session, limit time.Duration) bool {
+	t := time.Now()
+	var last string
+	for time.Since(t) < limit {
+		last = s.State()
+		var st struct {
+			Path      string `json:"path"`
+			Community bool   `json:"community"`
+		}
+		_ = json.Unmarshal([]byte(last), &st)
+		if st.Path == "local" || st.Path == "direct" || (st.Path == "relayed" && st.Community) {
+			step("usable", true, map[string]any{"ms": time.Since(t).Milliseconds(), "state": json.RawMessage(last)})
+			return true
+		}
+		time.Sleep(poll)
+	}
+	step("usable", false, map[string]any{"ms": time.Since(t).Milliseconds(), "state": json.RawMessage(orNull(last))})
+	return false
 }

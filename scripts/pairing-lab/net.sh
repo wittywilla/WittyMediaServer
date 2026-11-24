@@ -17,6 +17,9 @@
 #   cgnat-relay       cone behind a provider's symmetric CGNAT (100.64.0.0/10) / symmetric / own WittyRelay
 #   udp-blocked       port-restricted cone / symmetric, and no UDP out at all (TCP only) / own WittyRelay
 #   ipv6-only         IPv6 only: stateful home firewalls, no NAT / own WittyRelay on IPv6
+#   public-cone       port-restricted cone / port-restricted cone / only an ordinary public relay (limited:
+#                     it introduces, a hole punch has to carry the requests)
+#   public-sym        port-restricted cone / symmetric / only an ordinary public relay: no direct path can exist
 #   docker-home       the server in a container on Docker's bridge (172.17.0.2), behind its host's NAT, the
 #                     web and peer-to-peer ports published, the host behind a cone router; the phone on the
 #                     same home network as the host / only an ordinary public relay (issue #683)
@@ -142,6 +145,8 @@ lab_net() {
     direct) PL_RELAY_ADDRS=; PL_RELAY_KIND=none ;;
     fullcone) snat=fullcone ;;
     cone-relay | ipv4-only) ;;
+    public-cone) PL_RELAY_KIND=public ;;
+    public-sym) cnat=symmetric; PL_RELAY_KIND=public ;;
     symmetric-relay) snat=symmetric; cnat=symmetric ;;
     cgnat-relay) cnat=symmetric ;;
     udp-blocked) cnat=symmetric ;;

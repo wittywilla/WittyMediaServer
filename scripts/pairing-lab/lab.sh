@@ -15,7 +15,7 @@
 # needs the real internet, for the public address book).
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
-NETS="direct fullcone cone-relay ipv4-only symmetric-relay cgnat-relay udp-blocked ipv6-only docker-home docker-away"
+NETS="direct fullcone cone-relay ipv4-only symmetric-relay cgnat-relay udp-blocked ipv6-only docker-home docker-away public-cone public-sym"
 SERVERS="fresh settled restart"
 ONLYS="on off"
 PHONES="fresh upgrade previous"
@@ -33,9 +33,20 @@ cone-relay.settled.off.previous.link
 direct.fresh.on.fresh.link
 fullcone.settled.on.fresh.link
 ipv4-only.settled.off.fresh.link
-cone-relay.settled.on.fresh.code
 docker-home.settled.on.fresh.link
-docker-away.fresh.on.fresh.link"
+docker-home.settled.on.fresh.code
+docker-away.fresh.on.fresh.link
+public-cone.settled.on.fresh.link
+public-sym.settled.on.fresh.retry
+cone-relay.settled.on.fresh.paste
+cone-relay.settled.on.fresh.newcode"
+
+# Beyond the cross product: the ways in that only make sense on some networks. retry: the QR code, and a new one
+# within 30 s when the first try fails. paste: the link pasted rather than the QR code. newcode: a QR code shown,
+# Connect a device opened again, and the first QR code scanned.
+EXTRA="$(for n in public-cone public-sym cone-relay symmetric-relay docker-away; do echo "$n.settled.on.fresh.retry"; done)
+$(for n in cone-relay symmetric-relay public-cone udp-blocked ipv6-only docker-away; do echo "$n.settled.on.fresh.paste"; done)
+$(for n in direct cone-relay docker-home docker-away; do echo "$n.settled.on.fresh.newcode"; done)"
 
 full() {
   local n s o p w
@@ -50,7 +61,7 @@ cases() {
   for a in "$@"; do
     case "$a" in
       fast) list="$list"$'\n'"$FAST" ;;
-      full) list="$list"$'\n'"$(full)" ;;
+      full) list="$list"$'\n'"$(full)"$'\n'"$EXTRA" ;;
       *=*) filt="$filt $a" ;;
       *.*.*.*.*) list="$list"$'\n'"$a" ;;
       *) echo "unknown set $a" >&2; return 2 ;;
@@ -130,7 +141,8 @@ case "$cmd" in
       rc=$?
       [ -f "$res/$c/result.json" ] || { mkdir -p "$res/$c"; python3 "$HERE/report.py" case "$res/$c" "${rc/124/5}"; }
       mv "$res/.case.log" "$res/$c/case.log" 2>/dev/null
-      printf '[%d/%d] %-45s %s %ss\n' "$i" "${#todo[@]}" "$c" "$([ $rc = 0 ] && echo pass || echo "FAIL($rc)")" "$(($(date +%s) - t))"
+      out=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['outcome'])" "$res/$c/result.json" 2>/dev/null)
+      printf '[%d/%d] %-45s %s %ss\n' "$i" "${#todo[@]}" "$c" "${out:-rc $rc}" "$(($(date +%s) - t))"
       [ $rc != 0 ] && python3 "$HERE/report.py" timeline "$res/$c" | tail -12 | sed 's/^/      /'
     done
     # Anything a killed case left behind.

@@ -239,9 +239,16 @@ def install(apk, over=True):
     step('app-installed', True, {'apk': os.path.basename(apk), 'version': ver.group(1) if ver else '?', 'ms': int((time.time() - t) * 1000)})
 
 
+def in_front():
+    """This app's window has the focus: not the launcher (whose search widget also says Search), not a dialog."""
+    return PKG in sh('dumpsys window | grep -E "mCurrentFocus|mFocusedApp"', check=False)
+
+
 def signed_in_home(ns):
-    """The app's home after signing in: its tab bar, and no connect or sign-in screen."""
-    return bool(find('^(Home|Library|Search|You)$', ns)) and not find('Join with a link or code|Enter an address|Sign in$|Password', ns)
+    """The app's home after signing in: its tab bar, no connect or sign-in screen, and the app in front."""
+    if not find('^(Home|Library|Search|You)$', ns) or find('Join with a link or code|Enter an address|Sign in$|Password', ns):
+        return False
+    return in_front()
 
 
 def at_home():
@@ -374,7 +381,9 @@ def main():
             else:
                 time.sleep(0.5)
         t = time.time()
-        type_into('Invite link|link', link)
+        # input text mangles '%': the query's escaped slashes and colons typed as themselves, which the app's URI
+        # parser takes as they are.
+        type_into('Invite link|link', link.replace('%2F', '/').replace('%2f', '/').replace('%3A', ':').replace('%3a', ':'))
         step('link-entered', True, {'ms': int((time.time() - t) * 1000)})
         sh('input keyevent KEYCODE_ENTER', check=False)
         if find('^(Join|Connect)$'):

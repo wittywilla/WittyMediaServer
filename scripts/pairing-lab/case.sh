@@ -337,19 +337,51 @@ restart_server() {
 }
 
 RC=0
-if [ "$WAY" = link ]; then
-  LINK=$(make_invite a "${PL_LINK:-qr}")  # PL_LINK=plain: the link pasted instead of the QR code scanned
-  [ -n "$LINK" ] || die "no invite: $(cat "$OUT/invite-a.json")"
-  sstep invite-made true "$(python3 -c '
+link_step() { # link_step <step> <link>: what a link offers the phone
+  sstep "$1" true "$(python3 -c '
 import json, sys, urllib.parse as u
 l = sys.argv[1]; q = u.parse_qs(u.urlparse(l).query); a = q.get("a", [])
-print(json.dumps({"addrs": a, "relayed": any("p2p-circuit" in x for x in a), "home": q.get("h", [""])[0], "link": l.split("?")[0]}))' "$LINK")"
+print(json.dumps({"addrs": a, "relayed": any("p2p-circuit" in x for x in a), "home": q.get("h", [""])[0], "bytes": len(l), "link": l.split("?")[0]}))' "$2")"
+}
+case "$WAY" in
+  # link: Connect a device's QR code, scanned. paste: its link, pasted. retry: the QR code, and if that fails,
+  # a new one scanned within 30 s. newcode: a QR code shown, then Connect a device opened again (a new code),
+  # and the first QR code scanned.
+  link | paste | retry | newcode) LINKWAY=yes ;;
+  *) LINKWAY= ;;
+esac
+if [ -n "$LINKWAY" ]; then
+  kind=${PL_LINK:-qr}; [ "$WAY" = paste ] && kind=plain
+  LINK=$(make_invite a "$kind")
+  [ -n "$LINK" ] || die "no invite: $(cat "$OUT/invite-a.json")"
+  link_step invite-made "$LINK"
+  if [ "$WAY" = newcode ]; then
+    cp "$OUT/invite-a.json" "$OUT/invite-a-first.json"
+    sleep 2
+    make_invite a "$kind" >/dev/null
+    sstep new-code-made "$(grep -q '"code"' "$OUT/invite-a.json" && echo true || echo false)" "$(jstr "$(head -c 200 "$OUT/invite-a.json" | sed 's/s=[^&"]*/s=…/g')")"
+  fi
   [ "$SSTATE" = restart ] && restart_server
   if [ -n "$EMU" ]; then
     echo "$LINK" >"$PHONE/link.txt.tmp"; chown "$RUNAS" "$PHONE/link.txt.tmp"; mv "$PHONE/link.txt.tmp" "$PHONE/link.txt"
     wait "$EMUPID" || RC=1
   else
-    phone -mode link -link "$LINK" -state "$CSTATE" >"$OUT/phone.log" 2>&1 || RC=1
+    retry=()
+    [ "$WAY" = retry ] && retry=(-retry "$PHONE/retry-link.txt")
+    phone -mode link -link "$LINK" -state "$CSTATE" "${retry[@]}" >"$OUT/phone.log" 2>&1 &
+    PPID_=$!
+    if [ "$WAY" = retry ]; then
+      # The second QR code, made when the phone asks for it.
+      while kill -0 "$PPID_" 2>/dev/null; do
+        if [ -f "$PHONE/retry-link.txt.ask" ]; then
+          L2=$(make_invite a "$kind"); link_step retry-invite-made "$L2"
+          echo "$L2" >"$PHONE/retry-link.txt.tmp"; chown "$RUNAS" "$PHONE/retry-link.txt.tmp"; mv "$PHONE/retry-link.txt.tmp" "$PHONE/retry-link.txt"
+          break
+        fi
+        sleep 0.2
+      done
+    fi
+    wait "$PPID_" || RC=1
   fi
 elif [ -n "${PL_PHONE_HOME:-}" ] && [ -z "$EMU" ] && [ "${PL_ORDER:-0.6.3}" != 0.6.2 ]; then
   # At home, from 0.6.3 on: the code Connect a device shows, typed into the phone (Enter a code), and

@@ -158,3 +158,32 @@ func TestFasterPreset(t *testing.T) {
 		}
 	}
 }
+
+// On a small machine the processor converts 4K to 1080p at most: at full size it was far slower
+// than the film and outgrew a 1 GB container. A roomy machine, a copy, a picture that is already
+// small enough and a size the viewer chose below 1080 are left as they are.
+func TestSmallMachineConvertsTo1080(t *testing.T) {
+	m := testManager(t, 4)
+	m.tools = &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}
+	defer func(f func() bool) { smallMachine = f }(smallMachine)
+	smallMachine = func() bool { return true }
+	sp := Spec{Height: 2160, Duration: 60, SegmentSec: 4}
+	if !m.CapForMachine(&sp) || sp.MaxHeight != 1080 {
+		t.Fatalf("4K on a small machine: %d", sp.MaxHeight)
+	}
+	for name, sp := range map[string]Spec{
+		"copy":     {Height: 2160, CopyVideo: true},
+		"1080p":    {Height: 1080},
+		"wide 4K":  {Height: 1600, MaxHeight: 720},
+		"no video": {Height: 2160, NoVideo: true},
+	} {
+		if m.CapForMachine(&sp) {
+			t.Errorf("%s: capped", name)
+		}
+	}
+	smallMachine = func() bool { return false }
+	sp = Spec{Height: 2160}
+	if m.CapForMachine(&sp) || sp.MaxHeight != 0 {
+		t.Fatal("a roomy machine keeps 4K")
+	}
+}

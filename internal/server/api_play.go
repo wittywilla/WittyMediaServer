@@ -284,6 +284,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		spec.Height = min(v.Width, v.Height)
 		spec.VideoCodec, spec.PixFmt = v.CodecName, v.PixFmt // whether the graphics chip can decode it
 	}
+	s.HLS.CapForMachine(&spec) // 4K on a small machine's processor: 1080p
 	s.HLS.Ensure(spec)
 	info.Type = "hls"
 	info.URL = "/api/hls/" + hid + "/playlist.m3u8"

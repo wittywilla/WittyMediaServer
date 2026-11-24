@@ -22,6 +22,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/hls"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/mediaextras"
@@ -756,6 +757,10 @@ func (s *Server) playbackVideo(r *http.Request, it *library.Item, p playback.Pro
 		out.Seek = "restart"
 	} else {
 		out.StartAtSec = start
+	}
+	if s.HLS.CapForMachine(&spec) {
+		ex.Picture = strings.TrimSpace(ex.Picture + " " + i18n.T("This server is small, so it converts to 1080p at most."))
+		s.Log.InfoContext(ctx, "a small machine converts to 1080p at most", "cat", "playback", "item", it.ID, "height", spec.Height)
 	}
 	v := variantInfo(it, pr, d, src, audioIdx)
 	if p.HLSSubtitles {

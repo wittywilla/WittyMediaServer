@@ -9,6 +9,8 @@ import (
 	"slices"
 	"sync"
 	"time"
+
+	machinepace "github.com/wittywilla/wittymediaserver/internal/pace"
 )
 
 // A player at 2× uses up what was made ahead twice as fast, so how far ahead FFmpeg keeps
@@ -261,3 +263,25 @@ func (s *Session) preset() string {
 }
 
 func round2(f float64) float64 { return math.Round(f*100) / 100 }
+
+// smallMachine says the machine is tiny or small (internal/pace: up to four processors or 4 GB,
+// counting a container's limits). A variable, for the tests.
+var smallMachine = func() bool { return machinepace.Machine() != machinepace.Roomy }
+
+// softwareMaxHeight is the most lines a conversion on the processor makes on a small machine.
+const softwareMaxHeight = 1080
+
+// CapForMachine brings a conversion that the processor would do at more than 1080 lines down to
+// 1080 on a small machine, and says whether it did. A NAS with two cores converts 4K far slower than
+// it plays, and the pictures of a 4K decoder and encoder together outgrow a 1 GB container: FFmpeg was
+// killed on the first segment, and the player stopped. A graphics chip that encodes is left to it.
+func (m *Manager) CapForMachine(sp *Spec) bool {
+	if sp.CopyVideo || sp.NoVideo || sp.Height <= softwareMaxHeight+8 || (sp.MaxHeight > 0 && sp.MaxHeight <= softwareMaxHeight) || !smallMachine() {
+		return false
+	}
+	if hardware(m.PlanWork(*sp).Encoder) {
+		return false
+	}
+	sp.MaxHeight = softwareMaxHeight
+	return true
+}

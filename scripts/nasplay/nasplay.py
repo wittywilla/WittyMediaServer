@@ -6,17 +6,20 @@ playback rate, and records stalls, how long each segment took, and how far ahead
 the server's conversion stayed. Python 3, nothing to install. See scripts/nasplay/README.md.
 
   nasplay.py setup --url http://127.0.0.1:19811 --container wms-nas
-  nasplay.py play  --title "NAS Test" --rate 2 [--client exo] [--fail-on-stall]
+  nasplay.py play  --title "NAS Test" --rate 2 [--client exo] [--no-rate] [--fail-on-stall]
 
 --client hlsjs is the web app (hls.js as it is set up there); exo is ExoPlayer as the Android app
-set it up before 0.6.3 (8 s timeouts, 3 retries, then 3 new requests for the stream). Prints one
-JSON line per run, and what happened along the way with -v.
+set it up before 0.6.3 (8 s timeouts, 3 retries, then 3 new requests for the stream). The player
+says its rate and buffers by it, as the players do from 0.8.5; --no-rate plays as they did before.
+Prints one JSON line per run, and what happened along the way with -v.
 """
 import argparse, json, os, re, subprocess, sys, threading, time, urllib.request, urllib.error
 
 WEB_CAPS = {"containers": ["mp4", "webm", "mov"], "videoCodecs": ["h264", "vp8", "vp9", "av1"],
             "audioCodecs": ["aac", "mp3", "opus", "vorbis", "flac"], "hlsVideo": ["h264"], "fmp4Video": ["h264"],
             "hlsAudio": ["aac", "mp3"], "remux": True, "tenBit": False}
+
+RATE = [1.0]  # the player's rate, sent with every request as the fixed players do
 
 class API:
     def __init__(self, url, token=None):
@@ -27,6 +30,7 @@ class API:
         r = urllib.request.Request(u, data=data, method=method)
         if data is not None: r.add_header('Content-Type', 'application/json')
         if self.token: r.add_header('Authorization', 'Bearer ' + self.token)
+        if RATE[0] != 1: r.add_header('X-WMS-Playback-Rate', str(RATE[0]))
         with urllib.request.urlopen(r, timeout=timeout) as resp:
             b = resp.read()
             return b if raw else (json.loads(b) if b else None)
@@ -96,6 +100,7 @@ def play(a):
     api = API(st['url'], st['token'])
     it = find_item(api, a.title)
     body = {"profile": a.profile, "startSec": 0}
+    if a.rate != 1 and not a.no_rate: body["rate"] = a.rate
     if a.profile == 'web': body["capabilities"] = WEB_CAPS
     if a.quality: body["quality"] = a.quality
     if a.force: body["forceTranscode"] = True
@@ -146,7 +151,9 @@ def play(a):
                 if tries > retries: fetching['fail'] = (i, 'timeout'); return
                 if exo: time.sleep(min((tries - 1) * 1, 5))
     last, end_reason = time.time(), None
-    target = a.buffer
+    # The fixed players keep the same wait ahead at any speed: the buffer grows with the rate.
+    target = a.buffer if a.no_rate else min(a.buffer * max(1, a.rate), 150 if exo else 300)
+    out["buffer"] = target
     tick = 0
     while True:
         now = time.time(); dt = now - last; last = now
@@ -227,7 +234,9 @@ if __name__ == '__main__':
     p.add_argument('--buffer', type=float, default=30, help='media seconds the player buffers ahead (hls.js maxBufferLength)')
     p.add_argument('--quality'); p.add_argument('--force', action='store_true'); p.add_argument('--timeout', type=float, default=900)
     p.add_argument('--client', default='hlsjs', choices=['hlsjs', 'exo']); p.add_argument('--exo-timeout', type=float, default=8)
+    p.add_argument('--no-rate', action='store_true', help='say nothing of the rate, as players before 0.8.5')
     p.add_argument('--fail-on-stall', action='store_true', help='exit 1 on any stall after the start, or an early end')
     p.add_argument('-v', '--verbose', action='store_true')
     a = p.parse_args()
+    if a.cmd == 'play' and not a.no_rate: RATE[0] = a.rate
     {'setup': setup, 'play': play}[a.cmd](a)

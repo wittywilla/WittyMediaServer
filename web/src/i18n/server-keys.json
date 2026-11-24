@@ -1815,6 +1815,7 @@
   "This server hasn't read the list of modules yet. Check for updates, or check its internet connection.",
   "This server is listed, so devices can find it by its ID ({count} computers in touch).",
   "This server is set to keep metadata out of media folders (Save next to media, in Metadata settings). To convert here anyway, allow it for this library on this page. Trying a file and checking the library still work.",
+  "This server is small, so it converts to 1080p at most.",
   "This server isn't keeping a log.",
   "This server isn't set up yet. Finish setup in a web browser.",
   "This server offers itself as a community relay while it can be reached from outside: up to 16 other servers, 2 GiB per connection.",

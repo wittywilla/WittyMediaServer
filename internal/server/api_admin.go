@@ -28,7 +28,7 @@ import (
 // uiLanguagePattern: the language of the app's own pages, "de" or "pt-PT".
 var uiLanguagePattern = regexp.MustCompile(`^[a-z]{2}(-[A-Z]{2})?$`)
 
-var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage", "uiLanguage",
+var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "guideKey", "hwAccel", "maxHeight", "menuLanguage", "audioLanguage", "subtitleLanguage", "uiLanguage",
 	"serverName", "audioCodec", "lowPower", "bdjEnabled", "dvdRegion", "blurayRegion", "dvdParental", "blurayAge", "discCountry", "saveMetadata", "saveWittyinfo", "dvdStart", "insertFx", "episodeView",
 	"hwEncoders", "gpuPathsOff", "directPlay", "qualityMode", "qualityProfile", "x264Preset", "crf", "maxBitrate", "audioBitrate",
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "timeZone", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
@@ -100,7 +100,7 @@ func oneOf(list ...string) func(string) bool {
 }
 
 // secretSettings are masked when read back.
-var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin"}
+var secretSettings = []string{"tmdbKey", "tvdbKey", "tvdbPin", "guideKey"}
 
 func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 	out, status := s.serverSettingsView(r)
@@ -190,6 +190,13 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 		if err := s.DB.SetSetting(r.Context(), k, v); err != nil {
 			writeErr(w, 500, err.Error())
 			return
+		}
+		if k == "guideKey" {
+			// A key entered again may go to a new site: the first one a link uses it with (api_clone_key.go).
+			if err := s.DB.SetSetting(r.Context(), guideKeyHostSetting, ""); err != nil {
+				writeErr(w, 500, err.Error())
+				return
+			}
 		}
 	}
 	if v, ok := in["gpuPathsOff"]; ok {

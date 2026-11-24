@@ -536,6 +536,12 @@ func (c *Client) DialContext(ctx context.Context, _, _ string) (net.Conn, error)
 // Transport sends HTTP requests to the server, whatever host they name.
 func (c *Client) Transport() *http.Transport { return c.tr }
 
+// WaitConnected waits until requests can be sent, and says whether they can.
+func (c *Client) WaitConnected(ctx context.Context) bool {
+	_, err := c.keeper.wait(ctx, State.Connected)
+	return err == nil
+}
+
 // Enrol shows the server an invite, which puts this device on its list. It
 // works over any relay: it is two small messages.
 func (c *Client) Enrol(ctx context.Context, secret, name, platform string) (EnrolResponse, error) {

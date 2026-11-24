@@ -237,6 +237,7 @@ var plainRoutes = []string{
 	"GET /api/music/videos",
 	"GET /api/parental/ratings",
 	"GET /api/people",
+	"GET /api/search", "GET /api/search/recent", "DELETE /api/search/recent", // results follow the profile's limits
 	"GET /api/people/{id}",
 	"GET /api/people/{id}/photo",
 	"GET /api/photos/ai",

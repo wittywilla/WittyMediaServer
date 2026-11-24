@@ -195,6 +195,12 @@ button.lib-tile, button.sdui-row, button.sdui-banner { font: inherit; cursor: po
 .sdui-search { display: flex; position: relative; align-items: center; max-width: 560px; margin: 0; }
 .sdui-search svg { position: absolute; inset-inline-start: var(--sp-3); width: var(--sp-5); height: var(--sp-5); color: var(--fg-3); pointer-events: none; }
 .sdui-search input { width: 100%; padding-inline-start: var(--sp-10); }
+/* Voice: a microphone at the end of the box, lit while it listens. */
+.sdui-search .sdui-voice, .tvm-search-field .sdui-voice { flex: none; }
+.sdui-search .sdui-voice { position: absolute; inset-inline-end: var(--sp-1); }
+.sdui-search .sdui-voice svg { position: static; color: currentColor; pointer-events: none; }
+.sdui-search:has(.sdui-voice) input { padding-inline-end: var(--sp-10); }
+.sdui-voice.on { color: var(--accent-text); background: var(--accent-soft); }
 .sdui-tv-search { display: grid; gap: var(--sp-4); max-width: 44rem; }
 
 /* Banners, notices, text, pictures, lists. */

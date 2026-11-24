@@ -23,6 +23,9 @@ func (s *Server) peopleRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/items/{id}/credits", a(s.handleItemCredits))
 	m.Handle("GET /api/shows/{id}/credits", a(s.handleShowCredits))
 	m.Handle("GET /api/people", a(s.handlePeopleSearch))
+	m.Handle("GET /api/search", a(s.handleSearch)) // the one search (sdui_search.go)
+	m.Handle("GET /api/search/recent", a(s.handleRecentSearches))
+	m.Handle("DELETE /api/search/recent", a(s.handleRecentSearches))
 	m.Handle("GET /api/people/{id}", a(s.handlePerson))
 	m.Handle("GET /api/people/{id}/photo", a(s.handlePersonPhoto))
 }

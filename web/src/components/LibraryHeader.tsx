@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { useId, useState, type ReactNode } from 'react'
+import { useId, useRef, useState, type ReactNode } from 'react'
 import { IconMore, IconSortDown, IconSortUp } from '../icons'
 import { IconButton, RowSheet, Rows } from '../ui'
 import { useMedia } from '../shell/useNav'
+import { useSubBar } from '../shell/useSubBar'
 import './libraryheader.css'
 import { t, tx } from '../i18n'
 
@@ -36,12 +37,14 @@ export default function LibraryHeader({ title, sub, count, sorts, sort, desc, on
   const current = sorts?.find((s) => s.key === sort)
   const phone = useMedia('(max-width: 760px)')
   const [tools, setTools] = useState(false)
+  const bar = useRef<HTMLDivElement>(null)
+  useSubBar(bar)
   const more = phone && !!actions && (
     <IconButton label={typeof title === 'string' ? t('More for {name}', { name: title }) : t('More for this library')} hideTip aria-haspopup="dialog" onClick={() => setTools(true)}><IconMore /></IconButton>
   )
   return (
     <header className="lh">
-      <div className="lh-bar">
+      <div className="lh-bar" ref={bar}>
         <div className="lh-name">
           <h1>{title}{sub && <span className="muted"> · {sub}</span>}</h1>
           {count != null && <span className="count">{count}</span>}

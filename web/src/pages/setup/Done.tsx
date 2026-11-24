@@ -78,7 +78,7 @@ export function Done({ facts, onFinish }: { facts: Facts; onFinish: (to?: string
           <span>{t('Phones, TVs and computers connect with a short code, at home or away.')}</span>
           <div className="su-address">
             <div className="su-address-text">
-              <code className="su-address-url">{addr.url}</code>
+              <code className="su-address-url" title={addr.url}>{addr.url}</code>
               <Button size="sm" variant="ghost" onClick={() => void copy()} aria-label={t('Copy the address {url}', { url: addr.url })}>{t('Copy')}</Button>
               {!addr.reachable && <small className="muted">{t('Right now this server only answers on this computer.')}</small>}
             </div>

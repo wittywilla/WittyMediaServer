@@ -339,48 +339,52 @@ html.tv-mode .su-address .qr { inline-size: 11rem; block-size: 11rem; }
 .oobe-card .su-narrow .su-form { max-inline-size: none; }
 .oobe-card .oobe-form.su-form { gap: var(--sp-5); }
 .oobe-card .su-form .ui-field { gap: var(--sp-2); }
-.su-tick.plain { border-color: transparent; background: none; padding-inline: 0; min-height: 2.75rem; align-items: center; }
-.su-tick.plain:hover { border-color: transparent; }
-.su-tick.plain.on { background: none; }
-.su-customize-btn { gap: var(--sp-2); color: var(--fg-2); }
-.su-customize-btn svg { color: var(--accent-text); }
+.oobe-card .su-tick.plain { border-color: transparent; background: none; padding-inline: 0; min-height: 2.75rem; align-items: center; }
+.oobe-card .su-tick.plain:hover { border-color: transparent; }
+.oobe-card .su-tick.plain.on { background: none; }
+.oobe-card .su-customize-btn { gap: var(--sp-2); color: var(--fg-2); }
+.oobe-card .su-customize-btn svg { color: var(--accent-text); }
 
 /* Welcome: language, the two ways in and a backup share one column. */
-.su-welcome-locale { max-inline-size: 25rem; width: 100%; margin-top: var(--sp-5); }
-.su-welcome-locale > .ui-field { flex: 1 1 10rem; }
-.su-starts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); max-inline-size: 25rem; width: 100%; margin: var(--sp-4) auto var(--sp-3); }
-.su-starts .btn { width: 100%; justify-content: center; }
-.oobe-welcome .su-start-note { margin: 0 0 var(--sp-2); text-align: center; }
-.oobe-perks { margin-top: var(--sp-6); }
-@media (max-width: 600px) { .su-starts { grid-template-columns: 1fr; } }
+.oobe-card .su-welcome-locale { max-inline-size: 25rem; width: 100%; margin-top: var(--sp-5); }
+.oobe-card .su-welcome-locale > .ui-field { flex: 1 1 10rem; }
+.oobe-card .su-starts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); max-inline-size: 25rem; width: 100%; margin: var(--sp-4) auto var(--sp-3); }
+.oobe-card .su-starts .btn { width: 100%; justify-content: center; }
+.oobe-card .oobe-welcome .su-start-note { margin: 0 0 var(--sp-2); text-align: center; }
+.oobe-card .oobe-perks { margin-top: var(--sp-6); }
+@media (max-width: 600px) { .oobe-card .su-starts { grid-template-columns: 1fr; } }
 
 /* Modules: the shelves flow in two columns, each shelf kept whole. */
-.oobe-mod-groups { display: block; columns: 2 19rem; column-gap: var(--sp-6); }
-.oobe-mod-groups > section { break-inside: avoid; margin-bottom: var(--sp-5); }
-.oobe-mod-groups .su-mods { grid-template-columns: minmax(0, 1fr); }
+.oobe-card .oobe-mod-groups { display: block; columns: 2 19rem; column-gap: var(--sp-6); }
+.oobe-card .oobe-mod-groups > section { break-inside: avoid; margin-bottom: var(--sp-5); }
+.oobe-card .oobe-mod-groups .su-mods { grid-template-columns: minmax(0, 1fr); }
 
 /* Your media: compact kind cards, the picture beside the name. */
-.oobe-types { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--sp-2); }
-.oobe-type { grid-template-columns: auto 1fr; column-gap: var(--sp-3); row-gap: var(--sp-1); align-items: center; padding: var(--sp-3) var(--sp-4); }
-.oobe-type .muted { grid-column: 1 / -1; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.oobe-type-groups { gap: var(--sp-4); }
+.oobe-card .oobe-types { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--sp-2); }
+.oobe-card .oobe-type { grid-template-columns: auto 1fr; column-gap: var(--sp-3); row-gap: var(--sp-1); align-items: center; padding: var(--sp-3) var(--sp-4); }
+.oobe-card .oobe-type .muted { grid-column: 1 / -1; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.oobe-card .oobe-type-groups { gap: var(--sp-4); }
 
 /* Look: the looks three across (two on a phone), the preview stays in view beside them. */
-.su-look { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
-.su-look .su-cards.small { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
-.su-look .su-card { padding: var(--sp-2); }
-.su-look .su-card b { padding-right: var(--sp-5); font-size: var(--text-sm); }
-.su-look .su-card .su-card-text { font-size: var(--text-xs); }
-@media (max-width: 1100px) { .su-look { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { .su-look .su-cards.small { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.oobe-card .su-look { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+.oobe-card .su-look .su-cards.small { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.oobe-card .su-look .su-card { padding: var(--sp-2); }
+.oobe-card .su-look .su-card b { padding-right: var(--sp-5); font-size: var(--text-sm); }
+.oobe-card .su-look .su-card .su-card-text { font-size: var(--text-xs); }
+@media (max-width: 1100px) { .oobe-card .su-look { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .oobe-card .su-look .su-cards.small { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* Finish: a small badge, a tidy summary, three cards of one height with their buttons level. */
-.oobe-check { width: 56px; height: 56px; margin: 0 auto var(--sp-3); }
-.oobe-done .su-summary { margin-bottom: var(--sp-6); }
-.oobe-next { margin-top: 0; }
-.oobe-next-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
-.oobe-next-card > :last-child { margin-top: auto; }
-.oobe-next-card > .su-tick { margin-top: 0; }
-.oobe-next-card .su-tick { border: 0; background: none; padding: 0; }
-.oobe-next-card .su-tick:hover { border: 0; }
-.oobe-actions.oobe-finish { gap: var(--sp-3); }
+.oobe-card .oobe-check { width: 56px; height: 56px; margin: 0 auto var(--sp-3); }
+.oobe-card .oobe-done .su-summary { margin-bottom: var(--sp-6); }
+.oobe-card .oobe-next { margin-top: 0; }
+.oobe-card .oobe-next-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
+.oobe-card .oobe-next-card > :last-child { margin-top: auto; }
+.oobe-card .oobe-next-card > .su-tick { margin-top: 0; }
+.oobe-card .oobe-next-card .su-tick { border: 0; background: none; padding: 0; }
+.oobe-card .oobe-next-card .su-tick:hover { border: 0; }
+.oobe-card .oobe-actions.oobe-finish { gap: var(--sp-3); }
+
+.oobe-card .su-address-text { flex-wrap: wrap; gap: var(--sp-2); }
+.oobe-card .su-address-url { flex: 1 1 0; min-width: 0; font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.oobe-card .su-address-text small { flex-basis: 100%; }

@@ -61,12 +61,12 @@ const (
 )
 
 var (
-	start    = time.Now()
-	stepMu   sync.Mutex
-	stepW    io.Writer = os.Stdout
-	order              = "0.6.3"
-	codeWait           = 180 * time.Second
-	webHome, webCode   string
+	start            = time.Now()
+	stepMu           sync.Mutex
+	stepW            io.Writer = os.Stdout
+	order                      = "0.6.3"
+	codeWait                   = 180 * time.Second
+	webHome, webCode string
 )
 
 func step(name string, ok bool, detail any) {

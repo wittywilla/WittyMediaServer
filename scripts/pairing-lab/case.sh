@@ -230,7 +230,8 @@ if [ "${PL_PHONE:-lib}" = emulator ]; then
   # Its own runtime folder: the emulator then starts its own netsimd (the Wi-Fi it carries) inside this
   # namespace, rather than joining one another emulator on this machine started outside it.
   XDG=/tmp/plab-xdg.$$; mkdir -p "$XDG"; chown "$RUNAS" "$XDG"; chmod 700 "$XDG"  # short: sockets live here
-  emu() { asuser pl-cli env ANDROID_SDK_ROOT="$SDK" ANDROID_HOME="$SDK" ANDROID_ADB_SERVER_PORT=5099 XDG_RUNTIME_DIR="$XDG" TMPDIR="$XDG" PATH="$SDK/platform-tools:$PATH" "$@"; }
+  AVDS=${ANDROID_AVD_HOME:-$UH/.android/avd}
+  emu() { asuser pl-cli env ANDROID_SDK_ROOT="$SDK" ANDROID_HOME="$SDK" ANDROID_AVD_HOME="$AVDS" ANDROID_ADB_SERVER_PORT=5099 XDG_RUNTIME_DIR="$XDG" TMPDIR="$XDG" PATH="$SDK/platform-tools:$PATH" "$@"; }
   if [ "$CSTATE" = upgrade ]; then
     # Home first: a cable straight from the phone to the server's computer, unplugged before pairing.
     ip link add eth1 netns pl-cli type veth peer name eth1 netns pl-srv
@@ -241,7 +242,8 @@ if [ "${PL_PHONE:-lib}" = emulator ]; then
   emu "$SDK/emulator/emulator" -avd "${PL_AVD:-plab-phone}" -port "$EMU_PORT" -no-window -no-audio -no-boot-anim \
     -no-snapshot -gpu "${PL_EMU_GPU:-swangle_indirect}" -cores 2 -memory 3072 ${PL_EMU_WIPE:+-wipe-data} >"$OUT/emulator.log" 2>&1 &
   booted=
-  for _ in $(seq 1 120); do
+  for _ in $(seq 1 $((${PL_EMU_BOOT:-240} / 2))); do
+    grep -qE "Unknown AVD|FATAL" "$OUT/emulator.log" 2>/dev/null && break
     [ "$(emu adb -s "$EMU" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && { booted=1; break; }
     sleep 2
   done

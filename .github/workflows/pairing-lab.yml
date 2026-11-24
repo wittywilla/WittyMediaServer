@@ -92,6 +92,14 @@ jobs:
           cache-dependency-path: srv/go.sum
       - name: Build the server, WittyRelay and the lab's phone
         run: bash lab/scripts/pairing-lab/lab.sh build "$RUNNER_TEMP/plab" srv relay
+      # The server won't start without FFmpeg: the static build scripts/ffmpeg.lock names, kept between runs.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/smoke-ffmpeg
+          key: smoke-ffmpeg-${{ hashFiles('lab/scripts/ffmpeg.lock') }}
+      - name: FFmpeg
+        timeout-minutes: 8
+        run: bash lab/scripts/smoke/ffmpeg.sh "$RUNNER_TEMP/smoke-ffmpeg"
       - name: The cases
         env:
           SET: ${{ needs.plan.outputs.set }}

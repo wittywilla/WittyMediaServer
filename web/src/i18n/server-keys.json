@@ -1780,6 +1780,7 @@
   "This server offers itself as a community relay while it can be reached from outside: up to 16 other servers, 2 GiB per connection.",
   "This server pins the key below now, and refuses the store if the key ever changes. It won't install anything from the store by itself: you choose each version, and each one replaces a module only after its own warning. {forkLimits} Encrypted media stays refused whatever a module says.",
   "This server runs as root, so each module's helper goes in a FreeBSD jail: it can't see programs outside it and has no network unless it needs one. Being root, it can still change any file and take off its other limits. Run this server as an ordinary account if you can: limits hold better there than root's jail does. Modules from other publishers are refused here.",
+  "This server runs in a container. For devices away from home, its peer-to-peer port {port} (UDP and TCP) has to be published as well as the web port, and forwarded on your router, or use your own WittyRelay. Devices at home can scan the QR code.",
   "This server runs in a container: pull the new image and recreate the container.",
   "This server runs {current}. About has what's new and the update.",
   "This server signs devices in with a PIN. Update the app, or sign in with a password.",

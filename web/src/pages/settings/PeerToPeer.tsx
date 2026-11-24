@@ -6,7 +6,6 @@ import { IconCheck, IconInfo } from '../../icons'
 import { toast } from '../../state'
 import { Row, Section } from './ui'
 import SpecPage from '../../spec/SpecPage'
-import { handledIds } from '../../spec/model'
 import { devicesSpec, optionsSpec } from '../../spec/specs/peerToPeer'
 import { ConfirmOwner, type OwnerAsk } from './ConfirmOwner'
 import { HelpLink } from '../../components/HelpLink'
@@ -207,8 +206,13 @@ export default function PeerToPeer() {
     run: async (password, code) => { setV(await api.post<View>('/p2p/rotate', { password, code })); toast(t('This server has a new connection ID')) },
   })
 
+  // A device's row isn't a button: only its own Remove button, inside the row, acts.
   const devicesPage = devicesSpec(v.devices, ago)
-  const devicesHandled = handledIds(devicesPage)
+  const removeDevice = (id: string) => {
+    if (!id.startsWith('remove:')) return
+    const d = v.devices.find((x) => x.id === id.slice('remove:'.length))
+    if (d) void remove(d)
+  }
   const optionsPage = optionsSpec({ devicesOnly: s.devicesOnly, layers: s.layers, relayKbps: s.relayKbps, relayForOthers: s.relayForOthers, shareKbps: s.shareKbps, shareMaxHeight: s.shareMaxHeight })
   return (
     <Section id="p2p" title={tk('Peer-to-peer connections')} desc={<>{t('On. Apps on paired devices reach this server from away without anything set up on your router.')} <HelpLink to="remote#peer-to-peer-connections">{t('How it works')}</HelpLink></>}
@@ -229,7 +233,7 @@ export default function PeerToPeer() {
       {s.layers.relay && <OwnRelays s={s} status={v.status?.ownRelays || []} busy={busy} save={save} />}
 
       <h4 className="p2p-head">{t('Devices that may connect')}</h4>
-      <SpecPage embedded bare page={devicesPage} handled={devicesHandled} onAction={(id) => { const d = v.devices.find((x) => x.id === id.slice(7)); if (d) void remove(d) }} />
+      <SpecPage embedded bare page={devicesPage} onAction={removeDevice} />
 
       <SpecPage embedded bare page={optionsPage} onField={(id, val) => {
         if (busy) return

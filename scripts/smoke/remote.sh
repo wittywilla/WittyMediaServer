@@ -14,6 +14,10 @@
 #
 # The build folder is scripts/smoke/build.sh's (wittymediaserver, wittyconnect, wittyrelay), plus
 # p2p-netsim, which it builds here if missing. Logs in $SMOKE_OUT.
+#
+# Then a third home, the owner's homelab (0.8.4's phone report): the server in a container on Docker's bridge
+# network with only its web port published, no WittyRelay, and the phone on the same network; on the internet, an
+# ordinary public relay, which carries an invite but not a film.
 set -uo pipefail
 build=$(cd "${1:?build folder}" && pwd)
 here=$(cd "$(dirname "$0")/../.." && pwd)
@@ -23,7 +27,7 @@ RUNAS=${SUDO_USER:-root}
 HTTP=19790
 P2P=19791
 KEY=smoke-relay-key-$(head -c 9 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')
-NS="sm-inet sm-relay sm-obs sm-rs sm-srv sm-rc sm-cli"
+NS="sm-inet sm-relay sm-obs sm-rs sm-srv sm-rc sm-cli sm-pr sm-hr sm-hl sm-dh sm-dc sm-ph"
 ns() { ip netns exec "$@"; }
 asuser() { local n=$1; shift; ip netns exec "$n" sudo -u "$RUNAS" env HOME="$(getent passwd "$RUNAS" | cut -d: -f6)" "$@"; }
 
@@ -203,4 +207,125 @@ connector stranger-madeup "madeUpSecret$(head -c 8 /dev/urandom | base64 | tr -d
 exec 8>&-
 grep -h '"event":"enrol"' "$SMOKE_OUT"/c-stranger-*.out | grep -q '"ok":true' && fail "a used or made-up link listed a device"
 sapi GET /api/p2p/devices | grep -q stranger && fail "a stranger is on the list"
+
+# ---------------------------------------------------------------- the owner's homelab
+WEB2=9797; P2P2=9798; HOST=192.168.5.50
+step "The homelab: a server in a container, only its web port published, a phone on the same network"
+{
+  for n in sm-pr sm-hr sm-hl sm-dh sm-dc sm-ph; do ip netns add "$n"; ip -n "$n" link set lo up; done
+  wire sm-pr eth0 80.0.0.30
+  wire sm-hr wan 80.0.0.4
+  ns sm-hl ip link add br0 type bridge; ns sm-hl ip link set br0 up
+  lan() { # lan NS DEV ADDR: a cable to the homelab's own network
+    i=$((i + 1)); ip link add "$2" netns "$1" type veth peer name "l$i" netns sm-hl
+    ns sm-hl ip link set "l$i" master br0 up; ns "$1" ip addr add "$3/24" dev "$2"; ns "$1" ip link set "$2" up
+  }
+  lan sm-hr lan 192.168.5.1
+  lan sm-dh eth0 $HOST
+  lan sm-ph eth0 192.168.5.20
+  ns sm-dh ip route add default via 192.168.5.1; ns sm-ph ip route add default via 192.168.5.1
+  # The home router: one outside address, nothing forwarded in.
+  ns sm-hr sysctl -qw net.ipv4.ip_forward=1
+  ns sm-hr iptables -t nat -A POSTROUTING -o wan -j MASQUERADE
+  ns sm-hr iptables -P FORWARD DROP
+  ns sm-hr iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  ns sm-hr iptables -A FORWARD -i lan -o wan -j ACCEPT
+  # Docker's bridge on the homelab: the container behind the host's NAT, as `ports: - "9797:9797"` publishes it.
+  ip link add docker0 netns sm-dh type veth peer name eth0 netns sm-dc
+  ns sm-dh ip addr add 172.17.0.1/16 dev docker0; ns sm-dh ip link set docker0 up
+  ns sm-dc ip addr add 172.17.0.2/16 dev eth0; ns sm-dc ip link set eth0 up; ns sm-dc ip route add default via 172.17.0.1
+  ns sm-dh sysctl -qw net.ipv4.ip_forward=1
+  ns sm-dh iptables -t nat -A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
+  ns sm-dh iptables -t nat -A PREROUTING -p tcp --dport $WEB2 -m addrtype --dst-type LOCAL -j DNAT --to-destination 172.17.0.2:$WEB2
+} >>"$LOG" 2>&1 || fail "the homelab's networks could not be made"
+ns sm-pr "$build/bin/p2p-netsim" public-relay -ip 80.0.0.30 -out "$SMOKE_OUT/public-relay.txt" >"$SMOKE_OUT/public-relay.log" 2>&1 &
+until_ok 15 "the public relay's address" grep -q quic-v1 "$SMOKE_OUT/public-relay.txt" || exit 1
+PRELAY=$(grep -m1 quic-v1 "$SMOKE_OUT/public-relay.txt")
+mkdir -p "$SMOKE_OUT/homelab"; chown "$RUNAS" "$SMOKE_OUT/homelab"
+# As the image runs it: WMS_DOCKER says it's a container, WMS_P2P_PORT is the port compose files publish.
+asuser sm-dc env WMS_NO_BROWSER=1 WMS_DOCKER=1 WMS_P2P_PORT=$P2P2 "$build/bin/wittymediaserver" serve -data "$SMOKE_OUT/homelab" -listen "0.0.0.0:$WEB2" \
+  -open-browser=false </dev/null >"$SMOKE_OUT/homelab.log" 2>&1 &
+S2=http://127.0.0.1:$WEB2
+hapi() { ns sm-dc curl -sS -m 30 -X "$1" -H "Authorization: Bearer ${TOK2:-}" -H 'Content-Type: application/json' ${3:+--data "$3"} "$S2$2"; }
+# The owner's browser, on the homelab's network: the page is opened at the host's address.
+browser() { ns sm-ph curl -sS -m 30 -X "$1" -H "Authorization: Bearer ${TOK2:-}" -H 'Content-Type: application/json' ${3:+--data "$3"} "http://$HOST:$WEB2$2"; }
+until_ok 60 "the homelab's server answers" ns sm-dc curl -fsS -m 2 "$S2/api/health" || exit 1
+until_ok 30 "its setup code" test -s "$SMOKE_OUT/homelab/setup-code.txt" || exit 1
+TOK2=$(hapi POST /api/setup "{\"name\":\"owner\",\"password\":\"$PW\",\"setupCode\":\"$(tr -d '\r\n ' <"$SMOKE_OUT/homelab/setup-code.txt")\",\"acknowledgedLegal\":true}" | json "d['token']") \
+  || fail "no administrator on the homelab"
+hapi POST /api/setup/complete '{}' >>"$LOG"
+ns sm-ph curl -fsS -m 5 -o /dev/null "http://$HOST:$WEB2/api/health" || fail "the phone can't reach the published web port"
+# Peer to peer with its defaults. Nothing here has the public address book, which is what introduces a server to
+# the public network's nodes; naming the public relay as an own relay stands in for it (the server dials it, its
+# registration fails: it isn't a WittyRelay), and from then on, as on the internet, that node tells the server it
+# can't be reached and the server holds a place on it like any public node's. The phone is never told about it.
+hapi PUT /api/p2p/settings "{\"accept\":true,\"enabled\":true,\"staticRelays\":[\"$PRELAY\"],\"ownRelays\":[{\"addr\":\"$PRELAY\",\"key\":\"stand-in-for-the-address-book\"}]}" >>"$LOG"
+hrelayed() { hapi GET /api/p2p >"$SMOKE_OUT/homelab-p2p.json"; grep -q 'p2p-circuit' "$SMOKE_OUT/homelab-p2p.json"; }
+until_ok 120 "a place on the public relay" hrelayed || { cat "$SMOKE_OUT/homelab-p2p.json" >>"$LOG"; exit 1; }
+grep -q "/tcp/$P2P2\"" "$SMOKE_OUT/homelab-p2p.json" || fail "the peer-to-peer port isn't WMS_P2P_PORT's $P2P2"
+browser GET /api/connect | tee -a "$LOG" | grep -q "$P2P2 (UDP and TCP)" || fail "the page doesn't say which port the container must publish"
+
+# offer: Connect a device in the owner's browser. Sets CODE, LINK, QR.
+offer() {
+  local o; o=$(browser POST /api/connect/offer "{\"password\":\"$PW\"}")
+  echo "$o" | sed 's/s=[^&"]*/s=…/g; s/c=[^&"]*/c=…/g; s/"code":"[^"]*"/"code":"…"/' >>"$LOG"
+  read -r CODE LINK QR HOMES < <(json "d.get('code',''), d.get('link',''), d.get('qrLink',''), ' '.join(d.get('homeAddresses',[]))" <<<"$o" | tr -d "(),'")
+}
+parse() { python3 - "$1" <<'EOF'
+import sys, json, urllib.parse as u
+p = u.urlparse(sys.argv[1]); q = u.parse_qs(p.query)
+print(p.path.strip('/').split('/')[-1], q['s'][0], json.dumps(q.get('a', [])).replace(' ', ''), (q.get('h') or ['-'])[0], (q.get('c') or ['-'])[0])
+EOF
+}
+
+step "At home: the QR code holds the host's address and the code, and they sign the phone in"
+offer
+[ "$HOMES" = "http://$HOST:$WEB2" ] || fail "the address at home is '$HOMES', not the host's (a container's own address leads nowhere)"
+read -r _ _ _ QRHOME QRCODE < <(parse "$QR")
+[ "$QRHOME" = "http://$HOST:$WEB2" ] && [ "$QRCODE" != - ] || fail "the QR code holds no address at home or no code: $(sed 's/s=[^&]*/s=…/; s/c=[^&]*/c=…/' <<<"$QR")"
+[ "${#QR}" -le 210 ] || fail "the QR link is ${#QR} bytes, more than the page's QR codes hold"
+ns sm-ph python3 "$(dirname "$0")/webjoin.py" "$QRHOME" "$QRCODE" "Homelab phone" android | tee -a "$LOG" | grep -q '"ok": true' || fail "the QR code's address and code didn't sign the phone in"
+
+step "Only a public relay between them: the invite gets through, and the app is told what didn't"
+offer
+read -r HSID HSECRET HHINTS _ _ < <(parse "$LINK")
+grep -q "/ip4/$HOST/udp/$P2P2/quic-v1" <<<"$HHINTS" || fail "the link doesn't try the peer-to-peer port at the host: $HHINTS"
+# The app's order (Android 0.6.x): a path first, then the invite, then the server proving its key.
+k=$("$build/bin/wittyconnect" keygen | json "d['key']")
+mkfifo "$SMOKE_OUT/c-homelab.in"; exec 9<>"$SMOKE_OUT/c-homelab.in"
+asuser sm-ph "$build/bin/wittyconnect" <"$SMOKE_OUT/c-homelab.in" >"$SMOKE_OUT/c-homelab.out" 2>"$SMOKE_OUT/c-homelab.err" &
+echo "{\"key\":\"$k\",\"serverId\":\"$HSID\",\"hints\":$HHINTS,\"noDht\":true}" >&9
+until_ok 60 "the phone's connector ready" grep -q '"event":"ready"' "$SMOKE_OUT/c-homelab.out" || exit 1
+read -r HPORT HLSECRET < <(grep -m1 '"event":"ready"' "$SMOKE_OUT/c-homelab.out" | json "d['port'], d['secret']" | tr -d "(),'")
+hpath() { grep '"event":"state"' "$SMOKE_OUT/c-homelab.out" | tail -1 | grep -q '"path":"relayed"'; }
+until_ok 60 "the phone finding the server through the public relay" hpath || exit 1
+echo "{\"cmd\":\"enrol\",\"secret\":\"$HSECRET\",\"name\":\"Homelab phone 2\",\"platform\":\"android\"}" >&9
+until_ok 90 "the invite answered" grep -q '"event":"enrol"' "$SMOKE_OUT/c-homelab.out" || exit 1
+grep '"event":"enrol"' "$SMOKE_OUT/c-homelab.out" | sed 's/"code":"[0-9]*"/"code":"…"/' | tee -a "$LOG" | grep -q '"ok":true' || fail "the invite didn't get through the public relay"
+# What the app shows in place of "Couldn't reach your server": the connector's own words for the step that failed.
+ns sm-ph curl -sS -m 40 -D "$SMOKE_OUT/homelab-identity.h" -o "$SMOKE_OUT/homelab-identity.json" -H "X-Witty-Connect: $HLSECRET" \
+  -H 'Content-Type: application/json' --data "{\"nonce\":\"$(head -c 32 /dev/urandom | base64 -w0)\"}" "http://127.0.0.1:$HPORT/api/identity" >>"$LOG" 2>&1
+cat "$SMOKE_OUT/homelab-identity.json" >>"$LOG"
+grep -qi '^x-witty-connect-error' "$SMOKE_OUT/homelab-identity.h" && grep -q 'direct connection' "$SMOKE_OUT/homelab-identity.json" \
+  || fail "the connector didn't say why the server can't be used through a public relay: $(head -c 300 "$SMOKE_OUT/homelab-identity.json")"
+exec 9>&-
+
+step "Its peer-to-peer port published as well (the compose files since 0.8.5): the phone connects peer to peer at home"
+ns sm-dh iptables -t nat -A PREROUTING -p tcp --dport $P2P2 -m addrtype --dst-type LOCAL -j DNAT --to-destination 172.17.0.2:$P2P2 >>"$LOG" 2>&1
+ns sm-dh iptables -t nat -A PREROUTING -p udp --dport $P2P2 -m addrtype --dst-type LOCAL -j DNAT --to-destination 172.17.0.2:$P2P2 >>"$LOG" 2>&1
+offer
+read -r HSID HSECRET HHINTS _ _ < <(parse "$LINK")
+k=$("$build/bin/wittyconnect" keygen | json "d['key']")
+mkfifo "$SMOKE_OUT/c-homelab2.in"; exec 9<>"$SMOKE_OUT/c-homelab2.in"
+asuser sm-ph "$build/bin/wittyconnect" <"$SMOKE_OUT/c-homelab2.in" >"$SMOKE_OUT/c-homelab2.out" 2>"$SMOKE_OUT/c-homelab2.err" &
+echo "{\"key\":\"$k\",\"serverId\":\"$HSID\",\"hints\":$HHINTS,\"noDht\":true}" >&9
+until_ok 60 "the phone's connector ready" grep -q '"event":"ready"' "$SMOKE_OUT/c-homelab2.out" || exit 1
+read -r HPORT HLSECRET < <(grep -m1 '"event":"ready"' "$SMOKE_OUT/c-homelab2.out" | json "d['port'], d['secret']" | tr -d "(),'")
+echo "{\"cmd\":\"enrol\",\"secret\":\"$HSECRET\",\"name\":\"Homelab phone 3\",\"platform\":\"android\"}" >&9
+until_ok 90 "the invite answered" grep -q '"event":"enrol"' "$SMOKE_OUT/c-homelab2.out" || exit 1
+grep '"event":"enrol"' "$SMOKE_OUT/c-homelab2.out" | sed 's/"code":"[0-9]*"/"code":"…"/' | tee -a "$LOG" | grep -q '"ok":true' || fail "the invite was refused"
+hstatus() { ns sm-ph curl -sS -m 15 -H "X-Witty-Connect: $HLSECRET" "http://127.0.0.1:$HPORT/api/status" | grep -q '"version"'; }
+until_ok 60 "the server answering the phone peer to peer" hstatus || exit 1
+grep '"event":"state"' "$SMOKE_OUT/c-homelab2.out" | tail -1 | tee -a "$LOG" | grep -q "\"path\":\"local\".*$HOST" || fail "not straight to the host's published port"
+exec 9>&-
 finish

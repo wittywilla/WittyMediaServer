@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
-import { Cc, mk, secF, secN, secP, secR } from '../model.ts'
-import type { SpecChip, SpecField, SpecPageData, SpecRow, SpecSection } from '../types.ts'
+import { mk, secF, secN, secR } from '../model.ts'
+import type { SpecField, SpecPageData, SpecRow, SpecSection } from '../types.ts'
 import { t, tk } from '../../sdui/words.ts'
 
 // Settings, Remote Access, Peer-to-peer connections (part of canvas "remoteaccess"). Real data from GET /p2p/settings.
@@ -17,8 +17,8 @@ export const LAYERS: { id: LayerId; label: string; desc: string }[] = [
 export interface DeviceLine { id: string; user?: string; name: string; platform: string; how: string; created: number; lastSeen: number; connected: boolean; path?: string }
 const PATH: Record<string, string> = { direct: tk('Connected directly'), relayed: tk('Connected through a relay') }
 
-// Devices that may connect: a row each, and a Remove chip each (ids remove:<id>). New devices come in by
-// Connect a device, at the top of the page.
+// Devices that may connect: a row each, with its Remove button in the row (action id remove:<id>), so it can't be
+// taken for the next heading's. New devices come in by Connect a device, at the top of the page.
 export function devicesSpec(devices: DeviceLine[], ago: (at?: number) => string): SpecPageData {
   const sections: SpecSection[] = []
   if (!devices.length) sections.push(secN('', t('None yet. A device you connect with Connect a device, above, adds itself here, and so does an app that is signed in at home.')))
@@ -30,11 +30,10 @@ export function devicesSpec(devices: DeviceLine[], ago: (at?: number) => string)
         sub: d.how === 'invite'
           ? t('{platform} · added {added} by invite · last connected {seen} · ID ending {id}', vars)
           : t('{platform} · added {added} while signed in · last connected {seen} · ID ending {id}', vars),
+        actions: [{ id: 'remove:' + d.id, title: t('Remove'), label: t('Remove {name}', { name: d.name }), danger: true }],
       }
     })))
   }
-  const chips: SpecChip[] = devices.map((d) => ({ ...Cc(t('Remove {name}', { name: d.name })), id: 'remove:' + d.id }))
-  if (chips.length) sections.push(secP('', chips))
   return mk('remoteaccess', t('Settings · Remote access'), t('Devices that may connect'), '', sections)
 }
 

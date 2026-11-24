@@ -22,6 +22,7 @@ WittyMediaServer in a container, on a NAS, a Linux server or Docker Desktop: the
 - [Locked down](#locked-down)
 - [Hardware transcoding](#hardware-transcoding)
 - [Behind a reverse proxy](#behind-a-reverse-proxy)
+- [Devices away from home](#devices-away-from-home)
 - [Updating and going back](#updating-and-going-back)
 - [Is it running?](#is-it-running)
 - [When something's wrong](#when-somethings-wrong)
@@ -32,14 +33,14 @@ WittyMediaServer in a container, on a NAS, a Linux server or Docker Desktop: the
 
 ```sh
 docker run -d --name wittymediaserver --restart unless-stopped \
-  -p 9797:9797 \
+  -p 9797:9797 -p 9798:9798/tcp -p 9798:9798/udp \
   -v wms-config:/config \
   -v /path/to/media:/media:ro \
   ghcr.io/wittywilla/wittymediaserver:alpha
 docker logs wittymediaserver 2>&1 | grep -i "setup code"
 ```
 
-Open `http://<this machine>:9797/`. From another device, setup asks for the code the second line shows. Then add your folders from `/media` as libraries.
+Open `http://<this machine>:9797/`. From another device, setup asks for the code the second line shows. Then add your folders from `/media` as libraries. Port 9798 is for [devices away from home](#devices-away-from-home).
 
 With Compose, the files in [`deploy/docker`](https://github.com/wittywilla/WittyMediaServer/tree/master/deploy/docker) are ready to copy:
 
@@ -100,13 +101,14 @@ A volume Docker looks after (`wms-config:/config`) needs nothing: it's made with
 
 ## Settings
 
-Most settings are in the app. These are the ones a container sets with `environment:`. The image sets the first five itself; the [config file](CONFIG.md) has the rest.
+Most settings are in the app. These are the ones a container sets with `environment:`. The image sets those with a value in the middle column itself; the [config file](CONFIG.md) has the rest.
 
 | Variable | The image sets | What it does |
 |---|---|---|
 | `WMS_DATA_DIR` | `/config` | The server's own folder |
 | `WMS_TRANSCODE_DIR` | `/config/transcode` | Video while it's being converted |
 | `WMS_LISTEN` | `:9797` | The address and port inside the container. Change the left side of `ports:` instead, as **Settings → Network** says too |
+| `WMS_P2P_PORT` | `9798` | The peer-to-peer port inside the container, UDP and TCP, for [devices away from home](#devices-away-from-home). Publish it with the same number on both sides |
 | `WMS_DOCKER` | `1` | Says it's a container: the server doesn't replace its own files, and its messages talk about compose files |
 | `XDG_CACHE_HOME` | `/config/cache/xdg` | Where graphics drivers keep their caches. Somewhere writable, for any user and a read-only root |
 | `NVIDIA_DRIVER_CAPABILITIES` | `compute,video,utility` | Asks the NVIDIA Container Toolkit for the video encoder as well as the card |
@@ -272,6 +274,18 @@ Read [Remote access](REMOTE.md) first: this puts your sign-in page on the intern
 
 > **Trust only the proxy's own address,** never Docker's whole network: anything trusted can claim to be at home.
 
+## Devices away from home
+
+**Settings → Remote Access → Connect a device** shows a code and a QR code. At home, scanning the QR code is enough: it holds the address your browser opened the page at, so the app goes straight there. That's the only way an app at home finds a server on Docker's own network, which apps can't discover (below).
+
+Away from home, apps connect peer to peer, through port **9798**, UDP and TCP. The image sets it (`WMS_P2P_PORT`), and the compose files publish it. In a container the server can't ask your router to forward it, so for apps away from home either:
+
+- forward port 9798, UDP and TCP, on your router to this machine, or
+- use [your own WittyRelay](P2P.md), or
+- run the container with `network_mode: host`, where the server can ask the router itself (then `ports:` isn't needed).
+
+Publish it with the same number on both sides (`"9798:9798/udp"`): the server tells apps the number it listens on. Containers made before 0.8.5 publish only 9797: add the two `9798` lines to `ports:`. Without them a phone may get as far as being added to **Devices that may connect** and no further.
+
 ## Updating and going back
 
 ```sh
@@ -297,7 +311,8 @@ The image has a health check: every 30 seconds it asks the server itself, with `
 | `exec format error` | The wrong architecture was pulled, such as on an old 32-bit ARM board. Remove the image and pull again |
 | The page doesn't load from another device | The NAS's firewall, or another program on port 9797. Change the left side of `ports:` |
 | Hardware encoders all say they can't be used | [Hardware transcoding](#hardware-transcoding); `docker exec wittymediaserver wittymediaserver hardware` says which step |
-| Apps don't list the server under **On your network** | Finding servers uses multicast, which doesn't cross Docker's own network. Type the server's address in the app, or run the container with `network_mode: host` (then `ports:` isn't needed) |
+| Apps don't list the server under **On your network** | Finding servers uses multicast, which doesn't cross Docker's own network. Scan the QR code from **Connect a device**, type the server's address in the app, or run the container with `network_mode: host` (then `ports:` isn't needed) |
+| A phone is in **Devices that may connect**, "last connected never", and the app says it couldn't reach the server | Port 9798 isn't published, or isn't reachable from where the phone is: [Devices away from home](#devices-away-from-home) |
 | Media folders are empty in the app | The folder isn't mounted, or the user in `user:` can't read it: see [User and group IDs](#user-and-group-ids). `docker exec wittymediaserver ls -ln /media` shows what the server sees |
 | *read-only file system* in the log | Something wants to write outside `/config` and `/tmp`. With `read_only: true`, `/tmp` must be a `tmpfs`. Anything else is a bug: please report it |
 

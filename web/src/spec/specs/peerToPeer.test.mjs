@@ -7,15 +7,18 @@ import { problems, withIds } from '../model.ts'
 
 const d = (id, o = {}) => ({ id, name: 'Phone', platform: 'ios', how: 'invite', created: 1, lastSeen: 2, connected: false, ...o })
 
-test('devices: empty says how to add one; otherwise a row and a Remove chip each (new ones come in by Connect a device)', () => {
+test('devices: empty says how to add one; otherwise a row each with its own Remove button in it (new ones come in by Connect a device)', () => {
   const none = devicesSpec([], () => 'x')
   assert.equal(none.sections[0].kind, 'note')
-  assert.equal(none.sections.length, 1, 'no chips with nothing to remove')
+  assert.equal(none.sections.length, 1)
   const p = devicesSpec([d('abcdefghijkl', { user: 'Pip', connected: true, path: 'relayed' }), d('b')], () => 'now')
+  assert.equal(p.sections.length, 1, 'no section of buttons after the rows, where one reads as the next heading\'s')
   assert.equal(p.sections[0].items[0].title, 'Phone · Pip')
   assert.equal(p.sections[0].items[0].value, 'Connected through a relay')
   assert.match(p.sections[0].items[0].sub, /added now by invite · last connected now · ID ending efghijkl/)
-  assert.deepEqual(p.sections[1].items.map((c) => c.id), ['remove:abcdefghijkl', 'remove:b'])
+  assert.deepEqual(p.sections[0].items.map((r) => r.actions.map((a) => a.id)), [['remove:abcdefghijkl'], ['remove:b']])
+  assert.equal(p.sections[0].items[0].actions[0].label, 'Remove Phone')
+  assert.equal(p.sections[0].items[0].actions[0].danger, true)
   assert.deepEqual(problems(withIds(p)), [])
 })
 

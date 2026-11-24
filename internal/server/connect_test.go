@@ -10,6 +10,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -331,5 +333,71 @@ func TestQRInviteFits(t *testing.T) {
 	small := p2p.Invite{ServerID: id, Secret: "abcdefghijklmnopqrstuv", Addrs: []string{"/ip4/192.168.1.20/tcp/19893"}}
 	if qrInvite(small, nil, connectQRMax) != small.String() {
 		t.Fatal("a link that fits was changed")
+	}
+	// The web address at home and the code stay, addresses going first; a name too long for even that loses them.
+	inv.Home, inv.Code = "http://192.168.1.20:9797", "K7QM2XHD"
+	link = qrInvite(inv, []string{"http://192.168.1.20:9797"}, connectQRMax)
+	if got, err := p2p.ParseInvite(link); err != nil || len(link) > connectQRMax || got.Home != inv.Home || got.Code != inv.Code {
+		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
+	}
+	inv.Home = "http://" + strings.Repeat("n", 180) + ".local"
+	link = qrInvite(inv, nil, connectQRMax)
+	if got, err := p2p.ParseInvite(link); err != nil || len(link) > connectQRMax || got.Home != "" || got.Code != "" {
+		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
+	}
+}
+
+// The owner's homelab (0.8.4): the server in a container on Docker's bridge network, the page opened at the
+// host's address. Devices at home are pointed at that address, never the container's own, which nothing else
+// reaches; the QR code holds it and the code for an app at home; the peer-to-peer port is tried at the host.
+// A page opened at this computer's own name, or from the internet, gives no address at home.
+func TestConnectOfferOnADockerHost(t *testing.T) {
+	ts, _ := p2pServer(t, nil)
+	_, kate := ts.user(t, "kate", "adult", false, "")
+	const host = "192.168.213.50" // no computer running the tests has it, as no container has its host's
+	w := ts.do(t, "POST", "/api/connect/offer", kate, map[string]any{}, "RemoteAddr", "192.168.213.20:5000", "Host", host+":9797")
+	if w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	var o offerMade
+	_ = json.Unmarshal(w.Body.Bytes(), &o)
+	if len(o.HomeAddresses) != 1 || o.HomeAddresses[0] != "http://"+host+":9797" {
+		t.Fatalf("the address at home: %v", o.HomeAddresses)
+	}
+	port := ts.p2pNode().Port()
+	inv, err := p2p.ParseInvite(o.Link)
+	if err != nil || len(inv.Addrs) < 2 || inv.Addrs[0] != fmt.Sprintf("/ip4/%s/udp/%d/quic-v1", host, port) || inv.Addrs[1] != fmt.Sprintf("/ip4/%s/tcp/%d", host, port) {
+		t.Fatalf("the peer-to-peer port on the host first: %v %v", inv.Addrs, err)
+	}
+	if inv.Home != "" || inv.Code != "" {
+		t.Fatal("the link, which may be sent anywhere, carries the code")
+	}
+	qr, err := p2p.ParseInvite(o.QRLink)
+	clean, _ := p2p.CleanJoinCode(o.Code)
+	if err != nil || len(o.QRLink) > connectQRMax || qr.Home != "http://"+host+":9797" || qr.Code != clean || qr.Secret != inv.Secret {
+		t.Fatalf("the QR code: %d bytes %+v %v", len(o.QRLink), qr, err)
+	}
+	_ = ts.do(t, "DELETE", "/api/connect/offer", kate, nil)
+
+	for what, hdr := range map[string][]string{
+		"this computer's own name": {"RemoteAddr", "127.0.0.1:5000", "Host", "localhost:9797"},
+		"from the internet":        {"RemoteAddr", "203.0.113.9:5000", "Host", "203.0.113.4:9797"},
+		"a public name":            {"RemoteAddr", "192.168.213.20:5000", "Host", "media.example.com"},
+	} {
+		w := ts.do(t, "POST", "/api/connect/offer", kate, map[string]any{}, hdr...)
+		var o offerMade
+		_ = json.Unmarshal(w.Body.Bytes(), &o)
+		if w.Code != 200 {
+			continue // refused outright is fine too
+		}
+		if qr, _ := p2p.ParseInvite(o.QRLink); qr.Home != "" || qr.Code != "" {
+			t.Errorf("%s: the QR code holds %q", what, qr.Home)
+		}
+		for _, a := range o.HomeAddresses {
+			if strings.Contains(a, "localhost") || strings.Contains(a, "example.com") || strings.Contains(a, "203.0.113") {
+				t.Errorf("%s: %q given as the address at home", what, a)
+			}
+		}
+		_ = ts.do(t, "DELETE", "/api/connect/offer", kate, nil, hdr...)
 	}
 }

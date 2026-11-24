@@ -70,3 +70,25 @@ func TestMaxConnections(t *testing.T) {
 		t.Error("too few to use the server at all")
 	}
 }
+
+// The peer-to-peer port set on the machine, as a container's image does: by default none (the server
+// chooses one), from the variable or the flag, and only a port that can be one.
+func TestP2PPort(t *testing.T) {
+	dir := t.TempDir()
+	load := func(args ...string) (*Config, error) { return Parse(append([]string{"-data", dir}, args...)) }
+	t.Setenv("WMS_CONFIG", "")
+	t.Setenv("WMS_P2P_PORT", "")
+	if c, err := load(); err != nil || c.P2PPort != 0 {
+		t.Fatalf("%+v %v", c, err)
+	}
+	t.Setenv("WMS_P2P_PORT", "9798")
+	if c, err := load(); err != nil || c.P2PPort != 9798 {
+		t.Fatalf("%+v %v", c, err)
+	}
+	if c, err := load("-p2p-port", "40000"); err != nil || c.P2PPort != 40000 {
+		t.Fatalf("%+v %v", c, err)
+	}
+	if _, err := load("-p2p-port", "80"); err == nil {
+		t.Error("a port below 1024")
+	}
+}

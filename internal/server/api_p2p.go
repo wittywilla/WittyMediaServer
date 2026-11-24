@@ -370,6 +370,11 @@ func (s *Server) applyP2P(ctx context.Context) error {
 		s.stopP2PLocked()
 		return nil
 	}
+	// A port set on the machine (WMS_P2P_PORT: the one a container publishes) wins over the one chosen here, which
+	// nobody could have published in advance. It isn't saved, so taking it away brings the chosen one back.
+	if s.Cfg.P2PPort > 0 {
+		cfg.Port = s.Cfg.P2PPort
+	}
 	if s.p2p.node != nil && fmt.Sprint(s.p2p.started) == fmt.Sprint(cfg) {
 		return nil
 	}
@@ -1012,7 +1017,10 @@ func (s *Server) handleP2PInvite(w http.ResponseWriter, r *http.Request) {
 }
 
 // inviteAddrs picks the addresses worth the room in a QR code: ones the
-// internet can reach first, then relayed ones; never this machine's own.
+// internet can reach first, then relayed ones; never this machine's own. Two
+// relayed ones always keep their place: when no direct way works (a
+// container whose port isn't published, strict routers at both ends) they are
+// all an app has left.
 func inviteAddrs(addrs []string) []string {
 	var public, relayed []string
 	for _, a := range addrs {
@@ -1024,12 +1032,18 @@ func inviteAddrs(addrs []string) []string {
 			public = append(public, a)
 		}
 	}
+	if keep := maxLinkAddrs - min(2, len(relayed)); len(public) > keep {
+		public = public[:keep]
+	}
 	out := append(public, relayed...)
-	if len(out) > 6 {
-		out = out[:6]
+	if len(out) > maxLinkAddrs {
+		out = out[:maxLinkAddrs]
 	}
 	return out
 }
+
+// maxLinkAddrs is how many addresses a link holds (p2p.ParseInvite reads no more).
+const maxLinkAddrs = 6
 
 // ---------------------------------------------------------------- handlers for the owner
 
@@ -1066,6 +1080,9 @@ type p2pView struct {
 func (s *Server) p2pView(r *http.Request, applyErr string) p2pView {
 	cfg := s.loadP2P(r.Context())
 	cfg.OwnRelays = maskRelayKeys(cfg.OwnRelays)
+	if s.Cfg.P2PPort > 0 {
+		cfg.Port = s.Cfg.P2PPort // the port in use: set on the machine (WMS_P2P_PORT), as in a container
+	}
 	v := p2pView{Settings: cfg, Error: applyErr, ThirdParties: p2pThirdParties, Steps: []checkStep{}}
 	v.Devices = s.p2pDeviceViews(r.Context(), userFrom(r), true)
 	if node := s.p2pNode(); node != nil {

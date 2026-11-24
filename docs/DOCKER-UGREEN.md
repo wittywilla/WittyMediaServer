@@ -70,6 +70,8 @@ services:
       - no-new-privileges:true
     ports:
       - "9797:9797"
+      - "9798:9798/tcp" # peer to peer, for devices away from home (Settings → Remote Access)
+      - "9798:9798/udp"
     environment:
       - WMS_LOG=info
     volumes:

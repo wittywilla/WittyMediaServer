@@ -550,6 +550,14 @@ func TestP2PSettingsDefaultsAndValidation(t *testing.T) {
 	if got := inviteAddrs([]string{"/ip4/127.0.0.1/tcp/1", "/ip4/1.2.3.4/tcp/1/p2p/x/p2p-circuit", "/ip4/198.51.100.2/tcp/1", "/ip6/::1/tcp/1"}); len(got) != 2 || got[0] != "/ip4/198.51.100.2/tcp/1" {
 		t.Fatalf("addresses for an invite: %v", got)
 	}
+	// Many direct addresses (a container: the host's, its own, the outside one) never crowd out the relayed ones,
+	// which are all an app has left when no direct way works.
+	many := []string{"/ip4/192.168.5.50/udp/9798/quic-v1", "/ip4/192.168.5.50/tcp/9798", "/ip4/172.17.0.2/udp/9798/quic-v1", "/ip4/172.17.0.2/tcp/9798",
+		"/ip4/198.51.100.2/udp/9798/quic-v1", "/ip4/198.51.100.2/tcp/9798", "/ip4/1.2.3.4/udp/4001/quic-v1/p2p/x/p2p-circuit", "/ip4/1.2.3.4/tcp/4001/p2p/x/p2p-circuit"}
+	got := inviteAddrs(many)
+	if len(got) != 6 || got[0] != many[0] || !strings.Contains(got[4], "p2p-circuit") || !strings.Contains(got[5], "p2p-circuit") {
+		t.Fatalf("addresses for an invite from a container: %v", got)
+	}
 }
 
 // The public address book, which a TV that has never been home needs to join by a code, is on

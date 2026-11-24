@@ -263,7 +263,7 @@ hapi PUT /api/p2p/settings "{\"accept\":true,\"enabled\":true,\"staticRelays\":[
 hrelayed() { hapi GET /api/p2p >"$SMOKE_OUT/homelab-p2p.json"; grep -q 'p2p-circuit' "$SMOKE_OUT/homelab-p2p.json"; }
 until_ok 120 "a place on the public relay" hrelayed || { cat "$SMOKE_OUT/homelab-p2p.json" >>"$LOG"; exit 1; }
 grep -q "/tcp/$P2P2\"" "$SMOKE_OUT/homelab-p2p.json" || fail "the peer-to-peer port isn't WMS_P2P_PORT's $P2P2"
-browser GET /api/connect | tee -a "$LOG" | grep -q "$P2P2 (UDP and TCP)" || fail "the page doesn't say which port the container must publish"
+browser GET /api/connect | tee -a "$LOG" | grep -q "Port $P2P2 isn.t published from Docker" || fail "the page doesn't say the container's peer-to-peer port isn't published"
 
 # offer: Connect a device in the owner's browser. Sets CODE, LINK, QR.
 offer() {
@@ -283,7 +283,7 @@ offer
 [ "$HOMES" = "http://$HOST:$WEB2" ] || fail "the address at home is '$HOMES', not the host's (a container's own address leads nowhere)"
 read -r _ _ _ QRHOME QRCODE < <(parse "$QR")
 [ "$QRHOME" = "http://$HOST:$WEB2" ] && [ "$QRCODE" != - ] || fail "the QR code holds no address at home or no code: $(sed 's/s=[^&]*/s=…/; s/c=[^&]*/c=…/' <<<"$QR")"
-[ "${#QR}" -le 210 ] || fail "the QR link is ${#QR} bytes, more than the page's QR codes hold"
+[ "${#QR}" -le 300 ] || fail "the QR link is ${#QR} bytes, more than the page's QR codes hold (300)"
 ns sm-ph python3 "$(dirname "$0")/webjoin.py" "$QRHOME" "$QRCODE" "Homelab phone" android | tee -a "$LOG" | grep -q '"ok": true' || fail "the QR code's address and code didn't sign the phone in"
 
 step "Only a public relay between them: the invite gets through, and the app is told what didn't"
@@ -313,6 +313,9 @@ exec 9>&-
 step "Its peer-to-peer port published as well (the compose files since 0.8.5): the phone connects peer to peer at home"
 ns sm-dh iptables -t nat -A PREROUTING -p tcp --dport $P2P2 -m addrtype --dst-type LOCAL -j DNAT --to-destination 172.17.0.2:$P2P2 >>"$LOG" 2>&1
 ns sm-dh iptables -t nat -A PREROUTING -p udp --dport $P2P2 -m addrtype --dst-type LOCAL -j DNAT --to-destination 172.17.0.2:$P2P2 >>"$LOG" 2>&1
+# As Docker does, so the container reaches its own published port at the host's address (the server checks it).
+ns sm-dh iptables -t nat -A POSTROUTING -s 172.17.0.2 -d 172.17.0.2 -p tcp --dport $P2P2 -j MASQUERADE >>"$LOG" 2>&1
+browser GET /api/connect | tee -a "$LOG" | grep -q "isn.t published" && fail "the page still says the port isn't published"
 offer
 read -r HSID HSECRET HHINTS _ _ < <(parse "$LINK")
 k=$("$build/bin/wittyconnect" keygen | json "d['key']")

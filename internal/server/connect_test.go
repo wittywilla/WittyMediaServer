@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -373,9 +372,20 @@ func TestQRInviteFits(t *testing.T) {
 // reaches; the QR code holds it and the code for an app at home; the peer-to-peer port is tried at the host.
 // A page opened at this computer's own name, or from the internet, gives no address at home.
 func TestConnectOfferOnADockerHost(t *testing.T) {
-	ts, _ := p2pServer(t, nil)
+	ts, admin := p2pServer(t, nil)
 	_, kate := ts.user(t, "kate", "adult", false, "")
 	const host = "192.168.213.50" // no computer running the tests has it, as no container has its host's
+
+	// In a container, with nothing answering at the host's peer-to-peer port: Connect a device says plainly that the
+	// port isn't published from Docker, and which lines to add (the owner's 0.8.4 setup).
+	t.Setenv("WMS_DOCKER", "1")
+	var st connectStatus
+	_ = json.Unmarshal(ts.do(t, "GET", "/api/connect", admin, nil, "RemoteAddr", "192.168.213.20:5000", "Host", host+":9797").Body.Bytes(), &st)
+	// (The tests' node listens on a random port for each of UDP and TCP, so the number isn't checked here; a real one
+	// has one port for both.)
+	if !strings.Contains(st.Hint, " isn't published from Docker") || !strings.Contains(st.Hint, "/udp\" to ports:") || st.Away == "yes" {
+		t.Fatalf("the status in a container whose port isn't published: %+v", st)
+	}
 	w := ts.do(t, "POST", "/api/connect/offer", kate, map[string]any{}, "RemoteAddr", "192.168.213.20:5000", "Host", host+":9797")
 	if w.Code != 200 {
 		t.Fatalf("%d %s", w.Code, w.Body)
@@ -385,9 +395,9 @@ func TestConnectOfferOnADockerHost(t *testing.T) {
 	if len(o.HomeAddresses) != 1 || o.HomeAddresses[0] != "http://"+host+":9797" {
 		t.Fatalf("the address at home: %v", o.HomeAddresses)
 	}
-	port := ts.p2pNode().Port()
 	inv, err := p2p.ParseInvite(o.Link)
-	if err != nil || len(inv.Addrs) < 2 || inv.Addrs[0] != fmt.Sprintf("/ip4/%s/udp/%d/quic-v1", host, port) || inv.Addrs[1] != fmt.Sprintf("/ip4/%s/tcp/%d", host, port) {
+	if err != nil || len(inv.Addrs) < 2 || !strings.HasPrefix(inv.Addrs[0], "/ip4/"+host+"/udp/") || !strings.HasSuffix(inv.Addrs[0], "/quic-v1") ||
+		!strings.HasPrefix(inv.Addrs[1], "/ip4/"+host+"/tcp/") {
 		t.Fatalf("the peer-to-peer port on the host first: %v %v", inv.Addrs, err)
 	}
 	if inv.Home != "" || inv.Code != "" {

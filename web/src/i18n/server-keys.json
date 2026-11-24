@@ -1068,6 +1068,7 @@
   "Port on your router",
   "Port {port} is Remote Access's HTTPS port. Choose another, or change that one in Settings → Remote Access first.",
   "Port {port} is the HTTPS port Remote Access would use. If you turn its HTTPS on later, choose another there.",
+  "Port {port} isn't published from Docker, so devices away from home can't connect peer to peer. Add \"{port}:{port}/tcp\" and \"{port}:{port}/udp\" to ports: in your compose file and recreate the container, then forward the port on your router or use your own WittyRelay. Devices at home can scan the QR code.",
   "Ports below 1024 are usually kept for the system's own services, and on Linux and BSD a server needs extra rights to use them. 8096 to 9999 is a good range for a media server.",
   "Posters, backdrops and logos the server has saved. They can be fetched again, so leave this out if space is tight.",
   "Prefer NTFS, ext4, or another journaling file system for the data folder.",

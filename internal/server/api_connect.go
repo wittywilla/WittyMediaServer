@@ -229,11 +229,11 @@ func hostHints(ip netip.Addr, port int) []string {
 // that has none can still look the server up by its ID). A circuit through one
 // of the owner's own relays comes first: from away it is often the only way in,
 // and the public address book is no help to a server behind a router (#683).
-// Then public addresses, then the ones this server has on the home network;
-// never a public relay's circuit, which carries an invite and nothing more. The
-// name is cut last, if even that doesn't fit; the home address and code, which
-// a device at home needs most, go only when nothing else would make it fit (a
-// very long name for the computer).
+// Then public addresses, then another relay's circuit, then the ones this server
+// has on the home network, which a device at home doesn't need when the QR code
+// holds the web address. The name is cut before the first relayed address goes;
+// the home address and code, which a device at home needs most, go only when
+// nothing else would make it fit (a very long name for the computer).
 func qrInvite(inv p2p.Invite, home []string, own map[string]bool, max int) string {
 	if link := qrFit(inv, home, own, max); len(link) <= max || inv.Home == "" {
 		return link
@@ -271,13 +271,16 @@ func (s *Server) ownRelayIDs(ctx context.Context) map[string]bool {
 }
 
 func qrFit(inv p2p.Invite, home []string, own map[string]bool, max int) string {
+	// 0 the owner's relays' circuits, 1 public addresses, 2 any other relay's circuit (an ordinary public relay,
+	// which carries the invite and lets the two ends try for a direct connection), 3 this server's addresses at home,
+	// 4 other private ones. Away from home the first three are what work; at home the QR code's web address does.
 	rank := func(a string) int {
 		parts := strings.Split(a, "/")
 		if r := circuitRelay(a); r != "" {
 			if own[r] {
 				return 0
 			}
-			return -1
+			return 2
 		}
 		if len(parts) < 3 {
 			return -1
@@ -291,19 +294,19 @@ func qrFit(inv p2p.Invite, home []string, own map[string]bool, max int) string {
 		}
 		for _, h := range home {
 			if strings.Contains(h, "//"+ip.String()+":") {
-				return 2
+				return 3
 			}
 		}
-		return 3
+		return 4
 	}
 	var addrs []string
-	ownCount := 0
-	for want := 0; want <= 3; want++ {
+	ownCount := 0 // how many addresses, from the start, are kept before the name is cut: up to the first relayed one
+	for want := 0; want <= 4; want++ {
 		for _, a := range inv.Addrs {
 			if rank(a) == want {
 				addrs = append(addrs, a)
-				if want == 0 {
-					ownCount++
+				if (want == 0 || want == 2) && ownCount == 0 {
+					ownCount = len(addrs)
 				}
 			}
 		}
@@ -326,7 +329,7 @@ func qrFit(inv p2p.Invite, home []string, own map[string]bool, max int) string {
 		}
 		return "", false
 	}
-	if link, ok := fit(min(ownCount, 1)); ok {
+	if link, ok := fit(ownCount); ok {
 		return link
 	}
 	short.Name = inv.Name
@@ -415,11 +418,36 @@ func (s *Server) connectStatus(r *http.Request) connectStatus {
 	// In a container, the peer-to-peer port is reached only if it was published as well as the web port (the
 	// stock compose file published only the web port before 0.8.5), and forwarded on the router or helped by a
 	// WittyRelay: from inside, the server can't ask the router itself.
-	if node != nil && st.Away != "yes" && ffmpeg.InContainer() {
-		st.Hint = i18n.F("This server runs in a container. For devices away from home, its peer-to-peer port {port} (UDP and TCP) has to be published as well as the web port, and forwarded on your router, or use your own WittyRelay. Devices at home can scan the QR code.",
-			"port", fmt.Sprint(node.Port()))
+	if node != nil && ffmpeg.InContainer() {
+		port := node.Port()
+		if _, ip, bridged := connectHome(r); bridged && !hostPortOpen(ip, port) {
+			// On Docker's bridge network, with the page opened at the host's address: that address's port answers
+			// only if Docker publishes it. Nothing answering there is the owner's 0.8.4 setup exactly.
+			st.Hint = i18n.F("Port {port} isn't published from Docker, so devices away from home can't connect peer to peer. Add \"{port}:{port}/tcp\" and \"{port}:{port}/udp\" to ports: in your compose file and recreate the container, then forward the port on your router or use your own WittyRelay. Devices at home can scan the QR code.",
+				"port", fmt.Sprint(port))
+			if st.Away != "yes" {
+				st.Away, st.Words = "no", i18n.T("Devices away from home can't connect right now.")
+			}
+		} else if st.Away != "yes" {
+			st.Hint = i18n.F("This server runs in a container. For devices away from home, its peer-to-peer port {port} (UDP and TCP) has to be published as well as the web port, and forwarded on your router, or use your own WittyRelay. Devices at home can scan the QR code.",
+				"port", fmt.Sprint(port))
+		}
 	}
 	return st
+}
+
+// hostPortOpen says whether the container's host answers on a TCP port: Docker publishes it to this container (it
+// answers here, through the host) or nothing does. Quick: refused at once, or a short wait on a network that drops.
+func hostPortOpen(ip netip.Addr, port int) bool {
+	if !ip.IsValid() || port <= 0 {
+		return false
+	}
+	c, err := net.DialTimeout("tcp", netip.AddrPortFrom(ip, uint16(port)).String(), 700*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	_ = c.Close()
+	return true
 }
 
 // GET /api/connect: whether devices can connect from away, in words.

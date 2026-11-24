@@ -8,7 +8,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
-	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"net/url"
@@ -348,6 +348,9 @@ func (s *Server) canWatchTuner(r *http.Request, id int64) bool {
 func (s *Server) handleTuneTuner(w http.ResponseWriter, r *http.Request, id int64) {
 	if !s.canWatchTuner(r, id) {
 		writeErr(w, 404, "channel not found")
+		return
+	}
+	if s.liveRefused(w, r, "tun", id, time.Now()) { // the programme's rating (parental_live.go)
 		return
 	}
 	c, err := s.TV.Channel(r.Context(), id)
@@ -721,7 +724,7 @@ func (s *Server) handleSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 	if u := userFrom(r); !u.IsAdmin {
 		if n, err := s.TV.PendingRecordings(r.Context(), u.ID); err != nil || n >= maxPendingRecordings {
-			writeErr(w, 409, fmt.Sprintf("You have %d recordings waiting, which is as many as you can have. Cancel one first.", maxPendingRecordings))
+			writeErr(w, 409, i18n.F("You have {maxPendingRecordings} recordings waiting, which is as many as you can have. Cancel one first.", "maxPendingRecordings", maxPendingRecordings))
 			return
 		}
 	}
@@ -801,7 +804,7 @@ func (s *Server) handleAddRecordingRule(w http.ResponseWriter, r *http.Request) 
 	}
 	if u := userFrom(r); !u.IsAdmin {
 		if n, err := s.TV.RuleCount(r.Context(), u.ID); err != nil || n >= maxRecordingRules {
-			writeErr(w, 409, fmt.Sprintf("You have %d series recordings, which is as many as you can have. Remove one first.", maxRecordingRules))
+			writeErr(w, 409, i18n.F("You have {maxRecordingRules} series recordings, which is as many as you can have. Remove one first.", "maxRecordingRules", maxRecordingRules))
 			return
 		}
 	}

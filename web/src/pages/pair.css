@@ -7,8 +7,32 @@
 .qr-ink { fill: #000000; } /* design-ok: as above */
 .pair-countdown { display: block; width: min(60vw, 240px); height: 6px; margin: var(--sp-3) auto 0; accent-color: var(--accent); }
 .pair-help { text-align: center; }
-/* On a TV the code is read by a phone's camera from the sofa and the PIN by eye: both as big as the screen
+
+/* Signing this device in from a phone (components/PairDevice.tsx), in a standalone card. With a QR code and room
+   for it, two columns: the QR code on the left, the code and the PIN beside it, the heading over both and the
+   way back under both. The countdown is the card's last line. */
+.pair-device .pair-countdown { width: 100%; margin: 0; }
+.pair-device .spec-qr { align-items: center; text-align: center; }
+.pair-device .spec-qr .qr { width: min(100%, 13rem); }
+.pair-device .spec-code-chars { flex-wrap: wrap; }
+.pair-device .spec-code-chars b { min-width: 1.3em; padding: var(--sp-1) var(--sp-2); font-size: var(--text-xl); }
+@media (min-width: 720px) {
+  .pair-device.two .spec-page { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--sp-8); align-items: center; }
+  .pair-device.two .spec-page > :is(.spec-head, .spec-dock) { grid-column: 1 / -1; }
+  .pair-device.two .spec-page > .spec-sec:has(.spec-qr) { grid-column: 1; grid-row: 2 / span 2; }
+  .pair-device.two .spec-page > .spec-sec:not(:has(.spec-qr)) { grid-column: 2; }
+}
+@media (max-height: 820px) { .pair-device .spec-qr .qr { width: min(100%, 11rem); } }
+/* On a TV the code is read by a phone's camera from the sofa and the PIN by eye: both as big as one screen
    allows, and nothing here needs more than OK or Back on the remote. */
-html.tv-mode .pair-device .qr { width: min(58vh, 42vw); border-radius: var(--r-md); }
-html.tv-mode .pair-device .spec-code-chars b { font-size: calc(var(--tvu) * 112); }
-html.tv-mode .pair-countdown { width: min(100%, calc(var(--tvu) * 520)); height: calc(var(--tvu) * 10); }
+html.tv-mode .pair-device .spec-qr .qr { width: min(36vh, 20rem); border-radius: var(--r-md); }
+html.tv-mode .pair-device .spec-code-chars b { font-size: calc(var(--tvu) * 56); }
+html.tv-mode .pair-device .pair-countdown { height: calc(var(--tvu) * 8); }
+/* A phone: the code on one line, the QR code smaller. */
+@media (max-width: 480px) {
+  .pair-device .spec-code-chars { gap: var(--sp-1); flex-wrap: nowrap; }
+  .pair-device .spec-code-chars b { min-width: 0; flex: 1 1 0; padding: var(--sp-1) 0; font-size: var(--text-lg); }
+  .pair-device .spec-qr .qr { width: min(100%, 7rem); }
+  .pair-device.sa-card, .pair-device .spec-page { gap: var(--sp-3); }
+  .pair-device .spec-fields { gap: var(--sp-2); }
+}

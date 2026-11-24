@@ -26,8 +26,10 @@ import (
 //
 // What this lets through: whoever holds the invite can reach the server
 // through its relay, for at most as long as the invite lasts and only until
-// it is used, and the server answers an unlisted key nothing but the invite
-// itself. That is no more than the invite gives them anyway. The relay's rule
+// it is used. With "devices only" on (the default) the server answers an
+// unlisted key nothing but the invite itself; with it off, the sign-in page as
+// well, as it does any key, which still wants a password. Either way that is
+// no more than the invite, or the setting, gives them already. The relay's rule
 // is unchanged: it admits the keys the server lists, and no others.
 
 // EnrolSeed is the enrol key's seed, made from an invite's secret.

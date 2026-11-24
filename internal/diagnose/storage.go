@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/modules"
 	"io"
@@ -120,9 +121,9 @@ func (c *storageCheck) run() {
 	c.step("looking at the folder", 0.02)
 	st, err := os.Stat(t.Path)
 	if err != nil {
-		f := Finding{Severity: SevProblem, Title: "This folder can't be reached", What: "The server got this answer: " + plainErr(err) + "."}
+		f := Finding{Severity: SevProblem, Title: "This folder can't be reached", What: i18n.F("The server got this answer: {plainErr}.", "plainErr", plainErr(err))}
 		if errors.Is(err, fs.ErrNotExist) {
-			f.What = "It isn't there. If it's on another drive, that drive may not be connected."
+			f.What = i18n.T("It isn't there. If it's on another drive, that drive may not be connected.")
 		}
 		f.Fix = "Check that the drive is connected and that the folder wasn't moved or renamed."
 		if library {
@@ -132,13 +133,13 @@ func (c *storageCheck) run() {
 		return
 	}
 	if !st.IsDir() {
-		c.add(Finding{Severity: SevProblem, Title: "This isn't a folder", What: "A file is where the folder should be.", Fix: "Point the server at the folder that holds it."})
+		c.add(Finding{Severity: SevProblem, Title: "This isn't a folder", What: i18n.T("A file is where the folder should be."), Fix: "Point the server at the folder that holds it."})
 		return
 	}
 	info, ferr := sysinfo.FSInfo(t.Path)
 	c.fs = info
 	if ferr != nil {
-		c.add(Finding{Severity: SevInfo, Title: "The file system couldn't be identified", What: "The system's answer: " + plainErr(ferr) + ". The checks that depend on it are left out."})
+		c.add(Finding{Severity: SevInfo, Title: "The file system couldn't be identified", What: i18n.F("The system's answer: {plainErr}. The checks that depend on it are left out.", "plainErr", plainErr(ferr))})
 	} else {
 		c.fsFinding()
 	}
@@ -194,7 +195,7 @@ func (c *storageCheck) fsFinding() {
 	}
 	name := strings.ToUpper(f.Type)
 	if name == "" {
-		name = "An unnamed file system"
+		name = i18n.T("An unnamed file system")
 	}
 	line := name + " on " + kind
 	det := []string{}
@@ -206,49 +207,49 @@ func (c *storageCheck) fsFinding() {
 	own := role != "library"
 	switch {
 	case f.Network() && role == "data":
-		c.add(Finding{Severity: SevProblem, Title: "The server's database is on a network drive", What: "The database needs file locks that network drives don't keep reliably. It can slow to a crawl, or be damaged.", Fix: "Strongly advised: move the data folder to a drive inside this computer (see Config, the data folder)."})
+		c.add(Finding{Severity: SevProblem, Title: "The server's database is on a network drive", What: i18n.T("The database needs file locks that network drives don't keep reliably. It can slow to a crawl, or be damaged."), Fix: "Strongly advised: move the data folder to a drive inside this computer (see Config, the data folder)."})
 	case f.Network() && role == "transcode":
-		c.add(Finding{Severity: SevWarn, Title: "The transcode folder is on a network drive", What: "Video being converted is written here and read back right away, and that's slow over a network: playback may stall.", Fix: "Move it to a drive inside this computer (see Config, transcodeDir)."})
+		c.add(Finding{Severity: SevWarn, Title: "The transcode folder is on a network drive", What: i18n.T("Video being converted is written here and read back right away, and that's slow over a network: playback may stall."), Fix: "Move it to a drive inside this computer (see Config, transcodeDir)."})
 	case f.Network() && own:
-		c.add(Finding{Severity: SevInfo, Title: "This folder is on a network drive", What: "It works, but more slowly than a drive inside this computer."})
+		c.add(Finding{Severity: SevInfo, Title: "This folder is on a network drive", What: i18n.T("It works, but more slowly than a drive inside this computer.")})
 	case (f.Kind == "removable" || f.Kind == "sdcard") && role == "transcode":
-		c.add(Finding{Severity: SevWarn, Title: "The transcode folder is on a removable drive or SD card", What: "Converting video writes a lot, all the time. Cards and small USB drives are slow at it and wear out early.", Fix: "Move it to a drive inside this computer (see Config, transcodeDir)."})
+		c.add(Finding{Severity: SevWarn, Title: "The transcode folder is on a removable drive or SD card", What: i18n.T("Converting video writes a lot, all the time. Cards and small USB drives are slow at it and wear out early."), Fix: "Move it to a drive inside this computer (see Config, transcodeDir)."})
 	case (f.Kind == "removable" || f.Kind == "sdcard") && role == "data":
-		c.add(Finding{Severity: SevWarn, Title: "The data folder is on a removable drive or SD card", What: "If it's unplugged, the server loses its database while it's running. Cards are also slow at what a database asks of them.", Fix: "Move it to a drive inside this computer."})
+		c.add(Finding{Severity: SevWarn, Title: "The data folder is on a removable drive or SD card", What: i18n.T("If it's unplugged, the server loses its database while it's running. Cards are also slow at what a database asks of them."), Fix: "Move it to a drive inside this computer."})
 	case f.Kind == "ram" && role == "data":
-		c.add(Finding{Severity: SevProblem, Title: "The data folder is held in memory", What: "Your database is gone at the next restart.", Fix: "Move it to a real drive."})
+		c.add(Finding{Severity: SevProblem, Title: "The data folder is held in memory", What: i18n.T("Your database is gone at the next restart."), Fix: "Move it to a real drive."})
 	}
 	if f.Mapped {
-		sev, what := SevWarn, "A drive letter for a share only exists for the person who mapped it. A server run as a service can't see it, and neither can it after a restart, before someone signs in."
+		sev, what := SevWarn, i18n.T("A drive letter for a share only exists for the person who mapped it. A server run as a service can't see it, and neither can it after a restart, before someone signs in.")
 		c.add(Finding{Severity: sev, Title: "This is a mapped drive letter", What: what, Fix: `Use the share's own address instead, in the form \\server\share\folder.`})
 	}
 	if f.ReadOnly {
 		if own {
-			c.add(Finding{Severity: SevProblem, Title: "This folder can't be written to", What: "It's on a read-only file system, and the server needs to save things here.", Fix: "Mount it read-write, or move the folder."})
+			c.add(Finding{Severity: SevProblem, Title: "This folder can't be written to", What: i18n.T("It's on a read-only file system, and the server needs to save things here."), Fix: "Mount it read-write, or move the folder."})
 		} else {
-			c.add(Finding{Severity: SevInfo, Title: "This library is read-only", What: "That's fine for watching. Anything saved next to the media, such as artwork or metadata, won't work.", Fix: "Nothing, unless you want those saved beside the files."})
+			c.add(Finding{Severity: SevInfo, Title: "This library is read-only", What: i18n.T("That's fine for watching. Anything saved next to the media, such as artwork or metadata, won't work."), Fix: "Nothing, unless you want those saved beside the files."})
 		}
 	}
 	switch {
 	case f.Type == "fat32" || f.Type == "vfat" || f.Type == "msdos" || f.Type == "fat":
-		c.add(Finding{Severity: SevWarn, Title: "FAT32 can't hold files of 4 GB or more", What: "A disc image or a film at good quality is usually bigger. A copy to this drive fails or gets cut short at 4 GB.", Fix: "Use the drive with NTFS, exFAT or ext4. That means emptying it first, so copy everything off before you change it."})
+		c.add(Finding{Severity: SevWarn, Title: "FAT32 can't hold files of 4 GB or more", What: i18n.T("A disc image or a film at good quality is usually bigger. A copy to this drive fails or gets cut short at 4 GB."), Fix: "Use the drive with NTFS, exFAT or ext4. That means emptying it first, so copy everything off before you change it."})
 	case (f.Type == "exfat") && role == "data":
 		c.add(Finding{Severity: SevWarn, Title: "The data folder is on exFAT", What: "exFAT keeps no journal, so a power cut or an unplugged drive can damage the database.", Fix: "Prefer NTFS, ext4, or another journaling file system for the data folder."})
 	case (f.Type == "ntfs3" || f.Type == "ntfs" || f.Type == "fuseblk") && runtime.GOOS != "windows" && role == "data":
-		c.add(Finding{Severity: SevWarn, Title: "The data folder is on NTFS, from Linux", What: "Locks and speed on this driver aren't what a database wants.", Fix: "Prefer ext4 or XFS for the data folder."})
+		c.add(Finding{Severity: SevWarn, Title: "The data folder is on NTFS, from Linux", What: i18n.T("Locks and speed on this driver aren't what a database wants."), Fix: "Prefer ext4 or XFS for the data folder."})
 	case f.Type == "overlay" && own:
-		c.add(Finding{Severity: SevWarn, Title: "This folder is inside the container", What: "What's in it goes away when the container is replaced.", Fix: "Mount a volume here, as the sample compose file does."})
+		c.add(Finding{Severity: SevWarn, Title: "This folder is inside the container", What: i18n.T("What's in it goes away when the container is replaced."), Fix: "Mount a volume here, as the sample compose file does."})
 	case strings.HasPrefix(f.Type, "fuse.") && role == "data":
-		c.add(Finding{Severity: SevWarn, Title: "The data folder is on a user-space file system", What: "These often don't keep file locks as a database needs. Damage to the database is possible.", Fix: "Move the data folder to a plain local drive."})
+		c.add(Finding{Severity: SevWarn, Title: "The data folder is on a user-space file system", What: i18n.T("These often don't keep file locks as a database needs. Damage to the database is possible."), Fix: "Move the data folder to a plain local drive."})
 	case strings.HasPrefix(f.Type, "fuse."):
-		c.add(Finding{Severity: SevInfo, Title: "This folder is on a user-space file system", What: "These add some delay to each read: fine for most uses, and seen most when jumping around in a film."})
+		c.add(Finding{Severity: SevInfo, Title: "This folder is on a user-space file system", What: i18n.T("These add some delay to each read: fine for most uses, and seen most when jumping around in a film.")})
 	}
 }
 
 func (c *storageCheck) spaceFinding() {
 	d, err := sysinfo.DiskUsage(c.t.Path)
 	if err != nil {
-		c.add(Finding{Severity: SevInfo, Title: "Free space couldn't be read", What: "The system's answer: " + plainErr(err) + "."})
+		c.add(Finding{Severity: SevInfo, Title: "Free space couldn't be read", What: i18n.F("The system's answer: {plainErr}.", "plainErr", plainErr(err))})
 		return
 	}
 	free, total := d.Free, d.Total
@@ -277,7 +278,7 @@ func (c *storageCheck) spaceFinding() {
 func (c *storageCheck) readable() {
 	ents, err := os.ReadDir(c.t.Path)
 	if err != nil {
-		c.add(Finding{Severity: SevProblem, Title: "The server can't open this folder", What: "The system's answer: " + plainErr(err) + ".", Fix: "Give the account the server runs as permission to read it. If it runs as a service, that's a different account from yours."})
+		c.add(Finding{Severity: SevProblem, Title: "The server can't open this folder", What: i18n.F("The system's answer: {plainErr}.", "plainErr", plainErr(err)), Fix: "Give the account the server runs as permission to read it. If it runs as a service, that's a different account from yours."})
 		return
 	}
 	tried, failed := 0, 0
@@ -306,7 +307,7 @@ func (c *storageCheck) readable() {
 		c.add(Finding{Severity: SevWarn, Title: "Some files here can't be opened", What: fmt.Sprintf("%d of the %d tried. The system's answer: %s.", failed, tried, plainErr(lastErr)), Fix: "Give the account the server runs as permission to read them.", Names: names})
 		return
 	}
-	c.add(Finding{Severity: SevOK, Title: "The server can read this folder", What: fmt.Sprintf("It listed %s and opened %s.", plural(len(ents), "entry", "entries"), plural(tried, "file", "files"))})
+	c.add(Finding{Severity: SevOK, Title: "The server can read this folder", What: i18n.F("It listed {len} and opened {tried}.", "len", plural(len(ents), "entry", "entries"), "tried", plural(tried, "file", "files"))})
 }
 
 type bigFile struct {
@@ -514,25 +515,25 @@ func (c *storageCheck) walkFindings(r *walkResult) {
 	library := c.t.Role == "library"
 	c.add(Finding{Severity: SevInfo, Title: "What's in this folder", What: fmt.Sprintf("%s in %s, %s in all.", plural(r.files, "file", "files"), plural(r.dirs, "folder", "folders"), bytesText(r.bytes))})
 	if r.stoppedAt != "" {
-		c.add(Finding{Severity: SevInfo, Title: "Not every file was looked at", What: "The walk stopped at its limit of " + r.stoppedAt + ", so the numbers here are for the part it saw."})
+		c.add(Finding{Severity: SevInfo, Title: "Not every file was looked at", What: i18n.F("The walk stopped at its limit of {stoppedAt}, so the numbers here are for the part it saw.", "stoppedAt", r.stoppedAt)})
 	}
 	if n := r.unreadable + r.unreadableDirs; n > 0 {
-		c.add(Finding{Severity: SevWarn, Title: plural(n, "file or folder can't be opened", "files or folders can't be opened"), What: "They won't play or show up. It's usually a matter of permissions, or a file still being copied.", Fix: "Give the account the server runs as permission to read them.", Names: r.namesUnreadable, More: n - len(r.namesUnreadable)})
+		c.add(Finding{Severity: SevWarn, Title: plural(n, "file or folder can't be opened", "files or folders can't be opened"), What: i18n.T("They won't play or show up. It's usually a matter of permissions, or a file still being copied."), Fix: "Give the account the server runs as permission to read them.", Names: r.namesUnreadable, More: n - len(r.namesUnreadable)})
 	}
 	if r.zero > 0 && library {
-		c.add(Finding{Severity: SevWarn, Title: plural(r.zero, "file is empty", "files are empty"), What: "A size of zero usually means a copy or a download that failed.", Fix: "Copy those files again.", Names: r.namesZero, More: r.zero - len(r.namesZero)})
+		c.add(Finding{Severity: SevWarn, Title: plural(r.zero, "file is empty", "files are empty"), What: i18n.T("A size of zero usually means a copy or a download that failed."), Fix: "Copy those files again.", Names: r.namesZero, More: r.zero - len(r.namesZero)})
 	}
 	if r.long > 0 {
-		c.add(Finding{Severity: SevWarn, Title: plural(r.long, "path is too long for some programs", "paths are too long for some programs"), What: "These are over 260 characters. The server copes, but FFmpeg and many other Windows programs may not open them.", Fix: "Shorten the folder or file names.", Names: r.namesLong, More: r.long - len(r.namesLong)})
+		c.add(Finding{Severity: SevWarn, Title: plural(r.long, "path is too long for some programs", "paths are too long for some programs"), What: i18n.T("These are over 260 characters. The server copes, but FFmpeg and many other Windows programs may not open them."), Fix: "Shorten the folder or file names.", Names: r.namesLong, More: r.long - len(r.namesLong)})
 	}
 	if r.odd > 0 {
-		c.add(Finding{Severity: SevWarn, Title: plural(r.odd, "name has characters that may cause trouble", "names have characters that may cause trouble"), What: "FFmpeg and other tools may fail on these. Renaming them is enough.", Fix: "Rename them to use plain letters, digits and spaces.", Names: r.namesOdd, More: r.odd - len(r.namesOdd)})
+		c.add(Finding{Severity: SevWarn, Title: plural(r.odd, "name has characters that may cause trouble", "names have characters that may cause trouble"), What: i18n.T("FFmpeg and other tools may fail on these. Renaming them is enough."), Fix: "Rename them to use plain letters, digits and spaces.", Names: r.namesOdd, More: r.odd - len(r.namesOdd)})
 	}
 	if r.nearFATLimit > 0 {
-		c.add(Finding{Severity: SevWarn, Title: plural(r.nearFATLimit, "file is just under 4 GB", "files are just under 4 GB"), What: "That's how a file looks when it was cut short by a drive that can't hold more (FAT32).", Fix: "Check that it plays to the end. If it doesn't, copy it again from a drive that isn't FAT32."})
+		c.add(Finding{Severity: SevWarn, Title: plural(r.nearFATLimit, "file is just under 4 GB", "files are just under 4 GB"), What: i18n.T("That's how a file looks when it was cut short by a drive that can't hold more (FAT32)."), Fix: "Check that it plays to the end. If it doesn't, copy it again from a drive that isn't FAT32."})
 	}
 	if r.unreadable+r.unreadableDirs+r.long+r.odd == 0 && (r.zero == 0 || !library) {
-		c.add(Finding{Severity: SevOK, Title: "Every file can be opened", What: "None has a name or path likely to cause trouble."})
+		c.add(Finding{Severity: SevOK, Title: "Every file can be opened", What: i18n.T("None has a name or path likely to cause trouble.")})
 	}
 }
 
@@ -570,7 +571,7 @@ func (c *storageCheck) missingItems() {
 	}
 	switch {
 	case missing > 0:
-		c.add(Finding{Severity: SevWarn, Title: plural(missing, "item in the library is missing from this folder", "items in the library are missing from this folder"), What: "The library knows these, but they aren't on the disk any more: moved, renamed or deleted.", Fix: "Put them back, or scan the library to forget them.", Names: names, More: missing - len(names)})
+		c.add(Finding{Severity: SevWarn, Title: plural(missing, "item in the library is missing from this folder", "items in the library are missing from this folder"), What: i18n.T("The library knows these, but they aren't on the disk any more: moved, renamed or deleted."), Fix: "Put them back, or scan the library to forget them.", Names: names, More: missing - len(names)})
 	case checked > 0:
 		c.add(Finding{Severity: SevOK, Title: "Everything the library knows is here", What: plural(checked, "item", "items") + " checked."})
 	}
@@ -587,7 +588,7 @@ func (c *storageCheck) readSpeed(files []bigFile) {
 		}
 	}
 	if len(use) == 0 {
-		c.add(Finding{Severity: SevInfo, Title: "Read speed wasn't measured", What: "There's no file here big enough to measure with."})
+		c.add(Finding{Severity: SevInfo, Title: "Read speed wasn't measured", What: i18n.T("There's no file here big enough to measure with.")})
 		return
 	}
 	buf := make([]byte, 1<<20)
@@ -624,7 +625,7 @@ func (c *storageCheck) readSpeed(files []bigFile) {
 		return
 	}
 	if total == 0 {
-		c.add(Finding{Severity: SevWarn, Title: "Read speed couldn't be measured", What: "None of the files tried could be read."})
+		c.add(Finding{Severity: SevWarn, Title: "Read speed couldn't be measured", What: i18n.T("None of the files tried could be read.")})
 		return
 	}
 	// Reads from memory can be quicker than the clock can tell, on Windows especially.
@@ -659,23 +660,23 @@ func speedFinding(total int64, spent time.Duration, times []time.Duration) Findi
 	bits := float64(total) * 8 / spent.Seconds()
 	streams := func(rate float64) int { return int(bits / rate) }
 	det := []string{
-		fmt.Sprintf("Read %s in %s", bytesText(total), spent.Round(time.Millisecond)),
+		i18n.F("Read {bytesText} in {round}", "bytesText", bytesText(total), "round", spent.Round(time.Millisecond)),
 		fmt.Sprintf("4K remux (about 100 Mbit/s): about %d at once", streams(remuxBits)),
 		fmt.Sprintf("Blu-ray (about 40 Mbit/s): about %d at once", streams(blurayBits)),
 		fmt.Sprintf("1080p stream (about 10 Mbit/s): about %d at once", streams(hdBits)),
 	}
 	if len(times) > 0 {
 		slices.Sort(times)
-		det = append(det, fmt.Sprintf("Jumping around, a 1 MB read took about %s (the slowest %s)", times[len(times)/2].Round(100*time.Microsecond), times[len(times)-1].Round(100*time.Microsecond)))
+		det = append(det, i18n.F("Jumping around, a 1 MB read took about {round} (the slowest {round2})", "round", times[len(times)/2].Round(100*time.Microsecond), "round2", times[len(times)-1].Round(100*time.Microsecond)))
 	}
 	caution := " The system's cache can flatter this, if these files were read lately."
 	switch {
 	case bits >= remuxBits*1.2:
-		return Finding{Severity: SevOK, Title: fmt.Sprintf("Reads at about %.0f MB/s", mbs), What: "It can keep up with what you're likely to play." + caution, Details: det}
+		return Finding{Severity: SevOK, Title: fmt.Sprintf("Reads at about %.0f MB/s", mbs), What: i18n.F("It can keep up with what you're likely to play.{caution}", "caution", caution), Details: det}
 	case bits >= hdBits*1.2:
-		return Finding{Severity: SevInfo, Title: fmt.Sprintf("Reads at about %.0f MB/s", mbs), What: "Fine for most films. The very largest may stall." + caution, Details: det}
+		return Finding{Severity: SevInfo, Title: fmt.Sprintf("Reads at about %.0f MB/s", mbs), What: i18n.F("Fine for most films. The very largest may stall.{caution}", "caution", caution), Details: det}
 	}
-	return Finding{Severity: SevWarn, Title: fmt.Sprintf("Reads slowly, at about %.1f MB/s", mbs), What: "That's too slow for a good 1080p stream. Something may be wrong with the drive or the connection to it, or it may be busy." + caution, Fix: "Try again when nothing else is using the drive. If it's still slow, check the cable or the network, and the drive's health.", Details: det}
+	return Finding{Severity: SevWarn, Title: fmt.Sprintf("Reads slowly, at about %.1f MB/s", mbs), What: i18n.F("That's too slow for a good 1080p stream. Something may be wrong with the drive or the connection to it, or it may be busy.{caution}", "caution", caution), Fix: "Try again when nothing else is using the drive. If it's still slow, check the cable or the network, and the drive's health.", Details: det}
 }
 
 // probeResult is what the write test found.
@@ -777,15 +778,15 @@ func mayWrite(role, path string, libraries []string) bool {
 
 func (c *storageCheck) writeTest() {
 	if c.t.Role == "library" {
-		c.add(Finding{Severity: SevInfo, Title: "The write test isn't run on media folders", What: "Nothing is ever written where your media is."})
+		c.add(Finding{Severity: SevInfo, Title: "The write test isn't run on media folders", What: i18n.T("Nothing is ever written where your media is.")})
 		return
 	}
 	if !mayWrite(c.t.Role, c.t.Path, c.o.Libraries) {
-		c.add(Finding{Severity: SevInfo, Title: "The write test wasn't run here", What: "A library folder is in or around this folder, and nothing is ever written where your media is."})
+		c.add(Finding{Severity: SevInfo, Title: "The write test wasn't run here", What: i18n.T("A library folder is in or around this folder, and nothing is ever written where your media is.")})
 		return
 	}
 	if d, err := sysinfo.DiskUsage(c.t.Path); err == nil && d.Free < 2*writeProbeBytes {
-		c.add(Finding{Severity: SevInfo, Title: "The write test wasn't run here", What: "There's too little free space to try it."})
+		c.add(Finding{Severity: SevInfo, Title: "The write test wasn't run here", What: i18n.T("There's too little free space to try it.")})
 		return
 	}
 	res, err := writeProbe(c.ctx, c.t.Path, writeProbeBytes)
@@ -793,19 +794,19 @@ func (c *storageCheck) writeTest() {
 		return
 	}
 	if err != nil {
-		c.add(Finding{Severity: SevProblem, Title: "The server can't write here", What: "The system's answer: " + plainErr(err) + ". The server needs to save things in this folder.", Fix: "Give the account the server runs as permission to write here, or free some space."})
+		c.add(Finding{Severity: SevProblem, Title: "The server can't write here", What: i18n.F("The system's answer: {plainErr}. The server needs to save things in this folder.", "plainErr", plainErr(err)), Fix: "Give the account the server runs as permission to write here, or free some space."})
 		return
 	}
 	if !res.matched {
-		c.add(Finding{Severity: SevProblem, Title: "What was written here came back different", What: "A small test file didn't read back the same as it was written. That points to a failing drive, or a bad cable or memory.", Fix: "Copy anything important off this drive and check it with its maker's tool."})
+		c.add(Finding{Severity: SevProblem, Title: "What was written here came back different", What: i18n.T("A small test file didn't read back the same as it was written. That points to a failing drive, or a bad cable or memory."), Fix: "Copy anything important off this drive and check it with its maker's tool."})
 		return
 	}
 	mb := float64(writeProbeBytes) / (1 << 20)
 	det := []string{fmt.Sprintf("Wrote %.0f MB at %.0f MB/s, down to the drive", mb, mb/max(res.writeSec, 0.001))}
-	sev, title := SevOK, "Writing here works"
-	what := "A small test file was written, read back the same, and removed."
+	sev, title := SevOK, i18n.T("Writing here works")
+	what := i18n.T("A small test file was written, read back the same, and removed.")
 	if mb/max(res.writeSec, 0.001) < 5 && (c.t.Role == "transcode" || c.t.Role == "data") {
-		sev, title = SevWarn, "Writing here works, but slowly"
+		sev, title = SevWarn, i18n.T("Writing here works, but slowly")
 		what += " At this speed, converting video may not keep up."
 	}
 	c.add(Finding{Severity: sev, Title: title, What: what, Details: det})
@@ -834,13 +835,13 @@ func (c *storageCheck) healthFinding() {
 	}
 	switch {
 	case h.bad:
-		c.add(Finding{Severity: SevProblem, Title: "The system says this drive isn't healthy", What: "A drive that reports this can fail at any time.", Fix: "Copy anything important off it soon, and replace it.", Details: h.lines})
+		c.add(Finding{Severity: SevProblem, Title: "The system says this drive isn't healthy", What: i18n.T("A drive that reports this can fail at any time."), Fix: "Copy anything important off it soon, and replace it.", Details: h.lines})
 	case h.checked:
-		c.add(Finding{Severity: SevOK, Title: "The system reports nothing wrong with this drive", What: "This is only what the drive says about itself. A drive can fail without warning.", Details: h.lines})
+		c.add(Finding{Severity: SevOK, Title: "The system reports nothing wrong with this drive", What: i18n.T("This is only what the drive says about itself. A drive can fail without warning."), Details: h.lines})
 	default:
 		note := h.note
 		if note == "" {
-			note = "Needs administrator rights, not checked."
+			note = i18n.T("Needs administrator rights, not checked.")
 		}
 		c.add(Finding{Severity: SevInfo, Title: "Drive health wasn't checked", What: note, Details: h.lines})
 	}

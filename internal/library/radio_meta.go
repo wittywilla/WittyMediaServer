@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/url"
 	"strings"
 	"sync/atomic"
@@ -77,13 +78,13 @@ func (r *radioRow) status(now int64) {
 	recent := m.LastOK > now-int64(radioRecentOK/time.Second) && r.failCount == 0
 	switch {
 	case r.failCount >= radioDeadAfter:
-		m.Status, m.Reason = "dead", firstNonEmpty(r.lastError, "It hasn't answered lately.")
+		m.Status, m.Reason = "dead", firstNonEmpty(r.lastError, i18n.T("It hasn't answered lately."))
 	case r.dirOK == 0 && !recent:
 		m.Status, m.Reason = "dead", "The directory's own checks can't reach it."
 	case r.dirGone != 0 && !recent:
 		m.Status, m.Reason = "trouble", "The directory no longer lists it."
 	case r.failCount > 0:
-		m.Status, m.Reason = "trouble", firstNonEmpty(r.lastError, "It didn't answer last time.")
+		m.Status, m.Reason = "trouble", firstNonEmpty(r.lastError, i18n.T("It didn't answer last time."))
 	case m.LastOK > 0 || r.dirOK == 1:
 		m.Status = "ok"
 	default:
@@ -173,11 +174,11 @@ func (s *Store) RadioResult(ctx context.Context, id int64, failure error) {
 func radioFailText(err error) string {
 	switch {
 	case errors.Is(err, ErrNotAudio):
-		return "That address isn't sending audio."
+		return i18n.T("That address isn't sending audio.")
 	case errors.Is(err, ErrStationEncrypted):
-		return "Its stream is encrypted, so it can't be played."
+		return i18n.T("Its stream is encrypted, so it can't be played.")
 	case strings.HasPrefix(err.Error(), "can't be reached"):
-		return "It can't be reached."
+		return i18n.T("It can't be reached.")
 	}
 	return CleanRadioText(err.Error(), 120)
 }

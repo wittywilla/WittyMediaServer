@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -94,10 +95,10 @@ func (s *Server) separatorInstallable() (bool, string) {
 		return false, why
 	}
 	if pace.Machine() == pace.Tiny {
-		return false, "This machine is too small to separate songs: one would take hours. Songs use the quick version."
+		return false, i18n.T("This machine is too small to separate songs: one would take hours. Songs use the quick version.")
 	}
 	if mb := sysinfo.MemoryMB(); mb > 0 && mb < separatorMinMemoryMB {
-		return false, fmt.Sprintf("This machine has %.1f GB of memory; separating a song needs about 4 GB. Songs use the quick version.", float64(mb)/1024)
+		return false, fmt.Sprintf(i18n.T("This machine has %.1f GB of memory; separating a song needs about 4 GB. Songs use the quick version."), float64(mb)/1024)
 	}
 	return true, ""
 }

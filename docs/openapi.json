@@ -153,6 +153,9 @@
               "null"
             ]
           },
+          "pinToLeave": {
+            "type": "boolean"
+          },
           "time": {
             "anyOf": [
               {
@@ -7103,6 +7106,217 @@
           "name",
           "showIds",
           "shows"
+        ],
+        "type": "object"
+      },
+      "Note": {
+        "properties": {
+          "at": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "id",
+          "kind",
+          "read",
+          "title"
+        ],
+        "type": "object"
+      },
+      "NoteChannel": {
+        "properties": {
+          "emailOn": {
+            "type": "boolean"
+          },
+          "emailTo": {
+            "type": "string"
+          },
+          "secretSet": {
+            "type": "boolean"
+          },
+          "webhookOn": {
+            "type": "boolean"
+          },
+          "webhookSecret": {
+            "type": "string"
+          },
+          "webhookUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "emailOn",
+          "emailTo",
+          "secretSet",
+          "webhookOn",
+          "webhookUrl"
+        ],
+        "type": "object"
+      },
+      "NoteChannels": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/NoteChannel"
+          },
+          "smtp": {
+            "$ref": "#/components/schemas/NoteSmtp"
+          }
+        },
+        "required": [
+          "channel",
+          "smtp"
+        ],
+        "type": "object"
+      },
+      "NoteChannelsUpdate": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/NoteChannel"
+          },
+          "clearPassword": {
+            "type": "boolean"
+          },
+          "clearSecret": {
+            "type": "boolean"
+          },
+          "smtp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NoteSmtp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "channel"
+        ],
+        "type": "object"
+      },
+      "NoteChoice": {
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "on": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "on"
+        ],
+        "type": "object"
+      },
+      "NoteChoices": {
+        "properties": {
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/NoteChoice"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "choices"
+        ],
+        "type": "object"
+      },
+      "NoteCount": {
+        "properties": {
+          "latest": {
+            "type": "integer"
+          },
+          "unread": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "latest",
+          "unread"
+        ],
+        "type": "object"
+      },
+      "NoteList": {
+        "properties": {
+          "latest": {
+            "type": "integer"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/Note"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "unread": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "latest",
+          "notes",
+          "unread"
+        ],
+        "type": "object"
+      },
+      "NoteSmtp": {
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "host": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "passwordSet": {
+            "type": "boolean"
+          },
+          "port": {
+            "type": "integer"
+          },
+          "security": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "host",
+          "passwordSet",
+          "port",
+          "security",
+          "user"
         ],
         "type": "object"
       },
@@ -27645,6 +27859,35 @@
           "Sign-in and accounts"
         ],
         "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putMeLimits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A parent changes this Kids or Guest profile's time rules and age limits on its own device, with the parents' PIN or their own name and password.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/me/recommended": {
@@ -27869,6 +28112,366 @@
           "Playback"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/me/notifications": {
+      "delete": {
+        "operationId": "clearMeNotifications",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteCount"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clears every notification of the profile.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getMeNotifications",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteList"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The profile's notifications, newest first, with how many are unread.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/notifications/count": {
+      "get": {
+        "operationId": "getMeNotificationCount",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteCount"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How many are unread and the newest one's id: all a bell asks for while it waits.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/notifications/read": {
+      "post": {
+        "operationId": "readMeNotifications",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteCount"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marks the ids given read, or every one with none given.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/notifications/{id}": {
+      "delete": {
+        "operationId": "deleteMeNotification",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteCount"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clears one notification.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/notifications/choices": {
+      "get": {
+        "operationId": "getMeNotificationChoices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteChoices"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The kinds of notification this profile can get, and which are on.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putMeNotificationChoices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteChoices"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteChoices"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turns kinds on or off. Kinds not named stay as they were.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/notifications/channels": {
+      "get": {
+        "operationId": "getNotificationChannels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteChannels"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The mail server and this administrator's own email and webhook. Passwords and secrets are never read back.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putNotificationChannels",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteChannelsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteChannels"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves them. Both channels are off until turned on, and send only this administrator's own notifications.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/notifications/channels/test": {
+      "post": {
+        "operationId": "testNotificationChannels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sends a test through each channel that is filled in, and says what went wrong.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/me/ui": {
@@ -48579,6 +49182,10 @@
     {
       "description": "Disc images of audio CDs: tracks, sound, CD+G graphics and finding out what a disc is.",
       "name": "Audio CDs"
+    },
+    {
+      "description": "The bell: each profile's notifications and the kinds it gets, and an administrator's own email and webhook channels. See NOTIFICATIONS.md.",
+      "name": "Notifications"
     }
   ]
 }

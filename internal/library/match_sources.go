@@ -210,16 +210,18 @@ func (t *tmdbMovies) Details(ctx context.Context, id string) (*MatchDetails, err
 	if m.Collection != nil {
 		d.Series = m.Collection.Name
 	}
-	for _, r := range m.ReleaseDates.Results {
-		if r.ISO == "US" {
-			for _, rd := range r.Dates {
-				if rd.Certification != "" {
-					d.ContentRating = rd.Certification
-					break
+	d.ContentRating = PickCertificate(func(iso string) string {
+		for _, r := range m.ReleaseDates.Results {
+			if r.ISO == iso {
+				for _, rd := range r.Dates {
+					if rd.Certification != "" {
+						return rd.Certification
+					}
 				}
 			}
 		}
-	}
+		return ""
+	})
 	d.addTMDBImages(m.Images)
 	return d, nil
 }
@@ -314,11 +316,14 @@ func (t *tmdbShows) Details(ctx context.Context, id string) (*MatchDetails, erro
 	}
 	d.Director = strings.Join(names, ", ")
 	d.Credits, d.CreditsRead = tmdbShowCredits(m.AggregateCredits, m.Credits, m.CreatedBy), true
-	for _, r := range m.ContentRatings.Results {
-		if r.ISO == "US" {
-			d.ContentRating = r.Rating
+	d.ContentRating = PickCertificate(func(iso string) string {
+		for _, r := range m.ContentRatings.Results {
+			if r.ISO == iso {
+				return r.Rating
+			}
 		}
-	}
+		return ""
+	})
 	for _, s := range m.Seasons {
 		if s.Poster != "" {
 			d.SeasonPosters[s.Number] = tmdbPoster(s.Poster)

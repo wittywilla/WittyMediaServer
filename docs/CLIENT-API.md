@@ -1111,7 +1111,7 @@ are in `internal/brandname` (`testdata/cases.json`).
 
 ## First run
 
-First run is twelve steps in a web browser, and only there: `GET /setup/state` says where it is
+First run is six steps in a web browser, and only there: `GET /setup/state` says where it is
 (`complete`, `steps`, `step`, `done`, `url`). Until it is complete the server answers **every route an app
 uses** with **503** and
 
@@ -1567,7 +1567,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 |---|---|---|
 | `POST /setup` | none | Create the first administrator (409 once there is an account). |
 | `POST /login` | none | Sign in. 429 with Retry-After after repeated failures. Password-free Kids and Guest profiles only sign in where `/profiles` lists them. |
-| `POST /logout` | none | End the session the request carries. |
+| `POST /logout` | none | End the session the request carries. A profile whose `/me/limits` says `pinToLeave` sends `{pin}` (or `{name, password}` of a parent): without it, 403 with `code` `parent-pin`. |
 | `GET /profiles` | none | The "Who's watching?" list where the server offers it: `style` is `profiles` (with `profiles`) or `classic` (ask for name and password). |
 | `POST /pair/invite` | user | Code typed on the device: get 6 digits to type there, for this account or a Kids or Guest profile it manages. Adults only. One open at a time per person; lasts 5 minutes. |
 | `POST /pair/redeem` | none | Code typed on the device: use the 6 digits and get a sign-in. Works once. Failures say why in `reason`: `wrong-code` (400), `expired` or `used` (410), `too-many-tries` (429). |
@@ -1594,8 +1594,9 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /users/{id}/password` | user | Change a password. Your own needs `current`; other sessions of that account end. |
 | `PUT /users/{id}/profile` | user | Change `displayName`, `username`, `showUsername` or `avatar` (`name:colour` from `/parental/ratings`, or empty). Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
 | `GET /profiles/household` | user | The profiles this device can switch to, as `GET /profiles` lists them, with `avatar` and `current`. Empty where the sign-in screen hides profiles, unless an adult asks. |
-| `POST /profiles/switch` | user | Switch this device to another profile: `{name, password, code, device}` as `/login`. Answers a new `token` and `user`, and ends the session it was called with. A wrong password is 403 and the device stays signed in. |
-| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, syncplay, remoteControl, remote, editProfile, editLayout, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now. For hiding what is off. |
+| `POST /profiles/switch` | user | Switch this device to another profile: `{name, password, code, device}` as `/login`, and `parentPin` when leaving a profile whose `/me/limits` says `pinToLeave` (403 with `code` `parent-pin` without it, unless the other profile's own password is given). Answers a new `token` and `user`, and ends the session it was called with. A wrong password is 403 and the device stays signed in. |
+| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, syncplay, remoteControl, remote, editProfile, editLayout, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now, and `pinToLeave`: switching away or signing out takes the parents' PIN. For hiding what is off. |
+| `PUT /me/limits` | user | A parent changes this Kids or Guest profile's limits on its own device: `{pin}` or `{name, password}`, with any of `time` (as in `/users/{id}/access`; empty for none), `maxAge` and `kinds` (`{"film": {"maxAge": 7}}`). Answers as `GET /me/limits`. 403 with `code` `wrong-pin` or `parent-pin`, 429 after too many. |
 | `GET /me/screen-time` | user | How long this profile may still play today: `allowed`, `reason` (allowance, bedtime, early), `remainingSec` (-1 = no limit), `until` and `nextAt` in Unix seconds, and a `message` to show. |
 | `POST /me/screen-time/extra` | user | Ask a parent: `{minutes, pin}` or `{minutes, name, password}` gives this profile more time today. 403 for a wrong PIN or password, 429 after too many. |
 | `POST /users/{id}/screen-time/extra` | user | Give a profile you manage more time today: `{minutes}`. |
@@ -1956,7 +1957,7 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `GET /sdui/topshelf` | user | Content for a tvOS Top Shelf extension: what this account was watching, up to two rows its modules offer, and what is new, within its limits, at most 4 sections of 10 pictures, each sized for the device. 304 with If-None-Match when unchanged. |
 | `GET /sdui/tv-summary/{id}` | user | What a television shows in place of an editor it doesn't offer ([TV mode](TV-MODE.md)): `{id, lines, addresses}`, a few lines of what is set now (only what the account may already see: administrators' screens say nothing to anyone else) and this server's addresses on the home network for the card's QR code, asked from there. {id} is a screen's `summary` in the catalogue's `tvLevels`. |
 | `GET /sdui/experiences` | user | Every experience as data (`{experiences, navStyles, themes, default}`): the catalogue a chooser draws, with each experience's shell per form factor, its `wire` (the layout in a few words per form factor, for the chooser's thumbnail: [SDUI](SDUI.md#experiences)), default theme, WittyTV look, effects, shape, type set, density, motion and home. Which a person may pick is `GET /sdui/experience`. |
-| `GET /setup/state` | none | First run: `{complete, steps, step, done, url}`. The steps are language, welcome, account, server, modules, libraries, modulesetup, looks, people, remote, extras, ready ([SETUP-FLOW.md](SETUP-FLOW.md)); the names 0.8.0 used (name, look, theme, details, livetv, games, discs) are still taken, as the step each became. Until `complete`, every route an app uses answers 503 `setup_required` (below). |
+| `GET /setup/state` | none | First run: `{complete, steps, step, done, url}`. The steps are welcome, account, modules, media, look, ready ([SETUP-FLOW.md](SETUP-FLOW.md)); the names 0.8.0 to 0.8.2 used (language, server, libraries, modulesetup, looks, people, remote, extras, and the pages in them) are still taken, as the step each became. Until `complete`, every route an app uses answers 503 `setup_required` (below). |
 | `PUT /setup/state` | none, until first run is over | `{step, done}`. Before the first account: the setup code (`X-WMS-Setup-Code` from another device). After: an administrator. 409 once first run is over. |
 | `POST /setup/complete` | admin | First run is over: apps may connect. |
 | `POST /setup/module-steps/skip` | admin | Puts off a module's setup step, `{module, step}`: the Dismiss of "Finish setting up" on Home (SDUI command `setup.skip`). With `done: true`, the step was gone through in first-run setup (the wizard sends it when someone moves on from a step a module draws), audited as done. 204. |
@@ -2365,6 +2366,27 @@ Watching together, in step: [SYNCPLAY.md](SYNCPLAY.md) has the rules every playe
 | `POST /system/tasks/{id}/resume` | admin | Lets a paused task carry on |
 | `POST /system/tasks/{id}/cancel` | admin | Asks a task to stop |
 | `POST /system/tasks/{id}/retry` | admin | Starts a failed or cancelled task again |
+
+### Notifications
+
+The bell beside Activity. Each profile has its own list, kept on the server until it is cleared (the newest 200,
+for 90 days at most). A client asks `GET /me/notifications/count` while it is in front, no more than once a
+minute, and reads the list when the count or `latest` changes or the bell is opened. Links are paths inside the
+app (`/show/12`, `/tv/recordings`). Kinds: `episodes`, `recordings`, and for administrators `scans`, `modules`
+and `server`. See [NOTIFICATIONS.md](NOTIFICATIONS.md).
+
+| Route | Sign-in | What it does |
+|---|---|---|
+| `GET /me/notifications` | user | The profile's notifications, newest first (`before`, `limit`), with `unread` and `latest` |
+| `GET /me/notifications/count` | user | How many are unread, and the newest one's id |
+| `POST /me/notifications/read` | user | Marks `ids` read, or all of them when none are given |
+| `DELETE /me/notifications` | user | Clears them all |
+| `DELETE /me/notifications/{id}` | user | Clears one |
+| `GET /me/notifications/choices` | user | Which kinds the profile gets |
+| `PUT /me/notifications/choices` | user | Turns kinds on or off |
+| `GET /notifications/channels` | admin | The mail server and this administrator's own email and webhook; never a password or secret |
+| `PUT /notifications/channels` | admin | Saves them. Off until turned on; they carry only this administrator's notifications |
+| `POST /notifications/channels/test` | admin | Sends a test through each channel that's filled in |
 
 ### Library transcoding
 

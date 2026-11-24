@@ -9,6 +9,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"os"
 	"path"
@@ -293,21 +294,21 @@ func jsonDepth(b []byte) int {
 func plainJSONError(msg string) string {
 	switch {
 	case strings.Contains(msg, "unexpected end of JSON"):
-		return "The file ends too soon. Something is missing, probably a closing } or \" at the end"
+		return i18n.T("The file ends too soon. Something is missing, probably a closing } or \" at the end")
 	case strings.Contains(msg, "looking for beginning of object key string"):
-		return "Something is wrong just before here. Often it's a comma after the last line in the file, which isn't allowed, or a name without \"quotes\""
+		return i18n.T("Something is wrong just before here. Often it's a comma after the last line in the file, which isn't allowed, or a name without \"quotes\"")
 	case strings.Contains(msg, "after object key:value pair"):
-		return "A comma is missing at the end of the line before this one, or a \" that ends the text on it"
+		return i18n.T("A comma is missing at the end of the line before this one, or a \" that ends the text on it")
 	case strings.Contains(msg, "after array element"):
-		return "A comma or a closing ] is missing in a list"
+		return i18n.T("A comma or a closing ] is missing in a list")
 	case strings.Contains(msg, "in string literal"), strings.Contains(msg, "in string escape code"):
 		return "There's something a text can't hold as it is. A line break must be written \\n, a \" must be written \\\", and a \\ must be written \\\\"
 	case strings.Contains(msg, "looking for beginning of value"):
-		return "This line has something that isn't a value. Text needs \"quotes\", a number doesn't, and a list goes in [square brackets]"
+		return i18n.T("This line has something that isn't a value. Text needs \"quotes\", a number doesn't, and a list goes in [square brackets]")
 	case strings.Contains(msg, "after top-level value"):
-		return "There's something after the closing } at the end of the file. Everything has to be inside the { and }"
+		return i18n.T("There's something after the closing } at the end of the file. Everything has to be inside the { and }")
 	}
-	return "This isn't valid JSON: " + msg
+	return i18n.F("This isn't valid JSON: {msg}", "msg", msg)
 }
 
 // closeName is the field someone probably meant.
@@ -365,24 +366,24 @@ func ParseJSON(name string, data []byte) (*Doc, []Problem) {
 	}
 	d := &Doc{File: name, Kind: "json", Fields: map[string]string{}, Art: map[string]Art{}, Lines: map[string]int{}}
 	if len(data) > MaxJSON {
-		fail(0, "", fmt.Sprintf("This file is too big to be one title's information: the limit is %s", sizeWords(MaxJSON)))
+		fail(0, "", i18n.F("This file is too big to be one title's information: the limit is {sizeWords}", "sizeWords", sizeWords(MaxJSON)))
 		return d, ps
 	}
 	if bytes.HasPrefix(data, []byte{0xFF, 0xFE}) || bytes.HasPrefix(data, []byte{0xFE, 0xFF}) {
-		fail(1, "", "This file is saved as UTF-16. Save it as UTF-8 in your text editor")
+		fail(1, "", i18n.T("This file is saved as UTF-16. Save it as UTF-8 in your text editor"))
 		return d, ps
 	}
 	data = bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
 	if off := firstBad(data); off >= 0 {
-		fail(lineAt(data, int64(off)), "", "This line has characters that aren't UTF-8. Save the file as UTF-8 in your text editor")
+		fail(lineAt(data, int64(off)), "", i18n.T("This line has characters that aren't UTF-8. Save the file as UTF-8 in your text editor"))
 		return d, ps
 	}
 	if len(bytes.TrimSpace(data)) == 0 {
-		fail(1, "", "This file is empty")
+		fail(1, "", i18n.T("This file is empty"))
 		return d, ps
 	}
 	if jsonDepth(data) > maxDepth {
-		fail(0, "", "This file has more levels inside each other than a title's information ever needs")
+		fail(0, "", i18n.T("This file has more levels inside each other than a title's information ever needs"))
 		return d, ps
 	}
 	var probe map[string]json.RawMessage
@@ -393,7 +394,7 @@ func ParseJSON(name string, data []byte) (*Doc, []Problem) {
 		case errors.As(err, &syn):
 			fail(lineAt(data, syn.Offset), "", plainJSONError(syn.Error()))
 		case errors.As(err, &typ):
-			fail(lineAt(data, typ.Offset), "", "The whole file has to be one { ... } with names and values inside")
+			fail(lineAt(data, typ.Offset), "", i18n.T("The whole file has to be one { ... } with names and values inside"))
 		default:
 			fail(1, "", plainJSONError(err.Error()))
 		}
@@ -424,7 +425,7 @@ func ParseJSON(name string, data []byte) (*Doc, []Problem) {
 		}
 		seen[key] = true
 		if len(seen) > 64 {
-			fail(line, "", "This file has more entries than a title has fields")
+			fail(line, "", i18n.T("This file has more entries than a title has fields"))
 			return d, ps
 		}
 		if controls[key] {
@@ -456,7 +457,7 @@ func readControl(d *Doc, key string, raw json.RawMessage, line int, fail, warn r
 		if json.Unmarshal(raw, &n) != nil {
 			fail(line, key, "\"wittyMetadata\" has to be a number. Leave it as it was exported")
 		} else if n > Format {
-			fail(line, key, "This file was written by a newer version of WittyMediaServer. Update the server, or export the folder again")
+			fail(line, key, i18n.T("This file was written by a newer version of WittyMediaServer. Update the server, or export the folder again"))
 		}
 	case "target":
 		var s string
@@ -534,7 +535,7 @@ func readField(d *Doc, key string, spec fieldSpec, raw json.RawMessage, line int
 	cleaned := func(before, after string) {
 		// Spaces at the ends and limits on length aren't worth a word.
 		if strings.TrimSpace(before) != strings.TrimSpace(after) && len([]rune(before)) <= fieldMaxOr(spec) {
-			warn(line, key, "HTML or hidden characters were taken out of \""+key+"\"")
+			warn(line, key, i18n.F("HTML or hidden characters were taken out of \"{key}\"", "key", key))
 		}
 	}
 	switch spec.kind {
@@ -552,7 +553,7 @@ func readField(d *Doc, key string, spec fieldSpec, raw json.RawMessage, line int
 		}
 		cleaned(strings.ReplaceAll(s, "\r\n", "\n"), v)
 		if v == "" && spec.required {
-			fail(line, key, "A title can't be empty")
+			fail(line, key, i18n.T("A title can't be empty"))
 			return
 		}
 		d.Fields[key] = v
@@ -565,7 +566,7 @@ func readField(d *Doc, key string, spec fieldSpec, raw json.RawMessage, line int
 		out := List(list, spec.max, spec.each)
 		for _, v := range list {
 			if c := Line(v, spec.each); c != strings.TrimSpace(v) && len([]rune(v)) <= spec.each {
-				warn(line, key, "HTML or hidden characters were taken out of \""+key+"\"")
+				warn(line, key, i18n.F("HTML or hidden characters were taken out of \"{key}\"", "key", key))
 				break
 			}
 		}
@@ -645,12 +646,12 @@ func finishDoc(d *Doc, name string, hasID bool, fail report) {
 	if d.ID == 0 {
 		d.ID = id
 	} else if hasID && d.ID != id {
-		fail(d.Lines["id"], "id", fmt.Sprintf("This file's name says it's for %d, but \"id\" says %d. Leave both as they were exported", id, d.ID))
+		fail(d.Lines["id"], "id", i18n.F("This file's name says it's for {id}, but \"id\" says {iD}. Leave both as they were exported", "id", id, "iD", d.ID))
 	}
 	if d.Target == "" {
 		d.Target = target
 	} else if d.Target != target {
-		fail(d.Lines["id"], "target", "This file's name and \"target\" don't agree on whether it's a film or a show")
+		fail(d.Lines["id"], "target", i18n.T("This file's name and \"target\" don't agree on whether it's a film or a show"))
 	}
 }
 
@@ -694,7 +695,7 @@ var nfoRoots = map[string]bool{"movie": true, "tvshow": true, "episodedetails": 
 // with its line, or line 0 if it applies to the whole file.
 func CheckXML(data []byte) (line int, msg string) {
 	if len(data) > 32<<20 {
-		return 0, "This file is far too big to be an NFO"
+		return 0, i18n.T("This file is far too big to be an NFO")
 	}
 	dec := xml.NewDecoder(bytes.NewReader(data))
 	dec.Strict = true
@@ -712,19 +713,19 @@ func CheckXML(data []byte) (line int, msg string) {
 			return 0, plainXMLError(err.Error())
 		}
 		if nodes++; nodes > maxNodes {
-			return 0, "This file has far more in it than an NFO ever needs"
+			return 0, i18n.T("This file has far more in it than an NFO ever needs")
 		}
 		switch t := tok.(type) {
 		case xml.StartElement:
 			if depth++; depth > 64 {
-				return lineAt(data, dec.InputOffset()), "This file has more levels inside each other than an NFO ever needs"
+				return lineAt(data, dec.InputOffset()), i18n.T("This file has more levels inside each other than an NFO ever needs")
 			}
 		case xml.EndElement:
 			depth--
 		case xml.Directive:
 			low := strings.ToLower(string(t))
 			if strings.HasPrefix(low, "doctype") || strings.Contains(low, "entity") {
-				return lineAt(data, dec.InputOffset()), "A DOCTYPE or ENTITY declaration isn't allowed in an NFO, because it can be used to read other files. Delete that line"
+				return lineAt(data, dec.InputOffset()), i18n.T("A DOCTYPE or ENTITY declaration isn't allowed in an NFO, because it can be used to read other files. Delete that line")
 			}
 		}
 	}
@@ -733,13 +734,13 @@ func CheckXML(data []byte) (line int, msg string) {
 func plainXMLError(msg string) string {
 	switch {
 	case strings.Contains(msg, "element <") && strings.Contains(msg, "closed by"):
-		return "A closing tag doesn't match the tag it closes: " + Line(msg, 200)
+		return i18n.F("A closing tag doesn't match the tag it closes: {line}", "line", Line(msg, 200))
 	case strings.Contains(msg, "unexpected EOF"):
 		return "The file ends too soon. A closing tag such as </movie> is probably missing"
 	case strings.Contains(msg, "invalid character entity"):
-		return "A & has to be written &amp; in an NFO: " + Line(msg, 200)
+		return i18n.F("A & has to be written &amp; in an NFO: {line}", "line", Line(msg, 200))
 	}
-	return "This isn't valid XML: " + Line(msg, 200)
+	return i18n.F("This isn't valid XML: {line}", "line", Line(msg, 200))
 }
 
 // DecodeXML checks XML and reads it into v. A wrong root element comes back like any
@@ -772,7 +773,7 @@ func ParseNFO(name string, data []byte) (*Doc, []Problem) {
 	}
 	d := &Doc{File: name, Kind: "nfo", Fields: map[string]string{}, Art: map[string]Art{}, Lines: map[string]int{}}
 	if len(data) > MaxNFO {
-		fail(0, "", fmt.Sprintf("This file is too big to be an NFO: the limit is %s", sizeWords(MaxNFO)))
+		fail(0, "", i18n.F("This file is too big to be an NFO: the limit is {sizeWords}", "sizeWords", sizeWords(MaxNFO)))
 		return d, ps
 	}
 	data = bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
@@ -803,7 +804,7 @@ func ParseNFO(name string, data []byte) (*Doc, []Problem) {
 			return
 		}
 		if c != strings.TrimSpace(v) && len([]rune(v)) <= max {
-			warn(0, f, "HTML or hidden characters were taken out of \""+f+"\"")
+			warn(0, f, i18n.F("HTML or hidden characters were taken out of \"{f}\"", "f", f))
 		}
 		d.Fields[f] = c
 	}
@@ -860,7 +861,7 @@ func ParseNFO(name string, data []byte) (*Doc, []Problem) {
 				d.Art[f] = Art{URL: u}
 				return
 			}
-			warn(0, f, "A picture in an NFO has to be an http or https address, so \""+Line(t, 80)+"\" was left out")
+			warn(0, f, i18n.F("A picture in an NFO has to be an http or https address, so \"{line}\" was left out", "line", Line(t, 80)))
 		}
 	}
 	pic("poster", m.Thumb)

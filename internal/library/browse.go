@@ -497,16 +497,29 @@ func (s *Store) LibraryFacets(ctx context.Context, libraryID int64, access *Acce
 	genres, studios, networks, decades, years, content, res, audio, subs, formats, tags, editions, kinds, platforms :=
 		map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}, map[string]int{}
 	aliases := s.categoryAliases(ctx, libraryID)
+	// Counted by number and named once at the end, and one "seen" set used again for every
+	// row: a library's page asks for these on each visit, and a row used to cost about twenty
+	// allocations (#643).
+	yearN := map[int64]int{}
 	addYear := func(y sql.NullInt64) {
 		if y.Valid && y.Int64 > 1800 {
-			years[strconv.FormatInt(y.Int64, 10)]++
-			decades[strconv.FormatInt(y.Int64/10*10, 10)]++
+			yearN[y.Int64]++
 		}
 	}
+	seen := map[string]bool{}
+	named := map[string][]string{} // a raw genre's categories: the same few genres come again and again
 	addGenres := func(g string) {
-		seen := map[string]bool{}
-		for _, x := range splitList(g) {
-			for _, c := range aliases.of(x) {
+		clear(seen)
+		for x := range strings.SplitSeq(g, "|") {
+			if x = strings.TrimSpace(x); x == "" {
+				continue
+			}
+			cats, ok := named[x]
+			if !ok {
+				cats = aliases.of(x)
+				named[x] = cats
+			}
+			for _, c := range cats {
 				if !seen[c] {
 					seen[c] = true
 					genres[c]++
@@ -515,9 +528,9 @@ func (s *Store) LibraryFacets(ctx context.Context, libraryID int64, access *Acce
 		}
 	}
 	once := func(m map[string]int, list string) {
-		seen := map[string]bool{}
-		for _, x := range splitList(list) {
-			if x != "und" && !seen[x] {
+		clear(seen)
+		for x := range strings.SplitSeq(list, "|") {
+			if x = strings.TrimSpace(x); x != "" && x != "und" && !seen[x] {
 				seen[x] = true
 				m[x]++
 			}
@@ -661,6 +674,10 @@ func (s *Store) LibraryFacets(ctx context.Context, libraryID int64, access *Acce
 		for _, p := range list {
 			platforms[p.Key] = p.Count
 		}
+	}
+	for y, n := range yearN {
+		years[strconv.FormatInt(y, 10)] += n
+		decades[strconv.FormatInt(y/10*10, 10)] += n
 	}
 	platNames := s.platformNames(ctx)
 	resNames := map[string]string{"4k": "4K", "1080p": "1080p", "720p": "720p", "sd": "SD"}

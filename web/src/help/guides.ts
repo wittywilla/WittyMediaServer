@@ -75,6 +75,7 @@ export const GROUPS: GuideGroup[] = [
   { title: tk('Looking after the server'), guides: [
     { file: 'INSTALL', title: tk('Installing and updating'), about: tk('Each system’s installer, and what each program is.') },
     { file: 'HARDWARE', title: tk('What hardware it needs'), about: tk('Memory and processor for each thing it does, from measurements.') },
+    { file: 'MINIMUM-HARDWARE', title: tk('Minimum hardware'), about: tk('What a Raspberry Pi, an old laptop or a NAS can do, and what needs a graphics card.') },
     { file: 'DOCKER', title: tk('Docker'), about: tk('The image, its tags and folders, graphics cards, hardening and updating.') },
     { file: 'DOCKER-UGREEN', title: tk('Docker on a UGREEN NAS'), about: tk('UGOS Pro’s Docker app, with Intel graphics.') },
     { file: 'DOCKER-SYNOLOGY', title: tk('Docker on a Synology NAS'), about: tk('Container Manager on DSM 7.2.') },
@@ -88,6 +89,7 @@ export const GROUPS: GuideGroup[] = [
     { file: 'REPAIR', title: tk('Repair'), about: tk('Finding and fixing problems, in the app or on the command line.') },
     { file: 'REMOTE', title: tk('Remote access'), about: tk('Reaching your server from away, safely.') },
     { file: 'TASKS', title: tk('Background tasks'), about: tk('The activity button: scans, conversions and what’s running.') },
+    { file: 'NOTIFICATIONS', title: tk('Notifications'), about: tk('The bell: new episodes, recordings and updates, and sending them on by email or webhook.') },
     { file: 'STATS', title: tk('Server statistics'), about: tk('WittyStats: what your server is doing, on a screen you arrange.') },
     { file: 'LOGGING', title: tk('Logs'), about: tk('Reading logs, and making a sanitized ZIP to share.') },
     { file: 'DIAGNOSER', title: tk('WittyDiagnoser'), about: tk('Checking your disks and drives.') },
@@ -165,6 +167,7 @@ export const settingsPages: Record<string, string> = {
   'Sign-in & security': 'security',
   'My game settings': 'games',
   Activity: 'activity',
+  Notifications: 'notifications',
   Appearance: 'appearance',
   'Sharing & photos': 'sharing',
   WittyRigs: 'wittyrigs',

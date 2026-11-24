@@ -36,7 +36,7 @@ export function Storage({ info, next, back, refresh }: StepProps) {
     }
   }
   return (
-    <section>
+    <section className="su-narrow">
       <StepHead title={t('Where should WittyMediaServer keep its settings and data?')}
         lead={t('One folder holds your library’s details, accounts, settings, artwork, modules and logs. Your films, music and other media stay where they are.')} />
       {move ? <MoveProgress state={move} /> : <DataPlace view={view} place={place} onChange={setPlace} check={check} checking={checking} />}

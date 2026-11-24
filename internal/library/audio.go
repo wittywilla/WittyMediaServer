@@ -109,6 +109,31 @@ func tag(tags []map[string]string, keys ...string) string {
 	return ""
 }
 
+// advisoryTag reads a song's parental advisory, as a content rating parental controls know:
+// "Explicit", "Clean", or "" when the file doesn't say. Tagging tools write it as
+// ITUNESADVISORY (ID3 and Vorbis comments: 1 explicit, 2 clean), and an MP4 file's rtng atom
+// comes from FFmpeg as "rating" (1 or 4 explicit, 2 clean). Elsewhere "rating" is often a
+// star rating, so it is only read from MP4 files.
+func advisoryTag(tags []map[string]string, path string) string {
+	v := tag(tags, "itunesadvisory", "itunes_advisory", "explicit")
+	if v == "" {
+		switch strings.ToLower(filepath.Ext(path)) {
+		case ".m4a", ".m4b", ".mp4", ".m4p", ".aac", ".alac":
+			v = tag(tags, "rating")
+		}
+	}
+	if v == "" {
+		v = tag(tags, "contentrating", "content_rating")
+	}
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "1", "4", "explicit", "e", "true", "yes":
+		return "Explicit"
+	case "2", "clean", "c":
+		return "Clean"
+	}
+	return ""
+}
+
 // num parses "3", "03" or "3/12".
 func num(v string) *int {
 	if i := strings.IndexByte(v, '/'); i >= 0 {
@@ -215,6 +240,9 @@ func (s *Scanner) indexAudio(ctx context.Context, lib *Library, c candidate, cov
 		it.recIDs = recordingIDs(tags)
 		if g := tag(tags, "genre"); g != "" {
 			it.Genres = []string{g}
+		}
+		if it.ContentRating == "" {
+			it.ContentRating = advisoryTag(tags, c.path) // parental controls keep explicit songs from kids
 		}
 		if y := tag(tags, "date", "year", "originaldate"); len(y) >= 4 {
 			if n, err := strconv.Atoi(y[:4]); err == nil && n > 1000 {

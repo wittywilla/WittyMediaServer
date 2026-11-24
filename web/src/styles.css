@@ -423,7 +423,7 @@ input[type=range] { accent-color: var(--accent); }
 .meta { display: flex; flex-wrap: wrap; align-items: center; color: var(--fg-2); font-size: var(--text-md); gap: 2px var(--sp-4); overflow: hidden; }
 /* A dot before each item, in the gap: the one starting a line falls outside the clip. */
 .meta > * { position: relative; }
-.meta > *::before { content: '·'; position: absolute; left: -10px; color: var(--fg-3); }
+.meta > *::before { content: '·'; position: absolute; inset-inline-start: -10px; color: var(--fg-3); }
 .meta .star { display: inline-flex; align-items: center; gap: 3px; }
 .meta .star svg { width: 14px; height: 14px; color: var(--warn); }
 .pill { display: inline-flex; align-items: center; min-height: 20px; padding: 0 var(--sp-2); border: 1px solid var(--border-strong); border-radius: var(--r-xs); font-size: var(--text-2xs); font-weight: 600; letter-spacing: .02em; color: var(--fg-2); white-space: nowrap; }
@@ -651,11 +651,15 @@ textarea.input { padding: 10px var(--sp-3); line-height: var(--leading-body); re
 .detail .meta { margin-bottom: var(--sp-5); }
 .detail .actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-6); align-items: center; }
 .detail .overview { max-width: 72ch; color: var(--fg); font-size: var(--text-base); line-height: 1.6; margin: 0 0 var(--sp-5); }
-.detail .facts { margin-top: var(--sp-6); padding-top: var(--sp-5); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--sp-4) var(--sp-6); max-width: 72ch; }
+.detail .facts, .sdui-extras .facts { margin-top: var(--sp-6); padding-top: var(--sp-5); border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--sp-4) var(--sp-6); max-width: 72ch; }
 .fact { min-width: 0; }
-.fact .k { color: var(--fg-3); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); margin-bottom: 2px; }
+.fact .k { color: var(--fg-3); font-size: var(--text-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-label); margin-bottom: var(--sp-1); line-height: 1.4; } /* room between the label and its value (#634) */
 .fact .v { font-weight: 500; font-size: var(--text-md); overflow-wrap: anywhere; }
 .fact.wide { grid-column: 1 / -1; }
+/* A long list of languages takes the row, and wraps as a sentence does (#634). */
+.fact.wide-list { grid-column: 1 / -1; }
+.fact .v { line-height: var(--leading-body); }
+.lang-more { padding: 0 var(--sp-1); border: 0; background: none; color: var(--accent-text); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .fact.wide .v { font: 400 var(--text-xs)/1.5 var(--font-mono); color: var(--fg-2); word-break: break-all; }
 .fine-print { overflow-wrap: anywhere; margin: var(--sp-3) 0 0; color: var(--fg-3); font-size: var(--text-xs); max-width: 72ch; }
 .page-back { margin-top: var(--sp-8); }
@@ -738,11 +742,6 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .ok { color: var(--ok); }
 .muted { color: var(--fg-3); }
 .center { display: grid; place-items: center; min-height: 100vh; min-height: 100dvh; padding: var(--sp-5); }
-.center:has(.auth-spec) { align-content: center; gap: var(--sp-5); background: radial-gradient(70% 60% at 50% 0%, rgb(var(--accent-rgb) / .12), transparent 70%), var(--bg); }
-.auth-spec { width: 100%; max-width: 32rem; } /* sign-in and server choice are drawn from a spec (spec/specs/auth.ts, connect.ts) */
-.auth-spec .brand { justify-content: center; font-size: var(--text-xl); padding: 0; margin-bottom: var(--sp-2); }
-.auth-spec .auth-profile { margin-bottom: var(--sp-3); }
-.auth-spec .spec-dock { background: transparent; border-top: 0; padding-inline: 0; } /* the sign-in buttons sit on the page, not on a white strip in the Light theme (#553) */
 .empty { display: grid; justify-items: center; text-align: center; color: var(--fg-2); padding: var(--sp-16) var(--sp-5); }
 .empty-ic { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: var(--sp-4); border-radius: 50%; background: var(--bg-3); color: var(--fg-3); }
 .empty-ic svg { width: 26px; height: 26px; }

@@ -13,6 +13,8 @@ export const IconSettings = (p: P) => <S {...p} d="M19.4 13a7.9 7.9 0 000-2l2.1-
 export const IconSearch = (p: P) => <S {...p} d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 10-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 110-9 4.5 4.5 0 010 9z" />
 export const IconVisualizer = (p: P) => <S {...p} d="M4 13h2.5v8H4zm4.5-8H11v16H8.5zm4.5 5h2.5v11H13zm4.5-7H20v18h-2.5z" />
 export const IconActivity = (p: P) => <S {...p} d="M9.2 3.5L6.3 11H2v2h5.7l1.4-3.6 5 11.1L17 13h5v-2h-6.3l-1.7 4.4z" />
+// A bell: notifications (Material's "notifications").
+export const IconBell = (p: P) => <S {...p} d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 002 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 00-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1z" />
 export const IconPlay = (p: P) => <S {...p} d="M8 5v14l11-7z" />
 export const IconPause = (p: P) => <S {...p} d="M6 19h4V5H6zm8-14v14h4V5z" />
 // A clock turning back: save states, where you were.

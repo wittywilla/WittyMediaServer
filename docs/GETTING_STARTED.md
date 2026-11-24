@@ -53,20 +53,16 @@ This is an alpha. [What has been tested](INSTALL.md#what-has-been-tested) says h
 
 ## What first-time setup asks
 
-Setup happens in a browser. It has twelve steps, listed beside the page. Only the account is required: every other step has **Skip for now**, and says where to change it later. Answers are saved as you go, so you can stop and carry on another day. [First-time setup, step by step](FIRST-TIME-SETUP.md) has a picture of every page.
+Setup happens in a browser, in six steps listed beside the page. Each asks one thing with the usual answer already chosen, so you can press the big button on every page. Answers are saved as you go, so you can stop and carry on another day. [First-time setup, step by step](FIRST-TIME-SETUP.md) has a picture of every page.
 
-1. **Language.** The language of the pages, disc menus and sound tracks, and the server's **time zone**.
-2. **Welcome.** Set up a new server, or restore one from a [backup](BACKUP.md).
-3. **Your account.** A name and a password of at least 8 characters. This account looks after the server. Keep the password safe: [forgetting it is hard to undo](ACCOUNTS.md#if-you-forget-your-password).
-4. **This server.** Where its data is kept (on a computer you use), its name and colours, and its address at home.
-5. **Modules.** Movies, TV and music work straight away. Tick what else you want: discs, games, photos, books, live TV. They download, signed, from the official list. Then choose what happens when a module has a new version.
-6. **Libraries.** Whether details are saved beside your files, then a kind of media and its folder, as many times as you like.
-7. **Set up your modules.** Live TV (with a demo tuner to try), Games and Discs, if you added them. Otherwise it's dimmed and passed over.
-8. **Looks.** The layout, the colours, and with live TV, the TV guide's look.
-9. **People.** Profiles for the family, and a look or theme you require of someone.
-10. **Away from home.** Peer-to-peer connections, with a test, and how to add an app.
-11. **Extras.** Posters and keys, logos, lyrics, karaoke voices and streaming lists. All optional.
-12. **Ready.** What you chose, the address for other devices, and **Start watching**.
+1. **Welcome.** The language. Then **Get started**, **Advanced setup**, or restore from a [backup](BACKUP.md).
+2. **Your account.** A name, a password of at least 8 characters, and the server's name. Keep the password safe: [forgetting it is hard to undo](ACCOUNTS.md#if-you-forget-your-password).
+3. **Modules.** Movies, TV and music work already. Tick what else you want: discs, games, live TV, books, photos.
+4. **Your media.** A kind of media and its folder, as many times as you like. Live TV and Games follow, if you added them.
+5. **Look.** How everyone's Home starts out.
+6. **Finish.** Connect a device, add the family, and **Start watching**.
+
+Everything else (time zone, two-step sign-in, module updates, posters and keys, logos, lyrics, colours, the home network and more) is behind each step's **Customize** button, already answered. **Advanced setup** asks all of it, a page at a time.
 
 **With a remote or the keyboard.** The arrows reach everything, and OK presses it. Back goes back a page.
 

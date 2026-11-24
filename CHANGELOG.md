@@ -5,6 +5,75 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+**Languages (#497, #498)**
+
+- **What the server says follows your language.** Backup parts, Remote Access status, the peer-to-peer list, one-click
+  channels and every other sentence the server sends are now marked for translation and shown translated where a
+  translation exists. German has the ones that were reported; the others follow in the translation pass. A check in
+  CI stops new English slipping past.
+- **Arabic and Hebrew keep Latin titles in order.** A file name such as "00-aurora-…-2019" or a title's "2 hr 10 min"
+  no longer has its digits and dashes moved, and a long title is cut at its end. A screenshot test walks the pages in
+  both languages.
+**Lighter on a small machine (#643)**
+
+- **An idle server on a small machine is about six times quieter.** Go's execution trace, kept for developers' crash
+  reports, woke it about 3,500 times a minute; it is now off by default on tiny and small machines (turn it on in
+  **Logs**). On two processors: 0.04 % of one while idle, down from 0.25 %.
+- **A server in a container held to two processors now counts two**, not every processor of the machine it's on, and
+  holds itself back to match.
+- **First scans of films are about a third quicker**: the next films' details are read while one is added.
+- **The web app fetches its font once**, not on every visit (a second visit to Home: 424 KB down to 24 KB), its first
+  download is smaller, and scrolling a big library no longer draws every card again (2,219 renders for 1,500 films,
+  down from 298,565).
+- **New page: Minimum hardware** (docs/MINIMUM-HARDWARE.md): what a Raspberry Pi, an old laptop and a NAS can do, and
+  what needs a graphics card, from measurements on a two-processor container. Budgets for the web app's download and
+  the server's memory, scans and pages are now checked on every change (docs/PERFORMANCE.md, "Budgets").
+
+**Sign-in and other standalone pages (#624)**
+
+- **Sign in, Who's watching, Sign in with your phone, can't reach the server and the error page are one centred card**
+  with your server's logo and name at the top. They fit a 1280×720 screen without scrolling, on a TV too.
+- **Sign in with your phone** has one heading and one sentence. With a QR code, the code and PIN sit beside it. On an
+  address only this computer can use (127.0.0.1), there's no QR code, which a phone couldn't open, and the code leads.
+- **The app's "this address is for the app" page** is no longer bare black text. It's the same card, with a line on
+  what to open instead.
+**First-time setup (#610, #550, #494)**
+
+- **Six plain steps instead of twelve:** Welcome, Your account, Modules, Your media, Look, Finish. Each page has a short
+  title, one sentence and one main button, with the usual answer already chosen. The language is on Welcome, the
+  server's name is on the account page, and Live TV and Games follow Your media when they're installed.
+- **Customize:** every other choice (time zone, two-step sign-in, module updates, details beside your files, colours,
+  the TV guide, the home network, posters and keys, logos, lyrics, karaoke voices, streaming lists) waits behind the
+  step's Customize button, already answered.
+- **Advanced setup**, on Welcome, goes through every choice a page at a time, next to the step it belongs with.
+- **Finish** offers Connect a device (the same code and QR code as Settings → Remote Access), adding a profile, and
+  this screen as a TV, with the server's address and Copy.
+- Fixed: picking a kind of library brings its form into view; the Games page counts a games library made anywhere;
+  closing the modules dialog no longer stops installs; the browser tab follows the page; no module requests or warnings
+  before the account exists.
+- **Sign in:** the server is named once, the page is one centred column, and a wrong password on a chosen profile says
+  so ("That password isn't right").
+**Parental controls (#649)**
+
+- **Live TV is checked programme by programme.** Antenna, cable and IPTV channels now go by the guide's rating: a
+  programme above a profile's TV limit isn't shown when tuning in, stops a stream when it comes on, and can't be
+  reached through catch-up. Library channels are held to the same. A programme the guide doesn't rate counts as
+  unrated.
+- **Ratings country** (Settings → Profiles): titles keep that country's age rating, with the US one when it has none,
+  and ratings are read as that country's, since letters mean different ages in different places. Settings offers the
+  boards of 21 more countries.
+- **Explicit songs are known.** A song's explicit or clean label is read from its file when it is scanned, so an age
+  limit keeps explicit songs from kids.
+- **The parents' PIN keeps a kids' profile on its device.** With **Ask for the parents' PIN to switch away or sign
+  out**, switching to another profile, signing out, or picking a profile with no password on that device's sign-in
+  screen asks for the PIN. A parent's own password works too.
+- **Limits, for a parent:** a parent changes a kids' profile's screen time, bedtime and age on the child's own device
+  with the PIN.
+- **New kids' profiles start kid-safe:** no explicit songs, no antenna or IPTV channels, at home only, no recording,
+  downloads, sharing, comments, watch parties or playing on other devices, two hours of screen time on school days and
+  three at weekends with a bedtime, and the PIN to leave. Profiles made before keep their limits.
+- **A friendly "time's up" page** for kids' profiles: one card with the server's name, saying why and when they can
+  watch again, with **Ask a parent** and **Switch profile**, on a computer, a phone and in TV mode.
 **Clone a station (#622)**
 
 - **A channel can follow a real TV station's schedule, played from your own files.** On **Channels**, press
@@ -60,10 +129,24 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Module settings and Module store sit side by side** under Modules (both were called Modules before, in two
   places), and each page links to the other. **Look** is now **Layout**, beside Edit layout and Theme.
 - **Choose colours has no preview,** only the theme cards, like Choose a layout.
+**Player, detail page and live TV (#634)**
+
+- **A click on the faded control bar brings it back.** A click where the seek bar sits, a moment after the controls
+  have faded, used to pause the film. Now it shows the controls instead.
+- **A title's languages are a short list.** A film with 35 subtitle languages shows six, then "+25 more", which shows
+  the rest. The facts under a title sit in a grid with room between each label and its value.
+- **A break between programmes is named as one.** The guide and Home's On TV now said "We'll be right back" as if it
+  were a programme. A gap is now "Short break" (or "Off air" for an hour or more), and "Next" always names the next
+  programme.
 
 ## 0.8.3-alpha
 
 Released 2026-11-24.
+
+**Player (#632)**
+
+- **The film waits while you choose a scene** on a phone, a tablet or a TV, and plays on when the scenes close. On a
+  computer it keeps playing; **Viewing settings → Pause for scenes → Every screen** makes it wait there too.
 
 **Connecting another device (#605)**
 

@@ -12,7 +12,7 @@ import { useTvMode } from '../../tvmode/mode'
 import { albumLink, artistLink, artistPhoto, coverUrl, TrackMenu } from './parts'
 import { prefetch } from './store'
 import { VirtualRows } from './Virtual'
-import { t } from '../../i18n'
+import { t, bidi } from '../../i18n'
 
 // The pieces every Music page is made of: shelves that scroll sideways, cards for albums,
 // artists and playlists with a play button that shows on hover or focus, and the dense list
@@ -100,7 +100,7 @@ export function AlbumCard({ libId, a, sub }: { libId: number; a: Album; sub?: st
       <Link to={to} className="mus-card-link" onPointerEnter={() => prefetch(tracksUrl(libId, a))} onFocus={() => prefetch(tracksUrl(libId, a))}>
         <Cover id={a.coverItem} title={a.title} />
         <b title={a.title}>{a.title || t('Unknown album')}</b>
-        <span className="mus-muted">{sub ?? [a.year, a.artist].filter(Boolean).join(' · ')}</span>
+        <span className="mus-muted">{sub ?? [a.year, a.artist].filter(Boolean).map(bidi).join(' · ')}</span>
       </Link>
       <span className="mus-card-over"><PlayButton label={a.title || t('this album')} playing={!!mine && audio.playing}
         onPlay={() => (mine ? audio.toggle() : playFrom(() => api.get<Item[]>(tracksUrl(libId, a)), (t) => audio.play(t, 0, 'music')))} /></span>

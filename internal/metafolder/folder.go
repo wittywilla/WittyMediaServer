@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path"
 	"path/filepath"
@@ -70,7 +71,7 @@ func Walk(root string, each func(Entry)) []Problem {
 		}
 		entries, err := os.ReadDir(abs)
 		if err != nil {
-			ps = append(ps, Problem{File: relOr(rel), Msg: "This folder can't be read: " + plainFileError(err), Severity: SevError})
+			ps = append(ps, Problem{File: relOr(rel), Msg: i18n.F("This folder can't be read: {plainFileError}", "plainFileError", plainFileError(err)), Severity: SevError})
 			return
 		}
 		for _, e := range entries {
@@ -89,15 +90,15 @@ func Walk(root string, each func(Entry)) []Problem {
 			child := filepath.Join(abs, name)
 			switch {
 			case fi.Mode()&os.ModeSymlink != 0 || isReparsePoint(fi):
-				ps = append(ps, Problem{File: childRel, Msg: "This is a link to somewhere else, which isn't followed. Put a real file here instead", Severity: SevWarning})
+				ps = append(ps, Problem{File: childRel, Msg: i18n.T("This is a link to somewhere else, which isn't followed. Put a real file here instead"), Severity: SevWarning})
 			case fi.IsDir():
 				if depth >= maxWalk {
-					ps = append(ps, Problem{File: childRel, Msg: "This folder is nested too deeply, so it was left out", Severity: SevWarning})
+					ps = append(ps, Problem{File: childRel, Msg: i18n.T("This folder is nested too deeply, so it was left out"), Severity: SevWarning})
 					continue
 				}
 				walk(child, childRel, depth+1)
 			case !fi.Mode().IsRegular():
-				ps = append(ps, Problem{File: childRel, Msg: "This isn't an ordinary file, so it was left out", Severity: SevWarning})
+				ps = append(ps, Problem{File: childRel, Msg: i18n.T("This isn't an ordinary file, so it was left out"), Severity: SevWarning})
 			default:
 				ext := extOf(name)
 				kind := ""
@@ -111,15 +112,15 @@ func Walk(root string, each func(Entry)) []Problem {
 				case IsCanvasName(name):
 					continue // a looping video for the title, read by the server's media extras
 				case ext == ".svg":
-					ps = append(ps, Problem{File: childRel, Msg: "SVG pictures aren't accepted, because they can hold scripts. Use a JPEG, PNG, WebP or GIF", Severity: SevWarning})
+					ps = append(ps, Problem{File: childRel, Msg: i18n.T("SVG pictures aren't accepted, because they can hold scripts. Use a JPEG, PNG, WebP or GIF"), Severity: SevWarning})
 					continue
 				default:
-					ps = append(ps, Problem{File: childRel, Msg: "This folder only uses .json and .nfo files and pictures, so this one is ignored", Severity: SevWarning})
+					ps = append(ps, Problem{File: childRel, Msg: i18n.T("This folder only uses .json and .nfo files and pictures, so this one is ignored"), Severity: SevWarning})
 					continue
 				}
 				if count++; count > MaxFiles {
 					full = true
-					ps = append(ps, Problem{File: relOr(rel), Msg: fmt.Sprintf("This folder has more than %d files, and the rest weren't looked at", MaxFiles), Severity: SevError})
+					ps = append(ps, Problem{File: relOr(rel), Msg: i18n.F("This folder has more than {maxFiles} files, and the rest weren't looked at", "maxFiles", MaxFiles), Severity: SevError})
 					return
 				}
 				each(Entry{Rel: childRel, Abs: child, Size: fi.Size(), Kind: kind})
@@ -130,7 +131,7 @@ func Walk(root string, each func(Entry)) []Problem {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
-		return []Problem{{File: ".", Msg: "This folder can't be read: " + plainFileError(err), Severity: SevError}}
+		return []Problem{{File: ".", Msg: i18n.F("This folder can't be read: {plainFileError}", "plainFileError", plainFileError(err)), Severity: SevError}}
 	}
 	walk(root, "", 0)
 	return ps
@@ -157,7 +158,7 @@ func ReadDoc(e Entry) (*Doc, []Problem) {
 	b, err := ReadEntry(e)
 	if err != nil {
 		return &Doc{File: e.Rel, Kind: e.Kind, Fields: map[string]string{}, Art: map[string]Art{}, Lines: map[string]int{}},
-			[]Problem{{File: e.Rel, Msg: "This file can't be read: " + plainFileError(err), Severity: SevError}}
+			[]Problem{{File: e.Rel, Msg: i18n.F("This file can't be read: {plainFileError}", "plainFileError", plainFileError(err)), Severity: SevError}}
 	}
 	return ParseBytes(e, b)
 }
@@ -183,7 +184,7 @@ func ParseBytes(e Entry, b []byte) (*Doc, []Problem) {
 		d, ps = ParseJSON(e.Rel, b)
 	}
 	if !HasErrors(ps) && (d.ID == 0 || d.Target == "") {
-		ps = append(ps, Problem{File: e.Rel, Msg: "This file doesn't say which title it's for. Its name has to end in [item-123] or [show-22], or it needs \"target\" and \"id\" inside, as an export writes", Severity: SevError})
+		ps = append(ps, Problem{File: e.Rel, Msg: i18n.T("This file doesn't say which title it's for. Its name has to end in [item-123] or [show-22], or it needs \"target\" and \"id\" inside, as an export writes"), Severity: SevError})
 	}
 	return d, ps
 }
@@ -205,7 +206,7 @@ func CheckDirCount(root string) ([]Problem, int) {
 		files++
 		if e.Kind == "picture" {
 			if _, _, err := ReadPicture(e.Abs); err != nil {
-				out = append(out, Problem{File: e.Rel, Msg: "This picture can't be used: " + plainFileError(err), Severity: SevError})
+				out = append(out, Problem{File: e.Rel, Msg: i18n.F("This picture can't be used: {plainFileError}", "plainFileError", plainFileError(err)), Severity: SevError})
 			}
 			return
 		}
@@ -216,7 +217,7 @@ func CheckDirCount(root string) ([]Problem, int) {
 		}
 		key := d.Target + "-" + fmt.Sprint(d.ID)
 		if other, dup := targets[key]; dup {
-			out = append(out, Problem{File: e.Rel, Line: d.Lines["id"], Field: "id", Msg: "This file and " + other + " describe the same title. Delete one of them", Severity: SevError})
+			out = append(out, Problem{File: e.Rel, Line: d.Lines["id"], Field: "id", Msg: i18n.F("This file and {other} describe the same title. Delete one of them", "other", other), Severity: SevError})
 		} else {
 			targets[key] = e.Rel
 		}

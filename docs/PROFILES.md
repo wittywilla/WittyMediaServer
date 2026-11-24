@@ -71,11 +71,15 @@ A limit is kept as an age, because every country's ratings can be turned into on
 
 | Kind | Ratings understood |
 |---|---|
-| Films | MPA (G, PG, PG-13, R, NC-17), BBFC (U, PG, 12A, 12, 15, 18), FSK (0, 6, 12, 16, 18), Kijkwijzer (AL, 6, 9, 12, 14, 16, 18), and others written as an age, such as `16+` or `NL:12` |
+| Films | MPA (G, PG, PG-13, R, NC-17), BBFC (U, PG, 12A, 12, 15, 18), FSK (0, 6, 12, 16, 18), Kijkwijzer (AL, 6, 9, 12, 14, 16, 18), and the boards of Australia, Brazil, Canada, Denmark, Finland, France, India, Ireland, Italy, Japan, Mexico, New Zealand, Norway, Portugal, South Korea, Spain and Sweden, and others written as an age, such as `16+` or `NL:12` |
 | TV | TV-Y, TV-G, TV-Y7, TV-PG, TV-14, TV-MA, and the film ratings above |
 | Games | ESRB (E, E10+, T, M, AO), PEGI (3, 7, 12, 16, 18), USK, CERO, ACB, GRAC, ClassInd. Where boards disagree, the strictest counts |
-| Music | *Explicit* counts as 17 and *Clean* as for everyone, for a song whose rating says so. Explicit podcast episodes are rated TV-MA |
+| Music | *Explicit* counts as 17 and *Clean* as for everyone. A song's file says so in its tags (ITUNESADVISORY, or an MP4's rating), which is read when the song is scanned. Explicit podcast episodes are rated TV-MA |
 | Books | Any of the above, or a plain age |
+
+**Ratings country.** The same letters mean different ages in different countries: an Australian M is 15, a New Zealand M is 16, an Indian A is 18 and a Spanish A is for everyone. Under **Settings → Profiles → Ratings country** the administrator chooses the country whose certificates titles keep when metadata gives one, with the US one when it doesn't. A rating with no country in front is read as that country's; one with a country in front (`NZ:M`, `de/12`) as that country's. Changing it works out every title's age again.
+
+**Live TV by programme.** A broadcast or IPTV channel's guide gives each programme's rating, and a library channel plays titles that each have theirs. Tuning in, the live playlist, every part of the stream and catch-up all ask what is on at that moment, and refuse a programme above the profile's limit for **TV**. A stream that was allowed stops at its next part once the programme changes to one that isn't, and catch-up can't run on from an allowed programme into the next one. A programme the guide gives no rating is unrated, which **Also show titles without a rating** decides.
 
 A collection made from a rule can't be used as a limit, because it has no list of titles: it holds whatever matches today. Add titles to a collection by hand to use it.
 
@@ -158,6 +162,16 @@ Wrong PINs are counted for the profile and for the device. After five, the serve
 
 A parent can also give time from their own device: **Settings → Profiles**, **Report** beside the profile, then a button under **Today**.
 
+## Leaving a kids' profile, and changing its limits on its device
+
+Once a parents' PIN is set, a Kids or Guest profile with **Ask for the parents' PIN to switch away or sign out** (under **What they can do**) stays on its device until a parent says otherwise. Switching to another profile, signing out, ending its own session from the devices list, and, on a browser it's still signed in on, picking a profile with no password on the sign-in screen, all ask for the PIN. Switching to a profile with its own password doesn't: knowing that password is a parent at the device. Wrong PINs count as they do for extra time.
+
+**Limits, for a parent** in a Kids or Guest profile's menu lets a parent change that profile's screen time, bedtime and age limit on the child's device, with the PIN or their own username and password. Everything else is changed in Settings, on a parent's own device.
+
+## What a new kids' profile starts with
+
+A kids' profile made now starts kid-safe, and whoever makes it can change any of it under **Limits**: the age chosen when it's made, with nothing unrated; songs with no rating allowed but no explicit ones; library channels but no antenna, cable or IPTV channels; at home only; no recording, downloads, share links, comments, watch parties or playing on other devices; two hours of screen time on school days and three at weekends, between 7:00 and bedtime at 19:30 (20:30 on Fridays and Saturdays); and the parents' PIN to leave it. Profiles made before keep the limits they had.
+
 ## What a parent can see
 
 **Report** beside a profile you manage shows the last two weeks:
@@ -177,8 +191,9 @@ Nothing that's for whoever runs the server. Its Settings has its own name and pi
 ## What limits can't do
 
 - **Ratings can be missing or wrong.** They come from your files and from outside services. Limits are a help, not a guarantee.
-- **Music is rarely rated.** Song files seldom say whether they're explicit, and the server doesn't read that from a file's tags yet. Under an age limit, unrated music is hidden unless you allow unrated titles, for everything or for **Music and audio** alone.
-- **Podcasts, radio stations and Live TV programmes** have no ratings of their own. Limit them by library, or with the Live TV switches.
+- **Music is rarely rated.** Song files seldom say whether they're explicit; the server reads it from their tags when they're scanned, so songs scanned before 0.8.4 are read again only when they change or their metadata is refreshed. Under an age limit, unrated music is hidden unless you allow unrated titles, for everything or for **Music and audio** alone.
+- **Podcasts and radio stations** have no ratings of their own, and many TV guides give none. Limit them by library, with the Live TV switches, or by not allowing unrated titles for **TV**.
+- **A device that isn't signed in.** The parents' PIN keeps a kids' profile on a device that is signed in to it. A new browser window, or an app that is reinstalled, starts at the sign-in screen, where a profile with no password opens with a tap at home. Give the profiles you don't want picked that way a password or PIN.
 - **Downloads.** The switch stops the routes that hand over a file as a download. A file that an app plays directly is sent the same way whether the app plays it or keeps it, so an app that keeps files for watching offline has to honour the switch itself (`features.downloads` in `GET /me/limits`).
 - **A game played in the browser** runs on the device once it has loaded. The web app checks the time each minute and puts the notice over the game, and the server refuses to start another, but it can't reach into a game already running on a device that has gone offline.
 - **Reading** isn't counted as screen time, except a book that's opened as a whole file.

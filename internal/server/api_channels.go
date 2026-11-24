@@ -757,11 +757,21 @@ type securityInfo struct {
 
 const encryptedHelpURL = "/api/modules/wittytuner/encrypted-help"
 
+// slateTitle is what the guide calls a stretch with nothing scheduled (the channel shows its "We'll be right back"
+// card there). As a programme's name those words read like a title that is missing (#634): a short gap is a break,
+// a long one is off air.
+func slateTitle(seconds int64) string {
+	if seconds >= 3600 {
+		return "Off air"
+	}
+	return "Short break"
+}
+
 func fromSchedule(p channels.Programme) guideProgramme {
 	g := guideProgramme{Start: p.Start, End: p.End, Kind: p.Kind, Title: p.Title, Sub: p.Sub, Genre: p.Genre, Rating: p.Rating, Year: p.Year,
 		ItemID: p.ItemID, ShowID: p.ShowID, Season: p.Season, Episode: p.Episode, Role: p.Role, Trimmed: p.Trimmed, Clip: p.Clip, For: p.For}
 	if p.Kind == channels.KindSlate {
-		g.Title = "We'll be right back"
+		g.Title = slateTitle(p.End - p.Start)
 	}
 	return g
 }
@@ -1321,6 +1331,9 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "channel not found")
 		return
 	}
+	if s.liveRefused(w, r, kind, id, time.Now()) { // what is on now, by its rating (parental_live.go)
+		return
+	}
 	ls := s.liveLookup(r, kind, key)
 	if ls == nil {
 		// Stopped while nobody was looking: start it again where it should be.
@@ -1367,6 +1380,11 @@ func (s *Server) handleLiveSegment(w http.ResponseWriter, r *http.Request) {
 	kind, id, ok := parseKey(key)
 	if !ok || !s.canWatchLive(r, kind, id) {
 		writeErr(w, 404, "channel not found")
+		return
+	}
+	// Every part, not just the playlist: a player that guesses the next part's name still
+	// stops when the programme changes to one this profile may not watch.
+	if s.liveRefused(w, r, kind, id, time.Now()) {
 		return
 	}
 	ls := s.liveLookup(r, kind, key)

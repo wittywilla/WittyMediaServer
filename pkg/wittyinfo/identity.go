@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"math"
 	"os"
@@ -101,7 +102,7 @@ func (x *Info) MatchVideo(durationSec float64, fp *Fingerprint) Match {
 		return Match{Result: MatchSameCut, Usable: true, DeltaSec: round3(delta)}
 	}
 	return Match{Result: MatchOtherCut, Usable: false, DeltaSec: round3(delta),
-		Message: fmt.Sprintf("Made for a %s cut; this video is %s long.", Clock(math.Round(float64(id.DurationSec))), Clock(math.Round(durationSec)))}
+		Message: i18n.F("Made for a {clock} cut; this video is {clock2} long.", "clock", Clock(math.Round(float64(id.DurationSec))), "clock2", Clock(math.Round(durationSec)))}
 }
 
 func round3(v float64) float64 { return math.Round(v*1000) / 1000 }

@@ -27,7 +27,7 @@ function Row({ c }: { c: Component }) {
         <span className="lic-tag">{c.license}</span>
         {c.hasText && <button type="button" className="btn sm ghost" aria-expanded={open} onClick={toggle}>{open ? t('Hide license') : t('Read license')}</button>}
       </div>
-      {c.note && <p className="lic-note muted">{c.note}</p>}
+      {c.note && <p className="lic-note muted">{tx(c.note)}</p>}
       {open && (failed
         ? <p className="lic-note" role="alert">{t('This license couldn’t be loaded.')}</p>
         : <pre className="lic-text" tabIndex={0}>{text ?? t('Loading…')}</pre>)}

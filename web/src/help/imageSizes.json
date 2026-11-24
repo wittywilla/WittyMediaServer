@@ -349,67 +349,79 @@
 ],
 "setup-01-welcome.webp": [
 720,
-405
+500
 ],
-"setup-02-account.webp": [
+"setup-02-welcome-customize.webp": [
 720,
-549
+269
+],
+"setup-03-account.webp": [
+720,
+619
 ],
 "setup-03-data-folder.webp": [
 720,
 540
 ],
-"setup-04-modules-chosen.webp": [
+"setup-04-modules.webp": [
 720,
-1508
+842
 ],
 "setup-05-modules-installing.webp": [
 720,
-873
+390
 ],
-"setup-06-modules-ready.webp": [
+"setup-06-media.webp": [
 720,
-903
+1131
 ],
-"setup-07-media.webp": [
+"setup-07-media-customize.webp": [
 720,
-1398
+293
 ],
 "setup-08-media-movies.webp": [
 720,
-458
+415
 ],
 "setup-09-media-added.webp": [
 720,
-1523
+1215
 ],
 "setup-10-games.webp": [
 720,
-708
+2116
 ],
-"setup-11-discs.webp": [
+"setup-11-look.webp": [
 720,
-542
+793
 ],
-"setup-12-details.webp": [
+"setup-12-look-customize.webp": [
 720,
-769
+621
 ],
-"setup-14-logos.webp": [
+"setup-13-done.webp": [
 720,
-587
+507
 ],
-"setup-15-music.webp": [
+"setup-14-done-customize.webp": [
 720,
-426
+438
 ],
-"setup-16-listings.webp": [
+"setup-22-advanced-name.webp": [
 720,
-420
+1297
 ],
-"setup-18-done.webp": [
+"setup-23-advanced-people.webp": [
 720,
-837
+490
+],
+"setup-25-advanced-details.webp": [
+720,
+644
+],
+"setup-32-advanced-remote.webp": [
+720,
+391
 ],
 "shorts.webp": [
 720,

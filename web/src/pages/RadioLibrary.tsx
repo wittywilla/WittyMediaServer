@@ -17,7 +17,7 @@ import LibraryHeader from '../components/LibraryHeader'
 import { ask, Dialog } from '../ui/Overlay'
 import { WebLink } from '../components/WebLink'
 import { safeLink } from '../safeLink'
-import { date, t, tn, tx } from '../i18n'
+import { date, t, tn, tx, bidi } from '../i18n'
 
 // Internet radio: stations from a free community directory or by address, played
 // through the server. docs/COLLECTIONS.md has what contacts what.
@@ -31,7 +31,7 @@ type Facets = { countries: Count[]; tags: Count[]; languages: Count[] }
 const PAGE = 30
 
 // "MP3 · 128 kbps"
-const quality = (codec?: string, bitrate?: number) => [codec, bitrate ? t('{rate} kbps', { rate: bitrate }) : ''].filter(Boolean).join(' · ')
+const quality = (codec?: string, bitrate?: number) => [codec, bitrate ? t('{rate} kbps', { rate: bitrate }) : ''].filter(Boolean).map(bidi).join(' · ')
 
 // A station's picture: its logo if it has a usable one, otherwise art made from its
 // name, as for anything without a picture. A logo that fails to load leaves the art.
@@ -59,7 +59,7 @@ function usePlay(list: Station[]) {
 
 function StationCard({ s, play }: { s: Station; play: ReturnType<typeof usePlay> }) {
   const dead = s.radio.status === 'dead'
-  const facts = [s.genres[0], s.radio.country].filter(Boolean).join(' · ')
+  const facts = [s.genres[0], s.radio.country].filter(Boolean).map(bidi).join(' · ')
   return (
     <div className={'card square rd-card' + (play.isOn(s) ? ' on' : '')}>
       <Link to={`/radio/${s.id}`} className="rd-card-link" title={s.title}>
@@ -273,7 +273,7 @@ function DirectoryFinder({ lib, onChanged }: { lib: Library; onChanged: () => vo
                   <span className="rd-hit-art"><StationArt title={h.name} src={h.logo ? artPreviewUrl(h.logo) : undefined} /></span>
                   <span className="rd-hit-text">
                     <b>{h.name}</b>
-                    <span className="muted">{[h.tags.slice(0, 2).join(', '), h.country].filter(Boolean).join(' · ')}</span>
+                    <span className="muted">{[h.tags.slice(0, 2).join(', '), h.country].filter(Boolean).map(bidi).join(' · ')}</span>
                     {quality(h.codec, h.bitrate) && <span className="muted rd-small">{quality(h.codec, h.bitrate)}</span>}
                   </span>
                   <button className={'btn sm ' + (done ? 'ghost' : 'primary')} disabled={done || !!busy} aria-label={done ? t('Added {name}', { name: h.name }) : t('Add {name}', { name: h.name })} onClick={() => add(h)}>

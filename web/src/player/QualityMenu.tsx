@@ -5,7 +5,7 @@ import { UseAComputer, advancedHere } from '../ui/advanced'
 import type { QualityPreset, QualityView } from '../api'
 import './quality.css'
 import { EMPTY, HEIGHTS, MAX_MBPS, MIN_MBPS, capOf, entryOf, formatChoice, parseChoice, perHour, presetChoice, rate, sizeName, qualityWords, type Choice } from './quality'
-import { list, t } from '../i18n'
+import { list, t, bidi } from '../i18n'
 
 // quality.ts has no i18n import (node tests load it): its words come in the app's language from here.
 qualityWords(t)
@@ -114,7 +114,7 @@ function customNote(choice: string): string {
   const c = parseChoice(choice)
   if (!c) return ''
   return [c.maxHeight ? t('up to {size}', { size: sizeName(c.maxHeight) }) : '', c.maxKbps ? t('about {rate}', { rate: rate(c.maxKbps) }) : '', c.videoCodec ? t('H.264 only') : '',
-    c.audioKbps ? t('sound {n} kbps', { n: c.audioKbps }) : '', c.audioChannels === 2 ? t('stereo') : c.audioChannels === 6 ? '5.1' : ''].filter(Boolean).join(' · ')
+    c.audioKbps ? t('sound {n} kbps', { n: c.audioKbps }) : '', c.audioChannels === 2 ? t('stereo') : c.audioChannels === 6 ? '5.1' : ''].filter(Boolean).map(bidi).join(' · ')
 }
 
 // The advanced page: every part of the choice, applied together.

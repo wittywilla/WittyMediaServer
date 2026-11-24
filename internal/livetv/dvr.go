@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"log/slog"
 	"os"
@@ -735,6 +736,7 @@ func (m *Manager) startDue(ctx context.Context) {
 	for _, r := range due {
 		if r.Stop+m.padAfterOf(r) <= now {
 			m.finish(r.ID, "failed", "the server was not running when this was due", "")
+			m.recorded(*r, "failed", "the server was not running when this was due")
 			continue
 		}
 		// Whoever changes the status starts it, so a recording never runs twice.
@@ -751,10 +753,11 @@ func (m *Manager) startDue(ctx context.Context) {
 			var status, msg string
 			_ = m.DB.QueryRow(`SELECT status, error FROM recordings WHERE id = ?`, r.ID).Scan(&status, &msg)
 			if status == "failed" {
-				task.Fail("The recording failed. "+msg, "See the recordings page.", nil)
+				task.Fail(i18n.F("The recording failed. {msg}", "msg", msg), i18n.T("See the recordings page."), nil)
 			} else {
 				task.Finish(nil)
 			}
+			m.recorded(*r, status, msg)
 		}, "cat", "tv", "session", recSession(r.ID))
 		if !started { // the server is stopping: it starts next time, if it's still on
 			_, _ = m.DB.Exec(`UPDATE recordings SET status = 'scheduled' WHERE id = ? AND status = 'recording'`, r.ID)
@@ -915,9 +918,9 @@ func (m *Manager) record(r *Recording) {
 // gapNote says that a recording that finished has holes, where its stream dropped.
 func gapNote(gaps int) string {
 	if gaps == 1 {
-		return "The stream dropped once during the recording, so a moment may be missing."
+		return i18n.T("The stream dropped once during the recording, so a moment may be missing.")
 	}
-	return fmt.Sprintf("The stream dropped %d times during the recording, so moments may be missing.", gaps)
+	return i18n.F("The stream dropped {gaps} times during the recording, so moments may be missing.", "gaps", gaps)
 }
 
 // How soon a recording whose stream dropped tries again, and at most how long it waits between tries.
@@ -1098,4 +1101,13 @@ func boolInt(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+// recorded tells OnRecorded how a recording ended. Anything but done or failed (a recording
+// the server stopped part-way, to finish next start) says nothing yet.
+func (m *Manager) recorded(r Recording, status, msg string) {
+	if m.OnRecorded == nil || (status != "done" && status != "failed") {
+		return
+	}
+	m.OnRecorded(r, status, msg)
 }

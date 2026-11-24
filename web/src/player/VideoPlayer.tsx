@@ -15,6 +15,7 @@ import ContentFilters from './ContentFilters'
 import { editorAllowed } from '../wittyinfo/desktopOnly'
 import { useApp } from '../state'
 import { Controls, useCompactBar, useVideoState } from './Controls'
+import { useMedia } from '../shell/useNav'
 import { haveHls, toggleFullscreen, useIdle, useSource, type NetNote } from './hooks'
 import { deviceStreaming, mayBeRobust, measureSpeed, rememberSpeed, setDeviceStreaming, type DeviceStreaming } from './streaming'
 import Hls from 'hls.js'
@@ -33,7 +34,7 @@ import { classifyPlayError } from './errors'
 import QualityMenu, { StreamInfo } from './QualityMenu'
 import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from './quality'
 import { announce } from '../a11y'
-import { t, tk, tn, tx } from '../i18n'
+import { t, tk, tn, tx, bidi } from '../i18n'
 import { trackLang } from './trackLang'
 import { ownPageTitle } from '../theme'
 
@@ -65,6 +66,9 @@ const subKind = (codec?: string) => {
 
 const legacyRemote = () => { try { return localStorage.getItem('wms.remote.video') === '1' } catch { return false } }
 
+// The height of the control bar along the bottom (with the seek bar above it), for a click while it has faded.
+const BAR_ZONE = 96
+
 export default function VideoPlayer({ item, startAt }: { item: Item; startAt: number | null }) {
   const nav = useNavigate()
   const chrome = usePlayerChrome()
@@ -84,6 +88,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const prefs = view.prefs
   // A phone or tablet: the picture first, the rest in the Options sheet (Controls' compact bar).
   const compact = useCompactBar(prefs.controls)
+  // A phone, a tablet or a TV: the scenes panel covers the picture there, so the film waits while it's open.
+  const touchOrTv = useMedia('(pointer: coarse)') || getTvMode()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [picker, setPicker] = useState<'audio' | 'subtitle' | null>(null)
   const closePicker = useCallback(() => setPicker(null), [])
@@ -476,7 +482,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const remoteEnabled = (k: RemoteKey) => keyWorks(form, k, remoteState)
   const keysNote = remoteNote(form, remoteState)
   const label = remoteLabel(form)
-  const subtitle = [item.showTitle, episodeLabel(item)].filter(Boolean).join(' · ')
+  const subtitle = [item.showTitle, episodeLabel(item)].filter(Boolean).map(bidi).join(' · ')
   // The chip on the bar: the picture's size as a person says it (4K, 1080p), from the stream being played.
   const vid = info?.videos?.find((x) => x.index === info.videoIndex) || info?.videos?.[0]
   // What plays now, as the player sees it (a converted stream is smaller than the file), else the file's.
@@ -510,14 +516,22 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     // A robust stream's rung, which the player picks as it goes; otherwise what the server said.
     kbps: (() => { const h = hlsRef.current; const l = info.streaming?.ladder && h && h.currentLevel >= 0 ? h.levels[h.currentLevel] : null; return l?.bitrate ? Math.round(l.bitrate / 1000) : 0 })(),
   }) : []
-  const trackLabel = (tr: { language: string; title?: string }) => [trackLang(tr.language), tr.title].filter(Boolean).join(' · ')
+  const trackLabel = (tr: { language: string; title?: string }) => [trackLang(tr.language), tr.title].filter(Boolean).map(bidi).join(' · ')
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
   // A finger's tap on the picture shows the controls, or hides them if they're up, as on any phone's player: the play
   // button pauses. A mouse click still plays and pauses. A double tap on the left or right third skips back or on.
-  const touch = useRef<{ touch: boolean; hidden: boolean }>({ touch: false, hidden: false })
-  const onPicturePointer = (e: React.PointerEvent) => { touch.current = { touch: e.pointerType === 'touch', hidden: !!root.current?.classList.contains('controls-hidden') } }
+  // A click where the control bar sits, while it has faded, is someone reaching for the seek bar a moment too late:
+  // it brings the controls back instead of pausing (#634).
+  const touch = useRef<{ touch: boolean; hidden: boolean; onBar: boolean }>({ touch: false, hidden: false, onBar: false })
+  const onPicturePointer = (e: React.PointerEvent) => {
+    const r = root.current?.getBoundingClientRect()
+    touch.current = { touch: e.pointerType === 'touch', hidden: !!root.current?.classList.contains('controls-hidden'), onBar: !!r && !mini && r.bottom - e.clientY < BAR_ZONE }
+  }
   const onPicture = () => {
-    if (!touch.current.touch) { togglePlay(); return }
+    if (!touch.current.touch) {
+      if (touch.current.hidden && touch.current.onBar) { root.current?.classList.remove('controls-hidden', 'hide-cursor'); root.current?.dispatchEvent(new MouseEvent('mousemove')); return }
+      togglePlay(); return
+    }
     const v = video.current
     if (!touch.current.hidden && v && !v.paused) root.current?.classList.add('controls-hidden', 'hide-cursor')
   }
@@ -624,7 +638,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           {duration > 0 && <div className="mini-progress" role="progressbar" aria-label={t('Position')} aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(now)}><i style={{ width: Math.min(100, (now / duration) * 100) + '%' }} /></div>}
           <div className="mini-info" onClick={chrome.expand}>
             <div className="mini-title">{item.showTitle || item.title}</div>
-            <div className="mini-sub">{item.showTitle ? [episodeLabel(item), item.title].filter(Boolean).join(' · ') : item.year}</div>
+            <div className="mini-sub">{item.showTitle ? [episodeLabel(item), item.title].filter(Boolean).map(bidi).join(' · ') : item.year}</div>
           </div>
           <div className="mini-btns">
             <button className="ibtn mini-step" onClick={() => onRemote('rew')} title={t('Back 10 seconds')} aria-label={t('Back 10 seconds')}><span aria-hidden="true">−10</span></button>
@@ -640,7 +654,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         <>
           <div className="top" onClick={(e) => e.stopPropagation()}>
             <button className="ibtn" onClick={chrome.minimize} title={t('Back (keeps playing in the mini player)')}><IconBack /></button>
-            <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && tx(MODE_WORDS[info.decision])].filter(Boolean).join(' · ')}</div></div>
+            <div className="grow"><h1>{item.title}</h1><div className="sub">{[subtitle || item.year, info && tx(MODE_WORDS[info.decision])].filter(Boolean).map(bidi).join(' · ')}</div></div>
             {!compact && (may.party || party.room) && <button className={'cbtn' + (party.active ? ' on' : '')} onClick={() => setPartyOpen((o) => !o)} title={t('Watch party')} aria-expanded={partyOpen} aria-haspopup="dialog" aria-label={party.room ? tn('Watch party, {count} watching', 'Watch party, {count} watching', party.room.members.length) : t('Watch party')}><IconUsers /><span className="lbl">{t('Party')}</span></button>}
             {may.playOn && <button className="cbtn" onClick={() => openOver('device')} title={t('Play on another device')} aria-label={t('Play on another device')}><IconDevices /><span className="lbl">{t('Play on…')}</span></button>}
             {hasNext && (!party.active || party.room?.canControl) && <button className="cbtn" onClick={() => goNext(true)} title={party.active ? t('Next for everyone in the party') : t('Next episode')}><IconNext /><span className="lbl">{item.showId != null ? t('Next episode') : t('Next')}</span></button>}
@@ -669,7 +683,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
                 <div className={'wn-thumb' + (next.item.showId != null ? ' wide' : '')}>{next.item.poster && <img src={sized(posterUrl(next.item), fitWidth(240))} alt="" />}</div>
                 <div>
                   <div className="wn-title">{next.show ? next.show.title : next.item.showTitle || next.item.title}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>{next.item.showId != null ? [episodeLabel(next.item), next.item.title].filter(Boolean).join(' · ') : next.item.year}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{next.item.showId != null ? [episodeLabel(next.item), next.item.title].filter(Boolean).map(bidi).join(' · ') : next.item.year}</div>
                   {upNext != null && <div className="wn-count" role="timer" aria-live="off">{t('Plays in {count} s', { count: upNext })}<i style={{ '--left': upNext / 8 } as React.CSSProperties} aria-hidden="true" /></div>}
                 </div>
               </div>
@@ -684,10 +698,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             onPrev={stepPrev} onNext={chapters.length > 1 || (hasNext && !party.active) || (hasNext && party.room?.canControl) ? () => stepChapter(1) : undefined}
             quality={quality || (info?.quality ? t('Quality') : '')} onQuality={info ? () => setInfoOpen(true) : undefined}
             onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
-            audio={info?.audio.map((a) => ({ id: a.index, label: [trackLang(a.language), ownName(a), a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))}
+            audio={info?.audio.map((a) => ({ id: a.index, label: [trackLang(a.language), ownName(a), a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).map(bidi).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker((p) => (p === k ? null : k)) }}
-            compact={compact} sheetItems={[
+            compact={compact} pauseForScenes={prefs.scenesPause === 'always' || touchOrTv} sheetItems={[
               ...((may.party || party.room) ? [{ key: 'party', icon: <IconUsers />, label: t('Watch party'), value: party.room ? tn('{count} watching', '{count} watching', party.room.members.length) : undefined, on: party.active, onClick: () => setPartyOpen(true) }] : []),
               { key: 'mini', icon: <IconMini />, label: t('Keep playing in a corner'), onClick: chrome.minimize },
             ]}
@@ -699,7 +713,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             <TrackPicker heading={picker === 'audio' ? t('Audio & language') : t('Subtitles')} kind={picker} onClose={closePicker}
               onPick={(id) => switchTrack(picker === 'audio' ? 'audio' : 'sub', id)}
               tiles={picker === 'audio'
-                ? info.audio.map((a) => ({ id: a.index, lang: a.language, title: trackLang(a.language), sub: ownName(a), detail: [a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).join(' · '), active: a.index === audio }))
+                ? info.audio.map((a) => ({ id: a.index, lang: a.language, title: trackLang(a.language), sub: ownName(a), detail: [a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).map(bidi).join(' · '), active: a.index === audio }))
                 : [{ id: -1, title: t('Off'), active: sub == null || sub < 0 }, ...info.subtitles.flatMap((x) => {
                   const plain = { id: x.index, lang: x.language, title: trackLang(x.language), sub: ownName(x), detail: subKind(x.codec), active: x.index === sub && !burn?.styled }
                   // ASS can carry placement and styling that plain text loses: keeping it means drawing it into the picture.

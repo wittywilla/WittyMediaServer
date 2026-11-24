@@ -5,6 +5,7 @@ package brandart
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"image"
 	"image/color"
 	"image/draw"
@@ -28,8 +29,8 @@ func Sheet(concepts []Concept, chosen Concept) *image.RGBA {
 		a := Art{W: w + 4, H: size * 1.4, Layers: layers}
 		Draw(img, a.Image(int(w+4), int(size*1.4)), int(x), int(y-size))
 	}
-	text(fmt.Sprintf("WittyMediaServer family: %d concepts, server and client marks", len(concepts)), 40, 70, 34, pal.Text, true)
-	text("Every icon below is drawn at its real pixel size. Panels: dark (house theme), light, a TV home row. Tray: one colour, running and stopped.", 40, 112, 18, Mix(pal.Text, pal.Night, 0.3), false)
+	text(i18n.F("WittyMediaServer family: {len} concepts, server and client marks", "len", len(concepts)), 40, 70, 34, pal.Text, true)
+	text(i18n.T("Every icon below is drawn at its real pixel size. Panels: dark (house theme), light, a TV home row. Tray: one colour, running and stopped."), 40, 112, 18, Mix(pal.Text, pal.Night, 0.3), false)
 
 	for i, c := range concepts {
 		k := Kit{Concept: c, Pal: pal}
@@ -82,7 +83,7 @@ func Sheet(concepts []Concept, chosen Concept) *image.RGBA {
 		tx, ty := 1320, top+64
 		scene := k.Scene(840, 540, 3, false)
 		Draw(img, scene.Image(840, 540), tx, ty)
-		text("TV home row", float64(tx+24), float64(ty+36), 18, pal.Text, true)
+		text(i18n.T("TV home row"), float64(tx+24), float64(ty+36), 18, pal.Text, true)
 		Draw(img, rounded(k.TVIcon(Client, 400, 240).Image(400, 240), 22), tx+24, ty+60)
 		Draw(img, rounded(k.TVIcon(Server, 400, 240).Image(400, 240), 22), tx+440, ty+60)
 		Draw(img, rounded(k.Banner(Client, 320, 180).Image(320, 180), 12), tx+24, ty+330)

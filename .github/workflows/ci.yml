@@ -73,6 +73,12 @@ jobs:
         run: cd web && npm run test:links
       - name: Every button has a name a screen reader can say
         run: cd web && npm run test:names
+      # What a first visit to each route downloads, against web/bundle-budget.json (#643).
+      - name: Web download budget per route
+        run: cd web && node scripts/bundle-budget.mjs
+      # The runner's Chrome, headless, on the build above and a stand-in for the API: no Go, no data folder.
+      - name: Standalone pages are one centred card with the server's name, and don't scroll
+        run: cd web && WV_BROWSER=$(command -v google-chrome) npm run test:standalone
       - name: Every source file has its licence header
         run: python3 scripts/license-headers.py
       - name: Known vulnerabilities in web packages
@@ -106,6 +112,11 @@ jobs:
       - name: gofmt
         run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
       - run: go vet ./...
+      # Every sentence the server sends people is marked for translation (internal/i18n), and the list of them the web
+      # app's catalogues are checked against is up to date. Untranslated ones are listed; the release's translation pass
+      # runs it with -strict.
+      - name: The server's words go through translation
+        run: go run ./scripts/i18n-server
       # The race detector runs in the race job, in shares on machines of their own. This
       # checks that the shares hold every package and test exactly once.
       - name: Race shares hold every test
@@ -190,6 +201,102 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
           key: ${{ steps.go-cache.outputs.cache-primary-key }}
+
+  # The server's budget (#643): scripts/perf on a small library, held to two processors like a
+  # small machine, against scripts/perf/budget.json: memory while idle after the scans, the
+  # scans' floor in items a second, what the main routes allocate and how many statements they
+  # run, and how long a transcode takes to start. docs/PERFORMANCE.md says how to read a failure.
+  perf-budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+          cache: false
+      - name: Restore the Go caches
+        id: go-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: go-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-
+      - name: Install FFmpeg
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get -o Acquire::Retries=3 update -qq && sudo apt-get -o Acquire::Retries=3 install -y -qq ffmpeg
+      - name: Build the measured server and the benchmark
+        run: |
+          go build -tags wmsprofile -o "$RUNNER_TEMP/wms-prof" ./cmd/wittymediaserver
+          go build -o "$RUNNER_TEMP/perf" ./scripts/perf
+      - name: Make the test library (300 films, 200 songs)
+        run: scripts/perf/make-media.sh "$RUNNER_TEMP/media" 300 20
+      # taskset holds the server, FFmpeg and Go's own processor count to two processors.
+      - name: Measure against the budget
+        run: |
+          taskset -c 0,1 "$RUNNER_TEMP/perf" -exe "$RUNNER_TEMP/wms-prof" -ffmpeg "$(command -v ffmpeg)" -ffprobe "$(command -v ffprobe)" \
+            -lib "movies=$RUNNER_TEMP/media/movies" -lib "music=$RUNNER_TEMP/media/music" -out "$RUNNER_TEMP/perf-out" \
+            -starts 1 -settle 15s -idle 30s -repeat 10 -transcodes 3 -budget scripts/perf/budget.json
+      - name: Keep the Go caches
+        if: github.event_name != 'pull_request' && steps.go-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
+
+  # Arabic and Hebrew pages in a headless browser, on a server of its own with a small library that FFmpeg makes: Latin
+  # titles, file names and "2 hr 10 min" keep their order and show their start (web/scripts/test-rtl.mjs). The
+  # screenshots are kept.
+  rtl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+          cache: false
+      - name: Restore the Go caches
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ runner.arch }}-test-${{ hashFiles('go.sum') }}
+          restore-keys: go-${{ runner.os }}-${{ runner.arch }}-test-
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: cd web && npm ci --ignore-scripts --no-audit --no-fund && npm run build
+      - name: Install FFmpeg
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get -o Acquire::Retries=3 update -qq && sudo apt-get -o Acquire::Retries=3 install -y -qq ffmpeg
+      - name: Right-to-left pages
+        run: |
+          go build -o "$RUNNER_TEMP/wms-rtl" ./cmd/wittymediaserver
+          cd web && WMS_BIN="$RUNNER_TEMP/wms-rtl" node scripts/test-rtl.mjs "$RUNNER_TEMP/rtl-shots"
+      - name: Right-to-left screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: rtl-shots
+          path: ${{ runner.temp }}/rtl-shots
+          if-no-files-found: ignore
+          retention-days: 14
 
   # What scripts/build-release.sh puts in a package, for Linux, Windows and FreeBSD, without
   # downloading FFmpeg. build.yml builds every platform's programs; this checks the folders.

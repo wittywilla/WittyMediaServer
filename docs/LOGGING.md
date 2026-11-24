@@ -77,7 +77,7 @@ It does the same by itself when:
 - **the server is stopped while it isn't answering**, from the tray or the service, which is what someone does when it seems to have crashed.
 - **part of the server crashes** and it carries on.
 
-Both are on the **What to log** tab, under **Keep the last minutes**: the last 10 minutes (up to 16 MB of memory), and Go's execution trace of the last seconds (for a developer, with `go tool trace`; it costs a little speed). Turning either off forgets what it held. The newest five reports keep these files beside them.
+Both are on the **What to log** tab, under **Keep the last minutes**: the last 10 minutes (up to 16 MB of memory), and Go's execution trace of the last seconds (for a developer, with `go tool trace`; it costs a little speed). The execution trace is on by default only on a roomy machine ([small machines](HARDWARE.md#small-machines)): keeping it wakes an idle server thousands of times a minute. Turning either off forgets what it held. The newest five reports keep these files beside them.
 
 ## Crash reports
 

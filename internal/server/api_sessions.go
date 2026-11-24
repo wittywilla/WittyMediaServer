@@ -39,6 +39,12 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 // DELETE /api/sessions/{id}: signs one device out; the admin may end anyone's.
 func (s *Server) handleEndSession(w http.ResponseWriter, r *http.Request) {
 	me := userFrom(r)
+	// A kids' profile kept on its device can't sign itself out from here either: that is for
+	// whoever manages it, from their own device.
+	if s.leaveNeedsPIN(r, me) {
+		writeJSON(w, 403, map[string]any{"error": "A parent's PIN is needed to leave this profile.", "code": pinNeededCode})
+		return
+	}
 	who := me.ID
 	if me.IsAdmin {
 		who = 0

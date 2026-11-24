@@ -44,7 +44,7 @@ var filmBoards = []string{"KIJKWIJZER", "NICAM", "BBFC", "MPAA", "MPA", "CNC", "
 // AgeFor returns the minimum age for a content rating, or nil if unknown
 // (unrated). Country prefixes ("US:PG-13", "de/12") are accepted.
 func AgeFor(rating string) *int {
-	r := strings.ToUpper(strings.TrimSpace(rating))
+	country, r := countryPrefix(strings.ToUpper(strings.TrimSpace(rating)))
 	// A game's rating names its board, as boards reuse each other's letters: an ESRB M
 	// isn't an Australian M.
 	if sys, val, ok := strings.Cut(strings.ReplaceAll(r, ":", " "), " "); ok && IsRatingBoard(sys) {
@@ -64,7 +64,15 @@ func AgeFor(rating string) *int {
 	if r == "" {
 		return nil
 	}
-	age, ok := ratingAges[r]
+	// The country's own table first: the one written in front, or the one the server keeps
+	// (rating_countries.go).
+	if country == "" {
+		country = ratingCountry()
+	}
+	age, ok := countryAges[country][r]
+	if !ok {
+		age, ok = ratingAges[r]
+	}
 	if !ok {
 		// "Rated 12+", "16+": a plain number is an age.
 		if n, err := strconv.Atoi(strings.TrimSuffix(r, "+")); err == nil && n >= 0 && n <= 21 {
@@ -118,6 +126,9 @@ type Access struct {
 	On []string `json:"on,omitempty"`
 	// Time: when the account may play things, and for how long each day.
 	Time *parental.TimeRules `json:"time,omitempty"`
+	// PinToLeave: once the owner has set a parents' PIN, the profile can't be left on its
+	// device (switching to another, signing out) without it.
+	PinToLeave bool `json:"pinToLeave,omitempty"`
 
 	// set are the titles the collections and tags above come to, looked up for
 	// one request (Resolve). Lists made in SQL don't need it.
@@ -179,6 +190,28 @@ func DefaultAccess(kind string) Access {
 		return Access{MaxAge: 13}
 	}
 	return Access{MaxAge: NoAgeLimit, AllowUnrated: true, LiveTV: true, LibraryChannels: true, TunerChannels: true}
+}
+
+// NewProfileAccess is what a profile made now starts with. A kids' profile starts kid-safe:
+// films, shows, games and books for 7 and under with nothing unrated, music without explicit
+// songs (most music has no rating, so unrated songs play), library channels but no broadcast
+// ones, home network only, nothing that records, keeps a copy, shares, comments or plays on
+// other devices, two hours a school day and three at the weekend between 7:00 and bedtime,
+// and the parents' PIN to leave it. Whoever makes it sees all this and can change any of it.
+// DefaultAccess stays as it was: it is what limits saved before a choice existed mean.
+func NewProfileAccess(kind string) Access {
+	a := DefaultAccess(kind)
+	if kind != "kids" {
+		return a
+	}
+	// Music has a limit of its own: most songs have no rating, and the one rating songs carry
+	// is the explicit label (17). Everything else follows the age chosen for the profile.
+	a.Kinds = map[string]KindLimit{parental.KindMusic: {MaxAge: 16, AllowUnrated: true}}
+	a.TunerChannels = false
+	a.Off = []string{FeatureRecordings, FeatureDownloads, FeatureSharing, FeatureComments, FeatureSyncplay, FeatureRemoteControl, FeatureRemote}
+	a.Time = &parental.TimeRules{SchoolDayMinutes: 120, WeekendMinutes: 180, From: "07:00", SchoolNightUntil: "19:30", WeekendUntil: "20:30"}
+	a.PinToLeave = true
+	return a
 }
 
 // What an account can be kept from doing, apart from what it may watch.

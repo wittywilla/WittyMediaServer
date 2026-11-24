@@ -5,6 +5,7 @@ package libtranscode
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"slices"
 	"sort"
 	"strings"
@@ -124,11 +125,11 @@ func Decide(src *Source, p Policy, env Env, opt PlanOptions) *Plan {
 	subs := decideSubs(src, p, env, pl)
 	if subs.keepInMKV && pl.Container == "mp4" {
 		pl.Container = "mkv"
-		pl.Notes = append(pl.Notes, "This file stays an MKV: it has subtitles stored as pictures, which an MP4 can't hold, and you chose to keep them.")
+		pl.Notes = append(pl.Notes, i18n.T("This file stays an MKV: it has subtitles stored as pictures, which an MP4 can't hold, and you chose to keep them."))
 		subs = decideSubs(src, p, env, &Plan{Container: "mkv", Notes: []string{}, Warnings: []string{}})
 	}
 	if subs.burn != nil && p.Video.Codec == Keep {
-		pl.Notes = append(pl.Notes, "A forced subtitle stays a track rather than being burned in, because burning means converting the picture and this recipe leaves the picture alone.")
+		pl.Notes = append(pl.Notes, i18n.T("A forced subtitle stays a track rather than being burned in, because burning means converting the picture and this recipe leaves the picture alone."))
 		subs.addBack()
 	}
 	if !decideVideo(src, p, env, pl, subs.burn, opt) {
@@ -236,10 +237,10 @@ func decideVideo(src *Source, p Policy, env Env, pl *Plan, burn *Step, opt PlanO
 func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, force bool, pl *Plan) (Step, string) {
 	st := Step{Kind: "video", Action: ActKeep, From: v.describe(), input: 0, index: v.Index, language: v.Language}
 	if p.Video.ThreeD == "refuse" && (v.Stereo != "" || v.MVC) {
-		return st, "This is a 3D file, and you chose to leave those alone."
+		return st, i18n.T("This is a 3D file, and you chose to leave those alone.")
 	}
 	if p.Video.HDR == "refuse" && (v.Range != "sdr" || v.DV) {
-		return st, "This is an HDR file, and you chose to leave those alone."
+		return st, i18n.T("This is an HDR file, and you chose to leave those alone.")
 	}
 	// What says the picture has to be converted.
 	var needs []string
@@ -283,19 +284,19 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 			}
 			limit := float64(p.Video.SkipBelowKbps) * float64(v.Width*v.Height) / (1920 * 1080)
 			if kbps > 0 && float64(kbps) < limit {
-				pl.Notes = append(pl.Notes, "The picture is already small for its size, so converting it again would lose more than it saves. It's left as it is.")
+				pl.Notes = append(pl.Notes, i18n.T("The picture is already small for its size, so converting it again would lose more than it saves. It's left as it is."))
 				needs = nil
 			}
 		}
 	} else if !containerHoldsVideo(pl.Container, v.Codec) {
 		pl.Container = "mkv"
-		pl.Notes = append(pl.Notes, "This file stays an MKV: an MP4 can't hold "+codecName(v.Codec)+" and this recipe doesn't convert the picture.")
+		pl.Notes = append(pl.Notes, i18n.F("This file stays an MKV: an MP4 can't hold {codecName} and this recipe doesn't convert the picture.", "codecName", codecName(v.Codec)))
 	}
 	if len(needs) == 0 {
 		if pl.Container == "mp4" && v.Codec == "hevc" {
 			st.tag = "hvc1"
 		}
-		st.To = "Stays exactly as it is"
+		st.To = i18n.T("Stays exactly as it is")
 		if v.DV {
 			st.Why = "Dolby Vision is kept because the picture isn't touched."
 		} else if v.Dynamic == "HDR10+" {
@@ -305,19 +306,19 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 	}
 	// The picture has to be converted. Is that safe?
 	if v.MVC && p.Video.ThreeD != "flatten" {
-		return st, "This 3D file stores its second eye in a way conversion would lose. Choose \"one eye\" for 3D to convert it, or leave it as it is."
+		return st, i18n.T("This 3D file stores its second eye in a way conversion would lose. Choose \"one eye\" for 3D to convert it, or leave it as it is.")
 	}
 	wantTone := p.Video.HDR == "tonemap" && (v.Range != "sdr" || v.DV)
 	if v.DV {
 		if v.DVProfile == 5 {
-			return st, "This Dolby Vision file (profile 5) has no ordinary HDR layer to convert from, so its colours would come out wrong. It's left as it is."
+			return st, i18n.T("This Dolby Vision file (profile 5) has no ordinary HDR layer to convert from, so its colours would come out wrong. It's left as it is.")
 		}
 		if p.Video.DolbyVision == Keep && !wantTone {
-			return st, "Dolby Vision doesn't survive conversion, and you chose to keep it, so this file is left as it is."
+			return st, i18n.T("Dolby Vision doesn't survive conversion, and you chose to keep it, so this file is left as it is.")
 		}
 	}
 	if wantTone && env.toneMap(v.Range) == "" {
-		return st, "This HDR file can't be made an ordinary picture: this server's FFmpeg doesn't have the filters for it."
+		return st, i18n.T("This HDR file can't be made an ordinary picture: this server's FFmpeg doesn't have the filters for it.")
 	}
 	isHDR := (v.Range != "sdr" || v.DV) && !wantTone
 	target := p.Video.Codec
@@ -330,10 +331,10 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 	}
 	enc, note := chooseEncoder(target, depth, isHDR, p, env, v)
 	if enc.name == "" {
-		return st, "This server's FFmpeg has no encoder for " + codecName(target) + ", so this file can't be converted."
+		return st, i18n.F("This server's FFmpeg has no encoder for {codecName}, so this file can't be converted.", "codecName", codecName(target))
 	}
 	if isHDR && enc.codec == "h264" {
-		return st, "This server's FFmpeg has no H.265 or AV1 encoder, and H.264 can't carry HDR, so this file is left as it is."
+		return st, i18n.T("This server's FFmpeg has no H.265 or AV1 encoder, and H.264 can't carry HDR, so this file is left as it is.")
 	}
 	if note != "" {
 		pl.Notes = append(pl.Notes, note)
@@ -380,22 +381,22 @@ func decideOneVideo(src *Source, v VideoStream, p Policy, env Env, burn *Step, f
 	st.Why = "Because " + joinReasons(needs) + "."
 	// What won't survive, said before anything starts.
 	if v.DV {
-		pl.Warnings = append(pl.Warnings, "Dolby Vision won't survive: this converts from the layer other players show.")
+		pl.Warnings = append(pl.Warnings, i18n.T("Dolby Vision won't survive: this converts from the layer other players show."))
 	}
 	if v.Dynamic == "HDR10+" && isHDR {
 		pl.Warnings = append(pl.Warnings, "HDR10+ scene-by-scene brightness information won't survive. The picture stays HDR10.")
 	}
 	if wantTone {
-		pl.Notes = append(pl.Notes, "HDR is converted to an ordinary picture. Colours and highlights won't match what an HDR screen shows.")
+		pl.Notes = append(pl.Notes, i18n.T("HDR is converted to an ordinary picture. Colours and highlights won't match what an HDR screen shows."))
 	}
 	if v.Stereo != "" && p.Video.ThreeD == Keep {
-		pl.Notes = append(pl.Notes, "This 3D picture stays stored the same way: both eyes in one frame.")
+		pl.Notes = append(pl.Notes, i18n.T("This 3D picture stays stored the same way: both eyes in one frame."))
 	}
 	if v.Captions {
-		pl.Notes = append(pl.Notes, "This picture carries closed captions inside it. They're passed on where the encoder can, but check them if you rely on them.")
+		pl.Notes = append(pl.Notes, i18n.T("This picture carries closed captions inside it. They're passed on where the encoder can, but check them if you rely on them."))
 	}
 	if v.Variable && !p.Video.ConstantRate {
-		pl.Notes = append(pl.Notes, "This file's frame rate varies, and it's kept that way so sound stays in step.")
+		pl.Notes = append(pl.Notes, i18n.T("This file's frame rate varies, and it's kept that way so sound stays in step."))
 	}
 	return st, ""
 }
@@ -451,7 +452,7 @@ func flattenFilterFor(v VideoStream) string {
 
 func decideCovers(src *Source, pl *Plan) {
 	for _, c := range src.Covers {
-		st := Step{Kind: "cover", Action: ActKeep, From: "Cover picture", To: "Stays as it is", index: c.Index, disposition: "attached_pic", title: c.Name, subNumber: c.Number, tag: c.Codec}
+		st := Step{Kind: "cover", Action: ActKeep, From: "Cover picture", To: i18n.T("Stays as it is"), index: c.Index, disposition: "attached_pic", title: c.Name, subNumber: c.Number, tag: c.Codec}
 		if c.Codec != "mjpeg" && c.Codec != "png" {
 			if pl.Container == "mp4" {
 				st.Action, st.To, st.Why = ActDrop, "", "An MP4 only holds JPEG and PNG covers."
@@ -474,11 +475,11 @@ func decideAudio(src *Source, p Policy, pl *Plan) []Step {
 	wanted := func(t AudioStream) (bool, string) {
 		switch {
 		case t.Commentary && a.Commentary == Drop:
-			return false, "You chose to remove commentary."
+			return false, i18n.T("You chose to remove commentary.")
 		case t.Description && a.Description == Drop:
-			return false, "You chose to remove audio description."
+			return false, i18n.T("You chose to remove audio description.")
 		case t.Language == "" && a.Untagged == Drop && a.UntaggedAs == "":
-			return false, "This track doesn't say its language, and you chose to remove those."
+			return false, i18n.T("This track doesn't say its language, and you chose to remove those.")
 		case t.Language == "":
 			return true, ""
 		case a.Keep == KeepAll:
@@ -486,7 +487,7 @@ func decideAudio(src *Source, p Policy, pl *Plan) []Step {
 		case slices.Contains(a.Languages, t.Language):
 			return true, ""
 		case a.KeepOriginal && t.Language == orig:
-			return true, "The original language (" + how + ")."
+			return true, i18n.F("The original language ({how}).", "how", how)
 		}
 		return false, languageWords(t.Language) + " isn't one of the languages you're keeping."
 	}
@@ -515,12 +516,12 @@ func decideAudio(src *Source, p Policy, pl *Plan) []Step {
 			}
 		}
 		t := src.Audio[fallback]
-		keep = append(keep, kept{t, "Kept because a film must keep at least one sound track, and no track matches your choices."})
+		keep = append(keep, kept{t, i18n.T("Kept because a film must keep at least one sound track, and no track matches your choices.")})
 		dropped = slices.DeleteFunc(dropped, func(s Step) bool { return s.index == t.Index })
-		pl.Warnings = append(pl.Warnings, "No sound track matches your languages, so one is kept anyway: "+t.describe()+".")
+		pl.Warnings = append(pl.Warnings, i18n.F("No sound track matches your languages, so one is kept anyway: {describe}.", "describe", t.describe()))
 	}
 	if a.Keep == KeepLanguages && orig == "" && a.KeepOriginal {
-		pl.Notes = append(pl.Notes, "Nothing says which language this film was made in, so \"keep the original language\" had nothing to go on.")
+		pl.Notes = append(pl.Notes, i18n.T("Nothing says which language this film was made in, so \"keep the original language\" had nothing to go on."))
 	}
 
 	// The order: the languages in the order asked for, the plain tracks of a language
@@ -617,7 +618,7 @@ func decideAudio(src *Source, p Policy, pl *Plan) []Step {
 		}
 		if a.AddStereo && extra(k.t) == 0 && k.t.Channels > 2 && !hasStereo[k.t.Language] {
 			hasStereo[k.t.Language] = true
-			add := Step{Kind: "audio", Action: ActAdd, From: "New track made from " + k.t.describe(), To: languageWords(orDefault(k.t.Language, a.UntaggedAs)) + ", AAC stereo",
+			add := Step{Kind: "audio", Action: ActAdd, From: i18n.F("New track made from {describe}", "describe", k.t.describe()), To: languageWords(orDefault(k.t.Language, a.UntaggedAs)) + ", AAC stereo",
 				Why: "So devices without surround sound have something to play.", index: k.t.Index, encoder: "aac", channels: 2, bitrate: "192k", title: "Stereo", language: fileLanguage(orDefault(k.t.Language, a.UntaggedAs))}
 			if a.StereoFirst {
 				if i == defaultAt {
@@ -665,14 +666,14 @@ func dispositionOf(t AudioStream, isDefault bool) string {
 // audioNeedsConverting says why a kept track can't stay as it is, "" when it can.
 func audioNeedsConverting(t AudioStream, a AudioPolicy, container string) string {
 	if !containerHoldsAudio(container, t.Codec) {
-		return "An MP4 can't hold " + codecName(t.Codec) + "."
+		return i18n.F("An MP4 can't hold {codecName}.", "codecName", codecName(t.Codec))
 	}
 	if a.MaxChannels > 0 && t.Channels > a.MaxChannels {
-		return fmt.Sprintf("You chose at most %s.", channelWords(a.MaxChannels))
+		return i18n.F("You chose at most {channelWords}.", "channelWords", channelWords(a.MaxChannels))
 	}
 	if t.Objects {
 		if a.Objects == "convert" {
-			return "You chose to convert object sound."
+			return i18n.T("You chose to convert object sound.")
 		}
 		return ""
 	}
@@ -681,12 +682,12 @@ func audioNeedsConverting(t AudioStream, a AudioPolicy, container string) string
 	}
 	if t.Lossless {
 		if a.Lossless == "convert" {
-			return "You chose to convert lossless sound, which takes the most room."
+			return i18n.T("You chose to convert lossless sound, which takes the most room.")
 		}
 		return ""
 	}
 	if a.StereoFirst && t.Channels <= 2 && t.Codec != "aac" && t.Codec != "mp3" {
-		return "Every device plays AAC stereo."
+		return i18n.T("Every device plays AAC stereo.")
 	}
 	if len(a.Accept) > 0 && !slices.Contains(a.Accept, t.Codec) {
 		return codecName(t.Codec) + " isn't one of the formats you're keeping."
@@ -695,7 +696,7 @@ func audioNeedsConverting(t AudioStream, a AudioPolicy, container string) string
 }
 
 func audioStep(t AudioStream, why string, a AudioPolicy, pl *Plan) Step {
-	st := Step{Kind: "audio", Action: ActKeep, From: t.describe(), To: "Stays as it is", Why: why, index: t.Index}
+	st := Step{Kind: "audio", Action: ActKeep, From: t.describe(), To: i18n.T("Stays as it is"), Why: why, index: t.Index}
 	reason := audioNeedsConverting(t, a, pl.Container)
 	if reason == "" {
 		return st
@@ -725,7 +726,7 @@ func audioStep(t AudioStream, why string, a AudioPolicy, pl *Plan) Step {
 	st.To = codecName(codec) + ", " + channelWords(ch)
 	st.Why = reason
 	if t.Objects {
-		pl.Warnings = append(pl.Warnings, "Object sound won't survive: "+t.describe()+" becomes "+st.To+".")
+		pl.Warnings = append(pl.Warnings, i18n.F("Object sound won't survive: {describe} becomes {to}.", "describe", t.describe(), "to", st.To))
 	}
 	return st
 }
@@ -781,7 +782,7 @@ func (s *subPlan) addBack() {
 	if s.burn == nil {
 		return
 	}
-	st := Step{Kind: "subtitle", Action: ActKeep, From: s.burnFrom.describe(), To: "Stays as it is", index: s.burnFrom.Index, language: s.burnFrom.Language, disposition: "forced"}
+	st := Step{Kind: "subtitle", Action: ActKeep, From: s.burnFrom.describe(), To: i18n.T("Stays as it is"), index: s.burnFrom.Index, language: s.burnFrom.Language, disposition: "forced"}
 	s.steps = append(s.steps, st)
 	s.burn = nil
 }
@@ -806,15 +807,15 @@ func decideSubs(src *Source, p Policy, env Env, pl *Plan) *subPlan {
 	wanted := func(language string, forced, sdh bool) (bool, string) {
 		switch {
 		case forced && sp.Forced == Drop:
-			return false, "You chose to remove forced subtitles."
+			return false, i18n.T("You chose to remove forced subtitles.")
 		case forced && (sp.Keep != KeepNone || sp.Forced != Keep) && (language == "" || language == heard || sp.Keep == KeepAll || slices.Contains(sp.Languages, language)):
 			return true, ""
 		case sp.Keep == KeepNone:
-			return false, "You chose to remove subtitles."
+			return false, i18n.T("You chose to remove subtitles.")
 		case sdh && sp.SDH == Drop:
-			return false, "You chose to remove SDH subtitles."
+			return false, i18n.T("You chose to remove SDH subtitles.")
 		case language == "" && sp.Untagged == Drop:
-			return false, "This track doesn't say its language, and you chose to remove those."
+			return false, i18n.T("This track doesn't say its language, and you chose to remove those.")
 		case language == "" || sp.Keep == KeepAll:
 			return true, ""
 		case slices.Contains(sp.Languages, language):
@@ -842,7 +843,7 @@ func decideSubs(src *Source, p Policy, env Env, pl *Plan) *subPlan {
 		// Burned in, if this is the one to burn.
 		wantBurn := sp.Forced == "burn" && t.Forced || sp.Forced == "burn-images" && t.Forced && !t.Text && pl.Container == "mp4"
 		if wantBurn && out.burn == nil && (t.Language == "" || t.Language == heard || heard == "") && canBurn(t, src, env) {
-			st := Step{Kind: "subtitle", Action: ActBurn, From: t.describe(), To: "Drawn into the picture", Why: "A forced track carries dialogue the film needs. Once drawn in it can't be turned off.", index: t.Index, subNumber: n, text: t.Text}
+			st := Step{Kind: "subtitle", Action: ActBurn, From: t.describe(), To: i18n.T("Drawn into the picture"), Why: "A forced track carries dialogue the film needs. Once drawn in it can't be turned off.", index: t.Index, subNumber: n, text: t.Text}
 			out.burn, out.burnFrom = &st, t
 			continue
 		}
@@ -851,7 +852,7 @@ func decideSubs(src *Source, p Policy, env Env, pl *Plan) *subPlan {
 	sort.SliceStable(keep, func(i, j int) bool { return keep[i].rank < keep[j].rank })
 	for _, k := range keep {
 		t := k.st
-		st := Step{Kind: "subtitle", Action: ActKeep, From: t.describe(), To: "Stays as it is", index: t.Index, language: t.Language, disposition: subDisposition(t)}
+		st := Step{Kind: "subtitle", Action: ActKeep, From: t.describe(), To: i18n.T("Stays as it is"), index: t.Index, language: t.Language, disposition: subDisposition(t)}
 		switch {
 		case t.Text:
 			target := textTarget(t.Codec, sp.Text, pl.Container)
@@ -875,22 +876,22 @@ func decideSubs(src *Source, p Policy, env Env, pl *Plan) *subPlan {
 			case sp.Images == Keep:
 				out.keepInMKV = true
 			case sp.Images == "export" && t.Codec == "hdmv_pgs_subtitle" && env.Sidecars:
-				out.exports = append(out.exports, Step{Kind: "subtitle", Action: ActExport, From: t.describe(), To: "A .sup file beside the video",
+				out.exports = append(out.exports, Step{Kind: "subtitle", Action: ActExport, From: t.describe(), To: i18n.T("A .sup file beside the video"),
 					Why: "An MP4 can't hold subtitles stored as pictures, and they can't become text.", index: t.Index, language: t.Language, path: supSuffix(t)})
 				st.Action = ""
 			default:
-				why := "An MP4 can't hold subtitles stored as pictures, and they can't become text without character recognition."
+				why := i18n.T("An MP4 can't hold subtitles stored as pictures, and they can't become text without character recognition.")
 				if sp.Images == Drop {
-					why = "You chose to remove subtitles stored as pictures."
+					why = i18n.T("You chose to remove subtitles stored as pictures.")
 				}
 				st.Action, st.To, st.Why = ActDrop, "", why
 				if sp.Images != Drop {
-					pl.Warnings = append(pl.Warnings, "This subtitle will be lost: "+t.describe()+". Keep the original, or choose MKV, if you need it.")
+					pl.Warnings = append(pl.Warnings, i18n.F("This subtitle will be lost: {describe}. Keep the original, or choose MKV, if you need it.", "describe", t.describe()))
 				}
 			}
 		default:
-			st.Action, st.To, st.Why = ActDrop, "", "An MKV can't hold "+codecName(t.Codec)+" subtitles."
-			pl.Warnings = append(pl.Warnings, "This subtitle will be lost: "+t.describe()+".")
+			st.Action, st.To, st.Why = ActDrop, "", i18n.F("An MKV can't hold {codecName} subtitles.", "codecName", codecName(t.Codec))
+			pl.Warnings = append(pl.Warnings, i18n.F("This subtitle will be lost: {describe}.", "describe", t.describe()))
 		}
 		if st.Action != "" {
 			out.steps = append(out.steps, st)
@@ -912,9 +913,9 @@ func decideSubs(src *Source, p Policy, env Env, pl *Plan) *subPlan {
 				enc = subEncoder(target)
 			}
 			flags := subDisposition(SubStream{Forced: f.Forced, SDH: f.SDH})
-			out.embeds = append(out.embeds, Step{Kind: "file", Action: ActEmbed, From: desc, To: "A track inside the new file", path: f.Path, encoder: enc, language: f.Language, disposition: flags})
+			out.embeds = append(out.embeds, Step{Kind: "file", Action: ActEmbed, From: desc, To: i18n.T("A track inside the new file"), path: f.Path, encoder: enc, language: f.Language, disposition: flags})
 		default:
-			out.leave = append(out.leave, Step{Kind: "file", Action: ActLeave, From: desc, To: "Stays beside the video", path: f.Path})
+			out.leave = append(out.leave, Step{Kind: "file", Action: ActLeave, From: desc, To: i18n.T("Stays beside the video"), path: f.Path})
 		}
 	}
 	return out
@@ -991,7 +992,7 @@ func subEncoder(target string) string {
 func decideRest(src *Source, pl *Plan) {
 	for _, a := range src.Attachments {
 		if pl.Container == "mkv" {
-			pl.Steps = append(pl.Steps, Step{Kind: "attachment", Action: ActKeep, From: "Attached file " + orDefault(cleanTitle(a.Name), "with no name"), To: "Stays as it is", index: a.Index})
+			pl.Steps = append(pl.Steps, Step{Kind: "attachment", Action: ActKeep, From: "Attached file " + orDefault(cleanTitle(a.Name), "with no name"), To: i18n.T("Stays as it is"), index: a.Index})
 		} else {
 			pl.Steps = append(pl.Steps, Step{Kind: "attachment", Action: ActDrop, From: "Attached file " + orDefault(cleanTitle(a.Name), "with no name"), Why: "An MP4 can't hold attached files. These are usually fonts for styled subtitles."})
 		}
@@ -1075,11 +1076,11 @@ func convertSummary(pl *Plan) string {
 	}
 	switch {
 	case picture && sound:
-		return "The picture and some sound are converted."
+		return i18n.T("The picture and some sound are converted.")
 	case picture:
-		return "The picture is converted. The sound stays as it is."
+		return i18n.T("The picture is converted. The sound stays as it is.")
 	case sound:
-		return "Some sound is converted. The picture stays exactly as it is."
+		return i18n.T("Some sound is converted. The picture stays exactly as it is.")
 	}
-	return "Subtitles are converted. The picture and sound stay as they are."
+	return i18n.T("Subtitles are converted. The picture and sound stay as they are.")
 }

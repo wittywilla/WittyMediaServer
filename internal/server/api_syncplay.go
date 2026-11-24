@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"strconv"
 	"sync"
@@ -364,7 +365,7 @@ func (s *Server) handleSyncCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !s.mayCreateParty(r.Context(), u) {
-		remoteError(w, 403, "not-allowed", "This account can't start a watch party. It can join one with a code.")
+		remoteError(w, 403, "not-allowed", i18n.T("This account can't start a watch party. It can join one with a code."))
 		return
 	}
 	var b struct {
@@ -382,7 +383,7 @@ func (s *Server) handleSyncCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	su, ok := syncUser(r, b.Device)
 	if !ok {
-		remoteError(w, 403, "no-session", "This needs a signed-in device, not a media address.")
+		remoteError(w, 403, "no-session", i18n.T("This needs a signed-in device, not a media address."))
 		return
 	}
 	if len(b.Items) == 0 && b.ItemID > 0 {
@@ -423,7 +424,7 @@ func (s *Server) handleSyncJoin(w http.ResponseWriter, r *http.Request) {
 	}
 	su, ok := syncUser(r, b.Device)
 	if !ok {
-		remoteError(w, 403, "no-session", "This needs a signed-in device, not a media address.")
+		remoteError(w, 403, "no-session", i18n.T("This needs a signed-in device, not a media address."))
 		return
 	}
 	key := b.RoomID
@@ -440,7 +441,7 @@ func (s *Server) handleSyncJoin(w http.ResponseWriter, r *http.Request) {
 	limit := "join:" + strconv.FormatInt(u.ID, 10)
 	if !s.watch.rates.take(limit, every, tries) {
 		w.Header().Set("Retry-After", "10")
-		remoteError(w, 429, "rate", "Too many tries. Wait a little and try again.")
+		remoteError(w, 429, "rate", i18n.T("Too many tries. Wait a little and try again."))
 		return
 	}
 	v, err := s.syncEngine().Join(su, key)

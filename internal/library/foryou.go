@@ -5,6 +5,7 @@ package library
 
 import (
 	"context"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"hash/fnv"
 	"math"
 	"sort"
@@ -136,7 +137,7 @@ func rankFeed(c []feedCandidate, t taste, seed, now int64) []rankedVideo {
 		case v.Plays == 0 && creatorScore > 1 && creatorScore >= bestTagScore:
 			r.Reason = "More from " + v.CreatorN
 		case v.Plays == 0 && bestTagScore > 0.5:
-			r.Reason = "Because you like #" + bestTag
+			r.Reason = i18n.F("Because you like #{bestTag}", "bestTag", bestTag)
 		case v.Plays == 0 && fresh > 0.6:
 			r.Reason = "New on this server"
 		case v.Plays > 0:

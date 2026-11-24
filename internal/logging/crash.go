@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"net/http"
 	"os"
@@ -325,13 +326,13 @@ func (g *CrashGuard) reportFromFatal(p string, info os.FileInfo, logDir, version
 		return Crash{}, err
 	}
 	text := Redact(string(b))
-	summary := "The server stopped because of an internal error."
+	summary := i18n.T("The server stopped because of an internal error.")
 	if m := fatalFirstLine.FindString(text); m != "" {
 		summary = clean(strings.TrimSpace(m), 200)
 	} else if fn := crashedIn(text); fn != "" {
 		// The runtime keeps its "fatal error:" line for the console; the file starts at
 		// the stack. Where it happened is what's left to go on.
-		summary = "The server stopped because of an internal error in " + clean(fn, 160) + "."
+		summary = i18n.F("The server stopped because of an internal error in {clean}.", "clean", clean(fn, 160))
 	}
 	return g.writeReport("fatal", info.ModTime(), version, summary, text, lastLogLines(logDir, 60))
 }
@@ -342,10 +343,10 @@ func (g *CrashGuard) reportFromUnclean(m runMarker, logDir string) (Crash, error
 	if files := listLogFiles(logDir); len(files) > 0 && files[0].Modified.After(when) {
 		when = files[0].Modified
 	}
-	summary := "The server stopped without shutting down: a power cut, the computer restarting, the process being ended or the system running out of memory."
+	summary := i18n.T("The server stopped without shutting down: a power cut, the computer restarting, the process being ended or the system running out of memory.")
 	body := fmt.Sprintf("Started: %s\nProcess: %d\n", m.Started.Format(time.RFC3339), m.PID)
 	if m.Stopping != nil {
-		summary = "The server began to stop (" + shortStop(*m.Stopping) + ") and didn't finish: it was ended before it could, or stopping hung."
+		summary = i18n.F("The server began to stop ({shortStop}) and didn't finish: it was ended before it could, or stopping hung.", "shortStop", shortStop(*m.Stopping))
 		body += fmt.Sprintf("Stopping since: %s, because %s\n", m.Stopping.At.Format(time.RFC3339), m.Stopping.Words())
 	} else {
 		body += "No error was recorded by the server itself.\n"
@@ -658,7 +659,7 @@ func (g *CrashGuard) recordPanic(where string, value any, stack []byte) {
 	if seen && now.Sub(last) <= 10*time.Minute {
 		return
 	}
-	summary := clean(Redact(fmt.Sprintf("A panic in %s was caught; the server carried on: %v", where, value)), 300)
+	summary := clean(Redact(i18n.F("A panic in {where} was caught; the server carried on: {value}", "where", where, "value", value)), 300)
 	body := Redact(string(stack))
 	tail := ""
 	l := active.Load()

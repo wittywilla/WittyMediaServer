@@ -889,5 +889,9 @@
   },
   "and {count} more invitations": {
     "other": "ほか {count} 件の招待"
-  }
+  },
+  "Pause for scenes": "シーン選択中は一時停止",
+  "Pause the film while the scenes are open": "シーン一覧を開いている間は映画を一時停止",
+  "Phones and TVs": "スマホとテレビ",
+  "Every screen": "すべての画面"
 }

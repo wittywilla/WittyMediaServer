@@ -8,12 +8,12 @@ import { Button, IconButton } from '../ui/Button'
 import { Segmented, Tabs } from '../ui/Choice'
 import { Field, Input, Switch } from '../ui/Field'
 import { ask, Dialog } from '../ui/Overlay'
-import { Avatar } from './AuthPage'
+import { Avatar } from '../ui/Avatar'
 import LegalNote from '../components/LegalNote'
-import { ActivityDialog, AvatarPicker, CollectionRules, FeatureSwitches, KindLimits, ParentPin, TagRules, TimeRulesEditor, useParentalLists } from './settings/ParentalControls'
+import { ActivityDialog, AvatarPicker, CollectionRules, FeatureSwitches, KindLimits, ParentPin, RatingCountry, TagRules, TimeRulesEditor, useParentalLists } from './settings/ParentalControls'
 import './profiles.css'
 import { StreamLimitsDialog } from './settings/StreamQuality'
-import { t, tk, tn, tx } from '../i18n'
+import { t, tk, tn, tx, bidi } from '../i18n'
 
 // Settings → Users: your account, the profiles you may manage, and their
 // limits. The admin manages everyone; adults manage Kids profiles unless the
@@ -108,6 +108,7 @@ export default function Profiles() {
       {watching && <ActivityDialog user={watching} onClose={() => setWatching(null)} />}
       {streamFor && <StreamLimitsDialog user={streamFor} onClose={() => setStreamFor(null)} />}
       {user?.isAdmin && <ParentPin />}
+      {user?.isAdmin && <RatingCountry />}
     </>
   )
 }
@@ -280,7 +281,7 @@ function summary(u: UserView): string {
   const off = (a.off || []).filter((f) => f !== 'editProfile')
   if (off.length) parts.push(tn('{count} thing turned off', '{count} things turned off', off.length))
   if (!u.hasPassword) parts.push(t('no password'))
-  return parts.join(' · ')
+  return parts.map(bidi).join(' · ')
 }
 
 // AddProfile creates an adult, Kids or Guest profile (adults: Kids only).
@@ -319,6 +320,7 @@ export function AddProfile({ admin, onClose, onDone, initialKind = admin ? 'adul
           <p className="muted flush">
             {kind === 'adult' && t('A full account with its own password and watch history.')}
             {kind === 'kids' && t('Only shows titles up to the age you choose. A password or PIN is optional: without one, kids sign in with a tap on your home network.')}
+            {kind === 'kids' && ' ' + t('It starts kid-safe: no explicit songs, no antenna or IPTV channels, at home only, two hours of screen time on school days and three at weekends, bedtime at 19:30 (20:30 on Fridays and Saturdays), and the parents’ PIN to leave it. Change any of it under Limits.')}
             {kind === 'guest' && t('For visitors: limited titles, no settings. Only the administrator can change Guest limits.')}
           </p>
           {kind !== 'adult' && <LegalNote kind="ratings" />}
@@ -409,6 +411,11 @@ function LimitsEditor({ user, admin, onClose, onSaved }: { user: UserView; admin
             <label className="check-row"><input type="checkbox" checked={a.liveTv} onChange={(e) => set({ liveTv: e.target.checked })} /> {t('Live TV')}</label>
             <label className="check-row indent"><input type="checkbox" disabled={!a.liveTv} checked={a.libraryChannels} onChange={(e) => set({ libraryChannels: e.target.checked })} /> {t("Channels made from this server's libraries")}</label>
             <label className="check-row indent"><input type="checkbox" disabled={!a.liveTv} checked={a.tunerChannels} onChange={(e) => set({ tunerChannels: e.target.checked })} /> {t('Antenna, cable and internet TV channels (tuners, IPTV)')}</label>
+            {user.kind !== 'adult' && <>
+              <h3>{t('Leaving this profile')}</h3>
+              <label className="check-row"><input type="checkbox" checked={!!a.pinToLeave} onChange={(e) => set({ pinToLeave: e.target.checked })} /> {t('Ask for the parents’ PIN to switch away or sign out on this profile’s devices')}</label>
+              <p className="muted">{t('Only once a parents’ PIN is set, below the list of profiles. A parent can also switch with their own password.')}</p>
+            </>}
             {user.kind !== 'adult' && user.hasPassword && admin !== undefined && (
               <label className="check-row limits-clear"><input type="checkbox" checked={clearPw} onChange={(e) => setClearPw(e.target.checked)} /> {t('Remove the password (sign in with a tap on the home network)')}</label>
             )}

@@ -8,7 +8,7 @@ import { Button, Dialog } from '../ui'
 import { IconDevices } from '../icons'
 import { Brand, BrandMark } from '../components/common'
 import { useApp } from '../state'
-import { t, tx } from '../i18n'
+import { t, tx, bidi } from '../i18n'
 import { pageAddress, type TvLevel } from './levels'
 import { TV_LEVELS, tvPartLevel, tvPartTitle } from './levelTable'
 import './levelWords'
@@ -63,7 +63,7 @@ function SetNow({ lines, centred }: { lines: string[]; centred?: boolean }) {
   return (
     <div className={'tvl-now' + (centred ? ' tvl-now-centred' : '')}>
       <span className="tvl-now-label">{t('Set now')}</span>
-      {centred ? <p className="tvl-now-line">{lines.join(' · ')}</p> : <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>}
+      {centred ? <p className="tvl-now-line">{lines.map(bidi).join(' · ')}</p> : <ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul>}
     </div>
   )
 }

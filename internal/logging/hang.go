@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -245,9 +246,9 @@ func (w *watchdog) judge(now time.Time) {
 		msg = "the server is still not answering"
 	}
 	w.log.Error(msg, "cat", "server", "for", failingFor.Round(time.Second).String(), "failing", what, "blocked", blocked)
-	summary := fmt.Sprintf("The server stopped answering for %s: %s.", failingFor.Round(time.Second), what)
+	summary := i18n.F("The server stopped answering for {round}: {what}.", "round", failingFor.Round(time.Second), "what", what)
 	if dump == 2 {
-		summary = fmt.Sprintf("The server was still not answering after %s: %s.", failingFor.Round(time.Second), what)
+		summary = i18n.F("The server was still not answering after {round}: {what}.", "round", failingFor.Round(time.Second), "what", what)
 	}
 	if blocked != "" {
 		summary += " Most waiting: " + blocked + "."
@@ -434,11 +435,11 @@ func NoteStopping() {
 	var summary string
 	switch {
 	case !episode.IsZero():
-		summary = fmt.Sprintf("The server was asked to stop while it wasn't answering, for %s: %s.", time.Since(episode).Round(time.Second), what)
+		summary = i18n.F("The server was asked to stop while it wasn't answering, for {round}: {what}.", "round", time.Since(episode).Round(time.Second), "what", what)
 	case failing:
-		summary = fmt.Sprintf("The server was asked to stop while it was slow to answer: %s.", what)
+		summary = i18n.F("The server was asked to stop while it was slow to answer: {what}.", "what", what)
 	case !last.IsZero() && time.Since(last) < flightAge:
-		summary = fmt.Sprintf("The server was asked to stop %s after it had stopped answering.", time.Since(last).Round(time.Second))
+		summary = i18n.F("The server was asked to stop {round} after it had stopped answering.", "round", time.Since(last).Round(time.Second))
 	default:
 		return
 	}

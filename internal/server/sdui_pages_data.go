@@ -5,6 +5,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -262,7 +263,7 @@ func (rv *sduiResolver) devices() ([]sdui.Item, error) {
 		it := sdui.Item{ID: se.ID, Kind: "view", Title: name, Icon: "devices"}
 		seen := agoWords(rv.now, se.LastSeen)
 		if se.Current {
-			it.Subtitle, it.Trailing, it.Badges = "This device · "+seen, "Now", []string{"This device"}
+			it.Subtitle, it.Trailing, it.Badges = i18n.F("This device · {seen}", "seen", seen), "Now", []string{"This device"}
 		} else {
 			it.Subtitle = seen
 			it.Action = &sdui.Action{Type: sdui.ActCommand, Op: "session.end", Item: se.ID, Confirm: "Sign " + name + " out?", Params: map[string]any{"session": se.ID}}
@@ -298,7 +299,7 @@ func agoWords(now time.Time, unix int64) string {
 	case d < time.Hour:
 		return fmt.Sprintf("%d minutes ago", int(d.Minutes()))
 	case d < 2*time.Hour:
-		return "An hour ago"
+		return i18n.T("An hour ago")
 	case d < 24*time.Hour:
 		return fmt.Sprintf("%d hours ago", int(d.Hours()))
 	case d < 48*time.Hour:
@@ -467,7 +468,7 @@ func (rv *sduiResolver) commentRows(item string) ([]sdui.Item, error) {
 			row.Badges = []string{"Reply"}
 		}
 		if (c.UserID != nil && *c.UserID == rv.u.ID) || rv.u.IsAdmin {
-			row.Action = &sdui.Action{Type: sdui.ActCommand, Op: "comment.delete", Item: itoa(c.ID), Confirm: "Delete this comment?"}
+			row.Action = &sdui.Action{Type: sdui.ActCommand, Op: "comment.delete", Item: itoa(c.ID), Confirm: i18n.T("Delete this comment?")}
 		}
 		out = append(out, row)
 	}
@@ -531,16 +532,16 @@ func smartRuleRows() []sdui.Item {
 		return sdui.Item{ID: id, Kind: "view", Title: label, Control: &sdui.Control{Type: sdui.ControlSelect, Name: name, Options: opts, Value: opts[0].Value}}
 	}
 	return []sdui.Item{
-		field("name", "Name", "", "name", "text", "Short films from the 2020s"),
-		field("types", "Kinds of library", "Separate with commas: movies, shows, music.", "rule.libraryTypes[]", "text", "movies"),
-		field("genres", "Genres", "Any of these, separated by commas.", "rule.genres[]", "text", "Drama, Short"),
-		field("words", "Words", "In the title or the synopsis.", "rule.search", "text", ""),
+		field("name", "Name", "", "name", "text", i18n.T("Short films from the 2020s")),
+		field("types", i18n.T("Kinds of library"), i18n.T("Separate with commas: movies, shows, music."), "rule.libraryTypes[]", "text", "movies"),
+		field("genres", "Genres", i18n.T("Any of these, separated by commas."), "rule.genres[]", "text", "Drama, Short"),
+		field("words", "Words", i18n.T("In the title or the synopsis."), "rule.search", "text", ""),
 		field("from", "From year", "", "rule.yearFrom", "number", "2020"),
 		field("to", "To year", "", "rule.yearTo", "number", "2025"),
-		field("rating", "Score at least", "Out of 10.", "rule.ratingMin", "number", "7"),
-		field("added", "Added within (days)", "", "rule.addedWithinDays", "number", ""),
+		field("rating", "Score at least", i18n.T("Out of 10."), "rule.ratingMin", "number", "7"),
+		field("added", i18n.T("Added within (days)"), "", "rule.addedWithinDays", "number", ""),
 		sel("watched", "Watched", "rule.watched", sdui.EnumOption{Value: "", Label: "Any"}, sdui.EnumOption{Value: "no", Label: "Unwatched"}, sdui.EnumOption{Value: "yes", Label: "Watched"}, sdui.EnumOption{Value: "started", Label: "Started"}),
 		sel("sort", "Sort", "rule.sort", sdui.EnumOption{Value: "added", Label: "Newest"}, sdui.EnumOption{Value: "title", Label: "Title"}, sdui.EnumOption{Value: "year", Label: "Year"}, sdui.EnumOption{Value: "rating", Label: "Score"}, sdui.EnumOption{Value: "random", Label: "Random"}),
-		field("limit", "At most", "Up to 500.", "rule.limit", "number", "50"),
+		field("limit", "At most", i18n.T("Up to 500."), "rule.limit", "number", "50"),
 	}
 }

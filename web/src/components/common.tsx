@@ -11,7 +11,7 @@ import { artSet, CARD_SIZES, episodeLabel, fmtRuntime, discName, isBluray, isDis
 import { useApp } from '../state'
 import { IconCheck, IconLeft } from '../icons'
 import { ScanControl, type ScanMode, type ScanProgress } from './ScanControl'
-import { t, tn } from '../i18n'
+import { t, tn, bidi } from '../i18n'
 
 // The shared parts, under the names pages import them by.
 export { CardRow, EmptyState, LoadError, PageSkeleton, SkeletonGrid, Spinner } from '../ui/Surface'
@@ -76,10 +76,10 @@ export const ItemCard = memo(function ItemCard({ item, wide = item.showId != nul
       </>}
       title={item.showTitle && wide ? item.showTitle : item.title}
       sub={item.showId != null
-        ? [episodeLabel(item), wide ? item.title : fmtRuntime(item.runtimeSec)].filter(Boolean).join(' · ')
+        ? [episodeLabel(item), wide ? item.title : fmtRuntime(item.runtimeSec)].filter(Boolean).map(bidi).join(' · ')
         : audio ? item.albumArtist || item.artist || ''
         : item.kind === 'book' ? item.artist || item.year || ''
-        : [item.year, length].filter(Boolean).join(' · ')} />
+        : [item.year, length].filter(Boolean).map(bidi).join(' · ')} />
   )
 })
 
@@ -100,7 +100,7 @@ export const ShowCard = memo(function ShowCard({ show }: { show: Show }) {
         {show.unwatched > 0 && show.unwatched < show.episodeCount && <span className="badge count" role="img" aria-label={t('{count} unwatched', { count: show.unwatched })}>{show.unwatched}</span>}
         {show.unwatched === 0 && <SeenBadge />}
       </>}
-      sub={<span title={tn('{count} episode', '{count} episodes', show.episodeCount)}>{[show.year, tn('{count} season', '{count} seasons', show.seasonCount)].filter(Boolean).join(' · ')}</span>} />
+      sub={<span title={tn('{count} episode', '{count} episodes', show.episodeCount)}>{[show.year, tn('{count} season', '{count} seasons', show.seasonCount)].filter(Boolean).map(bidi).join(' · ')}</span>} />
   )
 })
 

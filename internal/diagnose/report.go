@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"os"
 	"path/filepath"
@@ -174,9 +175,9 @@ var severityWords = map[Severity]string{SevProblem: "PROBLEM", SevWarn: "WARNING
 func (r *Report) Text() string {
 	var b strings.Builder
 	line := func(format string, a ...any) { fmt.Fprintf(&b, format+"\n", a...) }
-	line("WittyDiagnoser report %s", r.ID)
+	line(i18n.T("WittyDiagnoser report %s"), r.ID)
 	if r.Version != "" {
-		line("Server version: %s", r.Version)
+		line(i18n.T("Server version: %s"), r.Version)
 	}
 	what := "A disc"
 	if r.Kind == KindStorage {
@@ -184,7 +185,7 @@ func (r *Report) Text() string {
 	}
 	line("Checked: %s: %s", what, r.Subject)
 	if r.Label != "" {
-		line("Label on the disc: %s", r.Label)
+		line(i18n.T("Label on the disc: %s"), r.Label)
 	}
 	if len(r.Options) > 0 {
 		var on []string
@@ -206,14 +207,14 @@ func (r *Report) Text() string {
 	}
 	switch r.State {
 	case StateCancelled:
-		line("Stopped before it finished, so this is only part of the picture.")
+		line(i18n.T("Stopped before it finished, so this is only part of the picture."))
 	case StateRunning, StateQueued:
-		line("Still running: this is only part of the picture.")
+		line(i18n.T("Still running: this is only part of the picture."))
 	}
 	if r.Redacted {
-		line("Names of discs and files were hidden in this copy.")
+		line(i18n.T("Names of discs and files were hidden in this copy."))
 	}
-	line("This check only reads. Nothing was changed.")
+	line(i18n.T("This check only reads. Nothing was changed."))
 	line("")
 	line("%s, %s, %s, %d fine", plural(r.Counts[SevProblem], "problem", "problems"), plural(r.Counts[SevWarn], "warning", "warnings"), plural(r.Counts[SevInfo], "note", "notes"), r.Counts[SevOK])
 	fs := append([]Finding{}, r.Findings...)

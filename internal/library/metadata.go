@@ -589,16 +589,18 @@ func (t *TMDB) Enrich(ctx context.Context, it *Item) error {
 		it.RuntimeSec = float64(m.Runtime) * 60
 	}
 	if it.ContentRating == "" {
-		for _, r := range m.ReleaseDates.Results {
-			if r.ISO == "US" {
-				for _, d := range r.Dates {
-					if d.Certification != "" {
-						it.ContentRating = d.Certification
-						break
+		it.ContentRating = PickCertificate(func(iso string) string {
+			for _, r := range m.ReleaseDates.Results {
+				if r.ISO == iso {
+					for _, d := range r.Dates {
+						if d.Certification != "" {
+							return d.Certification
+						}
 					}
 				}
 			}
-		}
+			return ""
+		})
 	}
 	if (it.Poster == "" || strings.HasPrefix(it.Poster, "generated:")) && m.PosterPath != "" {
 		it.Poster = tmdbImage + "w500" + m.PosterPath

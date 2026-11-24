@@ -125,7 +125,7 @@ export default function TranscodeSettings() {
                 <li key={g.path}>
                   <code>{g.path}</code> {[g.vendor && g.vendor !== 'other' ? g.vendor[0].toUpperCase() + g.vendor.slice(1) : '', g.driver, g.group >= 0 ? t('group {n}', { n: g.group }) : ''].filter(Boolean).join(', ')}
                   <div className={'hw-status' + (g.usable ? ' ok' : ' bad')}>{g.usable ? t('The server can use it') : g.problem}</div>
-                  {g.fix && <div className="hw-fix">{g.fix}</div>}
+                  {g.fix && <div className="hw-fix">{tx(g.fix)}</div>}
                 </li>
               ))}
             </ul>

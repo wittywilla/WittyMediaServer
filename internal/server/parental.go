@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net"
 	"net/http"
 	"strconv"
@@ -120,14 +121,14 @@ func classify(pattern string) routeClass {
 
 // What someone is told when a feature is off for their profile.
 var featureRefusal = map[string]string{
-	library.FeatureGames:         "Games are turned off for this profile.",
-	library.FeatureRecordings:    "Recording is turned off for this profile.",
-	library.FeatureSharing:       "Share links are turned off for this profile.",
-	library.FeatureComments:      "Comments are turned off for this profile.",
-	library.FeatureDownloads:     "Downloads are turned off for this profile.",
-	library.FeatureRemote:        "This profile can only be used at home.",
-	library.FeatureSyncplay:      "Watch parties are turned off for this profile.",
-	library.FeatureRemoteControl: "Playing on other devices is turned off for this profile.",
+	library.FeatureGames:         i18n.T("Games are turned off for this profile."),
+	library.FeatureRecordings:    i18n.T("Recording is turned off for this profile."),
+	library.FeatureSharing:       i18n.T("Share links are turned off for this profile."),
+	library.FeatureComments:      i18n.T("Comments are turned off for this profile."),
+	library.FeatureDownloads:     i18n.T("Downloads are turned off for this profile."),
+	library.FeatureRemote:        i18n.T("This profile can only be used at home."),
+	library.FeatureSyncplay:      i18n.T("Watch parties are turned off for this profile."),
+	library.FeatureRemoteControl: i18n.T("Playing on other devices is turned off for this profile."),
 }
 
 // parentalState is what the server remembers between requests.
@@ -140,6 +141,7 @@ type parentalState struct {
 	mu    sync.Mutex
 	rules map[string]resolvedRules // an account's collections and tags, looked up lately
 	seen  map[string]time.Time     // refusals written down lately, so one isn't written a hundred times
+	live  map[string]liveVerdict   // whether a profile may watch what is on a channel now (parental_live.go)
 }
 
 type resolvedRules struct {
@@ -208,6 +210,7 @@ func (s *Server) accessOf(ctx context.Context, u *auth.User) *library.Access {
 func (s *Server) forgetRules() {
 	s.parental.mu.Lock()
 	s.parental.rules = nil
+	s.parental.live = nil
 	s.parental.mu.Unlock()
 	// A watch party asked what each member may see when they sat down. A collection that
 	// limits go by has just changed, or someone's limits have, so it asks again.

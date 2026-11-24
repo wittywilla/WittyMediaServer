@@ -5,6 +5,7 @@ package ffmpeg
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"slices"
 	"strconv"
@@ -86,7 +87,7 @@ func vendorOfDriver(driver string) string {
 // denied is a permission error (EACCES); notAllowed is EPERM, which in a container
 // means the device was mounted but not passed with devices:.
 func explainAccess(d *GPUDevice, denied, notAllowed bool, err error, container bool, uid int, groups []int) {
-	who := "The server (user " + strconv.Itoa(uid)
+	who := i18n.F("The server (user {uid}", "uid", strconv.Itoa(uid))
 	if len(groups) > 0 {
 		names := make([]string, len(groups))
 		for i, g := range groups {
@@ -100,14 +101,14 @@ func explainAccess(d *GPUDevice, denied, notAllowed bool, err error, container b
 	groupRW := len(d.Mode) == 4 && rw(d.Mode[2])
 	switch {
 	case notAllowed && container:
-		d.Problem = "The container can see " + d.Path + " but isn't allowed to use it."
+		d.Problem = i18n.F("The container can see {path} but isn't allowed to use it.", "path", d.Path)
 		d.Fix = "Pass the device with devices: - /dev/dri:/dev/dri (not as a volume), then recreate the container."
 	case denied && d.Group >= 0 && !groupRW:
 		d.Problem = fmt.Sprintf("%s can't open %s: only its owner may (permissions %s).", who, d.Path, d.Mode)
 		if !ownerRW {
 			d.Problem = fmt.Sprintf("%s can't open %s: its permissions (%s) let nobody but root use it.", who, d.Path, d.Mode)
 		}
-		d.Fix = fmt.Sprintf("On the host, let its group use it (sudo chmod g+rw %s, or the NAS's own setting for it), then add that group (%d).", d.Path, d.Group)
+		d.Fix = i18n.F("On the host, let its group use it (sudo chmod g+rw {path}, or the NAS's own setting for it), then add that group ({group}).", "path", d.Path, "group", d.Group)
 		if container {
 			d.Fix += fmt.Sprintf(" In the compose file: group_add: [\"%d\"].", d.Group)
 		}
@@ -121,7 +122,7 @@ func explainAccess(d *GPUDevice, denied, notAllowed bool, err error, container b
 		d.Problem = who + " isn't allowed to open " + d.Path + "."
 		d.Fix = "Give the server's user access to it (usually the render or video group)."
 	default:
-		d.Problem = "It can't be opened: " + err.Error()
+		d.Problem = i18n.F("It can't be opened: {error}", "error", err.Error())
 	}
 }
 
@@ -186,18 +187,18 @@ func explainEncoderError(vendor, msg string, container bool) string {
 	case "vaapi":
 		switch {
 		case has("va_opendriver() returns -1", "vainitialize failed", "failed to initialise vaapi connection", "unknown libva error"):
-			return "The VA-API driver for this graphics chip isn't installed (intel-media-va-driver for Intel, mesa-va-drivers for AMD)."
+			return i18n.T("The VA-API driver for this graphics chip isn't installed (intel-media-va-driver for Intel, mesa-va-drivers for AMD).")
 		case has("no usable encoding profile", "no usable encoding entrypoint", "unsupported"):
-			return "The graphics chip or its driver can't encode H.264 with VA-API."
+			return i18n.T("The graphics chip or its driver can't encode H.264 with VA-API.")
 		case has("permission denied"):
-			return "The server isn't allowed to open the render node."
+			return i18n.T("The server isn't allowed to open the render node.")
 		}
 	case "intel":
 		switch {
 		case has("error creating a mfx session", "mfx_err_unsupported", "no device available"):
-			return "Quick Sync couldn't start: this needs an Intel graphics chip with Intel's media driver and oneVPL runtime (intel-media-va-driver and libmfx-gen1.2 on Debian and Ubuntu)."
+			return i18n.T("Quick Sync couldn't start: this needs an Intel graphics chip with Intel's media driver and oneVPL runtime (intel-media-va-driver and libmfx-gen1.2 on Debian and Ubuntu).")
 		case has("failed to initialise vaapi connection", "vainitialize failed"):
-			return "Intel's media driver isn't installed (intel-media-va-driver)."
+			return i18n.T("Intel's media driver isn't installed (intel-media-va-driver).")
 		}
 	case "nvidia":
 		switch {
@@ -205,17 +206,17 @@ func explainEncoderError(vendor, msg string, container bool) string {
 			if container {
 				return "NVIDIA's driver isn't available in the container: run it with the NVIDIA Container Toolkit (gpus: all, with NVIDIA_DRIVER_CAPABILITIES including video)."
 			}
-			return "NVIDIA's driver isn't installed, or it's too old for this FFmpeg."
+			return i18n.T("NVIDIA's driver isn't installed, or it's too old for this FFmpeg.")
 		case has("no capable devices found", "no nvenc capable devices"):
-			return "No NVIDIA graphics card with a video encoder was found."
+			return i18n.T("No NVIDIA graphics card with a video encoder was found.")
 		case has("driver does not support the required nvenc api version", "minimum required nvidia driver"):
-			return "NVIDIA's driver is too old for this FFmpeg: update the driver on the host."
+			return i18n.T("NVIDIA's driver is too old for this FFmpeg: update the driver on the host.")
 		case has("openencodesessionex failed: out of memory", "incompatible client key"):
-			return "The card has no encoding session free: consumer cards allow only a few at once."
+			return i18n.T("The card has no encoding session free: consumer cards allow only a few at once.")
 		}
 	case "amd":
 		if has("dll amfrt", "libamfrt", "cannot load") {
-			return "AMD's AMF runtime isn't installed (it comes with AMD's own driver)."
+			return i18n.T("AMD's AMF runtime isn't installed (it comes with AMD's own driver).")
 		}
 	}
 	return ""

@@ -23,7 +23,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"html"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"net"
 	"net/http"
@@ -244,7 +244,7 @@ func (c *Connector) guard(next http.Handler) http.Handler {
 		// name under .localhost, which never leaves the device (an app uses one
 		// per server, so that each server's cookies stay its own).
 		if !localHost(r.Host, port) {
-			http.Error(w, "This address is for the WittyMediaServer app on this device only.", http.StatusForbidden)
+			c.refuse(w, r)
 			return
 		}
 		got := r.Header.Get(SecretHeader)
@@ -254,11 +254,22 @@ func (c *Connector) guard(next http.Handler) http.Handler {
 			}
 		}
 		if subtle.ConstantTimeCompare([]byte(got), []byte(c.secret)) != 1 {
-			http.Error(w, "This address is for the WittyMediaServer app on this device only.", http.StatusForbidden)
+			c.refuse(w, r)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// refuse answers a request that isn't the app's: a browser that opened the address gets a page that says what it
+// is, anything else the same words as plain text. Nothing about the server is in either.
+func (c *Connector) refuse(w http.ResponseWriter, r *http.Request) {
+	const why = "This address is for the WittyMediaServer app on this device only."
+	if wantsPage(r) {
+		writePage(w, http.StatusForbidden, "This page is for the app", why, "Open WittyMediaClient to watch, or open your server's own address in a browser.")
+		return
+	}
+	http.Error(w, why, http.StatusForbidden)
 }
 
 // localHost says a Host header names this device, on this port.
@@ -294,18 +305,13 @@ func (c *Connector) proxyError(w http.ResponseWriter, r *http.Request, err error
 		msg = msg[i+2:]
 	}
 	if errors.Is(err, p2p.ErrNoDirectPath) {
-		msg = "Your server was found, but a direct connection through both routers couldn't be made, and no community relay is available to carry it. It often works from another network."
+		msg = i18n.T("Your server was found, but a direct connection through both routers couldn't be made, and no community relay is available to carry it. It often works from another network.")
 	}
 	msg = strings.ToUpper(msg[:1]) + msg[1:]
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Witty-Connect-Error", "1")
-	if r.Method == http.MethodGet && strings.Contains(r.Header.Get("Accept"), "text/html") {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
-		w.WriteHeader(http.StatusBadGateway)
-		fmt.Fprintf(w, `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not connected</title>`+
-			`<style>body{font:16px system-ui,sans-serif;margin:15vh auto;max-width:34em;padding:0 1.5em;color:#ddd;background:#111}h1{font-size:1.3em}</style></head>`+
-			`<body><h1>Can't reach your server right now</h1><p>%s</p><p>The app keeps trying. Reload this page in a moment.</p></body></html>`, html.EscapeString(msg))
+	if wantsPage(r) {
+		writePage(w, http.StatusBadGateway, "Can't reach your server right now", msg, "The app keeps trying. Reload this page in a moment.")
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

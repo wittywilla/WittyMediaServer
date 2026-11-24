@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"os"
 	"path/filepath"
@@ -142,7 +143,7 @@ func (u *Updater) FetchInstaller() error {
 	u.dlBusy = true
 	u.dl = Installer{Name: a.Name, Size: a.Size, Phase: InstallerDownloading}
 	rel := *u.rel
-	task := u.Tasks.Start(tasks.Spec{Type: tasks.TypeUpdate, Title: "Downloading the installer for " + rel.Version, Phase: "Downloading", Unit: "bytes", AdminOnly: true})
+	task := u.Tasks.Start(tasks.Spec{Type: tasks.TypeUpdate, Title: i18n.F("Downloading the installer for {version}", "version", rel.Version), Phase: "Downloading", Unit: "bytes", AdminOnly: true})
 	session := logging.NewID("update")
 	log := u.Log.With("session", session, "version", rel.Version, "file", a.Name)
 	log.Info("installer download started")
@@ -154,10 +155,10 @@ func (u *Updater) FetchInstaller() error {
 		u.dlBusy = false
 		if err != nil {
 			u.dl.Phase, u.dl.Error = InstallerFailed, err.Error()
-			task.Fail("The installer didn't download.", "Try again. Settings, About has the details.", err)
+			task.Fail(i18n.T("The installer didn't download."), i18n.T("Try again. Settings, About has the details."), err)
 		} else {
 			u.dl.Phase, u.dl.Path, u.dl.Command, u.dl.Done = InstallerReady, path, installCommand(u.Kind(), path), a.Size
-			task.Result("Downloaded and checked. Settings, About says how to install it.")
+			task.Result(i18n.T("Downloaded and checked. Settings, About says how to install it."))
 			task.Finish(nil)
 		}
 		u.mu.Unlock()
@@ -186,7 +187,7 @@ func (u *Updater) fetchInstaller(ctx context.Context, rel *Release, a Asset, tas
 	if err != nil {
 		return "", fmt.Errorf("signature: %w", err)
 	}
-	phase(InstallerVerifying, "Checking its signature")
+	phase(InstallerVerifying, i18n.T("Checking its signature"))
 	if err := VerifySums(sums, sig, TrustedKeys()); err != nil {
 		return "", err
 	}
@@ -216,7 +217,7 @@ func (u *Updater) fetchInstaller(ctx context.Context, rel *Release, a Asset, tas
 		done := u.dl.Done
 		u.mu.Unlock()
 		task.Progress(done, a.Size)
-	}, func() { phase(InstallerVerifying, "Checking it against the signed checksum") })
+	}, func() { phase(InstallerVerifying, i18n.T("Checking it against the signed checksum")) })
 	if err != nil {
 		return "", err
 	}

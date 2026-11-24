@@ -69,6 +69,13 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/me` | Signed-in | The caller's own account |
 | `GET /api/me/ui` | Signed-in | own |
 | `PUT /api/me/ui` | Signed-in | own. A JSON object of at most 16 KB |
+| `GET /api/me/notifications` | Signed-in | own. Limit of 100 a page |
+| `GET /api/me/notifications/count` | Signed-in | own |
+| `POST /api/me/notifications/read` | Signed-in | own. At most 200 ids, 16 KB |
+| `DELETE /api/me/notifications` | Signed-in | own |
+| `DELETE /api/me/notifications/{id}` | Signed-in | own. A number |
+| `GET /api/me/notifications/choices` | Signed-in | own. The administrators' kinds only for an administrator |
+| `PUT /api/me/notifications/choices` | Signed-in | own. Known kinds; the administrators' kinds refused to anyone else |
 | `GET /api/me/streaming` | Signed-in | own |
 | `PUT /api/me/streaming` | Signed-in | own. Choices read as quality choices; the profile's limits still apply |
 | `GET /api/home` | Signed-in | own progress. limits |
@@ -279,6 +286,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/profiles/household` | Signed-in | Names, kinds and pictures of every profile, where the sign-in screen shows profiles, or anywhere for an adult's account. No limits and no passwords |
 | `POST /api/profiles/switch` | Signed-in | 16 KB body. The other profile's password or PIN, and code, with the attempt limits of signing in. A profile with no password only at home with the profile screen on. Ends the session it came from |
 | `GET /api/me/limits` | Signed-in | own. Names no titles |
+| `PUT /api/me/limits` | Signed-in | own; Kids and Guest profiles only. 16 KB body. The parents' PIN, or the name and password of an account that manages the caller, each with an attempt limit. Only time rules and age limits |
 | `GET /api/me/screen-time` | Signed-in | own |
 | `POST /api/me/screen-time/extra` | Signed-in | own. 16 KB body. The parents' PIN, or the name and password of an account that manages the caller, each with an attempt limit. 1 to 240 minutes |
 | `POST /api/users/{id}/screen-time/extra` | Signed-in | Caller may manage that account. Not their own, not an administrator's. 1 to 240 minutes |
@@ -401,7 +409,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/p2p/rotate` | Admin | The admin's own password (and code), with an attempt limit |
 | `GET /api/sessions` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `DELETE /api/sessions` | Signed-in | own, except the current one |
-| `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin |
+| `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin. Not a Kids or Guest profile kept on its device by the parents' PIN |
 | `GET /api/me/2fa` | Signed-in | own |
 | `POST /api/me/2fa/setup` | Signed-in | Own password, with an attempt limit |
 | `POST /api/me/2fa/confirm` | Signed-in | Code, with an attempt limit |
@@ -605,6 +613,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/network/check` | Admin | A port number only. Listens on it for a moment and closes it again |
 | `PUT /api/network` | Admin | A port number only, checked as above. Refused while `-listen`, `WMS_LISTEN`, `wms.json` or Docker set the port. Writes only the settings.ini that `config.SettingsSaveFile` chooses, never a path from the request, and is logged with who did it |
 | `POST /api/network/restart` | Admin | Nothing further. Logged with who asked |
+| `GET /api/notifications/channels` | Admin | Their own channels and the mail server. The SMTP password and webhook secret are never sent back, only whether one is set |
+| `PUT /api/notifications/channels` | Admin | Email addresses parsed, no line breaks in any header value. Webhook only `http`/`https`, no name or password in the address, 500 characters. SMTP needs STARTTLS or TLS (1.2 at least) unless the mail server is this machine; a password is never sent in the clear. Logged with who changed it |
+| `POST /api/notifications/channels/test` | Admin | Their own saved channels only, never an address from the request. 15 s for a webhook, which isn't followed to another address; 30 s for email |
 | `GET /api/system/tasks` | Signed-in | By the owner's setting. Tasks of libraries the account may open, or its own. No file names, errors or other people for anyone but an administrator |
 | `GET /api/system/tasks/stream` | Signed-in | As for the list. Limits on open streams, per account and overall. The account is looked at again as it runs |
 | `GET /api/system/tasks/history` | Signed-in | As for the list. Limit, type, state, library |

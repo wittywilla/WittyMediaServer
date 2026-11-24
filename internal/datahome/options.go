@@ -4,6 +4,7 @@
 package datahome
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"runtime"
 
 	"github.com/wittywilla/wittymediaserver/internal/config"
@@ -65,7 +66,7 @@ func installOption(data string, need int64) Option {
 		return o
 	}
 	if err := Writable(o.Path); err != nil {
-		o.Why = "This account can't make files in the install folder, " + config.ProgramDir() + ". A program installed for everyone, in Program Files, usually can't. Choose Documents or a folder of your own, or install WittyMediaServer for this account only."
+		o.Why = i18n.F("This account can't make files in the install folder, {programDir}. A program installed for everyone, in Program Files, usually can't. Choose Documents or a folder of your own, or install WittyMediaServer for this account only.", "programDir", config.ProgramDir())
 		return o
 	}
 	if p := CheckTarget(data, o.Path, need); p != "" {
@@ -83,15 +84,15 @@ func Movable(from string) (bool, string) {
 	case config.DataFromPointer, config.DataFromInstall, config.DataFromDefault:
 		return true, ""
 	case config.DataFromFlag:
-		return false, "The data folder is set with -data where the server is started (the service or a shortcut), so it's changed there."
+		return false, i18n.T("The data folder is set with -data where the server is started (the service or a shortcut), so it's changed there.")
 	case config.DataFromEnv:
 		return false, "The data folder is set by the WMS_DATA_DIR environment variable, so it's changed there."
 	case config.DataFromConfig, config.DataFromPortable:
-		return false, "The data folder is set in the config file, wms.json, so it's changed there."
+		return false, i18n.T("The data folder is set in the config file, wms.json, so it's changed there.")
 	case config.DataFromContainer:
 		return false, "In a container the data folder is the /config volume: change it where the container is set up."
 	case config.DataFromService:
-		return false, "This is the system service's data folder, which the package set up."
+		return false, i18n.T("This is the system service's data folder, which the package set up.")
 	}
-	return false, "The data folder's place isn't known."
+	return false, i18n.T("The data folder's place isn't known.")
 }

@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"regexp"
 	"slices"
@@ -52,17 +53,17 @@ type SourceInfo struct {
 // offer the choice. Disc engines can be replaced, because video never passes through them
 // and the server checks for itself what they say about encryption.
 var noFork = map[string]string{
-	"wittytuner": "WittyTuner is what refuses encrypted channels, and it handles live streams with network access, so the server couldn't tell whether a fork still did. Forks of it aren't accepted.",
+	"wittytuner": i18n.T("WittyTuner is what refuses encrypted channels, and it handles live streams with network access, so the server couldn't tell whether a fork still did. Forks of it aren't accepted."),
 }
 
 // ForkWarning is what someone agrees to before using a fork. It is said by the server, so
 // every client that offers this says the same thing.
-const ForkWarning = "Only do this for someone you trust. A module from another publisher is their code running on your server, " +
-	"and neither this project nor anyone else has reviewed it. A helper or game runner can read what this server's account can read, " +
-	"which may include your media and this server's database. A reader bundle runs in the browser of whoever is reading, with their access, " +
-	"including yours as an admin. The signature only proves it came from whoever holds that key, not that it is safe. " +
-	"This server won't install updates from a fork by itself, and still refuses encrypted media whatever the fork says. " + forkLimits +
-	" Check the key's fingerprint with the publisher, somewhere other than the place you got the key."
+var ForkWarning = i18n.F("Only do this for someone you trust. A module from another publisher is their code running on your server, "+
+	"and neither this project nor anyone else has reviewed it. A helper or game runner can read what this server's account can read, "+
+	"which may include your media and this server's database. A reader bundle runs in the browser of whoever is reading, with their access, "+
+	"including yours as an admin. The signature only proves it came from whoever holds that key, not that it is safe. "+
+	"This server won't install updates from a fork by itself, and still refuses encrypted media whatever the fork says. {limits}"+
+	" Check the key's fingerprint with the publisher, somewhere other than the place you got the key.", "limits", forkLimits)
 
 var sourceRepoRe = regexp.MustCompile(`^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$`)
 
@@ -94,9 +95,9 @@ const LockForks = "WMS_NO_MODULE_FORKS"
 func ForkRefusal() string {
 	switch {
 	case os.Getenv(LockForks) == "1":
-		return "Whoever runs this machine has kept modules from other publishers off with " + LockForks + "."
+		return i18n.F("Whoever runs this machine has kept modules from other publishers off with {lockForks}.", "lockForks", LockForks)
 	case !sandboxAvailable && !weakSandboxForOthers():
-		return "This system has no way to box in a module from another publisher, so they can't be used here."
+		return i18n.T("This system has no way to box in a module from another publisher, so they can't be used here.")
 	}
 	return ""
 }

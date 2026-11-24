@@ -17,7 +17,7 @@ import LibraryHeader, { type SortOption } from '../components/LibraryHeader'
 import CoverFlow, { type Cover } from './music/CoverFlow'
 import { AlbumTile, albumLink, ArtistTile, artistLink, coverUrl, LibrarySwitch, SeeAllTile, Shelf, shuffledCopy, SongRow, TrackMenu } from './music/parts'
 import { hasMusicVideos, MusicVideosShelf, MusicVideosTab } from './music/MusicVideos'
-import { num, t, tk, tn, tx } from '../i18n'
+import { num, t, tk, tn, tx, bidi } from '../i18n'
 
 // Music, audiobook and podcast libraries. The front page has what you came back for: a shelf
 // of covers, artists, albums and songs, each with its "see all". Those pages sort and filter.
@@ -379,8 +379,8 @@ export function TrackList({ items, onPlay, showAlbum, episodes, extra, discs, he
           <li key={song.id} className={(on ? 'on' : '') + (newDisc ? ' new-disc' : '')} data-disc={newDisc ? t('Disc {number}', { number: song.discNo || 1 }) : undefined}>
             <button onClick={() => onPlay(i)} aria-label={t('Play {title}', { title: song.title })} aria-current={on ? 'true' : undefined}>
               <span className="tl-n">{on && playing ? <i className="ab-eq" aria-hidden="true"><b /><b /><b /></i> : episodes ? '' : song.track ?? i + 1}</span>
-              <span className="tl-t"><b>{song.title}</b>{showAlbum && <span className="muted">{[song.artist, song.album].filter(Boolean).join(' · ')}</span>}
-                {episodes && <span className="muted">{[song.aired, song.overview].filter(Boolean).join(' · ').slice(0, 160)}</span>}
+              <span className="tl-t"><b>{song.title}</b>{showAlbum && <span className="muted">{[song.artist, song.album].filter(Boolean).map(bidi).join(' · ')}</span>}
+                {episodes && <span className="muted">{[song.aired, song.overview].filter(Boolean).map(bidi).join(' · ').slice(0, 160)}</span>}
                 {pct > 0 && <span className="tl-prog" style={{ width: pct + '%' }} />}</span>
               <span className="tl-d muted">{song.progress?.watched && <IconCheck />}{song.runtimeSec ? fmtTime(song.runtimeSec) : ''}</span>
             </button>
@@ -466,7 +466,7 @@ export function AlbumPage() {
           <span className="muted">{pods ? t('Podcast') : books ? t('Audiobook') : t('Album')}</span>
           <h1>{album || t('Unknown album')}</h1>
           {pods ? <span className="album-artist">{artist}</span> : <Link to={artistLink(numericLib, artist)} className="album-artist">{artist || t('Unknown')}</Link>}
-          <div className="muted">{[pods ? tn('{count} episode', '{count} episodes', tracks.length) : books ? tn('{count} chapter', '{count} chapters', tracks.length) : tn('{count} track', '{count} tracks', tracks.length), pods ? '' : fmtRuntime(total), pods ? '' : tracks[0]?.year, pods ? '' : genre].filter(Boolean).join(' · ')}</div>
+          <div className="muted">{[pods ? tn('{count} episode', '{count} episodes', tracks.length) : books ? tn('{count} chapter', '{count} chapters', tracks.length) : tn('{count} track', '{count} tracks', tracks.length), pods ? '' : fmtRuntime(total), pods ? '' : tracks[0]?.year, pods ? '' : genre].filter(Boolean).map(bidi).join(' · ')}</div>
           <div className="actions">
             <button data-tv-first className="btn primary" onClick={() => playTrack(books && !pods ? resumeAt : 0)}><IconPlay /> {pods ? t('Play newest') : started ? t('Continue') : t('Play')}</button>
             {discs.filter((d) => !goneDiscs.includes(d)).map((d) => <Link key={d} className="btn" to={`/cd/${d}?play=1`}><IconDisc /> {discs.length > 1 ? t('Disc {number}', { number: discs.indexOf(d) + 1 }) : t('Insert disc')}</Link>)}

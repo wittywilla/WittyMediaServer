@@ -558,6 +558,20 @@ var migrations = []string{
 	// 40: the peer-to-peer devices a session has been used from, comma-separated, so that taking a
 	// device off the list signs it out as well.
 	`ALTER TABLE sessions ADD COLUMN p2p_devices TEXT;`,
+	// 41: notifications, kept for each profile until read and cleared, with the kinds each has
+	// turned off and each administrator's own channels (internal/notify).
+	`CREATE TABLE IF NOT EXISTS notifications (
+	   id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	   kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', link TEXT NOT NULL DEFAULT '',
+	   dedupe TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, read_at INTEGER NOT NULL DEFAULT 0);
+	 CREATE INDEX IF NOT EXISTS notifications_user ON notifications(user_id, id);
+	 CREATE UNIQUE INDEX IF NOT EXISTS notifications_once ON notifications(user_id, dedupe) WHERE dedupe <> '';
+	 CREATE TABLE IF NOT EXISTS notify_muted (
+	   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL, PRIMARY KEY(user_id, kind));
+	 CREATE TABLE IF NOT EXISTS notify_channels (
+	   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+	   email_on INTEGER NOT NULL DEFAULT 0, email_to TEXT NOT NULL DEFAULT '',
+	   webhook_on INTEGER NOT NULL DEFAULT 0, webhook_url TEXT NOT NULL DEFAULT '', webhook_secret TEXT NOT NULL DEFAULT '');`,
 }
 
 func (d *DB) migrate(ctx context.Context) error {

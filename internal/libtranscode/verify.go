@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"math"
 	"strconv"
 	"time"
@@ -62,21 +63,21 @@ func Verify(ctx context.Context, tools *ffmpeg.Tools, src *Source, pl *Plan, pat
 	defer cancel()
 	p, err := tools.ProbeFile(pctx, path)
 	if err != nil {
-		return &VerifyProblem{"The new file couldn't be opened, so the old one stays."}
+		return &VerifyProblem{i18n.T("The new file couldn't be opened, so the old one stays.")}
 	}
 	out := Inspect(path, p)
 	wantV, wantA, wantS := pl.expected()
 	if len(out.Video) != wantV {
-		return &VerifyProblem{fmt.Sprintf("The new file has %d picture streams and should have %d, so the old one stays.", len(out.Video), wantV)}
+		return &VerifyProblem{i18n.F("The new file has {len} picture streams and should have {wantV}, so the old one stays.", "len", len(out.Video), "wantV", wantV)}
 	}
 	if len(out.Audio) != wantA {
-		return &VerifyProblem{fmt.Sprintf("The new file has %d sound tracks and should have %d, so the old one stays.", len(out.Audio), wantA)}
+		return &VerifyProblem{i18n.F("The new file has {len} sound tracks and should have {wantA}, so the old one stays.", "len", len(out.Audio), "wantA", wantA)}
 	}
 	if len(out.Subs) != wantS {
-		return &VerifyProblem{fmt.Sprintf("The new file has %d subtitle tracks and should have %d, so the old one stays.", len(out.Subs), wantS)}
+		return &VerifyProblem{i18n.F("The new file has {len} subtitle tracks and should have {wantS}, so the old one stays.", "len", len(out.Subs), "wantS", wantS)}
 	}
 	if len(src.Audio) > 0 && len(out.Audio) == 0 {
-		return &VerifyProblem{"The new file has no sound and the old one has, so the old one stays."}
+		return &VerifyProblem{i18n.T("The new file has no sound and the old one has, so the old one stays.")}
 	}
 	wantCovers := 0
 	for _, st := range pl.Steps {
@@ -85,10 +86,10 @@ func Verify(ctx context.Context, tools *ffmpeg.Tools, src *Source, pl *Plan, pat
 		}
 	}
 	if len(out.Covers) < wantCovers {
-		return &VerifyProblem{"The new file lost its cover picture, so the old one stays."}
+		return &VerifyProblem{i18n.T("The new file lost its cover picture, so the old one stays.")}
 	}
 	if src.Chapters > 0 && out.Chapters == 0 {
-		return &VerifyProblem{"The new file lost its chapters, so the old one stays."}
+		return &VerifyProblem{i18n.T("The new file lost its chapters, so the old one stays.")}
 	}
 	if !lengthOK(src.Duration, out.Duration) {
 		// A file with broken times can say the wrong length. What's really in it decides.
@@ -96,7 +97,7 @@ func Verify(ctx context.Context, tools *ffmpeg.Tools, src *Source, pl *Plan, pat
 		real := tools.MeasureDuration(mctx, src.Path)
 		done()
 		if real <= 0 || !lengthOK(real, out.Duration) {
-			return &VerifyProblem{fmt.Sprintf("The new file is %s long and the old one is %s, so the old one stays.", clock(out.Duration), clock(src.Duration))}
+			return &VerifyProblem{i18n.F("The new file is {clock} long and the old one is {clock2}, so the old one stays.", "clock", clock(out.Duration), "clock2", clock(src.Duration))}
 		}
 	}
 	return decodes(ctx, tools, path, out.Duration, len(out.Audio) > 0)
@@ -123,7 +124,7 @@ func decodes(ctx context.Context, tools *ffmpeg.Tools, path string, length float
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return ctx.Err()
 			}
-			return &VerifyProblem{fmt.Sprintf("The new file wouldn't play from %s, so the old one stays.", clock(at))}
+			return &VerifyProblem{i18n.F("The new file wouldn't play from {clock}, so the old one stays.", "clock", clock(at))}
 		}
 	}
 	return nil

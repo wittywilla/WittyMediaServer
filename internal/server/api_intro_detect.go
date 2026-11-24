@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"sort"
 	"strconv"
@@ -174,7 +175,7 @@ func (s *Server) handleDetectIntros(w http.ResponseWriter, r *http.Request) {
 			task.Finish(err)
 			return
 		}
-		task.Result(fmt.Sprintf("Found an intro in %d of %d episodes, and credits in %d.", found.intros, total, found.credits))
+		task.Result(i18n.F("Found an intro in {intros} of {total} episodes, and credits in {credits}.", "intros", found.intros, "total", total, "credits", found.credits))
 		log.Info("intros looked for", "episodes", total, "intros", found.intros, "credits", found.credits, "took", time.Since(began).Round(time.Second).String())
 		task.Finish(nil)
 	}, "cat", "extras", "session", sid)

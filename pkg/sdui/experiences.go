@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"embed"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io/fs"
 	"slices"
 	"strconv"
@@ -548,7 +549,7 @@ func ValidateExperiencePolicy(p *ExperiencePolicy) []Issue {
 		if ExperienceByID(id) == nil {
 			v.err("/default/"+ff, suggest(id, ids), "%q is not a layout; the layouts are %s", id, strings.Join(ids, ", "))
 		} else if len(p.Allowed) > 0 && !slices.Contains(p.Allowed, id) {
-			v.err("/default/"+ff, "Allow it, or choose an allowed layout.", "%q is the default on %s but isn't among the allowed layouts", id, ff)
+			v.err("/default/"+ff, i18n.T("Allow it, or choose an allowed layout."), "%q is the default on %s but isn't among the allowed layouts", id, ff)
 		}
 	}
 	seen := map[string]bool{}
@@ -557,7 +558,7 @@ func ValidateExperiencePolicy(p *ExperiencePolicy) []Issue {
 		if ExperienceByID(id) == nil {
 			v.err(path, suggest(id, ids), "%q is not a layout; the layouts are %s", id, strings.Join(ids, ", "))
 		} else if seen[id] {
-			v.err(path, "Remove the repeat.", "%q is listed twice", id)
+			v.err(path, i18n.T("Remove the repeat."), "%q is listed twice", id)
 		}
 		seen[id] = true
 	}

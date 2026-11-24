@@ -12,7 +12,7 @@ import { useApp } from '../../state'
 import { TrackList } from '../AudioLibrary'
 import { AlbumTile, artistPhoto, Shelf, shuffledCopy } from './parts'
 import { WebLink } from '../../components/WebLink'
-import { t, tn } from '../../i18n'
+import { t, tn, bidi } from '../../i18n'
 
 // One artist or author: a photo if there is one, a biography if the owner turned that on,
 // the songs they've played most, and their albums. Singles and EPs by size, as tags rarely say.
@@ -59,7 +59,7 @@ export default function ArtistPage() {
         <div className="album-meta">
           <span className="muted">{books ? t('Author') : t('Artist')}</span>
           <h1>{name || t('Unknown')}</h1>
-          <div className="muted">{[books ? tn('{count} book', '{count} books', info.albums.length) : tn('{count} album', '{count} albums', info.albums.length), tn('{count} song', '{count} songs', info.tracks.length), fmtRuntime(total), info.genres.slice(0, 3).join(', ')].filter(Boolean).join(' · ')}</div>
+          <div className="muted">{[books ? tn('{count} book', '{count} books', info.albums.length) : tn('{count} album', '{count} albums', info.albums.length), tn('{count} song', '{count} songs', info.tracks.length), fmtRuntime(total), info.genres.slice(0, 3).join(', ')].filter(Boolean).map(bidi).join(' · ')}</div>
           <div className="actions">
             <button data-tv-first className="btn primary" onClick={() => audio.play(info.tracks, 0, mode)}><IconPlay /> {t('Play')}</button>
             {!books && <button className="btn" onClick={() => audio.play(shuffledCopy(info.tracks), 0, mode)}>{t('Shuffle')}</button>}

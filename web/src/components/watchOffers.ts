@@ -1,3 +1,4 @@
+import { bidi } from '../sdui/words.ts'
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 
@@ -55,7 +56,7 @@ export function sizeWords(bytes?: number): string {
 export function copyDetail(v: WatchVersion): string {
   const disc = v.kind.startsWith('dvd') || v.kind.startsWith('bluray')
   const codec = v.videoCodec ? CODECS[v.videoCodec.toLowerCase()] || v.videoCodec.toUpperCase() : ''
-  return [v.quality, disc ? (v.kind.endsWith('-iso') ? tk('Disc image') : tk('Disc folder')) : codec, disc ? '' : (v.container || '').split(',')[0].toUpperCase(), sizeWords(v.sizeBytes)].filter(Boolean).join(' · ')
+  return [v.quality, disc ? (v.kind.endsWith('-iso') ? tk('Disc image') : tk('Disc folder')) : codec, disc ? '' : (v.container || '').split(',')[0].toUpperCase(), sizeWords(v.sizeBytes)].filter(Boolean).map(bidi).join(' · ')
 }
 
 // watchView: null when there is nothing worth a section: no services, nothing to say about

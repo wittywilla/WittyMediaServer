@@ -3,6 +3,7 @@
 
 package sdui
 
+import "github.com/wittywilla/wittymediaserver/internal/i18n"
 import "sync"
 
 // Preset is something ready-made an administrator applies in one step and
@@ -33,7 +34,7 @@ func sectionPreset(id, label, icon, description string, s Section, kinds ...stri
 
 func buildPresets() []Preset {
 	kids := Condition{ProfileKind: []string{"kids"}}
-	recent := repeated(sec("recent", "Shelf", props{"title": "Recently added in {each}", "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each", "limit": 20}), "libraries")
+	recent := repeated(sec("recent", "Shelf", props{"title": i18n.T("Recently added in {each}"), "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each", "limit": 20}), "libraries")
 	jump := sec("jump", "Shelf", props{"title": "Continue watching"}, Source{"type": "continueWatching", "media": "all"})
 	nextup := sec("nextup", "Shelf", props{"title": "Next up", "cardStyle": "progress"}, Source{"type": "nextUp"})
 	hero := sec("hero", "Hero", props{"title": "Featured"}, Source{"type": "featured"})
@@ -41,10 +42,10 @@ func buildPresets() []Preset {
 
 	streaming := Page{ID: "home", Kind: "home", Title: "Home", Icon: "home", Sections: []Section{
 		hero, jump, nextup,
-		sec("foryou", "Shelf", props{"title": "Recommended for you"}, Source{"type": "recommended", "limit": 20}),
-		sec("top", "Shelf", props{"title": "Top 10 on this server", "numbered": true, "cardSize": "l", "seeAll": "never"}, Source{"type": "topRated", "limit": 10}),
+		sec("foryou", "Shelf", props{"title": i18n.T("Recommended for you")}, Source{"type": "recommended", "limit": 20}),
+		sec("top", "Shelf", props{"title": i18n.T("Top 10 on this server"), "numbered": true, "cardSize": "l", "seeAll": "never"}, Source{"type": "topRated", "limit": 10}),
 		sec("new", "Shelf", props{"title": "New releases"}, Source{"type": "recentlyReleased", "limit": 20}),
-		when(scoped(sec("onnow", "Shelf", props{"title": "On TV now"}, Source{"type": "liveNow"}), "wittytv"), Condition{Can: "liveTv", Feature: "live-tv"}),
+		when(scoped(sec("onnow", "Shelf", props{"title": i18n.T("On TV now")}, Source{"type": "liveNow"}), "wittytv"), Condition{Can: "liveTv", Feature: "live-tv"}),
 		sec("later", "Shelf", props{"title": "Watch later"}, Source{"type": "watchLater"}),
 		recent,
 		sec("random", "Shelf", props{"title": "Something different", "seeAll": "never"}, Source{"type": "random", "limit": 12, "watched": "no"}),
@@ -59,21 +60,21 @@ func buildPresets() []Preset {
 			sec("hello", "Text", props{"text": "Hi {user}!", "role": "pageTitle"}, nil),
 			sec("jump", "Shelf", props{"title": "Keep watching", "cardSize": "l"}, Source{"type": "continueWatching", "media": "watch"}),
 			sec("nextup", "Shelf", props{"title": "Next episode", "cardStyle": "progress", "cardSize": "l"}, Source{"type": "nextUp"}),
-			repeated(sec("recent", "Shelf", props{"title": "New in {each}", "cardSize": "l", "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each", "limit": 16}), "libraries"),
+			repeated(sec("recent", "Shelf", props{"title": i18n.T("New in {each}"), "cardSize": "l", "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each", "limit": 16}), "libraries"),
 			sec("animation", "Shelf", props{"title": "Cartoons", "cardSize": "l"}, Source{"type": "genre", "genre": "Animation", "sort": "shuffle"}),
 		}}}}
 	musicFirst := Page{ID: "home", Kind: "home", Title: "Home", Icon: "home", Sections: []Section{
 		scoped(sec("listening", "Shelf", props{"title": "Continue listening"}, Source{"type": "continueWatching", "media": "listen"}), "wittymusic"),
 		scoped(repeated(sec("played", "Shelf", props{"title": "Recently played", "cardSize": "l"}, Source{"type": "albums", "library": "$each", "sort": "played", "limit": 15}), "libraries", "music"), "wittymusic"),
-		scoped(repeated(sec("added", "Shelf", props{"title": "New in {each}", "seeAll": "always"}, Source{"type": "albums", "library": "$each", "sort": "added", "limit": 30}), "libraries", "music"), "wittymusic"),
+		scoped(repeated(sec("added", "Shelf", props{"title": i18n.T("New in {each}"), "seeAll": "always"}, Source{"type": "albums", "library": "$each", "sort": "added", "limit": 30}), "libraries", "music"), "wittymusic"),
 		scoped(repeated(sec("artists", "Shelf", props{"title": "Artists"}, Source{"type": "artists", "library": "$each"}), "libraries", "music"), "wittymusic"),
 		sec("jump", "Shelf", props{"title": "Continue watching"}, Source{"type": "continueWatching", "media": "watch"}),
-		repeated(sec("recent", "Shelf", props{"title": "Recently added in {each}", "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each", "limit": 20}), "libraries", "movies", "shows", "anime", "videos"),
+		repeated(sec("recent", "Shelf", props{"title": i18n.T("Recently added in {each}"), "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each", "limit": 20}), "libraries", "movies", "shows", "anime", "videos"),
 	}}
 	tvFirst := Page{ID: "home", Kind: "home", Title: "Home", Icon: "home", Scope: "wittytv", Sections: []Section{
 		when(sec("favourites", "Shelf", props{"title": "Your channels", "cardSize": "l", "seeAll": "always"}, Source{"type": "liveNow", "favourites": true}), Condition{Can: "liveTv"}),
 		when(sec("onnow", "Shelf", props{"title": "On now"}, Source{"type": "liveNow"}), Condition{Can: "liveTv"}),
-		when(sec("guide", "Banner", props{"title": "TV guide", "text": "Everything on now and for the next two weeks.", "buttonLabel": "Open the guide", "native": "guide", "icon": "guide", "style": "compact"}, nil), Condition{Can: "liveTv"}),
+		when(sec("guide", "Banner", props{"title": "TV guide", "text": i18n.T("Everything on now and for the next two weeks."), "buttonLabel": i18n.T("Open the guide"), "native": "guide", "icon": "guide", "style": "compact"}, nil), Condition{Can: "liveTv"}),
 		when(sec("recordings", "Shelf", props{"title": "Recordings"}, Source{"type": "recordings"}), Condition{Can: "recordings"}),
 		jump, nextup, recent,
 	}}
@@ -85,38 +86,38 @@ func buildPresets() []Preset {
 		}}
 
 	out := []Preset{
-		pagePreset("home-default", "The built-in Home", "home", "Home as it ships: spotlight, libraries, jump back in, on TV now, recommendations, next up, pinned views, a row per library and a shuffle.", stock),
-		pagePreset("home-streaming", "Streaming-style Home", "sparkles", "A big spotlight, continue watching, recommendations, a numbered top ten, new releases and a row per library.", streaming),
-		pagePreset("home-minimal", "Minimal Home", "grid", "A greeting, what you were watching, and large tiles for the libraries. Nothing else.", minimal),
-		pagePreset("home-kids", "Home with a kids' variant", "kids", "The built-in Home for everyone, and a simpler one with large cards for Kids profiles.", kidsHome),
-		pagePreset("home-music", "Music-first Home", "music", "Music on top: continue listening, recently played and new albums, artists; films and shows below.", musicFirst),
-		pagePreset("home-tv", "TV-first Home", "live", "Live TV on top: favourite channels, what's on now, the guide and recordings; the libraries below.", tvFirst),
+		pagePreset("home-default", i18n.T("The built-in Home"), "home", i18n.T("Home as it ships: spotlight, libraries, jump back in, on TV now, recommendations, next up, pinned views, a row per library and a shuffle."), stock),
+		pagePreset("home-streaming", "Streaming-style Home", "sparkles", i18n.T("A big spotlight, continue watching, recommendations, a numbered top ten, new releases and a row per library."), streaming),
+		pagePreset("home-minimal", "Minimal Home", "grid", i18n.T("A greeting, what you were watching, and large tiles for the libraries. Nothing else."), minimal),
+		pagePreset("home-kids", i18n.T("Home with a kids' variant"), "kids", i18n.T("The built-in Home for everyone, and a simpler one with large cards for Kids profiles."), kidsHome),
+		pagePreset("home-music", "Music-first Home", "music", i18n.T("Music on top: continue listening, recently played and new albums, artists; films and shows below."), musicFirst),
+		pagePreset("home-tv", "TV-first Home", "live", i18n.T("Live TV on top: favourite channels, what's on now, the guide and recordings; the libraries below."), tvFirst),
 		pagePreset("page-photo-frame", "Photo frame", "photo", "A page of its own that cycles slowly through the newest photos, for a screen left on. Add it to the navigation, or open /page/photo-frame.", photoFrame),
 
-		sectionPreset("continue-watching", "Continue watching", "history", "Everything the profile is part-way through.", jump),
-		sectionPreset("next-up", "Next up", "play", "The next episode of each show in progress.", nextup),
-		sectionPreset("spotlight", "Spotlight", "sparkles", "A rotating spotlight of recent films.", hero),
-		sectionPreset("recent-per-library", "Recently added, a row per library", "plus", "One row for each library the profile can open.", recent),
-		sectionPreset("recommended", "Recommended for you", "sparkles", "Picked from what the profile has watched here.", sec("foryou", "Shelf", props{"title": "Recommended for you"}, Source{"type": "recommended", "limit": 20})),
-		sectionPreset("top-ten", "Top 10", "star", "The ten best-scored titles, numbered.", sec("top", "Shelf", props{"title": "Top 10", "numbered": true, "cardSize": "l", "seeAll": "never"}, Source{"type": "topRated", "limit": 10})),
-		sectionPreset("genre-row", "A genre", "filter", "One genre as a row. Change the genre to taste.", sec("genre", "Shelf", props{"title": "{genre}"}, Source{"type": "genre", "genre": "Comedy"})),
-		sectionPreset("collection-row", "A collection", "collection", "What one collection holds. Set the collection's ID.", sec("collection", "Shelf", props{"title": "Collection"}, Source{"type": "collection", "collection": 1})),
-		sectionPreset("pinned-views", "Pinned saved views", "filter", "A row for each saved view the profile pinned to Home.", repeated(sec("view", "Shelf", props{"title": "{each}"}, Source{"type": "savedView", "view": "$each", "limit": 20}), "pinnedViews")),
-		sectionPreset("watch-later", "Watch later", "clock", "The profile's Watch later list.", sec("later", "Shelf", props{"title": "Watch later"}, Source{"type": "watchLater"})),
-		sectionPreset("random-pick", "Can't decide?", "shuffle", "A banner offering one random title to play.", sec("shuffle", "Banner", props{"title": "Can't decide?", "text": "{title}", "buttonLabel": "Play something", "action": "play", "style": "compact", "icon": "shuffle"}, Source{"type": "random", "limit": 1, "reshuffle": "hourly"})),
-		sectionPreset("on-tv-now", "On TV now", "live", "Channels with what is on now and next.", when(scoped(sec("onnow", "Shelf", props{"title": "On TV now"}, Source{"type": "liveNow"}), "wittytv"), Condition{Can: "liveTv"})),
-		sectionPreset("guide-entry", "A way into the TV guide", "guide", "A banner that opens the app's TV guide.", sec("guide", "Banner", props{"title": "TV guide", "text": "Everything on now and for the next two weeks.", "buttonLabel": "Open the guide", "native": "guide", "icon": "guide", "style": "compact"}, nil)),
-		sectionPreset("library-tiles", "Library tiles", "library", "The libraries as a row of tiles.", sec("libraries", "Shelf", props{"title": "Your libraries", "cardStyle": "tile", "seeAll": "never"}, Source{"type": "libraries"})),
-		sectionPreset("genre-chips", "Genre chips", "filter", "A library's genres as chips, each opening the library filtered to it.", sec("genres", "Shelf", props{"title": "Genres", "seeAll": "never"}, Source{"type": "genres", "library": "$library"}), "library"),
+		sectionPreset("continue-watching", "Continue watching", "history", i18n.T("Everything the profile is part-way through."), jump),
+		sectionPreset("next-up", "Next up", "play", i18n.T("The next episode of each show in progress."), nextup),
+		sectionPreset("spotlight", "Spotlight", "sparkles", i18n.T("A rotating spotlight of recent films."), hero),
+		sectionPreset("recent-per-library", i18n.T("Recently added, a row per library"), "plus", i18n.T("One row for each library the profile can open."), recent),
+		sectionPreset("recommended", i18n.T("Recommended for you"), "sparkles", i18n.T("Picked from what the profile has watched here."), sec("foryou", "Shelf", props{"title": i18n.T("Recommended for you")}, Source{"type": "recommended", "limit": 20})),
+		sectionPreset("top-ten", "Top 10", "star", i18n.T("The ten best-scored titles, numbered."), sec("top", "Shelf", props{"title": "Top 10", "numbered": true, "cardSize": "l", "seeAll": "never"}, Source{"type": "topRated", "limit": 10})),
+		sectionPreset("genre-row", "A genre", "filter", i18n.T("One genre as a row. Change the genre to taste."), sec("genre", "Shelf", props{"title": "{genre}"}, Source{"type": "genre", "genre": "Comedy"})),
+		sectionPreset("collection-row", "A collection", "collection", i18n.T("What one collection holds. Set the collection's ID."), sec("collection", "Shelf", props{"title": "Collection"}, Source{"type": "collection", "collection": 1})),
+		sectionPreset("pinned-views", i18n.T("Pinned saved views"), "filter", i18n.T("A row for each saved view the profile pinned to Home."), repeated(sec("view", "Shelf", props{"title": "{each}"}, Source{"type": "savedView", "view": "$each", "limit": 20}), "pinnedViews")),
+		sectionPreset("watch-later", "Watch later", "clock", i18n.T("The profile's Watch later list."), sec("later", "Shelf", props{"title": "Watch later"}, Source{"type": "watchLater"})),
+		sectionPreset("random-pick", "Can't decide?", "shuffle", i18n.T("A banner offering one random title to play."), sec("shuffle", "Banner", props{"title": "Can't decide?", "text": "{title}", "buttonLabel": "Play something", "action": "play", "style": "compact", "icon": "shuffle"}, Source{"type": "random", "limit": 1, "reshuffle": "hourly"})),
+		sectionPreset("on-tv-now", i18n.T("On TV now"), "live", i18n.T("Channels with what is on now and next."), when(scoped(sec("onnow", "Shelf", props{"title": i18n.T("On TV now")}, Source{"type": "liveNow"}), "wittytv"), Condition{Can: "liveTv"})),
+		sectionPreset("guide-entry", i18n.T("A way into the TV guide"), "guide", i18n.T("A banner that opens the app's TV guide."), sec("guide", "Banner", props{"title": "TV guide", "text": i18n.T("Everything on now and for the next two weeks."), "buttonLabel": i18n.T("Open the guide"), "native": "guide", "icon": "guide", "style": "compact"}, nil)),
+		sectionPreset("library-tiles", "Library tiles", "library", i18n.T("The libraries as a row of tiles."), sec("libraries", "Shelf", props{"title": "Your libraries", "cardStyle": "tile", "seeAll": "never"}, Source{"type": "libraries"})),
+		sectionPreset("genre-chips", "Genre chips", "filter", i18n.T("A library's genres as chips, each opening the library filtered to it."), sec("genres", "Shelf", props{"title": "Genres", "seeAll": "never"}, Source{"type": "genres", "library": "$library"}), "library"),
 		sectionPreset("greeting", "A greeting", "user", "\"Good evening, Sam\" as the page's heading.", sec("hello", "Text", props{"text": "{greeting}, {user}", "role": "pageTitle"}, nil)),
-		sectionPreset("search-box", "Search box", "search", "A search field that opens Search.", sec("q", "SearchBox", props{"placeholder": "Search"}, nil)),
-		sectionPreset("filter-grid", "Filters over a grid", "filter", "The body of a film or show library: a filter bar and the grid it filters. Add both sections.", sec("all", "Grid", nil, Source{"type": "browse", "library": "$library", "filterable": true}), "library"),
-		sectionPreset("title-header", "Title header", "info", "The top of a title's page.", sec("header", "DetailHeader", nil, nil), "detail"),
-		sectionPreset("seasons", "Seasons and episodes", "show", "A show's seasons and episodes.", sec("episodes", "SeasonList", nil, Source{"type": "episodes", "show": "$show"}), "detail"),
-		sectionPreset("track-list", "Track list", "music", "An album's tracks.", sec("tracks", "TrackList", nil, Source{"type": "tracks", "library": "$library", "artist": "$artist", "album": "$album"}), "detail"),
-		sectionPreset("more-like-this", "More like this", "sparkles", "Titles like the one the page is about.", sec("similar", "Shelf", props{"title": "More like this"}, Source{"type": "similar", "item": "$item", "limit": 12}), "detail"),
-		sectionPreset("kids-notice", "A note for a kind of profile", "info", "A notice only Kids profiles see. Change the words and the condition.", when(sec("note", "Notice", props{"tone": "info", "text": "Ask a grown-up if you can't find something."}, nil), kids)),
-		sectionPreset("evening-row", "A row for the evening", "clock", "A row shown only between 18:00 and 23:00. Change the times and the source.", when(sec("evening", "Shelf", props{"title": "Tonight"}, Source{"type": "random", "limit": 12, "reshuffle": "daily"}), Condition{TimeFrom: "18:00", TimeTo: "23:00"})),
+		sectionPreset("search-box", "Search box", "search", i18n.T("A search field that opens Search."), sec("q", "SearchBox", props{"placeholder": "Search"}, nil)),
+		sectionPreset("filter-grid", i18n.T("Filters over a grid"), "filter", i18n.T("The body of a film or show library: a filter bar and the grid it filters. Add both sections."), sec("all", "Grid", nil, Source{"type": "browse", "library": "$library", "filterable": true}), "library"),
+		sectionPreset("title-header", "Title header", "info", i18n.T("The top of a title's page."), sec("header", "DetailHeader", nil, nil), "detail"),
+		sectionPreset("seasons", i18n.T("Seasons and episodes"), "show", i18n.T("A show's seasons and episodes."), sec("episodes", "SeasonList", nil, Source{"type": "episodes", "show": "$show"}), "detail"),
+		sectionPreset("track-list", "Track list", "music", i18n.T("An album's tracks."), sec("tracks", "TrackList", nil, Source{"type": "tracks", "library": "$library", "artist": "$artist", "album": "$album"}), "detail"),
+		sectionPreset("more-like-this", i18n.T("More like this"), "sparkles", i18n.T("Titles like the one the page is about."), sec("similar", "Shelf", props{"title": i18n.T("More like this")}, Source{"type": "similar", "item": "$item", "limit": 12}), "detail"),
+		sectionPreset("kids-notice", i18n.T("A note for a kind of profile"), "info", i18n.T("A notice only Kids profiles see. Change the words and the condition."), when(sec("note", "Notice", props{"tone": "info", "text": i18n.T("Ask a grown-up if you can't find something.")}, nil), kids)),
+		sectionPreset("evening-row", i18n.T("A row for the evening"), "clock", i18n.T("A row shown only between 18:00 and 23:00. Change the times and the source."), when(sec("evening", "Shelf", props{"title": "Tonight"}, Source{"type": "random", "limit": 12, "reshuffle": "daily"}), Condition{TimeFrom: "18:00", TimeTo: "23:00"})),
 	}
 	for i := range out {
 		if p := out[i].Page; p != nil {

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net"
 	"os"
 	"path/filepath"
@@ -98,7 +99,7 @@ func (q Question) another(inUse func(string) bool, folder string) (Decision, boo
 		port = q.FreePort()
 	}
 	if port == 0 {
-		q.Ask(TitleAnother, "No free port was found from 9798 up. Close something that uses one, or start the server by hand with -listen.", []string{"OK"})
+		q.Ask(TitleAnother, i18n.T("No free port was found from 9798 up. Close something that uses one, or start the server by hand with -listen."), []string{"OK"})
 		return Decision{}, false
 	}
 	for range 20 {
@@ -116,7 +117,7 @@ func (q Question) another(inUse func(string) bool, folder string) (Decision, boo
 				continue
 			}
 			if SameFolder(p, q.Dir) || inUse(p) {
-				q.Ask(TitleAnother, "A server is already using that folder. Choose another one: each server needs its own.", []string{"OK"})
+				q.Ask(TitleAnother, i18n.T("A server is already using that folder. Choose another one: each server needs its own."), []string{"OK"})
 				continue
 			}
 			folder = p
@@ -130,25 +131,22 @@ func (q Question) another(inUse func(string) bool, folder string) (Decision, boo
 // RunningText is the first question's text.
 func RunningText(r Running, now time.Time) string {
 	if r.Started.IsZero() {
-		return fmt.Sprintf("It's at %s.", r.URL)
+		return i18n.F("It's at {uRL}.", "uRL", r.URL)
 	}
-	return fmt.Sprintf("It's at %s and has been running since %s.", r.URL, since(r.Started, now))
+	return i18n.F("It's at {uRL} and has been running since {since}.", "uRL", r.URL, "since", since(r.Started, now))
 }
 
 // AnotherText explains what a second server is before it starts.
 func AnotherText(folder string, port int) string {
-	return fmt.Sprintf("A second server needs its own data folder: its own libraries, accounts and settings. "+
-		"Two servers on one folder would damage its database, so that isn't offered.\n\n"+
-		"Folder: %s\nPort: %d\n\n"+
-		"It starts as a new server, with its own setup in the browser.", folder, port)
+	return fmt.Sprintf(i18n.T("A second server needs its own data folder: its own libraries, accounts and settings. Two servers on one folder would damage its database, so that isn't offered.\n\nFolder: %s\nPort: %d\n\nIt starts as a new server, with its own setup in the browser."), folder, port)
 }
 
 // NotAnsweringText is said when the server on the folder doesn't answer.
 func NotAnsweringText(r Running) string {
 	if r.PID != 0 {
-		return fmt.Sprintf("WittyMediaServer is starting, or isn't answering (process %d). Try again in a moment.", r.PID)
+		return i18n.F("WittyMediaServer is starting, or isn't answering (process {pID}). Try again in a moment.", "pID", r.PID)
 	}
-	return "Another WittyMediaServer is using this data folder and hasn't said where it is yet. Try again in a moment."
+	return i18n.T("Another WittyMediaServer is using this data folder and hasn't said where it is yet. Try again in a moment.")
 }
 
 func since(t, now time.Time) string {
@@ -174,7 +172,7 @@ func DesktopQuestion(r Running, dir, listen string) Question {
 			return i
 		},
 		Pick: func() (string, error) {
-			return desktop.PickFolder(context.Background(), "A data folder for the second server")
+			return desktop.PickFolder(context.Background(), i18n.T("A data folder for the second server"))
 		},
 		FreePort: func() int { return FreePort(host, FirstOtherPort, running) },
 	}
@@ -243,7 +241,7 @@ func WhenRunning(dir, listen string, args []string, interactive, attachToService
 	case ChoiceAnother:
 		next, err := PrepareAnother(args, listen, d)
 		if err != nil {
-			_, _ = desktop.Ask(TitleAnother, "The second server's folder couldn't be made: "+err.Error(), []string{"OK"})
+			_, _ = desktop.Ask(TitleAnother, i18n.F("The second server's folder couldn't be made: {error}", "error", err.Error()), []string{"OK"})
 			return Outcome{Code: 1}
 		}
 		return Outcome{Again: next}

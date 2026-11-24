@@ -16,7 +16,7 @@ import '../../creators.css'
 import LegalNote from '../../components/LegalNote'
 import { browserCapabilities } from '../../player/capabilities'
 import { WebLink } from '../../components/WebLink'
-import { num, t, tk, tn, tx } from '../../i18n'
+import { num, t, tk, tn, tx, bidi } from '../../i18n'
 
 // WittyShorts: vertical videos, one at a time, with the next a swipe (or the
 // Down button) away. The order of For You comes from the server, from what this
@@ -231,7 +231,7 @@ function Slide({ v, i, active, near, lib, muted, toggleMute, rate, setRate, onNe
           </Link>
           <p>{v.title}</p>
           {v.tags.length > 0 && <div className="sh-tags">{v.tags.slice(0, 4).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
-          <div className="sh-why">{[v.platform, tx(v.reason)].filter(Boolean).join(' · ')}</div>
+          <div className="sh-why">{[v.platform, tx(v.reason)].filter(Boolean).map(bidi).join(' · ')}</div>
         </div>
       </div>
       {active && (

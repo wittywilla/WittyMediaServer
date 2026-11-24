@@ -79,7 +79,7 @@ export default function Hero({ ch, p, next, look, now, previewKey, previewName, 
           {ch ? <>
             <b className="ctv-hero-num">{ch.number}</b>
             <ChannelLogo ch={ch} look={look} on={surfaceOf(look)} />
-            <span className="ctv-hero-chtext"><b>{ch.name}</b>{ch.description && <span>{ch.description}</span>}</span>
+            <span className="ctv-hero-chtext"><b>{ch.name}</b>{ch.description && <span>{tx(ch.description)}</span>}</span>
           </> : <IconTv size={22} />}
         </div>
         {titleArt && p

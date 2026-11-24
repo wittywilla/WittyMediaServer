@@ -1,6 +1,6 @@
 # What hardware it needs
 
-What the server takes from the computer it runs on, from measurements rather than guesses, so you can tell whether an old computer, a small board or a NAS is enough. Each figure says what it was measured on. What hasn't been measured yet says so.
+What the server takes from the computer it runs on, from measurements rather than guesses, so you can tell whether an old computer, a small board or a NAS is enough. Each figure says what it was measured on. What hasn't been measured yet says so. For the short version by kind of machine, see [Minimum hardware](MINIMUM-HARDWARE.md).
 
 - [The short answer](#the-short-answer)
 - [The server on its own](#the-server-on-its-own)
@@ -49,13 +49,14 @@ The server looks at the machine when it starts, and holds itself back on a small
 | **Small** | Up to 4 GB of memory, or up to four processors | A Celeron or Atom mini PC, a Raspberry Pi 4 or 5, an N100 |
 | **Roomy** | Anything larger | Nothing is held back |
 
-In a container the memory limit you gave it counts: a NAS with 8 GB that gives the server 1 GB is a tiny machine.
+In a container the limits you gave it count: a NAS with 8 GB that gives the server 1 GB is a tiny machine, and one held to two processors counts two, however many the NAS has.
 
 On a tiny or small machine:
 
 - **Memory.** The server keeps its own memory within about a quarter of what the machine has (128 to 384 MB on a tiny one, 256 MB to 1 GB on a small one), and tidies up more often, so there's room left for FFmpeg and for the system to keep the film being played in memory. If you set `GOMEMLIMIT` or `GOGC` yourself, yours are used.
 - **Scanning gives way to watching.** While a video is being transcoded or a channel is running, a scan reads the next file only every 20 seconds on a tiny machine and every 5 on a small one, and carries on at full speed when the stream ends. A scan started during a long film still finishes. The files a scan reads are read at a lower priority at all times.
-- **Less at once.** A tiny machine reads the details of two files at a time and makes one thumbnail at a time; a small one up to four and two.
+- **Less at once.** A tiny machine reads the details of two files at a time and makes one thumbnail at a time; a small one up to four and two. A scan reads the next film's details while it adds one, on two processors or more.
+- **Quiet while idle.** Go's execution trace, kept for developers' crash reports, is off unless you turn it on in **Logs** ([Logging](LOGGING.md)): it wakes an idle server about 3,500 times a minute. Without it, an idle server wakes about 500 times a minute, mostly for the watchdog's check every two seconds.
 
 A film that plays without transcoding is sent by the system itself, straight from the disk to the network, on every size of machine, with or without a speed limit for [remote access](REMOTE.md). The server doesn't read the file, which is why a Raspberry Pi can send several at once. That holds for plain HTTP, which is what a home network and a reverse proxy use; where the server does the HTTPS itself it has to read the file to encrypt it.
 

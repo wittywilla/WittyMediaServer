@@ -250,6 +250,8 @@ func cmdServe(args []string) int {
 	}
 
 	store := &library.Store{DB: database}
+	// Whose certificates titles keep, and how letters such as "M" are read (rating_countries.go).
+	library.SetRatingCountry(database.GetSetting(context.Background(), "ratingCountry", "US"))
 	// Parental controls need the minimum age of titles saved before they existed.
 	if err := store.BackfillAges(context.Background()); err != nil {
 		log.Warn("rating ages", "err", err)

@@ -26,6 +26,7 @@ func (s *Server) parentalRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/profiles/household", a(s.handleHousehold))
 	m.Handle("POST /api/profiles/switch", a(s.handleSwitchProfile))
 	m.Handle("GET /api/me/limits", a(s.handleMyLimits))
+	m.Handle("PUT /api/me/limits", a(s.handleChangeMyLimits))
 	m.Handle("GET /api/me/screen-time", a(s.handleMyScreenTime))
 	m.Handle("POST /api/me/screen-time/extra", a(s.handleAskParent))
 	m.Handle("POST /api/users/{id}/screen-time/extra", a(s.handleGiveTime))
@@ -196,6 +197,17 @@ func (s *Server) handleSwitchProfile(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "this device is already signed in to that profile")
 		return
 	}
+	// Leaving a kids' profile kept on its device takes a parent (parental_pin.go): the PIN,
+	// asked for first so a wrong one counts, or the other profile's own password, which
+	// signing in to it checks below.
+	pinNeeded := s.leaveNeedsPIN(r, me)
+	pinGiven := false
+	if pinNeeded && (c.ParentPIN != "" || c.Password == "") {
+		if s.refuseLeaving(w, r, me, c.ParentPIN, "", "") {
+			return
+		}
+		pinGiven = true
+	}
 	release, ok := s.signInAllowed(w, r, c.Name)
 	if !ok {
 		return
@@ -221,6 +233,12 @@ func (s *Server) handleSwitchProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logins.passed(r, c.Name)
+	if pinNeeded && !pinGiven && !u.HasPassword {
+		// A password typed for a profile that has none proves nothing.
+		s.Auth.Logout(r.Context(), tok)
+		writeJSON(w, 403, map[string]any{"error": "A parent's PIN is needed to leave this profile.", "code": pinNeededCode})
+		return
+	}
 	if !remoteAllowed(r, u) {
 		s.Log.InfoContext(r.Context(), "profile switch refused: that profile is kept to the home network", "cat", "profiles", "profile", me.Name, "to", u.Name, "from", clientFrom(r).IP.String())
 		s.Auth.Logout(r.Context(), tok)
@@ -261,6 +279,8 @@ func (s *Server) handleMyLimits(w http.ResponseWriter, r *http.Request) {
 		"limited": a != nil, "kind": u.Kind, "features": features, "maxAge": library.NoAgeLimit, "allowUnrated": true,
 		"kinds": map[string]library.KindLimit{}, "time": nil, "screenTime": screenTimeView(s.myScreenTime(r, u, a)),
 		"parentPin": s.DB.GetSetting(r.Context(), parentPINKey, "") != "",
+		// Leaving this profile on this device takes the parents' PIN (parental_pin.go).
+		"pinToLeave": s.leaveNeedsPIN(r, u),
 	}
 	if a != nil {
 		out["maxAge"], out["allowUnrated"] = a.MaxAge, a.AllowUnrated
@@ -306,60 +326,12 @@ func (s *Server) handleAskParent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	by := ""
-	switch {
-	case b.PIN != "":
-		hash := s.DB.GetSetting(ctx, parentPINKey, "")
-		// Counted for the profile and for the address, so neither a new address nor
-		// another profile gets a fresh set of tries.
-		keys := []string{"parentpin|u" + limitName(me.Name), "parentpin|" + addressKey(r)}
-		for _, k := range keys {
-			if d := s.logins.wait(k); d > 0 {
-				tooManyTries(w, d)
-				return
-			}
-		}
-		release, ok := s.loginSlot(w, r)
-		if !ok {
-			return
-		}
-		good := auth.CheckSecret(hash, b.PIN)
-		release()
-		if !good {
-			for _, k := range keys {
-				s.logins.fail(k)
-			}
-			s.logins.noteFailure()
-			s.Log.InfoContext(ctx, "a wrong parents' PIN", "cat", "auth", "name", me.Name, "from", clientFrom(r).IP.String())
-			writeErr(w, 403, "That isn't the parents' PIN.")
-			return
-		}
-		for _, k := range keys {
-			s.logins.ok(k)
-		}
-		by = "PIN"
-	case b.Name != "" && b.Password != "":
-		release, ok := s.signInAllowed(w, r, b.Name)
-		if !ok {
-			return
-		}
-		parent := s.parentNamed(r, b.Name, me)
-		good := parent != nil && s.Auth.CheckPassword(ctx, parent.ID, b.Password)
-		if parent == nil {
-			auth.CheckSecret("", b.Password) // as long as a real check, so names can't be told apart
-		}
-		release()
-		if !good {
-			s.logins.noteFailure()
-			s.logSignInFailure(r, b.Name)
-			s.Log.InfoContext(ctx, "extra time refused: not the password of someone who manages this profile", "cat", "profiles", "profile", me.Name, "from", clientFrom(r).IP.String())
-			writeErr(w, 403, "That name and password aren't those of someone who manages this profile.")
-			return
-		}
-		s.logins.uncount(r, b.Name)
-		by = parent.Name
-	default:
+	if b.PIN == "" && (b.Name == "" || b.Password == "") {
 		writeErr(w, 400, "it takes the parents' PIN, or the name and password of someone who manages this profile")
+		return
+	}
+	by, ok := s.parentConsent(w, r, me, b.PIN, b.Name, b.Password)
+	if !ok {
 		return
 	}
 	if err := s.grantExtra(ctx, me.ID, minutes, by); err != nil {
@@ -550,6 +522,10 @@ func (s *Server) handleRatingSystems(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"kinds": parental.Kinds, "systems": parental.Systems, "features": library.Features,
 		"avatars": auth.AvatarNames, "avatarColours": auth.AvatarColours, "maxExtraMinutes": maxExtraMin,
+		// Whose certificates titles keep, and the countries there are to choose from.
+		"country": s.DB.GetSetting(r.Context(), "ratingCountry", "US"), "countries": library.RatingCountries,
+		// What a new profile of each kind starts with, for the form that makes one.
+		"newProfile": map[string]library.Access{"kids": library.NewProfileAccess("kids"), "guest": library.NewProfileAccess("guest")},
 	})
 }
 

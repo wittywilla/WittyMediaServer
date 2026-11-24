@@ -14,6 +14,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"net/url"
@@ -388,7 +389,7 @@ func (s *Server) handleRadioCheckAll(w http.ResponseWriter, r *http.Request) {
 	logging.Go("radio checks", func() {
 		defer s.radioChecks.Done()
 		defer task.Finish(nil)
-		task.Result(fmt.Sprintf("Checked %d stations.", len(items)))
+		task.Result(i18n.F("Checked {len} stations.", "len", len(items)))
 		s.Store.CheckStations(context.Background(), items, func(msg string, args ...any) {
 			s.Log.Info(msg, append([]any{"cat", "library"}, args...)...)
 		})

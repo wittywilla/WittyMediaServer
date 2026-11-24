@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { Component, Suspense, useEffect, useMemo, useState, useSyncExternalStore, type ComponentType, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import { api } from './api'
+import { api, getToken } from './api'
 import { bundledModule } from './moduleBundles'
 import { ModuleMissing } from './components/ModuleMissing'
 import { CardRouteContext } from './sdui/render/cardRoute'
@@ -90,6 +90,9 @@ const listeners = new Set<() => void>()
 
 function ask(): Promise<void> {
   if (asked) return asking
+  // Before anyone has signed in (first-time setup, before the account) the server can only refuse (503
+  // setup_required), so it isn't asked: setup asks again once the account exists (#494).
+  if (!getToken() && location.pathname.startsWith('/setup')) return asking
   asked = true
   asking = api.get<{ bundles: Bundle[] }>('/modules/web').then((r) => {
     const next = (r.bundles || []).filter((b) => b.api <= HOST_API && b.integration).map((b) => ({ module: b.id, version: b.version, part: b.integration as WebPart }))

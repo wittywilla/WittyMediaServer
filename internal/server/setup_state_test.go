@@ -32,10 +32,10 @@ func TestFirstRunGatesEveryAppRoute(t *testing.T) {
 	}
 	var st SetupState
 	_ = json.Unmarshal(ts.do(t, "GET", "/api/setup/state", "", nil).Body.Bytes(), &st)
-	if st.Complete || len(st.Steps) != 12 || st.Steps[0] != "language" || st.Steps[11] != "ready" || !strings.HasSuffix(st.URL, "/setup") {
+	if st.Complete || len(st.Steps) != 6 || st.Steps[0] != "welcome" || st.Steps[2] != "modules" || st.Steps[5] != "ready" || !strings.HasSuffix(st.URL, "/setup") {
 		t.Fatalf("state: %+v", st)
 	}
-	// The account is the third step. Its administrator's browser carries on; an app's token doesn't.
+	// The account is the second step. Its administrator's browser carries on; an app's token doesn't.
 	if w := ts.do(t, "POST", "/api/setup", "", map[string]string{"name": "Willow", "password": "correct-horse-1"}); w.Code != 200 && w.Code != 201 {
 		t.Fatalf("setup: %d %s", w.Code, w.Body)
 	}
@@ -61,16 +61,16 @@ func TestFirstRunGatesEveryAppRoute(t *testing.T) {
 	if w := ts.do(t, "GET", "/api/libraries", tok, nil, "Cookie", "wms_token=another-token"); w.Code != 503 {
 		t.Errorf("an app's token beside a cookie that isn't its own: %d", w.Code)
 	}
-	if w := ts.do(t, "PUT", "/api/setup/state", tok, map[string]any{"step": "looks", "done": []string{"language", "welcome", "account", "server"}}); w.Code != 200 {
+	if w := ts.do(t, "PUT", "/api/setup/state", tok, map[string]any{"step": "look", "done": []string{"welcome", "account", "modules", "media"}}); w.Code != 200 {
 		t.Fatalf("saving the step: %d %s", w.Code, w.Body)
 	}
-	// A step name from 0.8.0 is still taken, as the step it became.
-	if w := ts.do(t, "PUT", "/api/setup/state", tok, map[string]any{"step": "theme", "done": []string{"welcome", "account", "name", "look"}}); w.Code != 200 {
+	// A step name from 0.8.0 to 0.8.2 is still taken, as the step it became.
+	if w := ts.do(t, "PUT", "/api/setup/state", tok, map[string]any{"step": "theme", "done": []string{"language", "welcome", "account", "name", "modules", "libraries", "looks"}}); w.Code != 200 {
 		t.Fatalf("saving an old step name: %d %s", w.Code, w.Body)
 	} else {
 		var got SetupState
 		_ = json.Unmarshal(w.Body.Bytes(), &got)
-		if got.Step != "looks" || strings.Join(got.Done, ",") != "welcome,account,server,looks" {
+		if got.Step != "look" || strings.Join(got.Done, ",") != "welcome,account,modules,media,look" {
 			t.Errorf("old names mapped: step %q done %v", got.Step, got.Done)
 		}
 	}

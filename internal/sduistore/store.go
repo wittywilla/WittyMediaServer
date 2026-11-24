@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"log/slog"
 	"os"
@@ -617,7 +618,7 @@ func (s *Store) Check(c *Config) []sdui.Issue {
 		}
 		if b, ok := sdui.StockPage(id); ok && pg.Kind != b.Kind {
 			ve.Issues = append(ve.Issues, sdui.Issue{Path: p + "/kind", Severity: "error", Message: fmt.Sprintf("%q is the built-in %s page; a page that replaces it must be a %s page too", id, b.Kind, b.Kind),
-				Fix: "Give your page another ID, or make its kind " + b.Kind + "."})
+				Fix: i18n.F("Give your page another ID, or make its kind {kind}.", "kind", b.Kind)})
 		}
 		for _, is := range sdui.ValidatePage(&pg) {
 			is.Path = p + is.Path

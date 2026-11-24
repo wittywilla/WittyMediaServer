@@ -10,6 +10,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -75,12 +76,12 @@ var pinFailures = map[string]struct {
 	status int
 	msg    string
 }{
-	pinWrong:    {400, "That PIN isn't right. Type the PIN the device shows now."},
-	pinBadCheck: {400, "That QR code doesn't belong to this sign-in. Scan the code on the device again."},
-	pinLocked:   {410, "Too many wrong PINs. Start again on the device."},
-	pinNotFound: {404, "That sign-in wasn't found. Start again on the device."},
-	pinExpired:  {410, "That sign-in has expired. Start again on the device."},
-	pinUsed:     {410, "That sign-in has already been answered."},
+	pinWrong:    {400, i18n.T("That PIN isn't right. Type the PIN the device shows now.")},
+	pinBadCheck: {400, i18n.T("That QR code doesn't belong to this sign-in. Scan the code on the device again.")},
+	pinLocked:   {410, i18n.T("Too many wrong PINs. Start again on the device.")},
+	pinNotFound: {404, i18n.T("That sign-in wasn't found. Start again on the device.")},
+	pinExpired:  {410, i18n.T("That sign-in has expired. Start again on the device.")},
+	pinUsed:     {410, i18n.T("That sign-in has already been answered.")},
 }
 
 // startV2 opens a pairing with a PIN. It goes through the same limits as a plain code.

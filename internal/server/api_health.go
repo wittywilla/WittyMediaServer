@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"strconv"
 	"strings"
@@ -173,7 +174,7 @@ func (s *Server) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 		st.running, st.cancel = false, nil
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				st.err = "The check was stopped."
+				st.err = i18n.T("The check was stopped.")
 			} else {
 				st.err = err.Error()
 			}
@@ -185,7 +186,7 @@ func (s *Server) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 			msg := fmt.Sprintf("%d files can't be read", len(res.Rows))
 			switch len(res.Rows) {
 			case 0:
-				msg = "Every NFO file can be read"
+				msg = i18n.T("Every NFO file can be read")
 			case 1:
 				msg = "1 file can't be read"
 			}
@@ -266,7 +267,7 @@ func (s *Server) handleHealthFix(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 422, err.Error())
 			return
 		}
-		writeJSON(w, 200, map[string]any{"result": "It can be read now: " + strings.ToUpper(it.Container) + "."})
+		writeJSON(w, 200, map[string]any{"result": i18n.F("It can be read now: {format}.", "format", strings.ToUpper(it.Container))})
 	case "setaside", "bringback":
 		set := s.healthSetAside(ctx)
 		switch {
@@ -301,7 +302,7 @@ func (s *Server) healthSummary(ctx context.Context) []string {
 		library.HealthUnmatched:  {"title has no match", "titles have no match"},
 		library.HealthDuplicates: {"title may be a duplicate", "titles may be duplicates"},
 		library.HealthNames:      {"file has an odd name", "files have odd names"},
-		library.HealthNFO:        {"NFO file can't be read", "NFO files can't be read"},
+		library.HealthNFO:        {i18n.T("NFO file can't be read"), i18n.T("NFO files can't be read")},
 		library.HealthArtwork:    {"title has no artwork", "titles have no artwork"},
 		library.HealthUnreadable: {"file can't be read", "files can't be read"},
 	}
@@ -312,7 +313,7 @@ func (s *Server) healthSummary(ctx context.Context) []string {
 		}
 	}
 	if len(out) == 0 {
-		out = append(out, "Nothing needs a look")
+		out = append(out, i18n.T("Nothing needs a look"))
 	}
 	return out
 }

@@ -133,6 +133,19 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .su-more summary { min-height: 2.75rem; display: flex; align-items: center; gap: var(--sp-2); font-weight: 600; font-size: var(--text-md); cursor: pointer; }
 .su-more[open] summary { margin-bottom: var(--sp-3); }
 
+/* A step's Customize dialog: its parts folded, one under another, each opened when it's wanted. */
+.su-customize .su-customize-body { display: grid; gap: var(--sp-2); max-height: min(70vh, 46rem); overflow-y: auto; padding-right: var(--sp-1); }
+.su-option { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); }
+.su-option > summary { list-style: none; min-height: 3rem; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) var(--sp-4); cursor: pointer; border-radius: inherit; }
+.su-option > summary::-webkit-details-marker { display: none; }
+.su-option-words { display: grid; gap: 2px; }
+.su-option-words small { color: var(--fg-2); font-size: var(--text-sm); }
+.su-option > summary svg { flex: none; transition: transform var(--dur-2); }
+.su-option[open] > summary svg { transform: rotate(180deg); }
+.su-option-body { padding: 0 var(--sp-4) var(--sp-4); }
+.su-option-body > :first-child { margin-top: 0; }
+html.ten-foot .su-option > summary, html.using-controller .su-option > summary { min-height: 3.5rem; }
+
 /* A plain button on a raised panel would melt into it. */
 :is(.oobe-lib, .oobe-name, .su-consent, .su-restore, .oobe-provider, .oobe-next-card, .oobe-locked-item) .btn:not(.primary, .ghost, .danger) { background: var(--bg-4); border-color: var(--border-strong); }
 .oobe-lib .game-bios-hint { margin: 0 0 var(--sp-4); }
@@ -173,9 +186,7 @@ html.ten-foot .su-ack a, html.using-controller .su-ack a, html.ten-foot .op-head
 .oobe-step.now > span { background: var(--accent-soft); color: var(--accent-text); font-weight: 700; }
 .oobe-step.now i { background: var(--accent); color: var(--accent-fg); }
 .oobe-col { min-width: 0; display: grid; gap: var(--sp-3); }
-.oobe-skip { margin: 0; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; font-size: var(--text-sm); }
 /* While modules are installing or installed, the step has its own Continue: no second way out under it. */
-main:has(.su-going) ~ .oobe-skip { display: none; }
 @media (max-width: 900px) { .oobe-body { grid-template-columns: 1fr; } .oobe-steps { display: none; } }
 .su-req { display: grid; grid-template-columns: minmax(6rem, 1fr) minmax(0, 1.2fr) minmax(0, 1.2fr); gap: var(--sp-3); align-items: center; margin-top: var(--sp-3); }
 @media (max-width: 700px) { .su-req { grid-template-columns: 1fr; } }
@@ -247,7 +258,6 @@ main:has(.su-going) ~ .oobe-skip { display: none; }
 .lp-widgets i { min-block-size: 3.2rem; border-radius: var(--r-md); background: linear-gradient(160deg, var(--lp-accent), var(--lp-surface)); }
 .lp-widgets i.wide { grid-column: span 2; }
 /* A step that isn't there yet is quieter, in --fg-3, which every theme keeps readable (not faded, which wasn't). */
-.oobe-step.missing > span { color: var(--fg-3); } .oobe-step small { font-size: var(--text-2xs); color: var(--fg-3); }
 .su-twostep { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
 .su-twostep .ui-field { grid-column: 1 / -1; max-inline-size: 16rem; }
 .su-twostep ol { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-2); font-size: var(--text-md); }
@@ -284,10 +294,6 @@ main:has(.su-going) ~ .oobe-skip { display: none; }
 .lp-headset .lp-carousel i, .lp-tv .lp-carousel i { block-size: 3.4rem; inline-size: auto; }
 .lp-headset .lp-carousel i.on, .lp-tv .lp-carousel i.on { block-size: 5.2rem; }
 /* Choose colours: the chosen layout large, in the theme being tried, above the themes drawn in it. */
-.su-colours { display: grid; gap: var(--sp-5); }
-.su-colours-big { display: grid; justify-items: center; gap: var(--sp-2); margin: 0; }
-.su-colours-big .layout-thumb { width: min(100%, 16rem); height: auto; border-radius: var(--r-lg); box-shadow: var(--e-2); }
-.su-colours-big figcaption { color: var(--fg-2); font-size: var(--text-sm); }
 /* Welcome's foot: Back to the language and time zone screen, and what it chose. */
 .su-chosen-locale { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-5); font-size: var(--text-sm); }
 
@@ -297,6 +303,14 @@ main:has(.su-going) ~ .oobe-skip { display: none; }
 .set-card.su-separator { padding: var(--sp-1) var(--sp-4); }
 .su-separator > .set-row:first-child { border-top: 0; }
 
+/* Welcome: the language with its Customize button beside it, the same width as the buttons below. */
+.su-welcome-locale { display: flex; align-items: flex-end; gap: var(--sp-3); flex-wrap: wrap; margin: var(--sp-4) auto 0; max-inline-size: 30rem; text-align: start; }
+.su-welcome-locale > .ui-field { flex: 1 1 16rem; margin: 0; }
+/* Buttons side by side that wrap on a phone. */
+.su-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+/* Connect a device, in a dialog of its own: the dialog has the title, so the card's own heading and frame go. */
+.su-connect .cd { border: 0; background: none; box-shadow: none; padding: 0; }
+.su-connect .cd > h2:first-child { display: none; }
 /* A key saved already (#534): the provider says so, with Change, instead of asking again. */
 .oobe-provider .op-head-static { cursor: default; }
 .oobe-provider .op-saved { margin-top: var(--sp-2); }
@@ -312,3 +326,66 @@ main:has(.su-going) ~ .oobe-skip { display: none; }
 html.tv-mode .su-address .qr { inline-size: 11rem; block-size: 11rem; }
 /* Short names in a sentence (listen, -listen, WMS_LISTEN) break between words, not inside them. */
 .oobe-next-card span code { overflow-wrap: normal; white-space: nowrap; }
+/* #550: the step's words wrap within their own space, so Help with setup stays at the end of the line on every page;
+   and the fields of a form have room between them, a tick box included. */
+.su-progress-line .su-progress-words { flex: 1 1 18rem; min-width: 0; }
+.su-progress-line > :last-child { flex: none; }
+.oobe-card .oobe-form.su-form { gap: var(--sp-3); }
+
+/* ---- refinement (0.8.3 design pass) ---- */
+/* A step of one narrow form: the title, the fields and the buttons are one centred column. */
+.oobe-card .su-narrow { max-inline-size: 34rem; margin-inline: auto; }
+.oobe-card .su-narrow:not(form) { max-inline-size: 48rem; }
+.oobe-card .su-narrow .su-form { max-inline-size: none; }
+.oobe-card .oobe-form.su-form { gap: var(--sp-5); }
+.oobe-card .su-form .ui-field { gap: var(--sp-2); }
+.oobe-card .su-tick.plain { border-color: transparent; background: none; padding-inline: 0; min-height: 2.75rem; align-items: center; }
+.oobe-card .su-tick.plain:hover { border-color: transparent; }
+.oobe-card .su-tick.plain.on { background: none; }
+.oobe-card .su-customize-btn { gap: var(--sp-2); color: var(--fg-2); }
+.oobe-card .su-customize-btn svg { color: var(--accent-text); }
+
+/* Welcome: language, the two ways in and a backup share one column. */
+.oobe-card .su-welcome-locale { max-inline-size: 25rem; width: 100%; margin-top: var(--sp-5); }
+.oobe-card .su-welcome-locale > .ui-field { flex: 1 1 10rem; }
+.oobe-card .su-starts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); max-inline-size: 25rem; width: 100%; margin: var(--sp-4) auto var(--sp-3); }
+.oobe-card .su-starts .btn { width: 100%; justify-content: center; }
+.oobe-card .oobe-welcome .su-start-note { margin: 0 0 var(--sp-2); text-align: center; }
+.oobe-card .oobe-perks { margin-top: var(--sp-6); }
+@media (max-width: 600px) { .oobe-card .su-starts { grid-template-columns: 1fr; } }
+
+/* Modules: the shelves flow in two columns, each shelf kept whole. */
+.oobe-card .oobe-mod-groups { display: block; columns: 2 19rem; column-gap: var(--sp-6); }
+.oobe-card .oobe-mod-groups > section { break-inside: avoid; margin-bottom: var(--sp-5); }
+.oobe-card .oobe-mod-groups .su-mods { grid-template-columns: minmax(0, 1fr); }
+
+/* Your media: compact kind cards, the picture beside the name. */
+.oobe-card .oobe-types { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--sp-2); }
+.oobe-card .oobe-type { grid-template-columns: auto 1fr; column-gap: var(--sp-3); row-gap: var(--sp-1); align-items: center; padding: var(--sp-3) var(--sp-4); }
+.oobe-card .oobe-type .muted { grid-column: 1 / -1; display: -webkit-box; -webkit-line-clamp: 4; line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.oobe-card .oobe-type-groups { gap: var(--sp-4); }
+
+/* Look: the looks three across (two on a phone), the preview stays in view beside them. */
+.oobe-card .su-look { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+.oobe-card .su-look .su-cards.small { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); }
+.oobe-card .su-look .su-card { padding: var(--sp-2); }
+.oobe-card .su-look .su-card b { padding-right: var(--sp-5); font-size: var(--text-sm); }
+.oobe-card .su-look .su-card .su-card-text { font-size: var(--text-xs); }
+@media (max-width: 1100px) { .oobe-card .su-look { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .oobe-card .su-look .su-cards.small { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Finish: a small badge, a tidy summary, three cards of one height with their buttons level. */
+.oobe-card .oobe-check { width: 56px; height: 56px; margin: 0 auto var(--sp-3); }
+.oobe-card .oobe-done .su-summary { margin-bottom: var(--sp-6); }
+.oobe-card .oobe-next { margin-top: 0; }
+.oobe-card .oobe-next-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
+.oobe-card .oobe-next-card > :last-child { margin-top: auto; }
+.oobe-card .oobe-next-card > .su-tick { margin-top: 0; }
+.oobe-card .oobe-next-card .su-tick { border: 0; background: none; padding: 0; }
+.oobe-card .oobe-next-card .su-tick:hover { border: 0; }
+.oobe-card .oobe-actions.oobe-finish { gap: var(--sp-3); }
+
+.oobe-card .su-address-text { flex-wrap: wrap; gap: var(--sp-2); }
+.oobe-card .su-address-url { flex: 1 1 0; min-width: 0; font-size: var(--text-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.oobe-card .su-address-text small { flex-basis: 100%; }
+@media (max-width: 600px) { .oobe-card .su-actions .btn { width: 100%; justify-content: center; } .oobe-card .su-actions-go { width: 100%; } }

@@ -919,5 +919,9 @@
     "one": "e mais {count} convite",
     "many": "e mais {count} de convites",
     "other": "e mais {count} convites"
-  }
+  },
+  "Pause for scenes": "Pausar nas cenas",
+  "Pause the film while the scenes are open": "Pausar o filme enquanto as cenas estão abertas",
+  "Phones and TVs": "Celulares e TVs",
+  "Every screen": "Todas as telas"
 }

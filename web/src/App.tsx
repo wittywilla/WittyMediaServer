@@ -16,18 +16,17 @@ import { PageNotFound } from './components/PageNotFound'
 import { AudioProvider } from './audio/player'
 import ConnectServer from './components/ConnectServer'
 import Unreachable from './components/Unreachable'
-import AuthPage from './pages/AuthPage'
 import { usePageRegions } from './sdui/regions'
 import { StatusBar, SystemDock } from './shell/Regions'
 import { ModuleCards, ModuleFrame, ModuleRouteView, matchModuleRoute, takeoverFor, useModuleWeb } from './moduleRegistry'
 import { PlayerDock } from './player/PlayerPage'
 import { Announcer, useDialogs } from './a11y'
 import LegalNote, { legalAckText } from './components/LegalNote'
-import AwayPage from './pages/AwayPage'
 import { KeyHelp } from './ui/KeyHelp'
-import { ShellEditorHost } from './pages/ShellEditor'
+import { ShellEditorHost } from './shell/ShellEditorHost'
 import { AskHost } from './ui/Overlay'
 import ScreenTimeWatch from './shell/ScreenTime'
+import { ParentLimitsHost, ParentPinHost } from './shell/ParentPin'
 import { loadUserPrefs, useUserPref } from './ui/userPrefs'
 import { syncTilt } from './ui/tilt'
 import { Sidebar } from './shell/Sidebar'
@@ -44,6 +43,8 @@ import { t, tx } from './i18n'
 // The pages the app drew by hand before pages were server-driven: what an older server still gets, and
 // what stands in where a server-driven page gives way to one of the app's own screens (sdui/native.ts).
 const HomePage = lazy(() => import('./pages/HomePage'))
+const AuthPage = lazy(() => import('./pages/AuthPage'))
+const AwayPage = lazy(() => import('./pages/AwayPage'))
 const PairPage = lazy(() => import('./pages/PairPage'))
 const SharedPage = lazy(() => import('./pages/SharedPage'))
 const DesignPage = lazy(() => import('./pages/DesignPage'))
@@ -92,6 +93,8 @@ export default function App() {
       <ToastHost />
       <ScreenTimeWatch />
       <AskHost />
+      <ParentPinHost />
+      <ParentLimitsHost />
       <KeyHelp />
       <ShellEditorHost />
       <Announcer />
@@ -121,11 +124,11 @@ function Shell() {
   const isHelp = loc.pathname === '/help' || loc.pathname.startsWith('/help/')
   if (isHelp && (needServer || (!loading && (!user || (onboarding && user.isAdmin))))) return <Suspense fallback={<Spinner />}><Routes><Route path="/help" element={<HelpPublicPage />} /><Route path="/help/:guide" element={<HelpPublicPage />} /></Routes></Suspense>
   // From away, for anyone: how a device away from home joins (the parts that make an invite wait for a sign-in).
-  if (loc.pathname === '/away' && !loading && !user && !needServer && !setupRequired) return <div className="center-page"><AwayPage /></div>
+  if (loc.pathname === '/away' && !loading && !user && !needServer && !setupRequired) return <Suspense fallback={<Spinner />}><AwayPage /></Suspense>
   if (unreachable) return <Unreachable />
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (needServer) return <ConnectServer />
-  if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard /></Suspense> : <AuthPage />
+  if (!user) return setupRequired ? <Suspense fallback={<Spinner />}><SetupWizard /></Suspense> : <Suspense fallback={<Spinner />}><AuthPage /></Suspense>
   if (onboarding && user.isAdmin) return <Suspense fallback={<Spinner />}><SetupWizard /></Suspense>
   // The player lives outside the page routes (see PlayerDock) so it can keep
   // playing as a mini player while the viewer browses.
@@ -263,7 +266,7 @@ export function PageRoutes() {
       <Route path="/fix-matches" element={<Suspense fallback={<Spinner />}><FixMatches /></Suspense>} />
       <Route path="/brand/:kind/:name" element={<Suspense fallback={<Spinner />}><BrandPage /></Suspense>} />
       <Route path="/pair" element={<PairPage />} />
-      <Route path="/away" element={<AwayPage />} />
+      <Route path="/away" element={<Suspense fallback={<Spinner />}><AwayPage /></Suspense>} />
       <Route path="/tv" element={<SduiRoute fallback={<Suspense fallback={tvFallback}><GuidePage /></Suspense>} loading={tvFallback} />} />
       {/* Places only a server with server-driven pages has: every library together, a kind of library together, a page of the owner's own. */}
       <Route path="/libraries" element={<SduiRoute fallback={<NotFound />} />} />

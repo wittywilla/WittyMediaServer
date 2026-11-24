@@ -7,7 +7,7 @@ import { api } from '../api'
 import { HelpLink } from './HelpLink'
 import { toast } from '../state'
 import { Button, Dialog, Progress, Select } from '../ui'
-import { num, t, tx } from '../i18n'
+import { num, t, tx, bidi } from '../i18n'
 import './findintros.css'
 
 // Find intros and credits: the episodes of a season are compared by ear and what they share
@@ -71,7 +71,7 @@ export default function FindIntros({ showId, title, seasons, season, onClose }: 
           <>
             {!mine && <p className="muted">{task.item ? t('Intros are already being looked for in {show}.', { show: task.item }) : t('Intros are already being looked for.')} {t('Only one show is done at a time.')}</p>}
             <Progress label={t('Finding intros and credits')} value={task.total > 0 ? task.done : undefined} max={task.total || 1} showValue />
-            <p role="status" className="find-intros-line">{[task.state === 'paused' ? t('Paused') : task.state === 'queued' ? t('Waiting its turn') : tx(task.phase), task.total > 0 ? t('{done} of {total} episodes listened to', { done: num(task.done), total: num(task.total) }) : ''].filter(Boolean).join(' · ')}</p>
+            <p role="status" className="find-intros-line">{[task.state === 'paused' ? t('Paused') : task.state === 'queued' ? t('Waiting its turn') : tx(task.phase), task.total > 0 ? t('{done} of {total} episodes listened to', { done: num(task.done), total: num(task.total) }) : ''].filter(Boolean).map(bidi).join(' · ')}</p>
           </>
         )}
         {task && !running && (

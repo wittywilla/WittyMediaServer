@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"net/url"
 	"slices"
@@ -255,11 +256,7 @@ func isArtistPage(v map[string]string) bool {
 // place in the library's list, which names it among that library's artists.
 func (rv *sduiResolver) artist(lib int64, i int, a library.Artist) sdui.Item {
 	it := sdui.Item{ID: "artist-" + strconv.Itoa(i), Kind: "artist", Title: a.Name, Artist: a.Name, Count: a.Albums, Route: "/artist/" + itoa(lib) + "?name=" + url.QueryEscape(a.Name), Images: map[string]string{}}
-	noun := "albums"
-	if a.Albums == 1 {
-		noun = "album"
-	}
-	it.Subtitle = strconv.Itoa(a.Albums) + " " + noun
+	it.Subtitle = i18n.N("{count} album", "{count} albums", a.Albums)
 	if a.CoverItem != 0 {
 		it.Images["square"] = "/api/items/" + itoa(a.CoverItem) + "/poster"
 	}
@@ -868,7 +865,8 @@ func (rv *sduiResolver) channels(favouritesOnly bool, search string, limit int, 
 					} else if p.ItemID > 0 {
 						it.Images["backdrop"] = "/api/items/" + itoa(p.ItemID) + "/backdrop"
 					}
-				} else if p.Start > rv.now.Unix() && it.Next == nil {
+				} else if p.Start > rv.now.Unix() && it.Next == nil && p.Kind != "slate" && p.Kind != "none" {
+					// A break or nothing at all isn't what a viewer means by "next" (#634): the next programme is.
 					it.Next = pg
 					break
 				}

@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strings"
 	"time"
 )
@@ -93,7 +94,7 @@ func (s *SQLStore) prune() {
 func (s *SQLStore) MarkInterrupted(ctx context.Context) {
 	now := time.Now().Unix()
 	_, err := s.DB.ExecContext(ctx, `UPDATE task_history SET state = ?, error = ?, fix = ?, finished_at = ?, updated_at = ?, phase = '' WHERE state IN (?, ?, ?)`,
-		string(Failed), "The server stopped while this was going on.", "Start it again if it's still needed.", now, now, string(Queued), string(Running), string(Paused))
+		string(Failed), i18n.T("The server stopped while this was going on."), i18n.T("Start it again if it's still needed."), now, now, string(Queued), string(Running), string(Paused))
 	s.fail(err)
 }
 

@@ -2119,7 +2119,7 @@
   "Your router picks a different outside port for every destination (a \"symmetric\" NAT). Hole punching usually fails with those. A forwarded port, IPv6 or a community relay is needed instead.",
   "Your router uses the same outside port whoever it talks to, which is what hole punching needs. It works when the network the app is on does the same, as most home and mobile networks do.",
   "Your router's outside address is shared with others, so nothing from the internet can reach it. Use a VPN instead, or ask your internet provider for a public address.",
-  "Your server was found, but a direct connection through both routers couldn't be made, and no community relay is available to carry it. It often works from another network.",
+  "Your server can be reached only through a public relay, which can't carry video. Publish its peer-to-peer port (9796 in Docker) or set up your own WittyRelay.",
   "Your year",
   "a .wittyinfo is for films and episodes, and a .wittyaudio for songs",
   "a bumper can be at most 2 GB",

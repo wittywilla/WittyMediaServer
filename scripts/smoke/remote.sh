@@ -306,7 +306,7 @@ grep '"event":"enrol"' "$SMOKE_OUT/c-homelab.out" | sed 's/"code":"[0-9]*"/"code
 ns sm-ph curl -sS -m 40 -D "$SMOKE_OUT/homelab-identity.h" -o "$SMOKE_OUT/homelab-identity.json" -H "X-Witty-Connect: $HLSECRET" \
   -H 'Content-Type: application/json' --data "{\"nonce\":\"$(head -c 32 /dev/urandom | base64 -w0)\"}" "http://127.0.0.1:$HPORT/api/identity" >>"$LOG" 2>&1
 cat "$SMOKE_OUT/homelab-identity.json" >>"$LOG"
-grep -qi '^x-witty-connect-error' "$SMOKE_OUT/homelab-identity.h" && grep -q 'direct connection' "$SMOKE_OUT/homelab-identity.json" \
+grep -qi '^x-witty-connect-error' "$SMOKE_OUT/homelab-identity.h" && grep -q '"reason":"public-relay-only"' "$SMOKE_OUT/homelab-identity.json"   && grep -q 'only through a public relay' "$SMOKE_OUT/homelab-identity.json" \
   || fail "the connector didn't say why the server can't be used through a public relay: $(head -c 300 "$SMOKE_OUT/homelab-identity.json")"
 exec 9>&-
 

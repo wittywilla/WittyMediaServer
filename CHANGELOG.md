@@ -20,6 +20,14 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   what needs a graphics card, from measurements on a two-processor container. Budgets for the web app's download and
   the server's memory, scans and pages are now checked on every change (docs/PERFORMANCE.md, "Budgets").
 
+**Sign-in and other standalone pages (#624)**
+
+- **Sign in, Who's watching, Sign in with your phone, can't reach the server and the error page are one centred card**
+  with your server's logo and name at the top. They fit a 1280×720 screen without scrolling, on a TV too.
+- **Sign in with your phone** has one heading and one sentence. With a QR code, the code and PIN sit beside it. On an
+  address only this computer can use (127.0.0.1), there's no QR code, which a phone couldn't open, and the code leads.
+- **The app's "this address is for the app" page** is no longer bare black text. It's the same card, with a line on
+  what to open instead.
 **Clone a station (#622)**
 
 - **A channel can follow a real TV station's schedule, played from your own files.** On **Channels**, press

@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { useState } from 'react'
 import { api, normalizeServer, serverBase, setServerBase } from '../api'
-import { Brand, BrandMark } from './common'
+import { StandaloneCard } from './StandaloneCard'
 import LegalNote from './LegalNote'
 import SpecPage from '../spec/SpecPage'
 import { handledIds } from '../spec/model'
@@ -43,12 +43,10 @@ export default function ConnectServer({ onCancel }: { onCancel?: () => void }) {
   const act = (id: string) => { if (id === 'cancel') onCancel?.(); else if (!busy && addr.trim()) void connect() }
   const field = (_id: string, v: string | number | boolean | File) => setAddr(String(v))
   return (
-    <div className="center">
-      <div className="auth-spec" onKeyDown={(e) => { if (isSubmitKey(e)) { e.preventDefault(); act('connect') } }}>
-        <div className="brand"><BrandMark /><Brand name="" /></div>
+    <StandaloneCard name="" foot={<LegalNote kind="connect" />}>
+      <div onKeyDown={(e) => { if (isSubmitKey(e)) { e.preventDefault(); act('connect') } }}>
         <SpecPage page={page} handled={handledIds(page)} onAction={act} onField={field} />
-        <LegalNote kind="connect" />
       </div>
-    </div>
+    </StandaloneCard>
   )
 }

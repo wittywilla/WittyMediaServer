@@ -93,21 +93,20 @@ export interface PhoneState {
   pin: string; pinLeft: number; codeLeft: string
 }
 
-// Signing this device in from a phone: a QR code and a PIN that changes every 30 seconds.
+// Signing this device in from a phone or a computer that already is: one heading, one sentence, then the code and
+// the PIN (and the QR code that opens the approval page, beside them, when a phone can reach the address). On an
+// address only this device can use (127.0.0.1, localhost), a phone's camera would open nothing, so there is no QR
+// code and the code leads.
 export function phoneSignSpec(s: PhoneState): SpecPageData {
-  const how = s.local
-    ? t('On a device that’s already signed in, open Sign in a TV and type {code}. A phone can’t use the picture: this device reached the server as {host}, an address that only works here.', { code: s.code, host: s.host })
-    : t('Scan this with your phone’s camera. Or open Sign in a TV on a device that’s already signed in, and type {code}.', { code: s.code })
-  const sections: SpecSection[] = [
-    secF(t('Scan this'), [{ id: 'qr', kind: 'qr', label: t('QR code that opens the approval page'), text: s.qrText, hint: t('QR code that opens the approval page') }]),
-  ]
-  if (s.address && !s.local) sections.push(secN('', t('Or open {address}', { address: s.address })))
-  sections.push(secN(t('How'), how))
-  sections.push(secF(t('PIN'), [{ id: 'pin', kind: 'code', label: t('PIN'), value: s.pin, hint: t('Check it names this device, {device}, then type this PIN there. A new PIN in {seconds} s. This code lasts another {time}.', { device: s.device, seconds: s.pinLeft, time: s.codeLeft }) }]))
-  return mk('phonesign', t('Sign in with your phone'), t('Scan this'), t('A code or a QR with a PIN that changes every 30 seconds.'), sections, [{ ...A2(t('Use a password instead')), id: 'back' }])
+  const sections: SpecSection[] = []
+  if (!s.local) sections.push(secF('', [{ id: 'qr', kind: 'qr', label: t('Scan with your phone'), text: s.qrText, hint: s.address ? t('Or open {address}', { address: s.address }) : undefined }]))
+  sections.push(secF('', [{ id: 'code', kind: 'code', label: s.local ? t('Code') : t('Or use this code'), value: s.code,
+    hint: t('On a device that’s already signed in, open Sign in a TV and type this code. It works for {time}.', { time: s.codeLeft }) }]))
+  sections.push(secF('', [{ id: 'pin', kind: 'code', label: t('PIN'), value: s.pin, hint: t('Check it names {device}, then type this PIN. A new one in {seconds} s.', { device: s.device, seconds: s.pinLeft }) }]))
+  return mk('phonesign', t('Sign in with your phone'), t('Sign in with your phone'), t('Approve this device from one that’s already signed in.'), sections, [{ ...A2(t('Use a password instead')), id: 'back' }])
 }
 
 export function phoneEndedSpec(reason: string, why: string): SpecPageData {
-  return mk('phonesign', t('Sign in with your phone'), t('Sign in with your phone'), '', [secN('', `${reason} ${why}`.trim(), true)],
+  return mk('phonesign', t('Sign in with your phone'), t('Sign in with your phone'), `${reason} ${why}`.trim(), [],
     [{ ...A1(t('Get a new code')), id: 'again' }, { ...A2(t('Use a password instead')), id: 'back' }])
 }

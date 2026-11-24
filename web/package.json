@@ -15,6 +15,7 @@
     "test:cards": "node scripts/test-module-cards.mjs",
     "test:setup": "node scripts/test-setup.mjs",
     "test:connect": "node scripts/test-connect.mjs",
+    "test:standalone": "node scripts/test-standalone.mjs",
     "test:keys": "node scripts/test-keys.mjs",
     "test:tv": "node scripts/test-tv-themes.mjs",
     "test:quality": "node scripts/test-quality-menu.mjs",

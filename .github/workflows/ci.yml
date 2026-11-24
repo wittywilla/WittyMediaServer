@@ -76,6 +76,9 @@ jobs:
       # What a first visit to each route downloads, against web/bundle-budget.json (#643).
       - name: Web download budget per route
         run: cd web && node scripts/bundle-budget.mjs
+      # The runner's Chrome, headless, on the build above and a stand-in for the API: no Go, no data folder.
+      - name: Standalone pages are one centred card with the server's name, and don't scroll
+        run: cd web && WV_BROWSER=$(command -v google-chrome) npm run test:standalone
       - name: Every source file has its licence header
         run: python3 scripts/license-headers.py
       - name: Known vulnerabilities in web packages

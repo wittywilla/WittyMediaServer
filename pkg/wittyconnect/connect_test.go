@@ -117,6 +117,12 @@ func TestTheLocalAddressNeedsTheSecret(t *testing.T) {
 			t.Fatalf("with %v: %d %q", hdr, code, body)
 		}
 	}
+	// A browser that opened the address is told what it is, on a page of its own with nothing of the server's.
+	code, body, hdr := fetch(t, c, "/echo", "Accept", "text/html")
+	if code != 403 || !strings.Contains(body, "<h1>This page is for the app</h1>") || !strings.Contains(body, "on this device only") || strings.Contains(body, "host=") ||
+		!strings.Contains(hdr.Get("Content-Security-Policy"), "default-src 'none'") {
+		t.Fatalf("a browser got %d %q", code, body)
+	}
 	// A web page elsewhere, pointing a name of its own at 127.0.0.1.
 	if code, _, _ := fetch(t, c, "/echo", SecretHeader, c.Secret(), "Host", "evil.example:"+fmt.Sprint(c.Port())); code != 403 {
 		t.Fatalf("another host name was accepted: %d", code)
@@ -138,7 +144,7 @@ func TestTheLocalAddressNeedsTheSecret(t *testing.T) {
 	// With the secret, by header or by cookie, the request reaches the server:
 	// without the secret in it, without any forwarded header, with the app's
 	// other cookies and its own Host.
-	code, body, _ := fetch(t, c, "/echo", SecretHeader, c.Secret(), "X-Forwarded-For", "127.0.0.1", "Cookie", "session=abc")
+	code, body, _ = fetch(t, c, "/echo", SecretHeader, c.Secret(), "X-Forwarded-For", "127.0.0.1", "Cookie", "session=abc")
 	if code != 200 || !strings.Contains(body, "host=127.0.0.1:") || !strings.Contains(body, `secret=""`) || !strings.Contains(body, `cookies="session=abc"`) || !strings.Contains(body, `xff=""`) {
 		t.Fatalf("by header: %d %s", code, body)
 	}

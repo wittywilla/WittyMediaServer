@@ -62,12 +62,8 @@
 }
 
 /* ---------------------------------------------------------------- who's watching */
-.who { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 30px 16px; text-align: center;
-  background: radial-gradient(70% 60% at 50% 0%, rgb(var(--accent-rgb) / .16), transparent 70%), var(--bg); }
-.who-brand { display: flex; align-items: center; gap: 10px; font-size: var(--text-lg); font-weight: 700; letter-spacing: var(--tracking-heading); }
-.who-brand b { color: var(--brand-accent); font-weight: 700; }
-.who-brand img { width: 32px; height: 32px; }
-.who h1 { margin: 0; font-size: var(--display); letter-spacing: var(--tracking-display); }
+/* The profiles are a standalone card's (components/standalone.css). */
+.who-card { text-align: center; }
 .who-grid { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(14px, 3vw, 30px); max-width: 1000px; }
 .who-tile { background: none; border: 0; color: var(--fg-2); display: grid; justify-items: center; gap: 10px; padding: 6px; border-radius: var(--r-lg); }
 .who-tile .avatar-tile { transition: transform var(--dur-2), box-shadow var(--dur-2); }

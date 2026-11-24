@@ -67,17 +67,25 @@ test('pairing: results and the adults-only page', () => {
   ok(pairDoneSpec('denied')); ok(pairAdultsOnlySpec())
 })
 
-test('phone sign-in: QR and PIN, and what to do when the address only works here', () => {
+test('phone sign-in: one heading, the QR beside the code and PIN, and no QR on an address only this device can use', () => {
   const s = { qrText: 'https://x/pair?c=1', address: 'x/pair', local: false, host: '', code: 'ABCD-EFGH', device: 'Chrome', pin: '317 044', pinLeft: 12, codeLeft: '4:20' }
   const p = phoneSignSpec(s)
-  assert.deepEqual(fields(p).map((f) => f.kind), ['qr', 'code'])
-  assert.equal(fields(p)[1].value, '317 044')
-  assert.match(JSON.stringify(p), /A new PIN in 12 s/)
+  assert.deepEqual(fields(p).map((f) => f.kind), ['qr', 'code', 'code'])
+  assert.equal(fields(p)[1].value, 'ABCD-EFGH')
+  assert.equal(fields(p)[2].value, '317 044')
+  assert.match(JSON.stringify(p), /A new one in 12 s/)
+  assert.match(JSON.stringify(p), /Or open x\/pair/)
+  // No label is said twice, and the heading isn't repeated below it.
+  const words = [p.title, ...p.sections.map((x) => x.h), ...fields(p).flatMap((f) => [f.label, f.hint])].filter(Boolean)
+  assert.equal(new Set(words).size, words.length, words.join(' | '))
   ok(p)
   const local = phoneSignSpec({ ...s, local: true, host: 'localhost' })
-  assert.match(JSON.stringify(local), /only works here/)
+  assert.deepEqual(fields(local).map((f) => f.kind), ['code', 'code'])
+  assert.equal(fields(local)[0].value, 'ABCD-EFGH')
   assert.equal(JSON.stringify(local).includes('Or open'), false)
+  ok(local)
   assert.deepEqual(phoneEndedSpec('Expired.', 'Try again.').actions.map((a) => a.id), ['again', 'back'])
+  assert.equal(phoneEndedSpec('Expired.', 'Try again.').lead, 'Expired. Try again.')
   ok(phoneEndedSpec('Expired.', ''))
 })
 

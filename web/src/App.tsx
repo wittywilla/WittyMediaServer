@@ -121,7 +121,7 @@ function Shell() {
   const isHelp = loc.pathname === '/help' || loc.pathname.startsWith('/help/')
   if (isHelp && (needServer || (!loading && (!user || (onboarding && user.isAdmin))))) return <Suspense fallback={<Spinner />}><Routes><Route path="/help" element={<HelpPublicPage />} /><Route path="/help/:guide" element={<HelpPublicPage />} /></Routes></Suspense>
   // From away, for anyone: how a device away from home joins (the parts that make an invite wait for a sign-in).
-  if (loc.pathname === '/away' && !loading && !user && !needServer && !setupRequired) return <div className="center-page"><Suspense fallback={<Spinner />}><AwayPage /></Suspense></div>
+  if (loc.pathname === '/away' && !loading && !user && !needServer && !setupRequired) return <Suspense fallback={<Spinner />}><AwayPage /></Suspense>
   if (unreachable) return <Unreachable />
   if (loading) return <div className="center"><div className="spinner" /></div>
   if (needServer) return <ConnectServer />

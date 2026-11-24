@@ -241,6 +241,8 @@ type p2pState struct {
 	pairTriesOnce sync.Once
 	// relayCheckOpts are added to the relay check's node, for tests.
 	relayCheckOpts []libp2p.Option
+	// pending is what is saved of invites and codes for a restart (p2p_pending.go).
+	pending p2pPendingStore
 }
 
 // p2pPairAllowed counts a try at making an invite or typing in a code, and
@@ -339,10 +341,12 @@ func (s *Server) StartP2P(ctx context.Context, handler http.Handler) {
 	s.p2p.mu.Lock()
 	s.p2p.handler = handler
 	s.p2p.mu.Unlock()
+	// Invites and codes made before a restart, back before the node lists their keys with its relays.
+	s.p2pLoadPending(ctx)
 	if !s.loadP2P(ctx).Enabled {
 		return // nothing is loaded, started or contacted
 	}
-	if err := s.applyP2P(ctx); err != nil {
+	if err := s.applyP2PWithJoins(ctx); err != nil {
 		s.Log.WarnContext(ctx, "peer-to-peer connections could not start", "cat", "p2p", "err", err)
 	}
 }
@@ -569,17 +573,11 @@ var errP2PTooMany = errors.New("too many devices are on the list already; remove
 // with the account that has it: nobody takes over someone else's device by
 // naming its key.
 func (s *Server) p2pAddDevice(ctx context.Context, userID int64, id, name, platform, how string) (p2pDevice, error) {
-	id, err := p2p.CheckID(id)
+	id, err := s.p2pCheckDeviceID(ctx, id)
 	if err != nil {
-		return p2pDevice{}, errors.New("that isn't a device's connection ID")
-	}
-	if node := s.p2pNode(); node != nil && node.ID() == id {
-		return p2pDevice{}, errors.New("that is this server's own ID")
-	}
-	d := &s.p2p.devices
-	if err := d.ensure(ctx, s); err != nil {
 		return p2pDevice{}, err
 	}
+	d := &s.p2p.devices
 	defer s.p2pDevicesChanged() // after d.mu is let go: deferred calls run last first
 	// Names come from the device itself, by invite or code: shown as text, never as anything else.
 	name, platform = p2p.CleanName(name, 60), p2p.CleanName(platform, 24)
@@ -598,14 +596,8 @@ func (s *Server) p2pAddDevice(ctx context.Context, userID int64, id, name, platf
 		}
 		return *have, nil
 	}
-	mine := 0
-	for _, v := range d.byID {
-		if v.UserID == userID {
-			mine++
-		}
-	}
-	if mine >= p2pMaxDevicesEach || len(d.byID) >= p2pMaxDevices {
-		return p2pDevice{}, errP2PTooMany
+	if err := d.roomLocked(userID); err != nil {
+		return p2pDevice{}, err
 	}
 	v := &p2pDevice{ID: id, UserID: userID, Name: name, Platform: platform, How: how, Created: time.Now().Unix()}
 	if _, err := s.DB.ExecContext(ctx, `INSERT INTO p2p_devices(id, user_id, name, platform, how, created_at) VALUES(?,?,?,?,?,?)`,
@@ -614,6 +606,56 @@ func (s *Server) p2pAddDevice(ctx context.Context, userID int64, id, name, platf
 	}
 	d.byID[id] = v
 	return *v, nil
+}
+
+// p2pCheckDeviceID says whether id can be a device's, and returns it in its usual spelling.
+func (s *Server) p2pCheckDeviceID(ctx context.Context, id string) (string, error) {
+	id, err := p2p.CheckID(id)
+	if err != nil {
+		return "", errors.New("that isn't a device's connection ID")
+	}
+	if node := s.p2pNode(); node != nil && node.ID() == id {
+		return "", errors.New("that is this server's own ID")
+	}
+	if err := s.p2p.devices.ensure(ctx, s); err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+// p2pCanAdd says whether p2pAddDevice would take this device for this
+// account, changing nothing: asked before an invite is used, so that a device
+// it can't take leaves the invite good for another.
+func (s *Server) p2pCanAdd(ctx context.Context, userID int64, id string) error {
+	id, err := s.p2pCheckDeviceID(ctx, id)
+	if err != nil {
+		return err
+	}
+	d := &s.p2p.devices
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	if have := d.byID[id]; have != nil {
+		if have.UserID != userID {
+			return errors.New("that device is already on the list for another account")
+		}
+		return nil
+	}
+	return d.roomLocked(userID)
+}
+
+// roomLocked says whether one more device fits for this account and on the
+// whole server. Call with mu held, either way.
+func (d *p2pDevices) roomLocked(userID int64) error {
+	mine := 0
+	for _, v := range d.byID {
+		if v.UserID == userID {
+			mine++
+		}
+	}
+	if mine >= p2pMaxDevicesEach || len(d.byID) >= p2pMaxDevices {
+		return errP2PTooMany
+	}
+	return nil
 }
 
 // p2pRemoveDevice takes a device off the list and closes its connections.
@@ -665,11 +707,17 @@ func (s *Server) p2pForgetGone(ctx context.Context) {
 
 // p2pInvite is a link that puts one device on the list, once.
 type p2pInvite struct {
+	hash    string // p2pSecretHash of its secret: the secret itself is never kept
 	by      int64
-	session string
+	session string // the sign-in that made it, as auth.StoredToken keeps it
 	userID  int64
 	expires time.Time
 	used    bool
+	// usedBy is the device the invite put on the list. The same device showing
+	// it again (its first answer was lost on the way) is answered again, a few
+	// times, while the invite lasts; any other is told it was used (#683).
+	usedBy  string
+	reshows int
 	// enrolID is the invite's own key, listed with this server's relays while
 	// the invite is open, so a device can show it through them (p2p.EnrolSeed).
 	enrolID string
@@ -683,6 +731,9 @@ type p2pInvites struct {
 	mu   sync.Mutex
 	open map[string]*p2pInvite // by the SHA-256 of the secret, which is never kept
 }
+
+// p2pMaxReshows is how many more answers the device an invite put on the list gets for it.
+const p2pMaxReshows = 3
 
 func p2pSecretHash(secret string) string {
 	sum := sha256.Sum256([]byte("wittymedia p2p invite\n" + secret))
@@ -718,7 +769,9 @@ func (in *p2pInvites) makeShared(by, userID int64, session string, spent *atomic
 	if err != nil {
 		return "", err
 	}
-	in.open[p2pSecretHash(secret)] = &p2pInvite{by: by, session: session, userID: userID, expires: now.Add(p2pInviteTTL), spent: spent, enrolID: enrolID}
+	h := p2pSecretHash(secret)
+	in.open[h] = &p2pInvite{hash: h, by: by, session: auth.StoredToken(session), userID: userID, expires: now.Add(p2pInviteTTL),
+		spent: spent, enrolID: enrolID}
 	return secret, nil
 }
 
@@ -737,6 +790,13 @@ func (in *p2pInvites) enrolIDs() []string {
 	return ids
 }
 
+// clear forgets every invite: the server's key was replaced, and each one names the old one.
+func (in *p2pInvites) clear() {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+	in.open = nil
+}
+
 // p2pInviteOpened tells this server's relays about a new invite's enrol key
 // now, and again when the invite runs out, so it is listed no longer than that.
 func (s *Server) p2pInviteOpened() {
@@ -744,83 +804,155 @@ func (s *Server) p2pInviteOpened() {
 	time.AfterFunc(p2pInviteTTL+time.Second, s.p2pDevicesChanged)
 }
 
-// take uses an invite, once. It answers the invite, or why not.
-func (in *p2pInvites) take(secret string) (*p2pInvite, string) {
+// look says whether an invite (by its hash) would put device on the list now,
+// and spends nothing: whatever else could still refuse the device is asked
+// before the invite is used. reason is "" (it would), "again" (it already put
+// this very device on the list, and may answer it again), or why not.
+func (in *p2pInvites) look(hash, device string) (p2pInvite, string) {
 	in.mu.Lock()
 	defer in.mu.Unlock()
-	v := in.open[p2pSecretHash(secret)]
+	return in.lookLocked(hash, device)
+}
+
+func (in *p2pInvites) lookLocked(hash, device string) (p2pInvite, string) {
+	v := in.open[hash]
 	switch {
 	case v == nil:
-		return nil, "wrong"
-	case v.used:
-		return nil, "used"
+		return p2pInvite{}, "wrong"
 	case time.Now().After(v.expires):
-		return nil, "expired"
-	case v.spent != nil && !v.spent.CompareAndSwap(false, true):
-		v.used = true
-		return nil, "used"
+		return p2pInvite{}, "expired"
+	case v.used && v.usedBy != "" && v.usedBy == device && v.reshows < p2pMaxReshows:
+		return *v, "again"
+	case v.used:
+		return p2pInvite{}, "used"
+	case v.spent != nil && v.spent.Load():
+		return p2pInvite{}, "used"
 	}
-	v.used = true
-	return v, ""
+	return *v, ""
+}
+
+// take uses an invite for device, once (or answers that device again: look).
+// It answers the invite, or why not.
+func (in *p2pInvites) take(hash, device string) (p2pInvite, string) {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+	got, reason := in.lookLocked(hash, device)
+	v := in.open[hash]
+	switch reason {
+	case "again":
+		v.reshows++
+		got.reshows = v.reshows
+		return got, ""
+	case "":
+		if v.spent != nil && !v.spent.CompareAndSwap(false, true) {
+			v.used = true
+			return p2pInvite{}, "used"
+		}
+		v.used, v.usedBy = true, device
+		got.used, got.usedBy = true, device
+		return got, ""
+	}
+	return got, reason
 }
 
 // p2pEnrol answers a device that shows an invite over the peer-to-peer
 // connection: the one thing an unlisted device may ask. A good invite puts
 // its key on the list and hands it a sign-in code, which it then redeems at
 // /api/v1/pair/redeem like any code typed on a TV, with the same limits.
+//
+// Everything that could still refuse the device is asked before the invite is
+// used, so a refusal leaves it good for another try; and the server's own
+// WittyRelays are told about the device before it is answered, so its first
+// connection with its own key gets through them (#683).
 func (s *Server) p2pEnrol(ctx context.Context, id string, req p2p.EnrolRequest, from netip.Addr) p2p.EnrolResponse {
 	fail := func(reason, msg string) p2p.EnrolResponse {
 		s.Log.InfoContext(ctx, "peer-to-peer invite refused", "cat", "p2p", "session", p2p.ConnSession(id), "why", reason, "device", p2p.ShortID(id), "from", from.String())
 		return p2p.EnrolResponse{Reason: reason, Error: msg}
 	}
 	// Shown through a relay from the invite's own key, on behalf of the device's: only with its signature.
+	node := s.p2pNode()
 	serverID := ""
-	if node := s.p2pNode(); node != nil {
+	if node != nil {
 		serverID = node.ID()
 	}
 	listID, err := p2p.CheckEnrolFor(req, id, serverID)
 	if err != nil {
 		return fail("wrong", i18n.T("That invite was shown on behalf of a device it couldn't speak for."))
 	}
-	in, reason := s.p2p.invites.take(req.Secret)
-	if reason == "" || reason == "used" {
-		s.p2pDevicesChanged() // its enrol key is no longer listed
+	// A code a device showed (join.go) stands for an invite the server keeps by its hash.
+	hash := p2pSecretHash(req.Secret)
+	if req.FromJoin {
+		hash = req.Secret
 	}
-	switch reason {
-	case "wrong":
-		return fail(reason, i18n.T("That invite isn't right. Ask for a new one."))
-	case "used":
-		return fail(reason, i18n.T("That invite has already been used. Ask for a new one."))
-	case "expired":
-		return fail(reason, i18n.T("That invite has expired. Invites last fifteen minutes: ask for a new one."))
+	refusal := func(reason string) p2p.EnrolResponse {
+		switch reason {
+		case "used":
+			s.p2pDevicesChanged() // its enrol key is no longer listed
+			return fail(reason, i18n.T("That invite has already been used. Ask for a new one."))
+		case "expired":
+			return fail(reason, i18n.T("That invite has expired. Invites last fifteen minutes: ask for a new one."))
+		}
+		return fail("wrong", i18n.T("That invite isn't right. Ask for a new one."))
+	}
+	in, reason := s.p2p.invites.look(hash, listID)
+	if reason != "" && reason != "again" {
+		return refusal(reason)
 	}
 	if !s.stillSignedIn(ctx, in.session, in.by) {
 		return fail("expired", i18n.T("Whoever made that invite has signed out. Ask for a new one."))
 	}
+	if err := s.p2pCanAdd(ctx, in.userID, listID); err != nil {
+		return fail("refused", err.Error())
+	}
+	in, reason = s.p2p.invites.take(hash, listID)
+	if reason != "" {
+		return refusal(reason)
+	}
+	again := in.reshows > 0
+	defer s.p2pSavePending()
 	name := p2p.CleanName(req.Name, 60)
 	dev, err := s.p2pAddDevice(ctx, in.userID, listID, name, req.Platform, "invite")
 	if err != nil {
 		return fail("refused", err.Error())
 	}
-	code, err := s.pair.newInvite(in.by, in.userID, in.session)
+	code, err := s.pair.newInviteFor(in.by, in.userID, in.session, true)
 	if err != nil {
 		// On the list, but with no code: the device can still sign in by hand.
 		s.Log.WarnContext(ctx, "a device joined by invite, but no sign-in code could be made for it", "cat", "p2p", "session", p2p.ConnSession(id), "err", err)
+	}
+	// The relays hear of the device before it does: its next connection, with its own key, gets through
+	// them at once. Not for long: an answer the device stops waiting for is worth less than one a moment late.
+	ready := true
+	if node != nil {
+		rctx, cancel := context.WithTimeout(ctx, p2pRelayWait)
+		ready = node.RegisterNow(rctx)
+		cancel()
+		if !ready {
+			s.Log.InfoContext(ctx, "a device joined by invite before this server's WittyRelays could be told; they hear at the next registration", "cat", "p2p", "session", p2p.ConnSession(id))
+		}
 	}
 	u, _ := s.Auth.User(ctx, in.userID)
 	who := ""
 	if u != nil {
 		who = u.Name
 	}
-	logging.Audit(ctx, s.Log, "a device was added to the peer-to-peer list by invite", "cat", "p2p", "session", p2p.ConnSession(id), "device", p2p.ShortID(listID), "name", dev.Name,
-		"throughRelay", listID != id,
-		"platform", dev.Platform, "account", who, "from", from.String())
-	res := p2p.EnrolResponse{OK: true, ServerName: s.ServerName(ctx)}
+	if again {
+		s.Log.InfoContext(ctx, "a device showed the invite that put it on the list again, and was answered again", "cat", "p2p", "session", p2p.ConnSession(id), "device", p2p.ShortID(listID))
+	} else {
+		logging.Audit(ctx, s.Log, "a device was added to the peer-to-peer list by invite", "cat", "p2p", "session", p2p.ConnSession(id), "device", p2p.ShortID(listID), "name", dev.Name,
+			"throughRelay", listID != id, "relayReady", ready,
+			"platform", dev.Platform, "account", who, "from", from.String())
+	}
+	res := p2p.EnrolResponse{OK: true, ServerName: s.ServerName(ctx), RelayReady: ready}
 	if code != nil {
 		res.Code = code.code
 	}
 	return res
 }
+
+// p2pRelayWait is the most an invite's answer waits for this server's WittyRelays to hear of the
+// device: well inside the ten seconds the node gives the whole answer.
+const p2pRelayWait = 7 * time.Second
 
 // ---------------------------------------------------------------- handlers for every account
 
@@ -996,6 +1128,7 @@ func (s *Server) handleP2PInvite(w http.ResponseWriter, r *http.Request) {
 	secret, err := s.p2p.invites.make(me.ID, target.ID, tokenFrom(r))
 	if err == nil {
 		s.p2pInviteOpened()
+		s.p2pSavePending()
 	}
 	if errors.Is(err, errPairBusy) {
 		w.Header().Set("Retry-After", "60")
@@ -1146,7 +1279,7 @@ func (s *Server) handlePutP2PSettings(w http.ResponseWriter, r *http.Request) {
 		"devicesOnly", cur.DevicesOnly, "dht", cur.Layers.DHT, "relay", cur.Layers.Relay, "holePunch", cur.Layers.HolePunch,
 		"portMap", cur.Layers.PortMap, "ipv6", cur.Layers.IPv6, "relayForOthers", cur.RelayForOthers, "ownRelays", len(cur.StaticRelays))
 	errText := ""
-	if err := s.applyP2P(r.Context()); err != nil {
+	if err := s.applyP2PWithJoins(r.Context()); err != nil {
 		s.Log.WarnContext(r.Context(), "could not apply the peer-to-peer settings", "cat", "p2p", "err", err)
 		errText = err.Error()
 	}
@@ -1184,8 +1317,12 @@ func (s *Server) handleP2PRotate(w http.ResponseWriter, r *http.Request) {
 	s.p2p.mu.Lock()
 	s.stopP2PLocked()
 	s.p2p.mu.Unlock()
+	// Every open invite and code names the old key: none of them can be used now.
+	s.p2p.invites.clear()
+	s.p2pForgetSavedJoins()
+	s.p2pSavePending()
 	errText := ""
-	if err := s.applyP2P(r.Context()); err != nil {
+	if err := s.applyP2PWithJoins(r.Context()); err != nil {
 		errText = err.Error()
 	}
 	writeJSON(w, 200, s.p2pView(r, errText))

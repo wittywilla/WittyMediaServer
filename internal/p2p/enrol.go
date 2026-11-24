@@ -27,6 +27,9 @@ type EnrolRequest struct {
 	// otherwise, when the key that shows the invite is the one listed.
 	Device    string `json:"device,omitempty"`
 	DeviceSig string `json:"deviceSig,omitempty"`
+	// FromJoin: asked by a device that showed a code (join.go), never sent.
+	// Secret is then whatever the server gave OfferJoin for that code.
+	FromJoin bool `json:"-"`
 }
 
 // EnrolResponse is the server's answer.
@@ -40,6 +43,10 @@ type EnrolResponse struct {
 	Code       string   `json:"code,omitempty"`
 	ServerName string   `json:"serverName,omitempty"`
 	Addrs      []string `json:"addrs,omitempty"`
+	// RelayReady: the server's own WittyRelays have been told this device may
+	// come through them (or the server has none). False: the device may find
+	// the relay refuses it for a moment, until the next registration.
+	RelayReady bool `json:"relayReady,omitempty"`
 }
 
 const maxEnrolMessage = 4 << 10

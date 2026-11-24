@@ -13,6 +13,8 @@ CAT=$(cd "${2:?usage: docker-games.sh <image> <catalogue folder>}" && pwd)
 cd "$(dirname "$0")/../.." || exit 1
 fails=0
 ok() { echo "ok:   $*"; }
+# Milliseconds on a clock that never jumps (the wall clock can, under WSL or NTP).
+ms() { awk '{ printf "%d", $1 * 1000 }' /proc/uptime; }
 bad() { echo "FAIL: $*"; fails=$((fails + 1)); }
 name=wms-games-$$
 vol=wms-games-$$
@@ -102,9 +104,9 @@ done
 
 for pair in $ids; do
   id=${pair%%:*}; ext=${pair##*:}
-  t0=$(date +%s%3N)
+  t0=$(ms)
   r=$(curl -s -m 120 -H "$H" -H 'Content-Type: application/json' -d '{"client":"browser"}' "$P/games/$id/play")
-  started=$(($(date +%s%3N) - t0))
+  started=$(($(ms) - t0))
   sid=$(python3 -c 'import json,sys;print(json.load(sys.stdin).get("id",""))' <<<"$r" 2>/dev/null)
   if [ -z "$sid" ]; then bad "$ext: it didn't start: $r"; continue; fi
   modes=$(python3 -c 'import json,sys;print(",".join(m["id"] for m in json.load(sys.stdin).get("modes",[])))' <<<"$r")

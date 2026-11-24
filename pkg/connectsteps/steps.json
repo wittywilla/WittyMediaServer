@@ -1,5 +1,5 @@
 {
-  "about": "The steps of connecting a device from away, and why one can fail. One list for the server and every app: WittyMediaClient keeps a copy in shared/data/connect-steps.json (shared/scripts/sync-connect-steps.mjs). Codes never change meaning; add new ones at the end of their step. `match` is lower-case text found in an error or a reason, tried in order, first code wins.",
+  "about": "The steps of connecting a device from away, and why one can fail. One list for the server and every app: WittyMediaClient keeps a copy in shared/data/connect-steps.json (shared/scripts/sync-connect-steps.mjs). Codes never change meaning; add new ones at the end of their step. `match` is lower-case text found in an error or a reason, tried in order, first code wins. `cases` are what the server and every app must answer, each tested against them.",
   "version": 1,
   "steps": [
     { "id": "read", "title": "Code or link read", "failed": "The code or link couldn't be read" },
@@ -62,5 +62,30 @@
 
     { "code": "unknown", "step": "", "reasons": [], "match": [],
       "say": "Something went wrong.", "next": "Copy the details and send them to whoever runs the server." }
+  ],
+  "cases": [
+    { "reason": "expired", "text": "", "step": "found", "code": "expired", "at": "signin" },
+    { "reason": "used", "text": "That invite was used", "step": "", "code": "used", "at": "signin" },
+    { "reason": "too-many-tries", "text": "Too many tries. Wait a minute and try again.", "step": "", "code": "too-many-tries", "at": "signin" },
+    { "reason": "off", "text": "This server takes no invites.", "step": "", "code": "off", "at": "signin" },
+    { "reason": "wrong", "text": "That code isn't right.", "step": "", "code": "wrong", "at": "signin" },
+    { "reason": "unreachable", "text": "", "step": "found", "code": "not-found", "at": "found" },
+    { "reason": "p2p-missing", "text": "", "step": "read", "code": "no-library", "at": "read" },
+    { "reason": "slow-path", "text": "", "step": "secure", "code": "slow-path", "at": "secure" },
+    { "reason": "identity-bad", "text": "", "step": "signin", "code": "identity-bad", "at": "signin" },
+    { "reason": "", "text": "not an invite link", "step": "read", "code": "invite-bad", "at": "read" },
+    { "reason": "", "text": "this device has no connection key", "step": "read", "code": "no-key", "at": "read" },
+    { "reason": "", "text": "the server wasn't found in the public address book: context deadline exceeded", "step": "found", "code": "not-found", "at": "found" },
+    { "reason": "", "text": "the server didn't answer in time", "step": "found", "code": "timeout", "at": "found" },
+    { "reason": "", "text": "no server took the code in time", "step": "found", "code": "timeout", "at": "found" },
+    { "reason": "", "text": "the server was found, but a direct connection through both routers couldn't be made, and no community relay is available to carry it", "step": "secure", "code": "no-direct-path", "at": "secure" },
+    { "reason": "", "text": "the server refused the connection (is this device still on its list?): stream reset", "step": "secure", "code": "not-listed", "at": "signin" },
+    { "reason": "", "text": "the relay said no (full)", "step": "found", "code": "relay-full", "at": "found" },
+    { "reason": "", "text": "the relay said no (key)", "step": "found", "code": "relay-refused", "at": "found" },
+    { "reason": "", "text": "the relay couldn't be reached: connection refused", "step": "found", "code": "relay-unreachable", "at": "found" },
+    { "reason": "", "text": "joining by a code needs the address book, which is turned off on this server", "step": "found", "code": "dht-off", "at": "found" },
+    { "reason": "", "text": "dial tcp: lookup example: no such host", "step": "found", "code": "offline", "at": "found" },
+    { "reason": "", "text": "Something New And Odd", "step": "secure", "code": "unknown", "at": "secure" },
+    { "reason": "made-up", "text": "", "step": "signin", "code": "unknown", "at": "signin" }
   ]
 }

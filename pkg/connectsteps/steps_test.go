@@ -4,6 +4,7 @@
 package connectsteps
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -49,34 +50,19 @@ func TestTheListHoldsTogether(t *testing.T) {
 	}
 }
 
-// The words the connector and the server really say, and what each is.
+// The words the connector and the server really say, and what each is: the
+// cases in steps.json, which every app's tests answer too.
 func TestClassify(t *testing.T) {
-	cases := []struct{ reason, text, step, code, wantStep string }{
-		{"expired", "", Found, "expired", SignIn},
-		{"used", "That invite was used", "", "used", SignIn},
-		{"too-many-tries", "Too many tries. Wait a minute and try again.", "", "too-many-tries", SignIn},
-		{"off", "This server takes no invites.", "", "off", SignIn},
-		{"wrong", "That code isn't right.", "", "wrong", SignIn},
-		{"unreachable", "", Found, "not-found", Found},
-		{"", "not an invite link", Read, "invite-bad", Read},
-		{"", "this device has no connection key", Read, "no-key", Read},
-		{"", "the server wasn't found in the public address book: context deadline exceeded", Found, "not-found", Found},
-		{"", "the server didn't answer in time", Found, "timeout", Found},
-		{"", "no server took the code in time", Found, "timeout", Found},
-		{"", "the server was found, but a direct connection through both routers couldn't be made, and no community relay is available to carry it", Secure, "no-direct-path", Secure},
-		{"", "the server refused the connection (is this device still on its list?): stream reset", Secure, "not-listed", SignIn},
-		{"", "the relay said no (full)", Found, "relay-full", Found},
-		{"", "the relay said no (key)", Found, "relay-refused", Found},
-		{"", "the relay couldn't be reached: connection refused", Found, "relay-unreachable", Found},
-		{"", "joining by a code needs the address book, which is turned off on this server", Found, "dht-off", Found},
-		{"", "dial tcp: lookup example: no such host", Found, "offline", Found},
-		{"", "something new and odd", Secure, "unknown", Secure},
-		{"made-up", "", SignIn, "unknown", SignIn},
+	var f struct {
+		Cases []struct{ Reason, Text, Step, Code, At string }
 	}
-	for _, c := range cases {
-		f := Classify(c.reason, c.text, c.step)
-		if f.Code != c.code || f.Step != c.wantStep || f.Say == "" || f.Next == "" {
-			t.Errorf("Classify(%q, %q, %q) = %+v, want %s at %s", c.reason, c.text, c.step, f, c.code, c.wantStep)
+	if err := json.Unmarshal(raw, &f); err != nil || len(f.Cases) < 10 {
+		t.Fatalf("cases: %v %d", err, len(f.Cases))
+	}
+	for _, c := range f.Cases {
+		got := Classify(c.Reason, c.Text, c.Step)
+		if got.Code != c.Code || got.Step != c.At || got.Say == "" || got.Next == "" {
+			t.Errorf("Classify(%q, %q, %q) = %+v, want %s at %s", c.Reason, c.Text, c.Step, got, c.Code, c.At)
 		}
 	}
 	if f := Of("expired"); f.Step != SignIn || f.Say == "" {

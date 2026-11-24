@@ -212,3 +212,17 @@ func TestSearchBudget(t *testing.T) {
 		}
 	}
 }
+
+// A word still being typed matches the start of a longer word, not a shorter start of
+// another: "zelda" isn't "Żelazny".
+func TestSearchTypingIsNotLooser(t *testing.T) {
+	x := New()
+	x.Replace(1, []Doc{{Group: "photos", ID: 1, Title: "Most Żelazny w Kłodzku"}, {Group: "games", ID: 2, Title: "The Legend of Zelda"}})
+	r := x.Search(Query{Text: "zelda"})
+	if len(r.Groups) != 1 || r.Groups[0].Key != "games" {
+		t.Errorf("zelda: %+v", r.Groups)
+	}
+	if got := titles(x.Search(Query{Text: "legend of zeld"}), "games"); len(got) != 1 {
+		t.Errorf("still typing: %v", got)
+	}
+}

@@ -189,6 +189,7 @@ func buildStockPages() []Page {
 		Sections: []Section{
 			sec("q", "SearchBox", props{"placeholder": "Films, shows, music, books, games, people, channels", "autofocus": true}, nil),
 			when(sec("recent", "List", props{"title": "Recent searches", "empty": "hide"}, Source{"type": "recentSearches"}), Condition{Not: &Condition{Flag: "hasQuery"}}),
+			when(sec("forget", "Button", props{"label": "Clear recent searches", "icon": "history", "op": "search.forgetRecent", "variant": "ghost"}, nil), Condition{Flag: "hasRecentSearches"}),
 			when(sec("idle", "Text", props{"text": "Type at least two letters to search every library you can open. A letter or two wrong still finds it; year:1999 narrows it to a year.", "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
 			when(sec("narrow", "FilterBar", props{"fields": []string{"year"}, "showCount": false}, nil), Condition{Flag: "hasQuery"}),
 			when(scopes, Condition{Flag: "hasQuery"}),

@@ -115,9 +115,16 @@ func TestRecentSearches(t *testing.T) {
 	if got := recent(f.admin); slices.Contains(got, "family") || len(got) != 2 {
 		t.Errorf("one forgotten: %v", got)
 	}
-	ts.do(t, "DELETE", "/api/search/recent", f.admin, nil)
+	if findNode(&idle.Root, "forget") == nil {
+		t.Errorf("a button clears them")
+	}
+	ts.do(t, "DELETE", "/api/v1/search/recent", f.admin, nil) // the page's command, search.forgetRecent
 	if got := recent(f.admin); len(got) != 0 {
 		t.Errorf("all forgotten: %v", got)
+	}
+	idle = sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/search", f.admin, nil))
+	if findNode(&idle.Root, "recent") != nil || findNode(&idle.Root, "forget") != nil {
+		t.Errorf("nothing to list or clear: %+v", idle.Root.Children)
 	}
 }
 

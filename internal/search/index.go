@@ -472,8 +472,8 @@ func (sc *scorer) score(name string) int {
 		for _, at := range sc.words {
 			n := sc.nr[at[0]:at[1]]
 			d := distance(w, n, lim, &sc.rows)
-			if last && len(n) > len(w) { // still typing: against the start of the word, a letter either way
-				for _, cut := range []int{len(w) - 1, len(w), len(w) + 1} {
+			if last && len(n) > len(w) { // still typing: against the start of the word, or a letter more
+				for _, cut := range []int{len(w), len(w) + 1} {
 					if d > 0 && cut > 0 && cut <= len(n) {
 						d = min(d, distance(w, n[:cut], lim, &sc.rows))
 					}

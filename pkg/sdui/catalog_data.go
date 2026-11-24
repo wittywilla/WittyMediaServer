@@ -49,7 +49,7 @@ var (
 	// CanFeatures are what a "can" condition may ask about.
 	CanFeatures = []string{"games", "recordings", "downloads", "sharing", "comments", "syncplay", "remoteControl", "remote", "editProfile", "editLayout", "liveTv"}
 	// Flags are what a "flag" condition may ask about.
-	Flags = []string{"setupIncomplete", "scanning", "librariesEmpty", "hasQuery", "screenTimeUp"}
+	Flags = []string{"setupIncomplete", "scanning", "librariesEmpty", "hasQuery", "screenTimeUp", "hasRecentSearches"}
 	// NativeScreens are the screens every app draws itself and SDUI only
 	// links to. Settings is one of them on purpose: it is never an SDUI page.
 	NativeScreens = []string{"settings", "guide", "profiles", "downloads", "remote", "nowPlaying", "pair", "collections", "player", "livePlayer", "reader", "game", "download", "share", "playOn", "watchParty"}
@@ -990,7 +990,7 @@ func buildConditions() []ConditionSpec {
 		c("hasLibrary", pEnum("", "Has a library of kind", "The profile can open at least one such library.", "", LibraryKinds...)),
 		c("libraryKind", pEnum("", "This library is of kind", "On a library page.", "", LibraryKinds...)),
 		c("capability", pStr("", "Device capability", "Something the client said it has: hdr, touch, pointer, keyboard.", 64)),
-		c("flag", pEnum("", "The server says", "", "", "setupIncomplete|First-time setup isn't finished", "scanning|A library is being scanned", "librariesEmpty|There are no libraries", "hasQuery|Something was searched for", "screenTimeUp|The profile's screen time is over")),
+		c("flag", pEnum("", "The server says", "", "", "setupIncomplete|First-time setup isn't finished", "scanning|A library is being scanned", "librariesEmpty|There are no libraries", "hasQuery|Something was searched for", "hasRecentSearches|The profile has recent searches (the search page only)", "screenTimeUp|The profile's screen time is over")),
 		c("minWidth", pInt("", "Window at least", "Points wide.", 0, 0, 10000)),
 		c("maxWidth", pInt("", "Window at most", "Points wide.", 0, 0, 10000)),
 		c("timeFrom", pStr("", "From time of day", "HH:MM on the server's clock.", 5)),
@@ -1224,6 +1224,7 @@ func commandSpecs() []CommandSpec {
 		{Op: "session.end", Label: "Sign a device out", Description: "Signs out the device params.session.", Method: "DELETE", Path: "/api/sessions/{session}",
 			Params: []CommandParam{{Name: "session", Type: "string", Label: "Device", Required: true}}},
 		{Op: "sessions.endOthers", Label: "Sign out the others", Description: "Signs out every device of the profile but this one.", Method: "DELETE", Path: "/api/sessions"},
+		{Op: "search.forgetRecent", Label: "Clear recent searches", Description: "Forgets the profile's recent searches.", Method: "DELETE", Path: "/api/v1/search/recent"},
 		{Op: "history.clear", Label: "Clear my history", Description: "Forgets what the profile watched and listened to. It cannot be undone.", Method: "DELETE", Path: "/api/me/history"},
 		{Op: "rewind.open", Label: "Rewind", Description: "Client-handled, in the game player: opens the player's rewind panel. No request.", Method: "GET", Path: ""},
 		{Op: "controller.remap", Label: "Remap controls", Description: "Client-handled, in the game player: opens the player's own controller-mapping panel. No request.", Method: "GET", Path: ""},

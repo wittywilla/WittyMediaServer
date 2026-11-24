@@ -25,6 +25,7 @@ import QualityMenu, { StreamInfo } from '../../player/QualityMenu'
 import { describe, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from '../../player/quality'
 import { fmtClock, fmtSpan, getLineup, type Alternative, type GuideChannel, type GuidePage, type TuneInfo } from './tvApi'
 import { catchupKey } from './guideLogic'
+import { breakAt, isLibraryKey, LIVE_EDGE_SEC, liveNowFrom, planSeek, resumePlan, startOverPath, type Timeline } from './timeshift'
 import { useTvRemote } from '../../remote/tvTarget'
 import './tv.css'
 import './tvthemes.css'
@@ -42,7 +43,11 @@ haveHls(Hls)
 // and back, so changing where it's shown never tunes again.
 //
 // With ?from=&to= it plays that programme from its start instead (tv-catchup): the viewer's own
-// stream from the channel's archive, which the banner says, and Back to live leaves.
+// stream from the channel's archive, which the banner says, and Back to live leaves. A library
+// channel starts over the same way, on a stream of this viewer's own that is the channel's schedule
+// played behind the clock (#648): its program date-times say where in the programme the picture
+// is, so the bar is the programme's, a break can be skipped, and rewinding further back than the
+// server keeps, or coming back from a long pause, starts that stream again from the moment wanted.
 
 const REMOTE_KEY = 'wms.remote.tv'
 const remoteSaved = () => { try { return localStorage.getItem(REMOTE_KEY) === '1' } catch { return false } }
@@ -57,6 +62,8 @@ export default function TvPlayer() {
   const fromStart = cuStart > 0 && cuEnd > cuStart
   // What the TV section's one player is asked for: the channel, or this programme of it from its start.
   const liveKey = fromStart ? catchupKey(key, cuStart, cuEnd) : key
+  // Started over on a library channel: the viewer's own shifted stream.
+  const shifted = fromStart && isLibraryKey(key)
   const video = useRef<HTMLVideoElement | null>(liveVideo())
   const stage = useRef<HTMLDivElement | null>(null)
   const root = useIdle(4000, [])
@@ -65,13 +72,31 @@ export default function TvPlayer() {
   const info = mine ? live.info : null
   useEffect(() => { noteAway(info?.quality?.away) }, [info])
   const err = mine ? live.err : ''
+  // Library channels can go back further than the window (start over); a tuner can't.
+  const canShift = isLibraryKey(key) && (shifted || !!info?.startOver)
+  const [tl, setTl] = useState<Timeline | null>(null)
+  const heardAt = useRef(Date.now() / 1000)
+  useEffect(() => { setTl(info?.timeline ?? null); heardAt.current = Date.now() / 1000 }, [info])
+  // The schedule's moment at media time t, from the stream's program date-times: hls.js knows the
+  // one playing; a browser playing HLS itself, where the stream's dates start.
+  const schedOf = (t: number): number | null => {
+    const v = video.current
+    if (!v) return null
+    const d = liveHls()?.playingDate
+    if (d) return d.getTime() / 1000 + (t - v.currentTime)
+    const sd = (v as HTMLVideoElement & { getStartDate?: () => Date }).getStartDate?.()
+    return sd && !isNaN(sd.getTime()) ? sd.getTime() / 1000 + t : null
+  }
+  // Where live is now, by the server's clock.
+  const liveNow = () => info ? liveNowFrom(info.serverTime, heardAt.current, Date.now() / 1000) : Date.now() / 1000
   const picture = mine && live.playing
   const tracks = useLiveTracks(video.current, liveHls, mine && live.ready)
   const [needClick, setNeedClick] = useState(false)
   const [banner, setBanner] = useState(true)
   const [remoteOn, setRemoteOnState] = useState(remoteSaved)
   const [dial, setDial] = useState('')
-  const [win, setWin] = useState({ start: 0, end: 0, behind: 0 })
+  // sched: the moment of the channel's schedule the picture is at, from the program date-times.
+  const [win, setWin] = useState<{ start: number; end: number; behind: number; sched: number | null }>({ start: 0, end: 0, behind: 0, sched: null })
   const [alt, setAlt] = useState<Alternative | null>(null)
   const [mini, setMini] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -194,12 +219,63 @@ export default function TvPlayer() {
       const start = v.seekable.start(0), end = v.seekable.end(v.seekable.length - 1)
       const sync = liveHls()?.liveSyncPosition
       const behind = liveCatchUp() ?? Math.max(0, (sync ?? end) - v.currentTime)
-      setWin({ start, end, behind })
+      setWin({ start, end, behind, sched: schedOf(v.currentTime) })
     }, 1000)
     return () => clearInterval(t)
   }, [])
 
-  const seekTo = (t: number) => { const v = video.current; if (v) { setLive({ away: true }); v.currentTime = Math.max(win.start, Math.min(win.end, t)) } }
+  const seekTo = (t: number) => {
+    const v = video.current
+    if (!v) return
+    // Further back than the window on a library channel, or anywhere on a start-over stream: by
+    // the schedule, which may mean starting that stream again from there.
+    if (canShift && (shifted || t < win.start - 0.5)) {
+      const s = schedOf(v.currentTime)
+      if (s != null && goTo(s + (t - v.currentTime))) return
+    }
+    setLive({ away: true }); v.currentTime = Math.max(win.start, Math.min(win.end, t))
+  }
+  // A moment of the schedule: within what's loaded it's a seek; further back, the viewer's own
+  // stream from there; at live, the channel everyone shares.
+  const goTo = (target: number): boolean => {
+    const v = video.current
+    const sched = v ? schedOf(v.currentTime) : null
+    if (!v || sched == null) return false
+    const now = liveNow()
+    const plan = planSeek(target, sched, v.currentTime, win, now, tl?.earliest ?? now - 6 * 3600)
+    if (plan.kind === 'live') { goLive(); return true }
+    if (plan.kind === 'seek') { setLive({ away: true }); v.currentTime = plan.to; return true }
+    restartAt(plan.at)
+    return true
+  }
+  const restartAt = (at: number) => nav(startOverPath(key, at, tl?.programme.end ?? info?.now?.end ?? at + 3600), { replace: true, state: from })
+  const startOver = () => { if (info?.now) nav(startOverPath(key, info.now.start, info.now.end), { replace: true, state: from }) }
+  const canStartOver = !fromStart && !!info?.startOver && !!info.now && info.now.kind !== 'slate' && liveNow() - info.now.start > LIVE_EDGE_SEC
+  // In a break on a start-over stream: one press skips all of it. Live keeps its breaks.
+  const inBreak = shifted ? breakAt(tl?.breaks, win.sched) : null
+  const skipBreak = () => { if (inBreak) goTo(inBreak.end + 0.5) }
+  // Past the end of the programme the timeline told of: what's on from there, and its breaks.
+  const askedAt = useRef(0)
+  useEffect(() => {
+    if (!shifted || !tl || win.sched == null || win.sched < tl.programme.end || askedAt.current === tl.programme.end) return
+    askedAt.current = tl.programme.end
+    api.get<Timeline>(`/tv/${key}/timeline?at=${Math.floor(win.sched)}`).then(setTl).catch(() => {})
+  }, [shifted, tl, win.sched, key])
+  // Back from a pause longer than the server keeps: from where it paused, not what's left.
+  const pausedAt = useRef<{ ms: number; sched: number | null } | null>(null)
+  useEffect(() => {
+    const v = video.current
+    if (!v || !canShift || !picture) return
+    const onPause = () => { pausedAt.current = { ms: Date.now(), sched: schedOf(v.currentTime) } }
+    const onPlay = () => {
+      const p = pausedAt.current
+      pausedAt.current = null
+      if (p?.sched != null && resumePlan(p.ms, Date.now(), info?.bufferSec || 300) === 'restart') restartAt(p.sched)
+    }
+    v.addEventListener('pause', onPause)
+    v.addEventListener('play', onPlay)
+    return () => { v.removeEventListener('pause', onPause); v.removeEventListener('play', onPlay) }
+  })
   // Back to where everyone on the channel is: live sync takes it from there.
   const goLive = () => {
     // From the start, live is the channel itself.
@@ -275,6 +351,7 @@ export default function TvPlayer() {
         case 'i': case 'I': e.preventDefault(); if (info?.now) setMore(true); else showBanner(); break
         case 'g': case 'G': case 'ContextMenu': e.preventDefault(); setMini(true); break
         case 'l': goLive(); break
+        case 'n': if (inBreak) skipBreak(); break
         case 'Backspace': e.preventDefault(); last(); break
         case 'Escape': case 'GoBack': case 'BrowserBack': if (!document.fullscreenElement) { e.preventDefault(); guide() } break
       }
@@ -290,7 +367,8 @@ export default function TvPlayer() {
       case 'up': void step(1); break
       case 'down': void step(-1); break
       case 'left': case 'rew': case 'prev': if (v) seekTo(v.currentTime - 10); break
-      case 'right': case 'ff': case 'next': if (v) seekTo(v.currentTime + 30); break
+      case 'next': if (inBreak) { skipBreak(); break } if (v) seekTo(v.currentTime + 30); break
+      case 'right': case 'ff': if (v) seekTo(v.currentTime + 30); break
       case 'enter': case 'menu': showBanner(); break
       case 'topmenu': guide(); break
       case 'return': last(); break
@@ -313,7 +391,12 @@ export default function TvPlayer() {
   // itself. How far is said when it's known: near a programme change the segments' times can jump.
   // Never before the first picture: a channel still starting has nothing to be behind.
   const isBehind = !fromStart && picture && (live.away || win.behind > 10)
-  const behindText = win.behind < 3 ? t('Behind live') : win.behind < 60 ? t('{n} s behind live', { n: Math.round(win.behind) }) : t('{n} min behind live', { n: Math.round(win.behind / 60) })
+  const behindBy = (s: number) => s < 3 ? t('Behind live') : s < 60 ? t('{n} s behind live', { n: Math.round(s) }) : t('{n} min behind live', { n: Math.round(s / 60) })
+  const behindText = behindBy(win.behind)
+  const tv = !!getTvMode()
+  // On a start-over stream the bar is the programme's, by the schedule.
+  const prog = shifted && tl && win.sched != null ? tl.programme : null
+  const shiftBehind = shifted && win.sched != null ? Math.max(0, liveNow() - win.sched) : 0
 
   const root_ = themeRoot(look)
   const playerRoot = { ...root_, style: { ...root_.style, ...channelVars(info?.accent, look.bg) } }
@@ -340,9 +423,14 @@ export default function TvPlayer() {
       )}
       {info?.now?.kind === 'slate' && !err && <Slate name={info.name} next={info.next} />}
       {dial && <div className="ctv-osd-dial" role="status">{dial}<span className="ctv-blink">_</span></div>}
+      {inBreak && picture && (
+        <button type="button" className="ctv-btn ctv-skip-break" onClick={(e) => { e.stopPropagation(); skipBreak() }} aria-label={t('Skip this break')}>
+          {t('Skip break')} <span aria-hidden="true">▸▸</span>{!tv && <> <kbd aria-hidden="true">N</kbd></>}
+        </button>
+      )}
       <div className="top" onClick={(e) => e.stopPropagation()}>
         <button className="ibtn" onClick={guide} title={t('Guide (G)')} aria-label={t('Back to the guide')}><IconBack /></button>
-        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : t('Tuning…')}</h2><div className="sub">{fromStart ? t('From the start') : isBehind ? behindText : t('Live')}</div></div>
+        <div className="grow"><h2>{info ? `${info.number} ${info.name}` : t('Tuning…')}</h2><div className="sub">{shifted && shiftBehind ? behindBy(shiftBehind) : fromStart ? t('From the start') : isBehind ? behindText : t('Live')}</div></div>
       </div>
       {remoteOn && <Remote onKey={onRemote} enabled={remoteEnabled} onClose={() => setRemoteOn(false)} label="WittyTV" />}
       {banner && !mini && (info ? <Banner info={info} look={look} fromStart={fromStart} onMore={() => setMore(true)} /> : zap && <ZapBanner ch={zap} look={look} />)}
@@ -354,14 +442,16 @@ export default function TvPlayer() {
         <QualityMenu view={info.quality} decision="live" live where={here()} showInfo={statsOn} onShowInfo={(on) => { setStatsOn(on); setShowStreamInfo(on) }} onClose={() => setQualityOpen(false)}
           onChoose={(c) => { setQualityOpen(false); setDeviceDefault(here(), c); announce(t('Quality: {quality}', { quality: describe(c, info.quality?.presets || []) })); if (c !== info.quality?.asked) retune() }} />
       )}
-      <Controls video={video} duration={windowLen} offset={-win.start} onSeek={(t) => seekTo(win.start + t)} onFullscreen={() => toggleFullscreen(root.current)}
+      <Controls video={video} duration={prog ? prog.end - prog.start : windowLen} offset={prog && win.sched != null ? win.sched - prog.start - (video.current?.currentTime ?? 0) : -win.start}
+        onSeek={(t) => { if (prog) goTo(prog.start + t); else seekTo(win.start + t) }} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false} onSettings={() => setSettingsOpen(true)}
         quality={info?.quality ? sizeName(video.current?.videoHeight || 0, video.current?.videoWidth || 0) || describe(info.quality.asked, info.quality.presets) : undefined}
         onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
         audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
         extra={<>
-          {fromStart ? <button className="btn sm primary" onClick={goLive} title={t('Back to live (L)')}>● {t('Back to live')}</button>
-            : isBehind && <button className="btn sm" onClick={goLive} title={t('Back to live (L)')}>● {t('Live')}</button>}
+          {fromStart ? <button className="btn sm primary" onClick={goLive} title={tv ? undefined : t('Back to live (L)')}>● {t('Back to live')}</button>
+            : isBehind && <button className="btn sm" onClick={goLive} title={tv ? undefined : t('Back to live (L)')}>● {t('Live')}</button>}
+          {canStartOver && <button className="btn sm" onClick={startOver} aria-label={t('Start this programme over')}>⟲ {t('Start over')}</button>}
           <button className="btn sm" onClick={() => void step(-1)} title={t('Channel down (Page Down)')} aria-label={t('Channel down')}>{t('CH −')}</button>
           <button className="btn sm" onClick={() => void step(1)} title={t('Channel up (Page Up)')} aria-label={t('Channel up')}>{t('CH +')}</button>
           <button className="btn sm hide-narrow" onClick={last} disabled={!lastKey.current} title={t('Last channel (Backspace)')}>{t('Last')}</button>
@@ -397,7 +487,7 @@ function Banner({ info, look, fromStart, onMore }: { info: TuneInfo; look: Look;
       <div className="ctv-banner-main">
         <div className="ctv-banner-title">{p?.title || info.name}{p?.rating && <em>{p.rating}</em>}</div>
         <div className="ctv-banner-sub">{fromStart && <em className="ctv-banner-tag">{t('From the start')}</em>}{p?.sub || (p ? '' : t('No guide data'))}</div>
-        {fromStart && <div className="ctv-banner-next">{t('Press L or Back to live for the channel as it is now.')}</div>}
+        {fromStart && <div className="ctv-banner-next">{getTvMode() ? t('Choose Back to live for the channel as it is now.') : t('Press L or Back to live for the channel as it is now.')}</div>}
         {p && !fromStart && <div className="ctv-banner-progress"><span>{fmtClock(p.start)}</span><i><u style={{ width: pct + '%' }} /></i><span>{fmtClock(p.end)}</span></div>}
         {info.next && <div className="ctv-banner-next">{t('Next: {title}', { title: info.next.title })} · {fmtSpan(info.next)}</div>}
         {info.playing && <div className="ctv-banner-next">{t('Playing now: {title}', { title: info.playing.title })}</div>}

@@ -359,6 +359,11 @@ html .ctv-page.tvm, html.ten-foot .ctv-page.tvm, html.using-controller .ctv-page
 .ctv-banner-legal a { color: var(--ctv-text); }
 .ctv-banner-clock { flex: none; font-size: var(--text-xl); font-weight: 700; color: var(--ctv-accent); font-variant-numeric: tabular-nums; }
 .ctv-osd-dial { position: absolute; top: 72px; right: 32px; z-index: 6; padding: 6px 18px; background: var(--scrim); color: var(--ctv-key-b); font-family: var(--ctv-font); font-size: var(--text-5xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Skip break (#648): over the picture, above the controls, on a start-over stream only. A real
+   button, so a remote reaches it like any other. */
+.ctv-skip-break { position: absolute; right: 32px; bottom: 120px; z-index: 6; display: inline-flex; align-items: center; gap: var(--space-s); padding: var(--space-s) var(--space-l); font-size: var(--text-lg); font-weight: 700; background: var(--scrim); color: var(--on-image); border: 2px solid var(--on-image); border-radius: var(--radius, 8px); } /* design-ok: sits just above the player's control bar, as the dial OSD sits below the top bar */
+.ctv-skip-break kbd { font-size: var(--text-sm); opacity: .8; }
+@media (max-width: 600px) { .ctv-skip-break { right: 16px; bottom: 96px; } } /* design-ok: the phone's control bar is shorter */
 .ctv-msg-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .ctv-slate { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; pointer-events: none; font-family: var(--ctv-font); }
 .ctv-slate-card { padding: 22px 34px; text-align: center; color: var(--on-image); }

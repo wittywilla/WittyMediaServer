@@ -728,6 +728,34 @@ programme. It plays from the start at the speed it aired, and can be paused and 
 live channel. Leave with `POST /tv/{key}/leave?viewer=<name>&start=<the same start>`. A 404 means the programme
 isn't in the archive. Offer **Watch from the start** only where `catchupDays` covers the programme's start.
 
+### Start over, pause, rewind and skip breaks
+
+Every channel can be paused and rewound within `bufferSec` of its stream, as above. A `/tune` answer with
+`startOver: true` can also start the programme on now from its beginning, for this viewer only, while the channel
+runs on live for everyone else: `GET /tv/{key}/startover?viewer=<name>&from=<a moment, Unix seconds>`. Without
+`from` it is the start of the programme on now. It answers like `/tune`, with `url` for the viewer's own stream and
+`timeline`:
+
+- `programme`: `start`, `end`, `title`, `kind` of the programme `from` is in;
+- `breaks`: `start` and `end` of each run of bumpers and commercials in it and after it, up to the next programme;
+- `from`, `live` (the moment on the air now) and `earliest` (the furthest back `from` may go, six hours).
+
+A library channel's start-over stream is the channel's schedule played behind the clock: its
+`EXT-X-PROGRAM-DATE-TIME`s are the schedule's moments, so the player knows where in the programme the picture is
+(hls.js `playingDate`, ExoPlayer's window start time, AVPlayer `currentDate()`). Draw the bar from
+`programme.start` to `programme.end`. Seeking within what the playlist holds is an ordinary seek; further back, or a
+**Skip break** (to the end of the break the picture is in), asks `/startover` again with that `from`, which replaces
+this viewer's stream. A `from` within 20 seconds of live answers 409: go back to the shared stream with `/tune`. After
+a pause longer than `bufferSec`, start over from where it paused. When the picture passes `programme.end`,
+`GET /tv/{key}/timeline?at=<moment>` gives the next programme's timeline without starting anything. Skip break is
+only offered on a start-over stream: watching live keeps the breaks. Leave with
+`POST /tv/{key}/leave?viewer=<name>&shift=1`, which stops the viewer's stream at once. The owner can turn start over
+off (`tvStartOver` in `PUT /tv/settings`); `startOver` is then false and `/startover` answers 403.
+
+A tuner channel has `startOver` when its source has an archive (`catchupDays`): `/startover` then answers as
+`/catchup` does for the programme on now. Without an archive, pause and rewind work within the rolling buffer kept on
+disk (`tvTunerBufferMin`). Encrypted broadcasts are refused as always: nothing is ever decrypted.
+
 Tuner rows also carry `health` (`ok` or `failing`) from the last check or tune, for showing a channel that has
 stopped working. A channel can have backups, the same station from other sources, which the server tries by itself
 when it won't open; they don't appear in the guide.
@@ -1991,6 +2019,10 @@ The contract is [SDUI.md](SDUI.md): the model, every component and data source, 
 | `POST /tv-sets/{id}/channels` | user | Add and remove channels: `add`, `remove`. |
 | `DELETE /tv-sets/{id}` | user | Delete a set. |
 | `GET /tv/{key}/programme` | user | WittyTV More info: one programme in full, `start=<unix>`. See "More info". |
+| `GET /tv/{key}/startover` | user | Start the programme on now over, or from `from`, for this viewer only: `viewer`, `from`. Answers like `/tune` with `timeline`; 409 at live. See "Start over, pause, rewind and skip breaks". |
+| `GET /tv/{key}/timeline` | user | A library channel's programme and breaks at `at`, and where live is. Starts nothing. |
+| `GET /tv/{key}/shift/{viewer}/playlist.m3u8` | user | A viewer's start-over stream; 410 once it has stopped. |
+| `GET /tv/{key}/shift/{viewer}/seg/{name}` | user | A segment of it. |
 | `GET /tv/{key}/catchup` | user | Watch a programme from its start, from the source's archive: `start`, `end`, `viewer`. Answers like `/tune`. See "Catch-up". |
 | `GET /tv/{key}/catchup/{start}/playlist.m3u8` | user | The catch-up stream. |
 | `GET /tv/{key}/catchup/{start}/seg/{name}` | user | A segment of the catch-up stream. |

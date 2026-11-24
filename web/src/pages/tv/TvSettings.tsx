@@ -125,10 +125,13 @@ function Options() {
       <Row label={t('Keep playing in the background, on new devices')} desc={t("Whether a channel carries on when a viewer switches to another tab or app. Each device can choose for itself in WittyTV's look and in the player; this is what one starts with.")}>
         <Switch checked={s.tvBackgroundPlay !== '0'} label={t('Keep playing in the background, on new devices')} onChange={(v) => void set('tvBackgroundPlay', v ? '1' : '0')} />
       </Row>
+      <Row label={t('Start over on library channels')} desc={t('Viewers can start the programme on now from its beginning, pause, rewind and skip ad breaks, on a stream of their own while the channel carries on live for everyone else. Each viewer doing so uses one more conversion.')}>
+        <Switch checked={s.tvStartOver !== '0'} label={t('Start over on library channels')} onChange={(v) => void set('tvStartOver', v ? '1' : '0')} />
+      </Row>
       <Row label={t('Pause buffer, library channels (minutes)')} desc={t('How far back viewers can pause and rewind. Kept on disk only while someone is watching.')}>
         <input className="input tvs-short" type="number" min={1} max={240} defaultValue={s.tvLibraryBufferMin} onBlur={(e) => void set('tvLibraryBufferMin', e.target.value)} />
       </Row>
-      <Row label={t('Pause buffer, tuner channels (minutes)')} desc={t('An hour of HD can take a few gigabytes of disk.')}>
+      <Row label={t('Pause buffer, tuner channels (minutes)')} desc={t('The rolling buffer viewers pause and rewind a tuner channel in. An hour of HD can take a few gigabytes of disk, so it starts small.')}>
         <input className="input tvs-short" type="number" min={1} max={240} defaultValue={s.tvTunerBufferMin} onBlur={(e) => void set('tvTunerBufferMin', e.target.value)} />
       </Row>
       <Row label={t('Largest picture on channels')} desc={t("Height in lines; 0 uses the server's general limit. Lower is lighter on small machines.")}>

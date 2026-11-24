@@ -2453,5 +2453,8 @@
     "few": "أُوقفت {count} أشياء",
     "many": "أُوقف {count} شيئاً",
     "other": "أُوقف {count} شيء"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "كل الإعدادات ومفاتيح API، والوصول عن بُعد، وموالفات التلفاز، والقنوات والتسجيلات المجدولة.",
+  "Remote access": "الوصول عن بُعد",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "يطلب تسجيل الدخول أيضاً رمزاً من 6 أرقام من تطبيق على هاتفك، فلا تكفي كلمة مرور مسروقة. إنه اختياري، ويستحق التفعيل إن كنت تستخدم الوصول عن بُعد. يعمل أي تطبيق مصادقة."
 }

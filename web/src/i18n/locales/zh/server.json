@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "{folder} 中空间不足：数据需要 {need}，而可用空间为 {free}",
   "the copy didn't match, so nothing was changed: {reason}": "副本不一致，因此没有做任何更改：{reason}",
   "the choice couldn't be saved: {reason}": "无法保存所做的选择：{reason}",
-  "the new place couldn't be saved in {file}: {reason}": "无法将新位置保存到 {file} 中：{reason}"
+  "the new place couldn't be saved in {file}: {reason}": "无法将新位置保存到 {file} 中：{reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "无法连接到你的服务器。请确认 WittyMediaServer 正在运行，并且此设备可以访问它：处于同一网络，或通过远程访问。"
 }

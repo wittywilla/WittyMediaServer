@@ -461,5 +461,6 @@
   "{count} more tries before the sign-in ends.": {
     "one": "Nog {count} poging voordat de inlogpoging eindigt.",
     "other": "Nog {count} pogingen voordat de inlogpoging eindigt."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Uit. Thuis is dat prima: een certificaat heeft een domeinnaam nodig, dus je stelt het in onder Toegang op afstand als je de server buitenshuis wilt bereiken."
 }

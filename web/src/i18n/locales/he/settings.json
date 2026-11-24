@@ -2271,5 +2271,8 @@
   "{count} things turned off": {
     "one": "דבר אחד כובה",
     "other": "{count} דברים כובו"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "כל ההגדרות ומפתחות ה־API, גישה מרחוק, טיונרים לטלוויזיה, ערוצים והקלטות מתוזמנות.",
+  "Remote access": "גישה מרחוק",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "ההתחברות מבקשת גם קוד בן 6 ספרות מאפליקציה בטלפון שלך, כך שסיסמה גנובה לא מספיקה. זה אופציונלי, וכדאי אם משתמשים בגישה מרחוק. כל אפליקציית אימות עובדת."
 }

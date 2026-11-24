@@ -466,5 +466,6 @@
     "one": "Encore {count} essai avant la fin de la connexion.",
     "many": "Encore {count} essais avant la fin de la connexion.",
     "other": "Encore {count} essais avant la fin de la connexion."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Désactivé. À la maison, ce n’est pas un problème : un certificat nécessite un nom de domaine, il se configure donc dans Accès à distance si vous voulez joindre le serveur depuis l’extérieur."
 }

@@ -466,5 +466,6 @@
     "one": "Resta {count} tentativa antes de o início de sessão terminar.",
     "many": "Restam {count} tentativas antes de o início de sessão terminar.",
     "other": "Restam {count} tentativas antes de o início de sessão terminar."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Desativado. Em casa não há problema: um certificado precisa de um nome de domínio, por isso é configurado em Acesso remoto se quiser aceder ao servidor fora de casa."
 }

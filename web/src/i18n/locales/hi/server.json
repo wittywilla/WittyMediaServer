@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "{folder} में जगह नहीं है: डेटा को {need} चाहिए, और {free} खाली है",
   "the copy didn't match, so nothing was changed: {reason}": "कॉपी मेल नहीं खाई, इसलिए कुछ नहीं बदला गया: {reason}",
   "the choice couldn't be saved: {reason}": "चुनाव सेव नहीं हो सका: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "नई जगह {file} में सेव नहीं हो सकी: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "नई जगह {file} में सेव नहीं हो सकी: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "आपके सर्वर तक पहुँच नहीं हो पा रही। जाँचें कि WittyMediaServer चल रहा है और यह डिवाइस उस तक पहुँच सकता है: एक ही नेटवर्क पर, या रिमोट एक्सेस के ज़रिए।"
 }

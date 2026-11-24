@@ -7,7 +7,7 @@
 .sm-home { display: grid; gap: var(--sp-6); max-width: 640px; margin: 0 auto; }
 .sm-home.wide { grid-template-columns: minmax(15rem, 1fr) minmax(0, 2fr); gap: var(--sp-12); max-width: 1180px; align-items: start; }
 /* It stays in view as the groups scroll, below the top bar rather than under it. */
-.sm-left { position: sticky; top: calc(var(--topbar-h) + var(--sp-8)); }
+.sm-left { position: sticky; top: calc(var(--bar-space) + var(--sp-8)); }
 .sm-right { display: grid; gap: var(--sp-6); min-width: 0; }
 
 /* The person: picture, names, role, and the buttons under them. */

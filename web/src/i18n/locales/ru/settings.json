@@ -2355,5 +2355,8 @@
     "few": "Выключено {count} пункта",
     "many": "Выключено {count} пунктов",
     "other": "Выключено {count} пункта"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Все настройки и API-ключи, удалённый доступ, ТВ-тюнеры, каналы и запланированные записи.",
+  "Remote access": "Удалённый доступ",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "При входе также запрашивается 6-значный код из приложения на вашем телефоне, поэтому украденного пароля недостаточно. Это необязательно, но стоит включить, если вы пользуетесь удалённым доступом. Подойдёт любое приложение-аутентификатор."
 }

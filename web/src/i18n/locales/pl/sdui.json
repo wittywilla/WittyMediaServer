@@ -1262,5 +1262,7 @@
     "few": "„{name}” nie może logować się spoza domu do {time} po {count} nieudanych próbach. W domu nadal działa.",
     "many": "„{name}” nie może logować się spoza domu do {time} po {count} nieudanych próbach. W domu nadal działa.",
     "other": "„{name}” nie może logować się spoza domu do {time} po {count} nieudanej próby. W domu nadal działa."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "W domu to adres widoczny w ustawieniach serwera, np. http://192.168.1.10:9797. Poza domem to adres z Ustawień, Dostęp zdalny.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Czy WittyMediaServer działa i czy to urządzenie może się z nim połączyć: w tej samej sieci lub przez Dostęp zdalny. Nic, co zrobiłeś, nie przepadło."
 }

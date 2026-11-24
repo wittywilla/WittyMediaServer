@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "der er ikke plads i {folder}: dataene kræver {need}, og {free} er ledig",
   "the copy didn't match, so nothing was changed: {reason}": "kopien passede ikke, så intet blev ændret: {reason}",
   "the choice couldn't be saved: {reason}": "valget kunne ikke gemmes: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "det nye sted kunne ikke gemmes i {file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "det nye sted kunne ikke gemmes i {file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "Din server kan ikke nås. Tjek, at WittyMediaServer kører, og at denne enhed kan nå den: på samme netværk eller via fjernadgang."
 }

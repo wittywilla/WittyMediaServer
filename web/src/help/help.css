@@ -6,7 +6,7 @@
 .help-public { padding: var(--sp-5) var(--gutter) var(--section-gap); }
 .help-public-head { max-width: 1100px; margin: 0 auto var(--sp-3); }
 
-.help-side { position: sticky; top: calc(var(--topbar-h) + var(--sp-4)); max-height: calc(100vh - var(--topbar-h) - var(--sp-8)); overflow-y: auto; overscroll-behavior: contain; padding-right: var(--sp-2); }
+.help-side { position: sticky; top: var(--sp-4); max-height: calc(100vh - var(--sp-8)); overflow-y: auto; overscroll-behavior: contain; padding-right: var(--sp-2); }
 .help-side-title { font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--sp-2); }
 .help-side-title a { color: var(--fg); }
 .help-side-group { margin-bottom: var(--sp-4); }

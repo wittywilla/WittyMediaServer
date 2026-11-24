@@ -481,5 +481,6 @@
     "few": "بقيت {count} محاولات قبل انتهاء تسجيل الدخول.",
     "many": "بقيت {count} محاولة قبل انتهاء تسجيل الدخول.",
     "other": "بقيت {count} محاولة قبل انتهاء تسجيل الدخول."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "متوقف. هذا مناسب في المنزل: تحتاج الشهادة إلى اسم نطاق، لذا تُعدّ ضمن الوصول عن بُعد إن أردت الوصول إلى الخادم من الخارج."
 }

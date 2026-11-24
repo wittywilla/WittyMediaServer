@@ -2257,5 +2257,8 @@
   "{count} things turned off": {
     "one": "{count} Funktion ausgeschaltet",
     "other": "{count} Funktionen ausgeschaltet"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Alle Einstellungen und API-Schlüssel, Fernzugriff, TV-Tuner, Sender und geplante Aufnahmen.",
+  "Remote access": "Fernzugriff",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Bei der Anmeldung wird zusätzlich ein 6-stelliger Code aus einer App auf deinem Handy abgefragt, sodass ein gestohlenes Passwort nicht genügt. Das ist optional und lohnt sich, wenn du den Fernzugriff nutzt. Jede Authenticator-App funktioniert."
 }

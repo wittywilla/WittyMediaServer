@@ -20,7 +20,7 @@
 .pe-draftbar { margin-bottom: var(--sp-4); }
 
 /* ---------------------------------------------------------------- the bar of an editor */
-.pe-toolbar { position: sticky; top: var(--topbar-h); z-index: var(--z-sticky); display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); padding: var(--sp-2) 0; background: var(--bg); border-bottom: 1px solid var(--border); }
+.pe-toolbar { position: sticky; top: var(--bar-space); z-index: var(--z-sticky); display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); margin: 0 0 var(--sp-4); padding: var(--sp-2) 0; background: var(--bg); border-bottom: 1px solid var(--border); }
 .pe-toolbar-state { flex: 1 1 12rem; display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2) var(--sp-3); min-width: 0; color: var(--fg-2); font-size: var(--text-sm); }
 .pe-dot { flex: none; width: var(--sp-2); height: var(--sp-2); border-radius: var(--r-full); background: var(--accent); }
 .pe-count { display: inline-grid; place-items: center; min-width: 1.25rem; height: 1.25rem; margin-inline-start: var(--sp-2); padding: 0 var(--sp-1); border-radius: var(--r-full); background: var(--warn-soft); color: var(--fg); font-size: var(--text-2xs); font-weight: 700; }
@@ -52,7 +52,7 @@
   .pe-editor > .pe-pane-form { grid-row: auto; }
   .pe-editor > .pe-pane-preview { grid-column: 3; }
   /* The list and the preview stay in view while a long form scrolls. */
-  .pe-editor > .pe-pane-tree, .pe-editor > .pe-pane-preview { position: sticky; top: calc(var(--topbar-h) + 4rem); max-height: calc(100dvh - var(--topbar-h) - 5rem - var(--dock-space)); overflow: auto; overscroll-behavior: contain; }
+  .pe-editor > .pe-pane-tree, .pe-editor > .pe-pane-preview { position: sticky; top: calc(var(--bar-space) + 4rem); max-height: calc(100dvh - var(--bar-space) - 5rem - var(--dock-space)); overflow: auto; overscroll-behavior: contain; }
 }
 
 /* ---------------------------------------------------------------- the tree of sections */
@@ -234,4 +234,4 @@
 .pe-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-4); }
 
 /* A focused control is never left under the page editor's own sticky toolbar. */
-html:has(.pe-toolbar) { scroll-padding-block-start: calc(var(--topbar-h) + 8rem); }
+html:has(.pe-toolbar) { scroll-padding-block-start: calc(var(--bar-space) + 8rem); }

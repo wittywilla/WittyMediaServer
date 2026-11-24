@@ -3,7 +3,7 @@
 /* WittyDiagnoser. Long names and paths must wrap: nothing here may push the page
    wider than a phone. */
 
-.dgn-anchor { scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.dgn-anchor { scroll-margin-top: calc(var(--bar-space) + var(--sp-4)); }
 .dgn-err { margin: var(--sp-2) 0; }
 
 /* Choosing a disc */

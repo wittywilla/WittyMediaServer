@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "v {folder} není dost místa: data potřebují {need} a volných je {free}",
   "the copy didn't match, so nothing was changed: {reason}": "kopie nesouhlasila, takže se nic nezměnilo: {reason}",
   "the choice couldn't be saved: {reason}": "volbu se nepodařilo uložit: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "nové umístění se nepodařilo uložit do {file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "nové umístění se nepodařilo uložit do {file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "K serveru se nelze připojit. Zkontrolujte, že WittyMediaServer běží a že se k němu toto zařízení dostane: ve stejné síti, nebo přes Vzdálený přístup."
 }

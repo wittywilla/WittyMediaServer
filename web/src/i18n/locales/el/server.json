@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "δεν υπάρχει χώρος στο {folder}: τα δεδομένα χρειάζονται {need} και είναι ελεύθερα {free}",
   "the copy didn't match, so nothing was changed: {reason}": "το αντίγραφο δεν ταίριαξε, οπότε δεν άλλαξε τίποτα: {reason}",
   "the choice couldn't be saved: {reason}": "η επιλογή δεν αποθηκεύτηκε: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "η νέα θέση δεν αποθηκεύτηκε στο {file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "η νέα θέση δεν αποθηκεύτηκε στο {file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "Δεν είναι δυνατή η σύνδεση με τον διακομιστή σας. Ελέγξτε ότι το WittyMediaServer λειτουργεί και ότι αυτή η συσκευή τον φτάνει: στο ίδιο δίκτυο ή μέσω απομακρυσμένης πρόσβασης."
 }

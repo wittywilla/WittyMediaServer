@@ -78,7 +78,7 @@ export function Account({ back, onDone, advanced }: { back: () => void; onDone: 
     </>
   )
   return (
-    <form ref={form} onSubmit={submit} noValidate>
+    <form ref={form} onSubmit={submit} noValidate className="su-narrow">
       <StepHead title={t('Create your account')} lead={t('You’ll use it to sign in and look after the server.')} />
       <div className="oobe-form su-form">
         <Field label={t('Name to sign in with')} error={problems.name}><Input autoFocus value={name} onChange={(e) => setName(e.target.value)} autoComplete="username" autoCapitalize="off" spellCheck={false} /></Field>
@@ -86,7 +86,7 @@ export function Account({ back, onDone, advanced }: { back: () => void; onDone: 
           <Input type={show ? 'text' : 'password'} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" />
         </Field>
         <Field label={t('Type it again')} error={problems.pw2}><Input type={show ? 'text' : 'password'} value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></Field>
-        <TickRow checked={show} onChange={setShow} title={t('Show what I’m typing')} />
+        <TickRow plain checked={show} onChange={setShow} title={t('Show what I’m typing')} />
         {advanced && more}
         {!advanced && <Field label={t('Server name')}><Input value={server} maxLength={40} placeholder={DEFAULT_NAME} onChange={(e) => setServer(e.target.value)} autoComplete="off" /></Field>}
         {needCode && (

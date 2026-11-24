@@ -246,7 +246,7 @@ export function Colours({ next, back }: StepProps) {
     next()
   }
   return (
-    <PanelStep title={t('Colours')} lead={t('Keep the colours each look comes with, or pick one theme for all of them.')} back={back} next={() => void save()} busy={busy}>
+    <PanelStep wide title={t('Colours')} lead={t('Keep the colours each look comes with, or pick one theme for all of them.')} back={back} next={() => void save()} busy={busy}>
       <ThemeChoice layout={layout} here={here} theme={theme} onPick={pick} />
     </PanelStep>
   )
@@ -265,7 +265,7 @@ export function TvGuide({ next, back }: StepProps) {
     next()
   }
   return (
-    <PanelStep title={t('TV guide')} lead={t('How the live TV guide lays out its channels and programmes.')} back={back} next={() => void save()} busy={busy}>
+    <PanelStep wide title={t('TV guide')} lead={t('How the live TV guide lays out its channels and programmes.')} back={back} next={() => void save()} busy={busy}>
       {layout && <TvLookChoice suggested={layout.tvTheme} lookName={layout.name} value={tvLook} onChange={setTvLook} />}
     </PanelStep>
   )

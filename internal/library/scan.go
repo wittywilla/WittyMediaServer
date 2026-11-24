@@ -758,6 +758,9 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 	}
 	rules := s.Store.loadRuleSet(ctx, lib)
 	ctx = context.WithValue(ctx, rulesKey{}, rules)
+	// The next new films' details are read while one is indexed (scan_ahead.go).
+	ahead := s.newLookahead(ctx, lib)
+	ctx = context.WithValue(ctx, aheadKey{}, ahead)
 	if err := s.Store.loadKnown(ctx, libraryID, all, !IsAudioLibrary(lib.Type) && lib.Type != "photos" && lib.Type != "books"); err != nil && ctx.Err() == nil {
 		s.Log.WarnContext(ctx, "could not read what the library holds in one go; looking file by file", "library", lib.Name, "err", err)
 	}
@@ -791,6 +794,7 @@ func (s *Scanner) scan(ctx context.Context, libraryID int64) error {
 			continue // its name says media, its content says otherwise
 		}
 		keep[c.path] = true
+		ahead.feed(all, i)
 		err := guard(func() error {
 			switch {
 			case (lib.Type == "shows" || lib.Type == "anime") && IsDiscKind(c.kind):
@@ -1270,9 +1274,9 @@ func (s *Scanner) findPoster(ctx context.Context, it *Item, c candidate) {
 }
 
 func (s *Scanner) probeVideo(ctx context.Context, it *Item) {
-	pctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	pctx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
-	p, err := s.Tools.ProbeFile(pctx, it.Path)
+	p, err := s.probeFile(pctx, it.Path)
 	if err != nil {
 		s.minorFailure(ctx, "could not read a file's details", err, "file", it.Path)
 		return

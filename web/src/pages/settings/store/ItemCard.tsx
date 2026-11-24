@@ -12,6 +12,7 @@ import { itemModuleKind, moduleKindTitle, needsOverrideOf } from './overrides'
 import type { OverrideBody } from './OverrideDialog'
 import { categoryTitle, currentRun, failureOf, installModule, isBusy, mb, PHASE, type Failure, type RunItem, type StoreItem } from './storeApi'
 import { olderOf } from './olderServer'
+import { compat, permissionsLine } from './compat'
 import { useOlderAsk } from './OlderServerDialog'
 import { t, tn, bidi } from '../../../i18n'
 
@@ -156,7 +157,23 @@ export function InPlaceProgress({ it }: { it: StoreItem }) {
   )
 }
 
-export function ItemCard({ item, onChanged, repairRoute }: { item: StoreItem; onChanged: () => void; repairRoute: string }) {
+// One plain line under a card's summary: how big it is and what it asks for, then whether it works
+// here and, when it doesn't, what to do about it.
+export function CardFacts({ item, server, platform }: { item: StoreItem; server: string; platform: string }) {
+  const c = compat(item, server, platform)
+  const installedOk = item.status?.installed && c.ok
+  const facts = [item.size && !item.status?.installed ? mb(item.size) : '', item.kind !== 'server' ? permissionsLine(item.permissions) : '', ...(item.needs?.length ? [t('Needs {list}', { list: item.needs.join(', ') })] : [])].filter(Boolean)
+  return (
+    <div className="st-card-facts">
+      {facts.length > 0 && <span className="st-card-meta">{facts.join(' · ')}</span>}
+      {!installedOk && (c.ok
+        ? <span className="st-fit ok">{c.tag}</span>
+        : <span className={'st-fit ' + c.tone}>{c.line}{c.todo ? ' ' + c.todo : ''}</span>)}
+    </div>
+  )
+}
+
+export function ItemCard({ item, onChanged, repairRoute, server = '', platform = '' }: { item: StoreItem; onChanged: () => void; repairRoute: string; server?: string; platform?: string }) {
   const link = useRef<HTMLAnchorElement>(null)
   // The button goes once it's installed, and the focus shouldn't go with it.
   const { press, working, dialogs } = useInstall(item, onChanged, repairRoute, () => { if (document.activeElement === document.body) link.current?.focus() })
@@ -171,8 +188,9 @@ export function ItemCard({ item, onChanged, repairRoute }: { item: StoreItem; on
           {item.summary && <span className="st-card-sum">{item.summary}</span>}
         </span>
       </Link>
+      <CardFacts item={item} server={server} platform={platform} />
       <div className="st-card-foot">
-        <StateTags item={item} />
+        <StateTags item={item} server={server} />
         {!item.official && item.kind !== 'server' && <span className="st-card-store">{item.storeName} ({item.storeHost})</span>}
         <ActionButton it={item} press={press} working={working} />
       </div>

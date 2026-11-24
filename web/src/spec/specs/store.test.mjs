@@ -5,18 +5,17 @@ import assert from 'node:assert/strict'
 import { addStoreSpec, otherStoresSpec, storeSearchSpec } from './store.ts'
 import { problems, withIds } from '../model.ts'
 
-const base = { q: 'tv', cats: [{ id: 'tv', title: 'Live TV', n: 2 }], cat: 'tv', show: 'updates', updates: 3, publishers: ['Witty'], publisher: '', platforms: [{ value: 'linux', label: 'Linux' }], platform: '', kinds: [], moduleKind: '', statuses: [{ value: 'stable', label: 'Stable' }], status: '', checking: false }
+const base = { q: 'tv', cats: [{ id: 'tv', title: 'Live TV', n: 2 }], cat: 'tv', publishers: ['Witty'], publisher: '', platforms: [{ value: 'linux', label: 'Linux' }], platform: '', kinds: [], moduleKind: '', statuses: [{ value: 'stable', label: 'Stable' }], status: '' }
 
 test('store search: chips carry the choice, kind select only when kinds exist', () => {
   const p = storeSearchSpec(base)
   assert.deepEqual(problems(withIds(p)), [])
   const cats = p.sections.find((s) => s.h === 'Category').items
   assert.deepEqual(cats.map((c) => [c.id, c.on]), [['cat:', false], ['cat:tv', true]])
-  assert.equal(p.sections.find((s) => s.h === 'Show').items[1].title, 'Updates available · 3')
+  assert.equal(p.sections.find((s) => s.h === 'Show'), undefined, 'installed and updates are tabs now')
   assert.deepEqual(p.sections.at(-1).items.map((f) => f.id), ['publisher', 'platform', 'status'])
   const k = storeSearchSpec({ ...base, kinds: [{ value: 'web', label: 'Web' }] })
   assert.ok(k.sections.at(-1).items.some((f) => f.id === 'kind'))
-  assert.equal(storeSearchSpec({ ...base, checking: true }).sections.find((s) => s.h === 'Show').items[2].disabled, true)
 })
 
 test('other stores: empty says so; each store has switch, facts, buttons', () => {

@@ -109,7 +109,7 @@ function NoReader({ format }: { format: string }) {
     <div className="empty" role="status">
       <h2>{t('No reader for {format} books is in use here', { format: format.toUpperCase() })}</h2>
       <p className="muted">{user?.isAdmin ? t('Add one from the module store.') : t('Ask whoever runs this server to add one.')}</p>
-      {user?.isAdmin && <Link className="btn" to="/settings/modules/store">{t('Open the module store')}</Link>}
+      {user?.isAdmin && <Link className="btn" to="/settings/modules?tab=browse">{t('Open the module store')}</Link>}
     </div>
   )
 }

@@ -44,11 +44,11 @@ export default function ModulePage() {
 
   if (error && !d) return (
     <div className="ms-page st-page">
-      <BackLink to="/settings/modules/store" label={t('Module store')} />
+      <BackLink to="/settings/modules?tab=browse" label={t('Module store')} />
       <Notice tone="danger" title={error.title} action={<Button size="sm" onClick={load}>{t('Try again')}</Button>}>{error.message}</Notice>
     </div>
   )
-  if (!d) return <div className="ms-page st-page"><BackLink to="/settings/modules/store" label={t('Module store')} /><Spinner /></div>
+  if (!d) return <div className="ms-page st-page"><BackLink to="/settings/modules?tab=browse" label={t('Module store')} /><Spinner /></div>
   return <Body d={d} reload={load} />
 }
 
@@ -120,7 +120,7 @@ function Body({ d, reload }: { d: ItemDetail; reload: () => void }) {
   const managePage = manageSpec({ installed: installedHere, canRollback: !!m?.canRollback, previous: m?.previous || undefined, core: !!m?.core, enabled: m?.enabled !== false, builtin: m?.delivery === 'builtin', usingFork: usingThisFork, working })
   return (
     <div className="ms-page st-page st-module">
-      <BackLink to="/settings/modules/store" label={t('Module store')} />
+      <BackLink to="/settings/modules?tab=browse" label={t('Module store')} />
 
       <header className="st-mod-head">
         <ModuleIcon item={it} size={96} />

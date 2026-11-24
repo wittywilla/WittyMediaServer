@@ -133,3 +133,30 @@
 .st-print { display: grid; gap: 2px; margin-top: var(--sp-2); font-size: var(--text-sm); }
 .st-print code { font-family: var(--font-mono); font-size: var(--text-md); overflow-wrap: anywhere; }
 .st-print.big code { font-size: var(--text-lg); }
+
+/* The store's three tabs (StoreHome). The tab bar stays in reach while the list scrolls. */
+.st-home > .st-tabs-nav { margin: 0; min-width: 0; }
+.st-news-fold > .st-news { margin-top: var(--sp-3); }
+.st-home > [role=tabpanel] { min-width: 0; }
+.st-tab { display: grid; gap: var(--sp-5); min-width: 0; }
+.st-tab > .set-card { margin: 0; }
+.st-tab-h { margin: 0; font-size: var(--text-lg); font-weight: var(--weight-heading); letter-spacing: var(--tracking-heading); }
+.st-browse { display: grid; gap: var(--sp-5); min-width: 0; }
+
+/* A card's facts: size and what it asks for, then whether it works here and what to do if not. */
+.st-card-facts { display: grid; gap: var(--sp-1); padding: 0 var(--sp-3) var(--sp-2); font-size: var(--text-xs); line-height: var(--leading-snug); }
+.st-card-meta { color: var(--fg-3); overflow-wrap: anywhere; }
+.st-fit { color: var(--fg-2); overflow-wrap: anywhere; }
+.st-fit.ok { color: color-mix(in srgb, var(--ok) 80%, var(--fg)); }
+.st-fit.bad { color: color-mix(in srgb, var(--danger) 70%, var(--fg)); }
+.st-fit.warn { color: var(--fg); }
+
+/* What needs a look, at the top of Installed. */
+.st-attention { border-color: color-mix(in srgb, var(--warn) 55%, var(--border)); }
+.st-att-list { list-style: none; margin: 0; display: grid; gap: var(--sp-2); }
+.st-att-list li { display: flex; align-items: center; gap: var(--sp-3); }
+.st-att-list li > span { flex: 1; min-width: 0; color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.st-att-list li b { color: var(--fg); margin-right: var(--sp-1); }
+
+/* When a part of the store couldn't be drawn (StoreBoundary): a plain message in its place. */
+.st-broken { margin: var(--sp-4) 0; }

@@ -23,7 +23,7 @@ export default function OtherStores() {
   const { view, error, reload } = useStoreView()
   const head = (
     <>
-      <BackLink to="/settings/modules/store" label={t('Module store')} />
+      <BackLink to="/settings/modules?tab=browse" label={t('Module store')} />
       <PageHead title={t('Other stores')} desc={t('Add a store run by someone else, and see the modules it offers alongside this project’s. Everything from one is labelled, and whether to trust it is up to you.')} actions={<PageHelp to="module-store#other-stores">{t('What to know first')}</PageHelp>} />
     </>
   )

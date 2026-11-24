@@ -49,9 +49,46 @@ export type StorePreview = {
   modules: { id: string; name: string; summary?: string; kind: string; why?: string }[]; count: number; warning: string[]
 }
 
-export const storeView = () => api.get<StoreView>('/modulestore')
+// The store's view, made safe to draw. A catalogue is someone else's file passed on by the server, so
+// a page never trusts its shape: a list that isn't a list is empty, an entry with no id or name is left
+// out, and text fields that aren't text are dropped. An entry with no answer on whether it fits is
+// treated as not fitting, with a reason, rather than offered for install.
+const str = (v: unknown) => (typeof v === 'string' ? v : undefined)
+const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : undefined)
+export function cleanItem(raw: unknown): StoreItem | null {
+  if (!raw || typeof raw !== 'object') return null
+  const it = raw as Record<string, unknown>
+  const id = str(it.id), name = str(it.name) || id
+  if (!id || !name) return null
+  const fit = it.fit && typeof it.fit === 'object' && typeof (it.fit as Fit).kind === 'string'
+    ? { ok: (it.fit as Fit).ok === true, kind: (it.fit as Fit).kind, why: str((it.fit as Fit).why) }
+    : { ok: false, kind: 'unreadable', why: t('The store’s entry for it couldn’t be read.') }
+  const store = str(it.store) || 'official'
+  const pub = it.publisher && typeof it.publisher === 'object' ? { name: str((it.publisher as { name?: unknown }).name) || '', url: str((it.publisher as { url?: unknown }).url) } : undefined
+  return {
+    ...(it as unknown as StoreItem), id, name, store, key: str(it.key) || `${store}/${id}`, fit,
+    storeName: str(it.storeName) || '', storeHost: str(it.storeHost) || '', official: it.official === true,
+    kind: (str(it.kind) || 'official') as ItemKind, summary: str(it.summary), description: str(it.description), group: str(it.group),
+    publisher: pub?.name ? pub : undefined, version: str(it.version), released: str(it.released), changelog: str(it.changelog),
+    size: typeof it.size === 'number' && isFinite(it.size) ? it.size : undefined,
+    libraries: strs(it.libraries), requires: strs(it.requires), needs: strs(it.needs), platforms: strs(it.platforms), permissions: strs(it.permissions), screenshots: strs(it.screenshots),
+    status: it.status && typeof it.status === 'object' ? it.status as ModuleStatus : undefined,
+  }
+}
+export function cleanView(raw: unknown): StoreView {
+  const v = (raw && typeof raw === 'object' ? raw : {}) as Partial<StoreView>
+  const items = (Array.isArray(v.items) ? v.items : []).map(cleanItem).filter((x): x is StoreItem => !!x)
+  const stores = (Array.isArray(v.stores) ? v.stores : []).filter((s) => s && typeof s === 'object' && typeof s.id === 'string')
+  return {
+    ...(v as StoreView), items, stores, server: str(v.server) || '', policy: str(v.policy) || '', platform: str(v.platform) || '',
+    updates: typeof v.updates === 'number' ? v.updates : items.filter((i) => i.status?.installed && i.status.latest).length, repairRoute: str(v.repairRoute) || '/settings/repair',
+    run: v.run && typeof v.run === 'object' && Array.isArray(v.run.items) ? v.run : undefined,
+  }
+}
+
+export const storeView = () => api.get<unknown>('/modulestore').then(cleanView)
 export const itemDetail = (store: string, id: string) => api.get<ItemDetail>(`/modulestore/item/${encodeURIComponent(store)}/${encodeURIComponent(id)}`)
-export const checkAll = () => api.post<StoreView>('/modulestore/check')
+export const checkAll = () => api.post<unknown>('/modulestore/check').then(cleanView)
 export const startUpdateAll = () => api.post<Run>('/modulestore/update-all')
 export const currentRun = () => api.get<{ run?: Run }>('/modulestore/run').then((r) => r.run)
 export type OwnerSecrets = { password: string; code: string }

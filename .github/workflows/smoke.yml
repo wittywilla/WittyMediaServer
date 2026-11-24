@@ -117,6 +117,63 @@ jobs:
             ${{ runner.temp }}/smoke-out/data/logs
           retention-days: 14
 
+  # The module store: open it, search, install, update and remove against a small local catalogue,
+  # and a malformed one and a garbled one that must be explained without breaking anything else
+  # (scripts/store-e2e). Its own catalogue, two small web modules, so it doesn't wait on WittyPlay's.
+  store:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: smoke-build
+          path: ${{ runner.temp }}/smoke-build
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/smoke-ffmpeg
+          key: smoke-ffmpeg-${{ hashFiles('scripts/ffmpeg.lock') }}
+      - name: FFmpeg
+        timeout-minutes: 8
+        run: bash scripts/smoke/ffmpeg.sh "$RUNNER_TEMP/smoke-ffmpeg"
+      - name: A small catalogue (WittyStats twice, WittyVisualizer withdrawn, a malformed one)
+        run: |
+          (cd web && npm ci --ignore-scripts --no-audit --no-fund)
+          repos="$RUNNER_TEMP/store-repos"; mkdir -p "$repos"
+          for r in WittyModule WittyStats WittyVisualizer; do
+            b=$SMOKE_MODULE_REF
+            git ls-remote --exit-code --heads "https://github.com/wittywilla/$r" "$b" >/dev/null 2>&1 || b=
+            git clone -q --depth 1 ${b:+--branch "$b"} "https://github.com/wittywilla/$r" "$repos/$r"
+          done
+          bash scripts/store-e2e/catalog.sh "$RUNNER_TEMP/store-cat" "$repos"
+      - name: The module store, in a browser
+        env:
+          WV_BROWSER: /usr/bin/google-chrome
+        run: |
+          chmod +x "$RUNNER_TEMP"/smoke-build/bin/*
+          bash scripts/store-e2e/run.sh "$RUNNER_TEMP/smoke-build/bin/wittymediaserver" "$RUNNER_TEMP/store-cat" "$RUNNER_TEMP/store-out" "$RUNNER_TEMP/smoke-ffmpeg/bin" 2>&1 | tee "$RUNNER_TEMP/store-out.log"
+          [ "${PIPESTATUS[0]}" = 0 ] || { echo "::error title=Smoke: module store::see store-out.log and shots/*.png"; exit 1; }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: smoke-store
+          path: |
+            ${{ runner.temp }}/store-out.log
+            ${{ runner.temp }}/store-out/shots
+            ${{ runner.temp }}/store-out/server.log
+            ${{ runner.temp }}/store-out/data/logs
+          retention-days: 14
+
   remote:
     needs: build
     runs-on: ubuntu-latest

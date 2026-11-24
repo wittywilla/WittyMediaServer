@@ -6,7 +6,7 @@ import { t, tk } from '../../sdui/words.ts'
 
 // Settings, Module store (canvas page "modupdates"): the update settings and the filter. The store's update-all panel, the
 // policy note and the module rows themselves are the page's own, under the sections named below.
-// Field ids: autoCheck, autoInstall. Chip ids: check, filter:<id>.
+// Field ids: autoCheck, autoInstall. Chip ids: check, filter:<id>. With no filters (the store's Updates tab) there's no Show row.
 export interface ModulesTop {
   autoCheck: boolean; autoInstall: boolean; loaded: boolean
   checkedAt: string; held: string; checkError: string; checking: boolean
@@ -28,6 +28,6 @@ export function modulesTopSpec(v: ModulesTop): SpecPageData {
   if (v.checkError) s.push(secN('', t('The last check didn’t work: {error} Everything keeps working as it is.', { error: v.checkError }), true))
   s.push(secN('', t('This server is version {version} and has module API {api}.', { version: v.server, api: v.api })))
   s.push(secP('', [{ id: 'check', title: v.checking ? t('Checking…') : t('Check now'), disabled: v.checking }]))
-  s.push(secP(t('Show'), v.filters.map((f) => ({ id: 'filter:' + f.id, title: f.id === 'all' ? f.label : t('{filter} · {count}', { filter: f.label, count: f.count }), on: v.filter === f.id }))))
+  if (v.filters.length) s.push(secP(t('Show'), v.filters.map((f) => ({ id: 'filter:' + f.id, title: f.id === 'all' ? f.label : t('{filter} · {count}', { filter: f.label, count: f.count }), on: v.filter === f.id }))))
   return mk('modules', t('Settings · Modules'), t('Modules'), t('What this server can do, one piece at a time. Add what you want and remove what you don’t.'), s)
 }

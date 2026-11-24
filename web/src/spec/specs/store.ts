@@ -6,12 +6,11 @@ import { t, tn } from '../../sdui/words.ts'
 
 // Settings, Module store (canvas "modstore", "modfile") and Other stores. The module cards under the search
 // are the page's own (they carry artwork and their own buttons). Ids: field q, publisher, platform, kind, status;
-// chips cat:<id>, show:installed, show:updates, check.
+// chips cat:<id>. What's installed and what can be updated are the store's own tabs, not filters here.
 export interface StoreSearch {
-  q: string; cats: { id: string; title: string; n: number }[]; cat: string; show: string; updates: number
+  q: string; cats: { id: string; title: string; n: number }[]; cat: string
   publishers: string[]; publisher: string; platforms: { value: string; label: string }[]; platform: string
   kinds: { value: string; label: string }[]; moduleKind: string; statuses: { value: string; label: string }[]; status: string
-  checking: boolean
 }
 const opts = (first: string, list: { value: string; label: string }[]) => [{ value: '', label: first }, ...list]
 
@@ -19,11 +18,6 @@ export function storeSearchSpec(v: StoreSearch): SpecPageData {
   const s: SpecSection[] = [
     secF(t('Find a module'), [{ id: 'q', kind: 'text', label: t('Search modules'), value: v.q, placeholder: t('Search modules'), hint: t('By name, description or category.'), autoComplete: 'off' }]),
     secP(t('Category'), [{ id: 'cat:', title: t('All'), on: !v.cat }, ...v.cats.map((c) => ({ id: 'cat:' + c.id, title: `${c.title} · ${c.n}`, label: `${c.title}, ${c.n}`, on: v.cat === c.id }))]),
-    secP(t('Show'), [
-      { id: 'show:installed', title: t('Installed'), on: v.show === 'installed' },
-      { id: 'show:updates', title: v.updates ? t('Updates available · {count}', { count: v.updates }) : t('Updates available'), on: v.show === 'updates' },
-      { id: 'check', title: v.checking ? t('Checking…') : t('Check now'), label: t('Check for updates now'), disabled: v.checking },
-    ]),
     secF(t('Narrow by'), [
       { id: 'publisher', kind: 'select' as const, label: t('Publisher'), value: v.publisher, options: opts(t('Anyone'), v.publishers.map((p) => ({ value: p, label: p }))) },
       { id: 'platform', kind: 'select' as const, label: t('Platform'), value: v.platform, options: opts(t('Any'), v.platforms) },

@@ -17,18 +17,19 @@ import (
 
 // Kinds of failure.
 const (
-	FailSignature = "signature"   // not signed with the expected key, or changed since it was
-	FailKey       = "key-changed" // a store's signing key isn't the one that was agreed to
-	FailNetwork   = "network"
-	FailDisk      = "disk"
-	FailTooOld    = "too-old"   // built for an older server than this one
-	FailTooNew    = "too-new"   // needs a newer server than this one
-	FailCrash     = "crash"     // its program wouldn't start, or kept stopping
-	FailCorrupt   = "corrupt"   // its package is damaged
-	FailMismatch  = "mismatch"  // the catalogue and the release disagree
-	FailWithdrawn = "withdrawn" // its publisher took it back
-	FailMissing   = "missing"   // nothing was found to install
-	FailOther     = "other"
+	FailSignature  = "signature"   // not signed with the expected key, or changed since it was
+	FailKey        = "key-changed" // a store's signing key isn't the one that was agreed to
+	FailNetwork    = "network"
+	FailDisk       = "disk"
+	FailTooOld     = "too-old"    // built for an older server than this one
+	FailTooNew     = "too-new"    // needs a newer server than this one
+	FailCrash      = "crash"      // its program wouldn't start, or kept stopping
+	FailCorrupt    = "corrupt"    // its package is damaged
+	FailMismatch   = "mismatch"   // the catalogue and the release disagree
+	FailWithdrawn  = "withdrawn"  // its publisher took it back
+	FailMissing    = "missing"    // nothing was found to install
+	FailUnreadable = "unreadable" // a catalogue that isn't in a form this server can read
+	FailOther      = "other"
 )
 
 // Failure is one thing that went wrong, for a person.
@@ -88,6 +89,10 @@ func Explain(name, detail string) *Failure {
 		f = Failure{Kind: FailSignature, Title: "The signature doesn't check out", Repair: true,
 			Message: i18n.F("The files of {name} aren't exactly what its publisher signed, so this server refused to use them. A damaged download can do this, and so can someone tampering with them.", "name", name),
 			Try:     []string{i18n.T("Try it again: a damaged download usually goes away."), i18n.T("If it keeps happening, tell whoever publishes the module. Don't look for another copy of it elsewhere.")}}
+	case containsAny(low, "unreadable catalogue", "catalogue was ignored: catalogue:", "invalid character", "cannot unmarshal", "unexpected end of json"):
+		f = Failure{Kind: FailUnreadable, Title: "The list couldn't be read",
+			Message: i18n.F("{name} has something in it that this server can't read, so it was set aside. Nothing changed: everything installed keeps working, and the last list this server could read is still used.", "name", name),
+			Try:     []string{i18n.T("Check again later: whoever publishes it may already have put it right."), i18n.T("If it keeps happening, update this server, or tell whoever runs that store.")}}
 	case containsAny(low, "unpacking", "the package has no", "differs from the release", "gzip", "unexpected eof", "archive", "not a valid zip", "invalid header", "larger than the release says"):
 		f = Failure{Kind: FailCorrupt, Title: "The package is damaged", Repair: true,
 			Message: i18n.F("The package of {name} couldn't be unpacked or wasn't complete. Nothing changed, and what was running before still is.", "name", name),

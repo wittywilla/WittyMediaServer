@@ -15,6 +15,10 @@ const { page, press, shot, call, go, until, size, maskAddresses } = s
 const login = await call('POST', '/login', { name: process.env.WMS_USER || 'owner', password: process.env.WMS_PASSWORD })
 await page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(login.token)})`)
 await call('POST', '/legal/acknowledge')
+// A notice left by an earlier test server stopping isn't part of any page: dismissed once.
+await go('/settings/about', 3000)
+await page.eval(`(() => { let e = [...document.querySelectorAll('main *')].find((x) => x.children.length === 0 && /stopped unexpectedly/.test(x.textContent)); for (let i = 0; e && i < 5; i++, e = e.parentElement) { const b = [...e.querySelectorAll('button')].find((x) => !/stopped/.test(x.textContent)); if (b) { b.click(); return } } })()`)
+await wait(500)
 
 const libs = async () => { const l = await call('GET', '/libraries'); return l.libraries || l }
 const lib = async (name) => (await libs()).find((l) => l.name === name)
@@ -49,6 +53,15 @@ const closeDialogs = async () => {
   }
   return closed
 }
+// WMS_SHOW_PATHS="<this computer's folder>=><the folder to show>;..." puts example folders in the pictures in place of
+// the test computer's own, as maskAddresses does for addresses.
+const PATHS = (process.env.WMS_SHOW_PATHS || '').split(';').filter(Boolean).map((p) => p.split('=>'))
+const maskPaths = () => PATHS.length && page.eval(`(() => {
+  const swaps = ${JSON.stringify(PATHS)}
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+  for (let n = w.nextNode(); n; n = w.nextNode()) for (const [from, to] of swaps) if (n.nodeValue.includes(from)) n.nodeValue = n.nodeValue.split(from).join(to)
+  document.querySelectorAll('input').forEach((i) => { for (const [from, to] of swaps) if (i.value.includes(from)) i.value = i.value.split(from).join(to) })
+})()`)
 const playerGone = async () => { await key('Escape', 'Escape', 27); await wait(400); await press(/Stop playing and close/); await wait(600) }
 
 const scenes = {
@@ -63,6 +76,8 @@ const scenes = {
     await openLib('Movies', 5000)
     await shot('movies')
     const it = await item('Movies', /Sintel/)
+    // Earlier runs played it: the page is pictured as before anyone has.
+    await call('DELETE', `/items/${it.id}/progress`)
     await go(`/item/${it.id}`, 3000)
     await shot('film-page')
     await press(/^\s*Play/); await wait(1500)
@@ -145,6 +160,9 @@ const scenes = {
         await page.eval(`[...document.querySelectorAll('.np-more-styles button, [role=menu] button, [role=dialog] button, [role=option], [role=menuitem]')].find((b) => b.textContent.trim() === ${JSON.stringify(name)})?.click()`)
       }
       await wait(1000)
+      await press(/^\s*Turn on\s*$/)
+      // A style with flashes asks once more, the first time it's chosen.
+      await wait(1500)
       await press(/^\s*Turn on\s*$/)
       await wait(9000)
       n++
@@ -346,7 +364,7 @@ const scenes = {
   },
   async play() {
     const games = await items('Games')
-    const want = [['gameplay-ucity', /City/, [13, 13]], ['gameplay-thwaite', /Thwaite/, [13, 13]], ['gameplay-libbet', /Libbet/, [13]], ['gameplay-dragon-blaster', /Dragon Blaster/, [13]], ['gameplay-datastorm', /Data ?Storm/, [13]], ['gameplay-rhde', /RHDE/, [13]], ['gameplay-super-tilt-bro', /Super Tilt/, [13]]]
+    const want = [['gameplay-ucity', /City/, [13, 13]], ['gameplay-thwaite', /Thwaite/, [13, 13]], ['gameplay-libbet', /Libbet/, [13]], ['gameplay-dragon-blaster', /dragon ?blaster/i, [13]], ['gameplay-datastorm', /Data ?Storm/, [13]], ['gameplay-rhde', /RHDE/, [13]], ['gameplay-super-tilt-bro', /Super Tilt/, [13]]]
     for (const [name, rx, keys] of want) {
       const g = games.find((x) => rx.test(x.title))
       if (!g) { console.log('no game', rx); continue }
@@ -383,10 +401,11 @@ const scenes = {
       console.log('profile', name, JSON.stringify(await call('POST', '/users', body)).slice(0, 80))
     }
     await call('DELETE', '/sessions')
-    for (const path of ['libraries', 'metadata', 'playback', 'channels', 'couch', 'transcoding', 'library-transcoding', 'remote', 'users', 'security', 'games', 'activity', 'appearance', 'sharing', 'wittyrigs', 'logs', 'diagnoser', 'modules', 'backup', 'repair', 'reset', 'about', 'legal']) {
+    for (const path of ['libraries', 'pages', 'metadata', 'playback', 'channels', 'couch', 'transcoding', 'library-transcoding', 'network', 'data-folder', 'remote', 'users', 'security', 'quality', 'games', 'activity', 'appearance', 'notifications', 'sharing', 'wittyrigs', 'module-settings', 'logs', 'diagnoser', 'modules', 'backup', 'health', 'repair', 'reset', 'about', 'legal']) {
       await go(`/settings/${path}`, 3500)
       await closeDialogs()
       await maskAddresses()
+      await maskPaths()
       await shot(`settings-${path}`)
     }
     await go('/settings/logs', 3000)
@@ -403,6 +422,15 @@ const scenes = {
     await press(/Add library/); await wait(1500)
     await press(/^\s*Movies|Movies/, '[role=dialog]'); await wait(800)
     await press(/Browse folders|Browse folder/); await wait(2500)
+    // Opened where the pictured media is (WMS_MEDIA), and a drive's own label (this computer's name for
+    // it) left off: just its letter.
+    if (process.env.WMS_MEDIA) {
+      await page.eval(`[...document.querySelectorAll('[role=dialog]')].pop().querySelector('.fx-crumb')?.click()`); await wait(500)
+      await page.eval(`[...[...document.querySelectorAll('[role=dialog]')].pop().querySelectorAll('input')].find((i) => !/Filter/.test(i.placeholder || ''))?.select()`)
+      await page.send('Input.insertText', { text: process.env.WMS_MEDIA })
+      await key('Enter', 'Enter', 13); await wait(2500)
+    }
+    await page.eval(`(() => { const w = document.createTreeWalker([...document.querySelectorAll('[role=dialog]')].pop() || document.body, NodeFilter.SHOW_TEXT); for (let n = w.nextNode(); n; n = w.nextNode()) n.nodeValue = n.nodeValue.replace(/^\\s*[^()\\n]+ \\(([A-Z]:)\\)\\s*$/, '$1') })()`)
     await shot('folder-browser')
     await go('/settings/modules', 2500)
     await press(/Browse the store/); await wait(3500)
@@ -439,12 +467,207 @@ const scenes = {
     await go(`/library/${m.id}`, 3500); await shot('phone-music')
     await size(1920, 1080)
   },
-  // TV mode: the website as the TV apps are (?tv=1). The docs show its Libraries tab.
+  // What 0.8.2 to 0.8.4 added: one search, the bell, a kids' profile's limits and report, the sign-in cards and the
+  // page for joining from away, pausing a channel, cloning a station (WMS_CLONE_GUIDE: an XMLTV file of a made-up
+  // station), and Settings on a phone and a TV.
+  async features() {
+    await go('/search?q=popeye', 4500); await shot('search')
+    await go('/', 3500)
+    await page.eval(`document.querySelector('.topbar .note-btn')?.click()`); await wait(2000)
+    await shot('notifications')
+    await key('Escape', 'Escape', 27); await wait(500)
+    await go('/settings/users', 3500)
+    if (await press(/Limits for Kids/)) { await wait(2000); await shot('profile-kids-limits'); await key('Escape', 'Escape', 27); await wait(600) }
+    if (await press(/Report for Kids/)) { await wait(2000); await shot('profile-kids-report'); await key('Escape', 'Escape', 27); await wait(600) }
+    // The cards a signed-out visitor sees, in a page of its own.
+    const other = await s.browser.open(`${server}/?tv=0`)
+    await other.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
+    const outShot = async (name) => { await wait(1500); (await import('node:fs')).writeFileSync((await import('node:path')).join(out, `${name}.png`), await other.shot()); console.log('shot', name) }
+    await other.eval(`localStorage.removeItem('wms.token')`)
+    await other.go(`${server}/?tv=0`); await wait(2500)
+    await outShot('signin')
+    await other.eval(`[...document.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Sign in with your phone')?.click()`); await wait(3000)
+    await outShot('signin-phone')
+    await other.go(`${server}/away?tv=0`); await wait(2500)
+    await outShot('away')
+    await other.send('Page.close').catch(() => {})
+    await page.send('Page.bringToFront')
+    // Pausing a channel: the guide's preview full screen, then paused.
+    await go('/tv', 5000)
+    await page.eval(`document.querySelector('.ctv-preview-bar button[title="Full screen"]')?.click()`)
+    await hasVideo(60000).catch((e) => console.log(e.message))
+    await wait(5000)
+    await page.eval(`(() => { const v = document.querySelector('video'); if (v) v.pause() })()`)
+    await move(); await wait(1500)
+    await shot('wittytv-paused')
+    await key('Escape', 'Escape', 27); await wait(800)
+    // Clone a station, from a guide file.
+    if (process.env.WMS_CLONE_GUIDE) {
+      await go('/tv/channels', 3000)
+      await press('Clone a station')
+      await until(`!!document.querySelector('#ch-clone')`, 20000, 'the clone section')
+      await press('Guide file or link'); await wait(400)
+      const { root } = await page.send('DOM.getDocument', { depth: -1, pierce: true })
+      const { nodeId } = await page.send('DOM.querySelector', { nodeId: root.nodeId, selector: '#ch-clone input[type=file]' })
+      await page.send('DOM.setFileInputFiles', { nodeId, files: [process.env.WMS_CLONE_GUIDE] })
+      await until(`/\.xml/.test(document.querySelector('#ch-clone')?.innerText || '')`, 20000, 'the upload')
+      if (process.env.WMS_CLONE_DAY) await page.eval(`(() => { const i = document.querySelector('#ch-clone input[type=date]'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, ${JSON.stringify(process.env.WMS_CLONE_DAY)}); i.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+      await wait(500)
+      await shot('clone-source')
+      await press('Find stations')
+      await until(`document.querySelectorAll('.clone-station').length > 0`, 30000, 'stations')
+      await press(/^\s*WDMO Demo 9/)
+      await until(`document.querySelectorAll('.clone-slot').length > 0`, 60000, 'the matched schedule')
+      await wait(1500)
+      await page.eval(`document.querySelector('.clone-slot')?.scrollIntoView({ block: 'start' }); scrollBy(0, -120)`); await wait(800)
+      await shot('clone-schedule')
+      // Nothing is saved: the draft is left.
+      await page.eval(`localStorage.removeItem('wms.channelDraft.new')`)
+    }
+  },
+  // Settings on a phone and in TV mode: one menu on every device.
+  async settingsizes() {
+    await size(390, 844, true, 2)
+    await go('/settings', 3500); await shot('phone-settings')
+    await go('/settings/remote', 3500); await maskAddresses(); await shot('phone-settings-remote')
+    await size(1920, 1080)
+    await go('/settings?tv=1', 4000); await move(1, 1); await shot('tv-settings')
+    await go('/settings/remote?tv=1', 4000); await move(1, 1); await maskAddresses(); await shot('tv-settings-remote')
+    await page.eval(`localStorage.setItem('wms.tvmode', '0')`)
+    await go('/?tv=0', 2000)
+  },
+  // Karaoke's Mix panel and Voice settings presets, at a computer's size and a phone's, and the README's
+  // karaoke over a visualizer.
+  async karaoke() {
+    const l = await lib('Music')
+    const r = await call('GET', `/items?library=${l.id}&limit=3000&search=${encodeURIComponent('Take Me Out')}`)
+    const song = (r.items || r)[0]
+    const start = async () => {
+      await go(`/album/${l.id}?album=${encodeURIComponent(song.album)}&artist=${encodeURIComponent(song.albumArtist || song.artist || '')}`, 3000)
+      await press(/Play Take Me Out/); await wait(4000)
+      await press(/Show the full player/); await wait(1500)
+      await page.eval(`(() => { const a = document.querySelector('audio'); if (a) a.currentTime = 42 })()`)
+      await press(/Karaoke \(K\)|^\s*Karaoke\s*$/); await wait(5000)
+    }
+    await start()
+    await move()
+    // M opens Mix, as the karaoke bar's Mix button does.
+    await key('m', 'KeyM', 77); await wait(1800)
+    console.log('mix open', await page.eval(`!!document.querySelector('.kar-mixp')`))
+    await shot('karaoke-mix')
+    await key('m', 'KeyM', 77); await wait(800)
+    await move()
+    await press(/Voice settings/, '.kar-bar'); await wait(1800)
+    await press(/^\s*Presets\s*$/, '.kar'); await wait(800)
+    await shot('karaoke-voice-presets')
+    await press(/^\s*Advanced\s*$/, '.kar'); await wait(1200)
+    await shot('karaoke-voice-advanced')
+    await press(/^\s*Presets\s*$/, '.kar'); await wait(500)
+    await press(/Voice settings/, '.kar-bar'); await wait(800)
+    // Behind the words: the visualizer, for the README.
+    await move()
+    await press(/^\s*Visualizer\s*$/, '.kar'); await wait(1500)
+    await press(/^\s*Turn on\s*$/); await wait(1000)
+    // Northern Veil is under More (its button shows the style's name once it's chosen).
+    if (!(await page.eval(`[...document.querySelectorAll('.kar .np-more-styles')].some((b) => /Northern Veil/.test(b.textContent))`))) {
+      await press(/More visualizer styles/, '.kar'); await wait(800)
+      await page.eval(`[...document.querySelectorAll('[role=menuitemradio]')].find((b) => b.textContent.trim() === 'Northern Veil')?.click()`)
+    }
+    await wait(1000); await press(/^\s*Turn on\s*$/)
+    await wait(1500); await press(/^\s*Turn on\s*$/)
+    await move(1, 1); await wait(9000)
+    await shot('karaoke')
+    await playerGone()
+    await size(390, 844, true, 2)
+    await start()
+    await page.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 195, y: 300 }] }).catch(() => {})
+    await page.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }).catch(() => {})
+    await wait(1500)
+    await shot('phone-karaoke')
+    await key('m', 'KeyM', 77); await wait(1800)
+    await shot('phone-karaoke-mix')
+    await size(1920, 1080)
+    await playerGone()
+  },
+  // The player's quality menu (Q), and the .wittyinfo editor from a film's ⋯ menu.
+  async quality() {
+    const it = await item('Movies', /Sintel/)
+    await go(`/item/${it.id}`, 3000)
+    await press(/^\s*Play/); await wait(1500)
+    await hasVideo()
+    await seek(330)
+    await wait(6000)
+    await move()
+    await key('q', 'KeyQ', 81); await wait(1800)
+    await shot('player-quality')
+    await key('Escape', 'Escape', 27); await wait(600)
+    await playerGone()
+  },
+  async wittyinfo() {
+    const it = await item('Movies', /Sintel/)
+    await go(`/item/${it.id}`, 3500)
+    await press(/Manage this title/, 'main'); await wait(800)
+    console.log('editor', await press(/Edit scenes and skips/)); await wait(3500)
+    // An intro row, to show what a part looks like. Nothing is saved.
+    await press(/^\s*Add\s*$/, '[role=dialog]'); await wait(800)
+    await shot('wittyinfo-editor')
+    // Nothing is saved: the editor is left with Escape.
+    await key('Escape', 'Escape', 27); await wait(500)
+  },
+  // WittyTuner's HDHomeRun setup, against a stand-in for the device at WMS_HDHR (an address on this computer,
+  // such as 127.0.0.2: see WittyTuner's tests). The pictures show 192.168.1.50, the guides' example.
+  async hdhomerun() {
+    const addr = process.env.WMS_HDHR
+    if (!addr) { console.log('WMS_HDHR not set: skipped'); return }
+    const mask = () => page.eval(`(() => {
+      const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+      for (let n = w.nextNode(); n; n = w.nextNode()) n.nodeValue = n.nodeValue.split(${JSON.stringify(addr)}).join('192.168.1.50')
+      document.querySelectorAll('input').forEach((i) => { if (i.value.includes(${JSON.stringify(addr)})) i.value = i.value.split(${JSON.stringify(addr)}).join('192.168.1.50') })
+    })()`)
+    const dialog = () => page.eval(`document.querySelector('[role=dialog]')?.innerText.replace(/\s+/g, ' ').slice(0, 500) || ''`)
+    await go('/settings/tuners', 3500)
+    // A notice left by an earlier test server stopping isn't part of this page.
+    await page.eval(`(() => { let e = [...document.querySelectorAll('main *')].find((x) => x.children.length === 0 && /stopped unexpectedly/.test(x.textContent)); for (let i = 0; e && i < 5; i++, e = e.parentElement) { const b = [...e.querySelectorAll('button')].find((x) => !/stopped/.test(x.textContent)); if (b) { b.click(); return } } })()`); await wait(500)
+    await press(/Add live TV/); await wait(1500)
+    await press(/A tuner box on your network/, '[role=dialog]'); await wait(600)
+    await press(/^\s*Next\s*$/, '[role=dialog]'); await wait(2500)
+    await page.eval(`(() => { const l = [...document.querySelectorAll('[role=dialog] label')].find((x) => /^Address/.test(x.textContent.trim())); const i = (l && (l.htmlFor ? document.getElementById(l.htmlFor) : l.querySelector('input'))) || [...document.querySelectorAll('[role=dialog] input')][1]; i.focus() })()`)
+    await page.send('Input.insertText', { text: addr })
+    await wait(300)
+    await press(/^\s*Check it\s*$/, '[role=dialog]'); await wait(5000)
+    console.log('checked:', await dialog())
+    await mask()
+    await shot('hdhomerun-details')
+    for (let step = 3; step <= 6; step++) {
+      if (!(await press(/^\s*(Add and read its channels|Next|Try it|Done|Finish)\s*$/, '[role=dialog]'))) break
+      await wait(7000)
+      console.log('step', step, await dialog())
+      await mask()
+      if (step === 3) await shot('hdhomerun-channels')
+      if (!(await page.eval(`!!document.querySelector('[role=dialog]')`))) break
+    }
+    await key('Escape', 'Escape', 27); await wait(800)
+  },
+  // TV mode: the website as the TV apps are (?tv=1). The docs show its Libraries tab, the guide with its
+  // Shortcuts open, and an album's page.
   async tvmode() {
     await go('/?tv=1', 4000)
     await go('/libraries', 5000)
     await move(1, 1)
     await shot('tv-mode')
+    await go('/tv', 6000)
+    await press(/^\s*Shortcuts\s*$/); await wait(1500)
+    await move(1, 1)
+    await shot('tv-guide-shortcuts')
+    await press(/^\s*Shortcuts\s*$/); await wait(500)
+    const l = await lib('Music')
+    const albums = await call('GET', `/music/albums?library=${l.id}&sort=title`)
+    const album = (albums.albums || albums).find((a) => a.title === 'Collide') || (albums.albums || albums)[0]
+    await go(`/album/${l.id}?album=${encodeURIComponent(album.title)}&artist=${encodeURIComponent(album.artist)}`, 5000)
+    await move(1, 1)
+    await shot('tv-album')
+    await page.eval(`localStorage.setItem('wms.tvmode', '0')`)
+    await go('/?tv=0', 2000)
   },
   async big() {
     await go('/big/', 5000)

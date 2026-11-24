@@ -29,6 +29,21 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   computer's sizes, a phone and in TV mode, and under the floating glass bar. It fails on anything under the bar,
   sideways scroll, a title and its sections in different alignments, centred words in an off-centre box, a heading
   said twice, a control with no focus ring, Tab scrolling a box that hides its overflow, and a TV target under 48.
+## 0.8.5-alpha
+
+Not released yet.
+
+**Games in Docker**
+
+- **Games play in Docker, with WittyPlay 0.7.19.** On a NAS with Docker's usual network, games started but no picture
+  ever arrived: WebRTC could only offer the container's private address, and the WebSocket the player should have
+  fallen back to was refused. The fix is all in WittyPlay, which updates from Settings, Modules on any 0.8 server.
+  [docs/DOCKER.md](docs/DOCKER.md#games) now says which consoles play without a graphics card, how to give games an
+  Intel or AMD card through `/dev/dri`, and how to have WebRTC in Docker (one published UDP port, or the host's
+  network). docker-compose.yml has the UDP port as a commented line.
+- **CI plays games in the image.** `scripts/test/docker-games.sh` runs it locked down with no card, installs WittyPlay
+  from a test catalogue, downloads two real cores and checks both send pictures over the server's port, on amd64 and
+  arm64. The Dockerfile takes `GOTAGS` for that test build.
 
 ## 0.8.4-alpha
 

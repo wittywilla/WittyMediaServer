@@ -106,7 +106,7 @@ func checkWith(ctx context.Context, j *Job, id, name string, src *discSource, o 
 	}
 	if h == nil {
 		j.Add(Finding{Severity: SevWarn, Title: name + " isn't on this server", What: i18n.T("This disc's titles and menus can't be checked without it."),
-			Fix: "Add " + name + " in Settings, Modules, and run this check again."})
+			Fix: "Add " + name + " in Settings, Module store, and run this check again."})
 		damage()
 		return
 	}
@@ -175,7 +175,7 @@ func checkCD(ctx context.Context, j *Job, path string) bool {
 	h := j.env.Helper("wittycd", moduleCheckLimit)
 	if h == nil {
 		j.Add(Finding{Severity: SevWarn, Title: "WittyCD isn't on this server", What: i18n.T("A CD image can't be checked without it."),
-			Fix: "Add WittyCD in Settings, Modules, and run this check again."})
+			Fix: "Add WittyCD in Settings, Module store, and run this check again."})
 		return true
 	}
 	defer h.Close()

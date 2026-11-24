@@ -325,7 +325,10 @@ func (s *Server) handleConnectOffer(w http.ResponseWriter, r *http.Request) {
 	}
 	o := &connectOffer{code: code, find: hex.EncodeToString(find), proof: proof, by: me.ID, session: tokenFrom(r), userID: target.ID,
 		expires: time.Now().Add(connectTTL), asks: map[string]time.Time{}, spent: &atomic.Bool{}}
-	_, err = s.connect.add(o)
+	ended, err := s.connect.add(o)
+	if len(ended) > 0 {
+		s.p2pDevicesChanged() // the links beside the codes it ended are spent: their enrol keys go from the relay
+	}
 	if errors.Is(err, errPairBusy) {
 		w.Header().Set("Retry-After", "60")
 		writeErr(w, 429, "Too many devices are waiting to connect. Try again in a few minutes.")
@@ -341,6 +344,7 @@ func (s *Server) handleConnectOffer(w http.ResponseWriter, r *http.Request) {
 	if node := s.p2pNode(); node != nil && accessFor(target).Can(library.FeatureRemote) {
 		secret, err := s.p2p.invites.makeShared(me.ID, target.ID, tokenFrom(r), o.spent)
 		if err == nil {
+			s.p2pInviteOpened()
 			logging.AddSecret(secret)
 			inv := p2p.Invite{ServerID: node.ID(), Secret: secret, Name: s.ServerName(r.Context()), Addrs: inviteAddrs(node.Addrs())}
 			out["link"] = inv.String()
@@ -357,7 +361,9 @@ func (s *Server) handleConnectOffer(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/connect/offer: ends the code and link this person has open.
 func (s *Server) handleConnectCancel(w http.ResponseWriter, r *http.Request) {
-	s.connect.cancel(userFrom(r).ID)
+	if len(s.connect.cancel(userFrom(r).ID)) > 0 {
+		s.p2pDevicesChanged()
+	}
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
 
@@ -446,6 +452,7 @@ func (s *Server) handleConnectAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logins.ok(k)
+	s.p2pDevicesChanged() // the link beside the code is spent: its enrol key goes from the relay
 	if !s.stillSignedIn(r.Context(), o.session, o.by) {
 		s.Log.InfoContext(r.Context(), "a code to connect a device was refused", "cat", "auth", "from", ipOf(r), "why", "whoever made the code has signed out")
 		redeemFailed(w, redeemExpired, 0)

@@ -189,7 +189,7 @@ func checkOverrides(ctx context.Context, e *DoctorEnv) []Issue {
 		out = append(out, Issue{Key: "module-override-" + o.Module, Severity: SevWarn, Safety: SafetyManual,
 			Title: o.Module + " " + o.Version + " runs under a manual override",
 			What:  i18n.F("Checks it would normally have to pass were skipped{who}{when}: {kinds}. It isn't updated by itself while overridden.", "who", who, "when", when, "kinds", strings.Join(o.Kinds, ", ")),
-			Steps: []string{i18n.F("Open Settings, Modules, {module}, and remove the override when a version that passes the checks is out.", "module", o.Module),
+			Steps: []string{i18n.F("Open Settings, Module store, {module}, and remove the override when a version that passes the checks is out.", "module", o.Module),
 				"Settings, WittyLog, Follow: Audit records lists every override and who made it."}})
 	}
 	return out
@@ -217,7 +217,7 @@ func checkModuleHealth(ctx context.Context, e *DoctorEnv) []Issue {
 	var out []Issue
 	for _, m := range f.Modules {
 		name := orWords(m.Name, m.ID)
-		steps := []string{i18n.F("Open Settings, Modules, {name}, for its state and what it last said.", "name", name),
+		steps := []string{i18n.F("Open Settings, Module store, {name}, for its state and what it last said.", "name", name),
 			"Settings, WittyLog, Module: " + name + " shows its lines; turn on its options there for more."}
 		switch {
 		case m.State == "fallback":

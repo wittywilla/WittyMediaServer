@@ -34,7 +34,7 @@ func checkModuleState(_ context.Context, e *DoctorEnv) []Issue {
 	if _, err := modules.ReadInstalledState(e.modulesDir()); err != nil {
 		return []Issue{{Key: "module-state", Severity: SevWarn, Title: "The list of installed modules can't be read", Safety: SafetySafe, Exclusive: e.Modules == nil,
 			What: "modules/state.json is damaged: " + err.Error() + ". No downloaded module is in use until this is fixed, and your choices of version can't be remembered.",
-			Fix:  "Moves the damaged file to the safety copy. Modules are out of use until you install them again from Settings, Modules."}}
+			Fix:  "Moves the damaged file to the safety copy. Modules are out of use until you install them again from Settings, Module store."}}
 	}
 	return nil
 }
@@ -43,7 +43,7 @@ func fixModuleState(_ context.Context, e *DoctorEnv, _ *Issue, f *FixContext) (s
 	if err := f.Remove(filepath.Join(e.modulesDir(), "state.json")); err != nil {
 		return "", err
 	}
-	return i18n.T("The damaged list was moved to the safety copy. Modules are out of use until you install them again from Settings, Modules."), nil
+	return i18n.T("The damaged list was moved to the safety copy. Modules are out of use until you install them again from Settings, Module store."), nil
 }
 
 // --------------------------------------------------------------- each installed version

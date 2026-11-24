@@ -5,7 +5,6 @@ package uninstall
 
 import (
 	"encoding/json"
-	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -29,7 +28,8 @@ var DataEntries = map[string]string{
 	"diagnostics":           "saved diagnostic reports",
 	"certs":                 "HTTPS certificates",
 	"branding":              "your server's logo",
-	"channel-logos":         i18n.T("TV channel logos"),
+	"channel-logos":         "TV channel logos",
+	"clone-guides":          "TV guides read for cloning a station, kept a week",
 	"bumpers":               "TV bumpers",
 	"separator":             "the karaoke voice separator (Demucs) and its Python",
 	"lyrics-corrections":    "lyrics you corrected",
@@ -104,7 +104,7 @@ func planDataFolder(e *Env, pl *Plan, dir string, named, admin bool) {
 	if exists(filepath.Join(dir, "wms.db")) && e.Libraries != nil {
 		f, err := e.Libraries(dir)
 		if err != nil {
-			pl.keep(i18n.T("Your library folders"), "the database in "+dir+" couldn't be read, so check nothing of yours was kept in that folder")
+			pl.keep("Your library folders", "the database in "+dir+" couldn't be read, so check nothing of yours was kept in that folder")
 		} else {
 			facts = f
 		}

@@ -40,3 +40,5 @@ file internal/archive/
 file internal/ebook/
 file internal/midi/
 file internal/lyrics/
+# A User-Agent header other servers read.
+"WittyMediaServer guide import"

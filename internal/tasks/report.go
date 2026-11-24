@@ -122,7 +122,7 @@ func (m *Reporter) finish(key string, e *reported, rep Report) {
 	}
 	apply(e.h, rep)
 	if rep.State == Failed {
-		e.h.Fail(i18n.T("The module doing this says it failed."), i18n.T("Try again. If it happens again, Settings, Modules has its log."), nil)
+		e.h.Fail(i18n.T("The module doing this says it failed."), i18n.T("Try again. If it happens again, Settings, Module store has its log."), nil)
 	} else {
 		e.h.Finish(nil)
 	}
@@ -143,7 +143,7 @@ func (m *Reporter) CloseAll(failed bool) {
 			e.timer.Stop()
 		}
 		if failed {
-			e.h.Fail(i18n.T("The module doing this stopped working before it finished."), i18n.T("Try again. If it happens again, Settings, Modules has its log."), nil)
+			e.h.Fail(i18n.T("The module doing this stopped working before it finished."), i18n.T("Try again. If it happens again, Settings, Module store has its log."), nil)
 		} else {
 			e.h.Finish(context.Canceled)
 		}

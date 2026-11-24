@@ -137,6 +137,35 @@ func (s *Server) handleTVSummary(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		out.Lines = append(out.Lines, "Listening on "+s.Cfg.Listen)
+	case "remote":
+		if !u.IsAdmin {
+			break
+		}
+		st := s.state()
+		if !st.on {
+			out.Lines = append(out.Lines, "Off")
+			break
+		}
+		out.Lines = append(out.Lines, "On")
+		if st.publicURL != "" {
+			out.Lines = append(out.Lines, st.publicURL)
+		}
+	case "data-folder":
+		if !u.IsAdmin || s.Cfg == nil {
+			break
+		}
+		out.Lines = append(out.Lines, s.Cfg.DataDir)
+	case "metadata":
+		if !u.IsAdmin {
+			break
+		}
+		on := 0
+		for _, a := range s.agents(ctx) {
+			if a.Enabled {
+				on++
+			}
+		}
+		out.Lines = append(out.Lines, plural(on, "agent on", "agents on"))
 	}
 	writeJSON(w, 200, out)
 }

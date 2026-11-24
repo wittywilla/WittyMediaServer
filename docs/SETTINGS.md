@@ -4,6 +4,12 @@ Use this guide to find where a setting lives and what it does. It goes through e
 
 Open Settings from your account menu, the picture at the top right. On a TV or a phone, it's under **You**. On a wide screen the menu sits beside the page. On a narrower one the menu is a page of its own, with a one-line note on each item.
 
+![Settings on a phone: your profile, then Account, Household and Yours, one row each](images/phone-settings.webp)
+*On a phone.*
+
+![Settings in TV mode: the same menu, large, with the profile beside it](images/tv-settings.webp)
+*In TV mode. A page that needs typing shows a card saying where to change it.*
+
 **Finding a setting.** Type in **Search settings**, at the top of the menu: a page's name, a setting's name or a word for it, such as *dark mode*, *colour* or *subtitles*. What it finds takes the menu's place. Press Enter for the first, or move to another with the arrow keys or Tab. Escape empties the search and brings the menu back. Each result goes straight to its part of the page.
 
 **Long pages** have **On this page** under their title: a link to each section, which stays at the top as you scroll and marks the one you're in.

@@ -18,6 +18,24 @@ const CARD = 'main.oobe-card'
 const DIALOG = '.ui-dialog'
 const atStep = (id) => until(`location.pathname === '/setup/${id}' && document.querySelector('main h1')`, 40000, `step ${id}`)
 const onward = () => press(/^\s*Continue\s*$/, 'main')
+// WMS_SHOW_PATHS="<this computer's folder>=><the folder to show>;..." puts example folders in the pictures in place of
+// the test computer's own, as maskAddresses does for addresses.
+const PATHS = (process.env.WMS_SHOW_PATHS || '').split(';').filter(Boolean).map((p) => p.split('=>'))
+const maskPaths = () => PATHS.length && page.eval(`(() => {
+  const swaps = ${JSON.stringify(PATHS)}
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+  for (let n = w.nextNode(); n; n = w.nextNode()) for (const [from, to] of swaps) if (n.nodeValue.includes(from)) n.nodeValue = n.nodeValue.split(from).join(to)
+})()`)
+// A desktop server started without -data asks where to keep its data, right after the account.
+const storage = async () => {
+  await until(`location.pathname !== '/setup/account'`, 40000, 'leaving the account page')
+  await wait(1500)
+  if ((await page.eval('location.pathname')) !== '/setup/storage') return
+  await maskAddresses(); await maskPaths()
+  await card('setup-03-data-folder', CARD)
+  await press(/Keep it here|^\s*Continue\s*$/, 'main')
+  await until(`location.pathname !== '/setup/storage'`, 120000, 'the data folder')
+}
 // A step's Customize dialog, with one of its parts opened.
 const customize = async (name, part) => {
   await press(/^\s*Customize\s*$/, 'main')
@@ -91,6 +109,7 @@ try {
     await account()
     await card('setup-03-account', CARD)
     await press(/Create account/)
+    await storage()
     await atStep('modules'); await wait(1800)
     for (const m of [/WittyPlay/, /WittyComics/, /WittyPhotos/]) { console.log('tick', m, await press(m, 'main')); await wait(120) }
     await card('setup-04-modules', CARD)
@@ -103,7 +122,8 @@ try {
     await card('setup-06-media', CARD)
     await customize('setup-07-media-customize', 'Posters and details')
     // The demo media is shared: nothing is written beside it.
-    await s.call('PUT', '/settings', { saveMetadata: '0' })
+    // Online sources off too: they attach posters that aren't openly licensed.
+    await s.call('PUT', '/settings', { saveMetadata: '0', saveWittyinfo: '0', tvmaze: '0', wikidata: '0', musicbrainz: '0' })
     await press(/^\s*Movies/, 'main'); await wait(500)
     await typeIn('main input[aria-label="Folder path"]', media + '/Movies')
     await wait(200)

@@ -72,6 +72,9 @@ On the computer running the server, setup doesn't ask for one. From any other de
 
 ## Finding your way around
 
+![Search: one box for every library, results grouped by kind, here shows and episodes](images/search.webp)
+*One search across every library. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 What you see depends on the look you chose. Some looks have a bar along the top, some a menu down the side, and some both. Each look works on a TV, a phone, a tablet and a computer.
 
 - **The menu** holds Home, your libraries, Search and the modules' pages. An administrator chooses what's in it under **Settings → Pages & menu**. See [Pages and the menu](PAGES.md).

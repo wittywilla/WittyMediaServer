@@ -7,6 +7,14 @@
 720,
 405
 ],
+"app-phone-home.webp": [
+720,
+1600
+],
+"app-tv-home.webp": [
+720,
+405
+],
 "audiobook-page.webp": [
 720,
 405
@@ -14,6 +22,10 @@
 "audiobooks.webp": [
 720,
 405
+],
+"away.webp": [
+720,
+450
 ],
 "bluray-item.webp": [
 720,
@@ -35,9 +47,13 @@
 720,
 405
 ],
-"client-home.webp": [
+"clone-schedule.webp": [
 720,
-432
+405
+],
+"clone-source.webp": [
+720,
+405
 ],
 "collection-page.webp": [
 720,
@@ -123,6 +139,14 @@
 720,
 405
 ],
+"hdhomerun-channels.webp": [
+720,
+405
+],
+"hdhomerun-details.webp": [
+720,
+405
+],
 "help-setup-guide.webp": [
 720,
 405
@@ -140,6 +164,18 @@
 405
 ],
 "home-videos.webp": [
+720,
+405
+],
+"karaoke-mix.webp": [
+720,
+405
+],
+"karaoke-voice-advanced.webp": [
+720,
+405
+],
+"karaoke-voice-presets.webp": [
 720,
 405
 ],
@@ -195,6 +231,10 @@
 720,
 405
 ],
+"notifications.webp": [
+720,
+405
+],
 "phone-film.webp": [
 720,
 1559
@@ -215,6 +255,10 @@
 720,
 1559
 ],
+"phone-settings.webp": [
+720,
+1559
+],
 "photos-map.webp": [
 720,
 405
@@ -227,11 +271,23 @@
 720,
 405
 ],
+"player-quality.webp": [
+720,
+405
+],
 "player.webp": [
 720,
 405
 ],
 "podcasts.webp": [
+720,
+405
+],
+"profile-kids-limits.webp": [
+720,
+405
+],
+"profile-kids-report.webp": [
 720,
 405
 ],
@@ -248,6 +304,10 @@
 405
 ],
 "reader-pdf.webp": [
+720,
+405
+],
+"search.webp": [
 720,
 405
 ],
@@ -287,6 +347,10 @@
 720,
 405
 ],
+"settings-health.webp": [
+720,
+405
+],
 "settings-legal.webp": [
 720,
 405
@@ -308,6 +372,10 @@
 405
 ],
 "settings-modules.webp": [
+720,
+405
+],
+"settings-notifications.webp": [
 720,
 405
 ],
@@ -361,7 +429,7 @@
 ],
 "setup-03-data-folder.webp": [
 720,
-540
+388
 ],
 "setup-04-modules.webp": [
 720,
@@ -409,7 +477,7 @@
 ],
 "setup-22-advanced-name.webp": [
 720,
-1297
+1303
 ],
 "setup-23-advanced-people.webp": [
 720,
@@ -424,6 +492,14 @@
 391
 ],
 "shorts.webp": [
+720,
+405
+],
+"signin-phone.webp": [
+720,
+405
+],
+"signin.webp": [
 720,
 405
 ],
@@ -455,7 +531,19 @@
 720,
 405
 ],
+"tv-album.webp": [
+720,
+405
+],
+"tv-guide-shortcuts.webp": [
+720,
+405
+],
 "tv-mode.webp": [
+720,
+405
+],
+"tv-settings.webp": [
 720,
 405
 ],
@@ -464,6 +552,10 @@
 405
 ],
 "tv-shows.webp": [
+720,
+405
+],
+"wittyinfo-editor.webp": [
 720,
 405
 ],
@@ -492,6 +584,10 @@
 405
 ],
 "wittytv-new-channel.webp": [
+720,
+405
+],
+"wittytv-paused.webp": [
 720,
 405
 ],

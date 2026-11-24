@@ -123,10 +123,10 @@ To change a theme that's nearly right, press the download button on its card in 
 WittyTV, the TV guide, has eight themes of its own, separate from the app's theme and from the looks above. An app theme can suggest one, with one more setting in `:root`:
 
 ![The TV guide in the Teletext look](images/wittytv-teletext.webp)
-*The Teletext look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
+*The Teletext look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 ![The TV guide in the Newspaper look, like a printed paper](images/wittytv-listings.webp)
-*The Newspaper look, playing [Aladdin and His Wonderful Lamp](https://commons.wikimedia.org/wiki/File:Aladdin_And_His_Wonderful_Lamp_(1939).webm), Dave Fleischer, Fleischer Studios, 1939, public domain.*
+*The Newspaper look, playing [Sita Sings the Blues](https://commons.wikimedia.org/wiki/File:Sita_Sings_the_Blues.webm), Nina Paley, 2008, [CC0](https://creativecommons.org/publicdomain/zero/1.0/).*
 
 ```css
 :root {

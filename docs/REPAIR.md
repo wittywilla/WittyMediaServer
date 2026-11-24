@@ -183,6 +183,9 @@ Module updates and versions are covered in [Modules and the store](MODULE-STORE.
 for each where there is one. Repair looks after the server itself; Library health looks at your
 titles. Nothing on the page renames, moves or deletes a media file.
 
+![Settings, Library health: files that have gone, titles with no match, possible duplicates and odd names, each with its fix](images/settings-health.webp)
+*Library health. Openly licensed and public-domain media, credited in [the list](images/CREDITS.md).*
+
 | Section | What it lists | Fixes |
 |---|---|---|
 | Files that have gone | Titles whose files aren't where they were. The server keeps everything known about them in case they come back. | Scan the library again; or forget a title whose file is gone for good, with its history. Forgetting is refused while the file is there, or while the library's folder is empty or can't be reached (a drive that isn't plugged in). |

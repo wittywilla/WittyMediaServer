@@ -2922,6 +2922,7 @@
     "matchQueue",
     "matchCandidates",
     "formField",
-    "search"
+    "search",
+    "recentSearches"
   ]
 }

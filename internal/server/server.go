@@ -131,6 +131,7 @@ type Server struct {
 	mediaJobs   mediaJobs           // stems and canvases being made: one at a time
 	karaoke     karaokeAuto         // the separator found, and who asked for what lately
 	sepInstall  separatorInstall    // Demucs being installed with one press
+	search      searchState         // the one search's index (search.go)
 	kLib        karaokeLibraryState // the whole music library separated in the background, if asked
 	subtitles   subtitleFiles
 	idOnce      sync.Once
@@ -221,7 +222,9 @@ func (s *Server) StartMetadata() {
 		}
 		s.kickMusicMatch(id)
 		s.afterModuleScan(id)
+		s.kickSearch() // the scanned library's part of the search index, rebuilt
 	}
+	s.kickSearch() // the search index, read from every library once
 	if s.DB.GetSetting(context.Background(), "music.linksMatched", "") == "" {
 		s.kickMusicMatch(0) // songs and videos scanned before links existed
 	}

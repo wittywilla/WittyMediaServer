@@ -202,7 +202,7 @@ func TestSDUICredits(t *testing.T) {
 	}
 	// Search finds people.
 	sr := sduiDoc(t, ts.do(t, "GET", "/api/v1/sdui/pages/search?catalog=5&formFactor=desktop&q=lima", f.adult, nil))
-	if n := findNode(&sr.Root, "people"); n == nil || len(n.Children) != 1 || n.Children[0].Props["subtitle"] != "2 titles" {
+	if n := findNode(&sr.Root, "found-people"); n == nil || len(n.Children) != 1 || n.Children[0].Props["subtitle"] != "2 titles" {
 		t.Errorf("people in search: %+v", n)
 	}
 	// Show all: everyone, in place of the first few.

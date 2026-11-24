@@ -512,12 +512,19 @@ func (v *validator) repeat(s *Section, sp string, depth int, parent string) {
 		v.err(sp+"/repeat", "Move it to the top of the page or directly inside a Tab.", "a repeated section sits at the top of a page or directly inside a Tab")
 	}
 	for i, k := range rp.Kinds {
-		if !contains(LibraryKinds, k) {
+		if rp.Over == "searchGroups" {
+			if !contains(SearchGroups, k) {
+				v.err(sp+"/repeat/kinds/"+strconv.Itoa(i), suggest(k, SearchGroups), "%q is not a group of search results", k)
+			}
+		} else if !contains(LibraryKinds, k) {
 			v.err(sp+"/repeat/kinds/"+strconv.Itoa(i), suggest(k, LibraryKinds), "%q is not a kind of library", k)
 		}
 	}
-	if len(rp.Kinds) > 0 && rp.Over != "libraries" {
-		v.err(sp+"/repeat/kinds", "Remove kinds.", "kinds only applies when repeating over libraries")
+	if len(rp.Kinds) > 0 && rp.Over != "libraries" && rp.Over != "searchGroups" {
+		v.err(sp+"/repeat/kinds", "Remove kinds.", "kinds only applies when repeating over libraries or search groups")
+	}
+	if rp.Over == "searchGroups" && v.page != nil && v.page.Kind != "search" {
+		v.err(sp+"/repeat/over", "Use it on the search page.", "searchGroups goes over what the page's search found, so it works only on the search page")
 	}
 	if (rp.Over == "bookSeries" || rp.Over == "bookAuthors") && v.page != nil && v.page.Kind != "library" {
 		v.err(sp+"/repeat/over", "Use it on a library page, or repeat over libraries.", "%s goes over the page's books library, so it works only on a library page", rp.Over)

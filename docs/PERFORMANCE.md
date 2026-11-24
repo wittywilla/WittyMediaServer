@@ -6,6 +6,7 @@ How heavy the server is on the machine it runs on, measured the same way for eac
 - [Running the benchmark](#running-the-benchmark)
 - [Reading the numbers](#reading-the-numbers)
 - [Other benchmarks](#other-benchmarks)
+- [Budgets](#budgets)
 - [Results](#results)
 - [What was found, and where it went](#what-was-found-and-where-it-went)
 
@@ -18,8 +19,9 @@ How heavy the server is on the machine it runs on, measured the same way for eac
 3. **A scan of each library** given with `-lib`, one at a time: how long it took, the server's processor time and allocations, and its highest memory. FFmpeg's own time isn't in the processor column, since FFmpeg is a program of its own.
 4. **The same scans again**, with nothing changed, as the six-hourly scan does.
 5. **Idle again**, after the scans.
-6. **The API**: each route asked 30 times in turn, one at a time, with how much it sent, allocated, and how many database statements it ran per request.
-7. **Every database statement** the server ran during all of that, with how often and for how long, and SQLite's plan for each (`EXPLAIN QUERY PLAN`), marking the ones that read a whole table or sort without an index.
+6. **The API**: each route asked 30 times in turn, one at a time, with how much it sent, allocated, and how many database statements it ran per request. Home and each library's page as the apps ask for them (`/api/sdui/pages/…`), and a search across every library, are among them.
+7. **A transcode's start**: a film forced to convert, as a device that can't play it would ask, timed from the request to the first segment's last byte, three times.
+8. **Every database statement** the server ran during all of that, with how often and for how long, and SQLite's plan for each (`EXPLAIN QUERY PLAN`), marking the ones that read a whole table or sort without an index.
 
 For runs to compare, the benchmark turns off what would reach the internet (update checks, TVmaze, Wikidata, MusicBrainz), and turns off `saveMetadata` so nothing is written into the media folders. The media is only read.
 
@@ -42,6 +44,8 @@ On Linux (or WSL), the same with the Linux build: `GOOS=linux go build -tags wms
 - `-lib type=folder` adds a library of that type (repeat it). Types that need a module (books, photos, discs, games) are refused without the module, and the report says so.
 - `-port` is the server's port, and the profiling port is the one above it. The benchmark refuses a port that's in use, so it never measures someone else's server.
 - `-starts`, `-settle`, `-idle` and `-repeat` change how many start-ups, how long it waits before an idle reading, how long the reading is, and how often each route is asked.
+- `-set key=value` changes a server setting before measuring (repeat it): `-set logFlight=0` measures without the flight recorder, say.
+- `-transcodes` is how many times a film forced to convert is timed to its first segment (3; 0 for none). `-budget` checks the run against a budget file ([Budgets](#budgets)).
 - `-report` with `-out` of an earlier run prints its report again, with the plans made again: after adding an index, say.
 
 The report is printed, and `results.json`, goroutine lists, heap profiles and the server's log are left in the `-out` folder.
@@ -80,6 +84,38 @@ Smaller ones live beside the code, for `go test -bench`:
 How the server fits itself to a small machine (memory limit, how much runs at once, scans giving way to streams) is `internal/pace`; [Hardware](HARDWARE.md#small-machines) says what it does.
 
 FFmpeg's own benchmark, for transcoding, is separate: [Measuring FFmpeg](FFMPEG-BENCHMARK.md) (#81).
+
+## Budgets
+
+Since 0.8.4-alpha (#643) every pull request is held to budgets, in two checks of `ci.yml`. A change that goes over fails with a message naming the figure, what it measured and what it may be.
+
+**The web app** (`web` job, step *Web download budget per route*): `web/scripts/bundle-budget.mjs` builds the app with Vite's manifest and adds up, for each route in `web/bundle-budget.json`, the scripts and stylesheets a first visit fetches before anything is drawn, compressed as the server sends them: the app's entry with everything it imports, and the route's own page code with everything that imports. It also caps any one script (pdf.js and hls.js aside). Run it yourself from `web/`:
+
+```bash
+node scripts/bundle-budget.mjs
+```
+
+When a route goes over, the message lists its largest files. Fetch what the page doesn't need at first with `lazy()` or `import()`: a dialog when it opens, an editor when it's asked for, a page that only a signed-out visitor sees. Raise a budget only when the extra is worth it on a slow TV or phone, and say why in the pull request.
+
+**The server** (`perf-budget` job): `scripts/perf` with `-budget scripts/perf/budget.json`, on a test library made by `scripts/perf/make-media.sh` (300 films and 200 songs in CI), held to two processors with `taskset`. It checks:
+
+| Budget | What it catches |
+|---|---|
+| `idleRssMiB`, `idleHeapLiveMiB` | Memory a scan leaves behind: a cache with no limit, a list that's never let go. Look at `heap-after.pprof` in the `-out` folder with `go tool pprof` |
+| `scanPeakRssMiB` | A scan that holds whole files or every item at once |
+| `scanItemsPerSecond` | A scan that got slower per file: a new FFmpeg run for each file, a statement for each file that could be one for all |
+| `routeAllocKiB`, `routeStatements` | Home, a library's pages and search getting heavier: what each request allocates and how many statements it runs, which a busy machine doesn't change |
+| `transcodeStartSeconds` | How long a film forced to convert takes to its first segment, on the processor |
+
+Times are set well clear of what CI's machines measure, since those vary; allocations and statements are counts, and kept close. The same run on your machine, against the same file:
+
+```bash
+go build -tags wmsprofile -o .build/wms-prof ./cmd/wittymediaserver
+scripts/perf/make-media.sh /tmp/wms-media 300 20
+go run ./scripts/perf -exe .build/wms-prof -lib movies=/tmp/wms-media/movies -lib music=/tmp/wms-media/music -budget scripts/perf/budget.json
+```
+
+[Minimum hardware](MINIMUM-HARDWARE.md) is written from the same benchmark on a container held to two processors and 3 GB, with no graphics card.
 
 ## Results
 

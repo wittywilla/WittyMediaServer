@@ -20,7 +20,7 @@ The plans and designs for what comes after, each with what's done, in progress o
 | **Photos:** batch rotate and edit | Not started |
 | **Local AI:** a plan document, with image recognition for photos as the first use | Not written. The marked placeholders are in: **People & places** in photos, and `GET /api/photos/ai` says it isn't available |
 | **Recordings in a series' own folder** | Not started. Recordings go to one folder, or a chosen library's |
-| **A minimum hardware document:** realistic specifications for the server and for disc playback | Not written: [#113](https://github.com/wittywilla/WittyMediaServer/issues/113) |
+| **A minimum hardware document:** realistic specifications for the server and for disc playback | Written for the server from a two-core container ([Minimum hardware](MINIMUM-HARDWARE.md), [#643](https://github.com/wittywilla/WittyMediaServer/issues/643)); not yet measured on a real Pi, ARM NAS or for disc playback |
 | **A real sandbox on FreeBSD:** a module's helper has limits there, not a sandbox | Not built. macOS uses Apple's own sandbox |
 
 ### Discs, tuners and games

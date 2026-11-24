@@ -1,6 +1,6 @@
 # What hardware it needs
 
-What the server takes from the computer it runs on, from measurements rather than guesses, so you can tell whether an old computer, a small board or a NAS is enough. Each figure says what it was measured on. What hasn't been measured yet says so.
+What the server takes from the computer it runs on, from measurements rather than guesses, so you can tell whether an old computer, a small board or a NAS is enough. Each figure says what it was measured on. What hasn't been measured yet says so. For the short version by kind of machine, see [Minimum hardware](MINIMUM-HARDWARE.md).
 
 - [The short answer](#the-short-answer)
 - [The server on its own](#the-server-on-its-own)

@@ -155,6 +155,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/people` | Signed-in | limits: only people credited on a title the account may see, counting only those titles |
 | `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
 | `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
+| `GET /api/search` | Signed-in | limits: only libraries the account may open are searched, and each card is read through the account's limits (ratings, blocked titles); people only with a title it may see |
+| `GET /api/search/recent` | Signed-in | own: the account's own recent searches |
+| `DELETE /api/search/recent` | Signed-in | own: forgets the account's own recent searches |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
 | `GET /api/items/{id}/scene/{sec}` | Signed-in; ticket; address token | limits. Video file. Time within its length |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |

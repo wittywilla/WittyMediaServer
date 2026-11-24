@@ -191,6 +191,13 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 			writeErr(w, 500, err.Error())
 			return
 		}
+		if k == "guideKey" {
+			// A key entered again may go to a new site: the first one a link uses it with (api_clone_key.go).
+			if err := s.DB.SetSetting(r.Context(), guideKeyHostSetting, ""); err != nil {
+				writeErr(w, 500, err.Error())
+				return
+			}
+		}
 	}
 	if v, ok := in["gpuPathsOff"]; ok {
 		ffmpeg.SetGPUPathsOff(strings.Split(v, ","))

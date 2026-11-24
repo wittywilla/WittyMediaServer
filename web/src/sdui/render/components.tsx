@@ -335,14 +335,14 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
         </div>
       ) : (
         <div className="row-wrap">
-          <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
+          <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" aria-label={t('Back in this row')} title={t('Back in this row')} onClick={() => by(-1)} hidden><IconLeft /></button>
           <div className={'row' + (chips ? ' sdui-chips' : '')} ref={row} data-nav-group role="list" onKeyDown={lines} aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}>
             {waiting ? <Placeholders view={view} /> : shown.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined} onPointerEnter={grow || detail ? () => setFocusId(c.id) : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
             {view.hasMore && !waiting && <Near horizontal root={row} onNear={() => page.more(view.id)} />}
             {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, placeholders: 2 }} />}
             {seeAllCard && !waiting && !view.hasMore && <div role="listitem" className="sdui-item"><SeeAllCard to={view.seeAll!} label={seeAllLabel} title={view.text?.title} wide={wideCards} /></div>}
           </div>
-          <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)} hidden><IconRight /></button>
+          <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" aria-label={t('More in this row')} title={t('More in this row')} onClick={() => by(1)} hidden><IconRight /></button>
         </div>
       )}
       {detail && focused && !waiting && !failed && <ShelfDetail view={focused} parent={view} />}
@@ -409,12 +409,12 @@ function ConsoleBar({ consoles, total, value, onChange, label }: { consoles: { n
   )
   return (
     <div className="sdui-console-bar">
-      <button type="button" className="sdui-console-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)}><IconLeft /></button>
+      <button type="button" className="sdui-console-arrow prev" tabIndex={-1} aria-hidden="true" aria-label={t('Previous console')} title={t('Previous console')} onClick={() => by(-1)}><IconLeft /></button>
       <div className="sdui-console-chips" ref={bar} role="toolbar" aria-label={label} data-nav-group>
         {chip('', t('All'), total)}
         {consoles.map((c) => chip(c.name, c.name, c.count))}
       </div>
-      <button type="button" className="sdui-console-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)}><IconRight /></button>
+      <button type="button" className="sdui-console-arrow next" tabIndex={-1} aria-hidden="true" aria-label={t('Next console')} title={t('Next console')} onClick={() => by(1)}><IconRight /></button>
     </div>
   )
 }
@@ -602,8 +602,8 @@ function HeroView({ view }: { view: View }) {
       {n > 1 && (
         <>
           {!page.touch && !page.tv && <>
-            <button type="button" className="sdui-hero-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => step(-1)}><IconLeft /></button>
-            <button type="button" className="sdui-hero-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => step(1)}><IconRight /></button>
+            <button type="button" className="sdui-hero-arrow prev" tabIndex={-1} aria-hidden="true" aria-label={t('Previous title')} title={t('Previous title')} onClick={() => step(-1)}><IconLeft /></button>
+            <button type="button" className="sdui-hero-arrow next" tabIndex={-1} aria-hidden="true" aria-label={t('Next title')} title={t('Next title')} onClick={() => step(1)}><IconRight /></button>
           </>}
           <div className="dots">
             {seconds > 0 && !page.reducedMotion && <button type="button" className="hero-pause" data-nav-skip={page.tv || undefined} aria-label={paused ? t('Start turning the featured titles') : t('Stop turning the featured titles')} title={paused ? t('Play') : t('Pause')} onClick={() => setPaused((x) => !x)}>{paused ? <IconPlay /> : <IconPause />}</button>}
@@ -760,11 +760,11 @@ function PortraitRow({ views, label, labelledBy, reducedMotion }: { views: View[
   const by = (dir: number) => { const el = row.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: reducedMotion ? 'auto' : 'smooth' }) }
   return (
     <div className="row-wrap">
-      <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" onClick={() => by(-1)} hidden><IconLeft /></button>
+      <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" aria-label={t('Back in this row')} title={t('Back in this row')} onClick={() => by(-1)} hidden><IconLeft /></button>
       <div className="row sdui-portraits" ref={row} data-nav-group role="list" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : label}>
         {views.map((c) => <div role="listitem" key={c.id} className="sdui-item"><CardView view={c} showTitles /></div>)}
       </div>
-      <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" onClick={() => by(1)} hidden><IconRight /></button>
+      <button ref={next} type="button" className="row-arrow next" tabIndex={-1} aria-hidden="true" aria-label={t('More in this row')} title={t('More in this row')} onClick={() => by(1)} hidden><IconRight /></button>
     </div>
   )
 }

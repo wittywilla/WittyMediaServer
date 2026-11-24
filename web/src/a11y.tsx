@@ -175,7 +175,7 @@ export function Announcer() {
     return () => { clearTimeout(timer); later.forEach(clearTimeout) }
   }, [loc.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   // The window's title names the page by its heading. A page may still be loading what its heading
-  // says, so it looks again a little later.
+  // says, so it looks again a little later. The player and the reader name it themselves (ownPageTitle).
   useEffect(() => {
     const name = () => applyPageTitle(document.getElementById('main')?.querySelector('h1')?.textContent?.trim() || '')
     const looks = [350, 1500, 4000, 9000].map((ms) => setTimeout(name, ms))

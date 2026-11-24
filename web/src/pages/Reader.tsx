@@ -10,6 +10,7 @@ import { reportClient } from '../errorReport'
 import { BundledReaderView, readerKitOf, readerOf, useBundledReader, useReaderBundles } from '../moduleBundles'
 import { useBookRemote } from '../remote/pageTargets'
 import { t } from '../i18n'
+import { ownPageTitle } from '../theme'
 import './reader.css'
 
 // Books libraries in WittyMediaServer: whichever module reads the kind of book (its
@@ -34,6 +35,8 @@ export default function ReaderPage() {
   const format = info ? (info.reader === 'pdf' ? 'pdf' : info.reader === 'cbz' ? 'cbz' : 'epub') : undefined
   const reader = format && bundles ? readerOf(format, bundles) : null
   const kit = bundles ? readerKitOf(bundles) : null
+  // The window is named after the book, like the book's own page.
+  useEffect(() => { ownPageTitle(it?.title || ''); return () => ownPageTitle('') }, [it?.title])
   useEffect(() => {
     api.get<Item>(`/items/${id}`).then(setIt).catch((e) => setErr(e.message))
     api.get<BookInfo>(`/items/${id}/book`).then(setInfo).catch((e) => setErr(e.message))

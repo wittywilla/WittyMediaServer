@@ -147,13 +147,6 @@ export default function LibraryHealth() {
         <Link className="btn" to="/settings/repair">{t('Repair')}</Link>
       </div>
       {view.scanning.length > 0 && <Notice tone="info">{t('A scan is running, so its library’s numbers will change as it goes. Titles still being matched are left out until it ends.')}</Notice>}
-      <nav className="lh-summary" aria-label={t('What was found')}>
-        {view.sections.map((s) => (
-          <a key={s.id} href={`#lh-${s.id}`} className={'lh-chip' + (s.count ? ' lh-chip-some' : '')} onClick={(e) => { e.preventDefault(); document.getElementById(`lh-${s.id}`)?.scrollIntoView({ block: 'start' }) }}>
-            <b>{num(s.count)}</b> <span>{tx(WORDS[s.id]?.title || s.id)}</span>
-          </a>
-        ))}
-      </nav>
       <p className="lh-quiet" role="status">
         {total === 0 ? t('Nothing needs a look.') : tn('{count} thing needs a look.', '{count} things need a look.', total)}
         {view.setAside > 0 && <> {tn('{count} set aside as fine.', '{count} set aside as fine.', view.setAside)} <button type="button" className="lh-link" onClick={() => void bringBack()}>{t('Bring them back')}</button></>}

@@ -4,11 +4,6 @@
 
 .lh-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); margin-bottom: var(--sp-3); }
 .lh-bar .btn, .lh-bar select { min-height: max(var(--control-h), 44px); }
-.lh-summary { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-3) 0 var(--sp-2); }
-.lh-chip { display: inline-flex; align-items: baseline; gap: var(--sp-1); padding: var(--sp-1) var(--sp-3); min-height: 36px; border: 1px solid var(--border); border-radius: var(--r-pill, 999px); color: var(--fg-2); text-decoration: none; }
-.lh-chip b { color: var(--fg); font-variant-numeric: tabular-nums; }
-.lh-chip-some { border-color: var(--warn); }
-.lh-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .lh-quiet { color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
 .lh-none { margin: 0; }
 .lh-link { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }

@@ -561,7 +561,7 @@ func (h *healthRun) names() ([]HealthRow, error) {
 		} else {
 			r.Detail = "In a shows library, but not in a show's folder, or the name doesn't say which show"
 		}
-		r.Fixes = []string{FixRules, FixOpen, FixSetAside}
+		r.Fixes = []string{FixOpen, FixSetAside} // Naming rules is the section's own button
 		out = append(out, r)
 	}
 	rows.Close()
@@ -577,7 +577,7 @@ func (h *healthRun) names() ([]HealthRow, error) {
 			continue
 		}
 		out = append(out, HealthRow{Key: rowKey(HealthNames, TargetItem, f.id), Target: TargetItem, ID: f.id, LibraryID: f.lib, Title: f.title, Year: f.year, Path: f.path,
-			Detail: "The title is the file's release name", Fixes: []string{FixRules, FixMatch, FixOpen, FixSetAside}})
+			Detail: "The title is the file's release name", Fixes: []string{FixMatch, FixOpen, FixSetAside}})
 	}
 	return out, nil
 }

@@ -386,6 +386,7 @@ func (s *Server) Handler() http.Handler {
 	m.Handle("POST /api/pair/invite", a(s.handlePairInvite))
 	m.Handle("GET /api/connect", a(s.handleConnectStatus))
 	m.Handle("POST /api/connect/offer", a(s.handleConnectOffer))
+	m.Handle("GET /api/connect/offer", a(s.handleConnectOfferState))
 	m.Handle("DELETE /api/connect/offer", a(s.handleConnectCancel))
 	m.Handle("GET /api/auth/pair/{session}/info", a(s.handleAuthPairInfo))
 	m.Handle("POST /api/auth/pair/{session}/approve", a(s.handleAuthPairApprove))

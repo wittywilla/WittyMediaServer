@@ -112,6 +112,7 @@ var plainRoutes = []string{
 	"GET /api/connect",
 	"POST /api/connect/offer",
 	"DELETE /api/connect/offer",
+	"GET /api/connect/offer",
 	"DELETE /api/remote-control/devices/{id}",
 	"DELETE /api/syncplay/rooms/{id}",
 	"GET /api/auth/pair/{session}/info",

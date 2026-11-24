@@ -411,6 +411,11 @@ func (s *Server) handleConnectHello(w http.ResponseWriter, r *http.Request) {
 	o, nonce := s.connect.ask(b.Find)
 	if o == nil {
 		// Another server on the same network may have made it: that is not a guess, so it costs nothing here.
+		// Codes don't outlive a restart (p2p_pending.go): one shown just before it is told so.
+		if s.p2pCodeEndedByRestart(0) {
+			writeJSON(w, 404, map[string]any{"error": p2pCodeRestartedWords, "reason": "restarted"})
+			return
+		}
 		writeJSON(w, 404, map[string]any{"error": "This server didn't make that code.", "reason": "not-here"})
 		return
 	}

@@ -19936,6 +19936,42 @@
         ],
         "x-wms-auth": "user"
       },
+      "get": {
+        "operationId": "getConnectOffer",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "open": {
+                      "type": "boolean"
+                    },
+                    "restarted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether a code this person showed is still open, and if not whether a restart of the server ended it.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      },
       "post": {
         "operationId": "postConnectOffer",
         "requestBody": {

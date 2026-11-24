@@ -397,7 +397,8 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/p2p/devices` | Signed-in | A session token, not a stream token. A well-formed Ed25519 device ID that isn't the server's own. A key listed for another account is refused. At most 32 per account, 512 in all |
 | `DELETE /api/p2p/devices/{id}` | Signed-in | own. Any account's for an admin. Someone else's answers as if there were none |
 | `GET /api/connect` | Signed-in | Says only whether devices can connect from away, and whether the caller may turn that on |
-| `POST /api/connect/offer` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Limit on tries per account and on open codes; one open per person. The link only for a profile allowed away from home, with peer-to-peer connections on |
+| `POST /api/connect/offer` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Limit on tries per account and on open codes; three open per person, the oldest ended by a fourth. The link only for a profile allowed away from home, with peer-to-peer connections on |
+| `GET /api/connect/offer` | Signed-in | own: whether the caller's own code is open, or was ended by a restart. Nothing about anyone else's |
 | `DELETE /api/connect/offer` | Signed-in | own |
 | `POST /api/p2p/invite` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections are on. Limit on open invites |
 | `POST /api/p2p/join` | Adult | Target is the caller or a profile the caller manages. An administrator's own password (and code) again to sign a device in as an administrator. Peer-to-peer connections and their address book are on. A well-formed code. Limit on codes waiting |

@@ -6,7 +6,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import Hls from 'hls.js'
 import { api, type StreamWork } from '../../api'
 import { announce } from '../../a11y'
-import { IconBack, IconChannels, IconDown, IconHistory, IconPlay, IconTv, IconUp } from '../../icons'
+import { IconBack, IconChannels, IconDown, IconHistory, IconPlay, IconRefresh, IconTv, IconUp } from '../../icons'
 import { Controls, useCompactBar } from '../../player/Controls'
 import { haveHls, toggleFullscreen, useIdle } from '../../player/hooks'
 import Remote, { type RemoteKey } from '../../player/Remote'
@@ -453,6 +453,8 @@ export default function TvPlayer() {
         audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
         live compact={compact} sheetItems={[
           ...(fromStart || isBehind ? [{ key: 'live', icon: <IconTv />, label: t('Back to live'), onClick: goLive }] : []),
+          // The compact bar shows only this sheet, so Start over is here too (#648).
+          ...(canStartOver ? [{ key: 'startover', icon: <IconRefresh />, label: t('Start over'), onClick: startOver }] : []),
           { key: 'chup', icon: <IconUp />, label: t('Channel up'), onClick: () => void step(1) },
           { key: 'chdown', icon: <IconDown />, label: t('Channel down'), onClick: () => void step(-1) },
           ...(lastKey.current ? [{ key: 'last', icon: <IconHistory />, label: t('Last channel'), onClick: last }] : []),

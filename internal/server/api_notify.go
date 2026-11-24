@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/auth"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"github.com/wittywilla/wittymediaserver/internal/livetv"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/notify"
@@ -130,9 +131,9 @@ func (t taskEnds) End(task tasks.Task) {
 		return
 	}
 	ctx := context.Background()
-	title := "A library scan failed"
+	title := i18n.T("A library scan failed")
 	if task.LibraryName != "" {
-		title = "The scan of " + task.LibraryName + " failed"
+		title = i18n.F("The scan of {libraryName} failed", "libraryName", task.LibraryName)
 	}
 	body := strings.TrimSpace(task.Error + " " + task.Fix)
 	t.s.notes.Send(ctx, t.s.noteAdmins(ctx), notify.Note{Kind: notify.Scans, Title: title, Body: body, Link: "/settings/libraries"}, "scan:"+task.ID)
@@ -228,7 +229,7 @@ func (s *Server) sendNewEpisodes(ctx context.Context, libraryID, after int64) {
 		}
 		n := notify.Note{Kind: notify.Episodes, Link: "/show/" + strconv.FormatInt(e.show, 10)}
 		if e.count == 1 {
-			n.Title = "New episode of " + sh.Title
+			n.Title = i18n.F("New episode of {title}", "title", sh.Title)
 			if e.season > 0 && e.epNum > 0 {
 				n.Body = fmt.Sprintf("S%d E%d · %s", e.season, e.epNum, e.title)
 			} else {
@@ -254,7 +255,7 @@ func (s *Server) noteUpdates(ctx context.Context) {
 	if s.Update != nil {
 		if v := s.Update.Available(); v != "" {
 			s.notes.Send(ctx, admins, notify.Note{Kind: notify.Server, Title: "WittyMediaServer " + v + " is out",
-				Body: "This server runs " + s.Update.Current + ". About has what's new and the update.", Link: "/settings/about#updates"}, "server:"+v)
+				Body: i18n.F("This server runs {current}. About has what's new and the update.", "current", s.Update.Current), Link: "/settings/about#updates"}, "server:"+v)
 		}
 	}
 	if s.Modules != nil {
@@ -269,9 +270,9 @@ func (s *Server) noteUpdates(ctx context.Context) {
 		if len(names) > 0 {
 			sort.Strings(names)
 			sort.Strings(keys)
-			title := "An update for " + strings.TrimSpace(strings.SplitN(names[0], " ", 2)[0])
+			title := i18n.F("An update for {module}", "module", strings.TrimSpace(strings.SplitN(names[0], " ", 2)[0]))
 			if len(names) > 1 {
-				title = fmt.Sprintf("Updates for %d modules", len(names))
+				title = i18n.N("Updates for {count} module", "Updates for {count} modules", len(names))
 			}
 			s.notes.Send(ctx, admins, notify.Note{Kind: notify.Modules, Title: title, Body: strings.Join(names, ", "), Link: "/settings/modules"}, "modules:"+strings.Join(keys, ","))
 		}
@@ -496,7 +497,7 @@ func (s *Server) handleNoteChannelsTest(w http.ResponseWriter, r *http.Request) 
 		writeErr(w, 400, "save an email address or a webhook first")
 		return
 	}
-	n := notify.Note{Kind: notify.Server, Title: "A test from " + s.ServerName(r.Context()), Body: "Notifications reach you here.", At: time.Now().Unix()}
+	n := notify.Note{Kind: notify.Server, Title: i18n.F("A test from {serverName}", "serverName", s.ServerName(r.Context())), Body: "Notifications reach you here.", At: time.Now().Unix()}
 	if err := s.noteOut.Deliver(r.Context(), c, n, true); err != nil {
 		writeErr(w, 502, err.Error())
 		return

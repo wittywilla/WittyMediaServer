@@ -266,7 +266,7 @@ func (c *Connector) guard(next http.Handler) http.Handler {
 func (c *Connector) refuse(w http.ResponseWriter, r *http.Request) {
 	const why = "This address is for the WittyMediaServer app on this device only."
 	if wantsPage(r) {
-		writePage(w, http.StatusForbidden, "This page is for the app", why, "Open WittyMediaClient to watch, or open your server's own address in a browser.")
+		writePage(w, http.StatusForbidden, i18n.T("This page is for the app"), why, i18n.T("Open WittyMediaClient to watch, or open your server's own address in a browser."))
 		return
 	}
 	http.Error(w, why, http.StatusForbidden)
@@ -311,7 +311,7 @@ func (c *Connector) proxyError(w http.ResponseWriter, r *http.Request, err error
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Witty-Connect-Error", "1")
 	if wantsPage(r) {
-		writePage(w, http.StatusBadGateway, "Can't reach your server right now", msg, "The app keeps trying. Reload this page in a moment.")
+		writePage(w, http.StatusBadGateway, i18n.T("Can't reach your server right now"), msg, i18n.T("The app keeps trying. Reload this page in a moment."))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

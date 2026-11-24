@@ -217,7 +217,7 @@ html[data-density="spacious"] { --density-space: var(--density-spacious-space); 
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 /* A focused thing is never hidden under the bars (WCAG 2.4.11). */
-html { scroll-padding-block: calc(var(--bar-space) + var(--sp-4)) calc(var(--sp-16) + var(--dock-space) + var(--tabbar-space)); -webkit-text-size-adjust: 100%; }
+html { scroll-padding-block: calc(var(--bar-space) + var(--sub-bar, 0px) + var(--sp-4)) calc(var(--sp-16) + var(--dock-space) + var(--tabbar-space)); -webkit-text-size-adjust: 100%; }
 /* Ten feet from the screen: a controller in use, or a device with no pointer at
    all (a TV browser with a D-pad). Everything in rem grows with the base size,
    the margin clears TV overscan, and focus is what shows you where you are.
@@ -365,16 +365,17 @@ input[type=range] { accent-color: var(--accent); }
    anything else starts below it, whatever the bar's height. Only a picture that opens the page runs up
    under it, by the room the bar really takes (--bar-space, which the bar measures: TopBar.tsx). Nothing
    runs under it while something else sits between the bar and the page (the legal notice, a status bar)
-   or the page is being arranged. */
+   or the page is being arranged. A title with no backdrop (.detail-hero.bare: a book, a photo, a home video) has no
+   picture to run under it, so it starts below the bar like any other page (#679). */
 :root { --bar-space: var(--topbar-h); }
 @supports (animation-timeline: scroll()) {
   .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) :is(
-    .content > :first-child > :is(.hero, .detail-hero):first-child,
-    .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero),
-    .content > :first-child > .sr-only:first-child + * > .detail-hero:first-child) { margin-top: calc(-1 * (var(--page-top) + var(--bar-space))); }
+    .content > :first-child > :is(.hero, .detail-hero:not(.bare)):first-child,
+    .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero:not(.bare)),
+    .content > :first-child > .sr-only:first-child + * > .detail-hero:not(.bare):first-child) { margin-top: calc(-1 * (var(--page-top) + var(--bar-space))); }
   /* A title's page wraps its picture (.sdui-detail); the wrapper's own top padding would leave a band of page colour
      above the picture, so it has none while the picture opens the page. */
-  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) .content > :first-child > .sr-only:first-child + :has(> .detail-hero:first-child) { padding-top: 0; }
+  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) .content > :first-child > .sr-only:first-child + :has(> .detail-hero:not(.bare):first-child) { padding-top: 0; }
 }
 
 @media (max-width: 900px) {

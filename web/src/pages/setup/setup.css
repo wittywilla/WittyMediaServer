@@ -352,7 +352,9 @@ html.tv-mode .su-address .qr { inline-size: 11rem; block-size: 11rem; }
 .oobe-card .su-starts .btn { width: 100%; justify-content: center; }
 .oobe-card .oobe-welcome .su-start-note { margin: 0 0 var(--sp-2); text-align: center; }
 .oobe-card .oobe-perks { margin-top: var(--sp-6); }
-@media (max-width: 600px) { .oobe-card .su-starts { grid-template-columns: 1fr; } }
+/* On a phone the language takes the line and Customize the next, as wide as the buttons under it, not hanging at the
+   start of a centred column. */
+@media (max-width: 600px) { .oobe-card .su-starts { grid-template-columns: 1fr; } .oobe-card .su-welcome-locale > :not(.ui-field) { flex: 1 1 100%; justify-content: center; } }
 
 /* Modules: the shelves flow in two columns, each shelf kept whole. */
 .oobe-card .oobe-mod-groups { display: block; columns: 2 19rem; column-gap: var(--sp-6); }

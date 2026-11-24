@@ -6,6 +6,7 @@ import { useArtColour } from '../../audio/art'
 import { Placeholder } from '../../components/common'
 import { Art } from './ui'
 import { t } from '../../i18n'
+import { useSubBar } from '../../shell/useSubBar'
 
 // The top of an album or playlist page: the cover, and behind it a wash of a colour taken
 // from the cover that fades into the page. The colour comes from a 32-pixel copy, read once
@@ -29,11 +30,12 @@ export function ListHeader({ art, title, kind, children, tile }: { art: string; 
 export function ActionBar({ title, children }: { title: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
   const [stuck, setStuck] = useState(false)
+  useSubBar(ref)
   useEffect(() => {
     const el = ref.current
     if (!el) return
     // It sticks under the app's own bar, so it counts as stuck once it reaches that.
-    const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 0
+    const bar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar-space')) || 0
     const io = new IntersectionObserver(([e]) => setStuck(e.intersectionRatio < 1 && e.boundingClientRect.top < bar + 8), { threshold: [1], rootMargin: `-${bar + 1}px 0px 0px 0px` })
     io.observe(el)
     return () => io.disconnect()

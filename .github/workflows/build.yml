@@ -426,9 +426,61 @@ jobs:
           docker run --rm wittymediaserver:ci version
           scripts/test/docker-smoke.sh wittymediaserver:ci
 
+  # Games in the image, as a NAS runs it: locked down, on Docker's own network, with no graphics
+  # card. WittyPlay comes from its own repository (the branch a pull request goes into, where it
+  # has one) through a test catalogue that only a build with GOTAGS=updatetest trusts, and two real
+  # cores each have to send pictures over the server's port. On amd64 and on an arm64 machine.
+  docker-games:
+    needs: web
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+          cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - name: A catalogue with WittyPlay
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          mkdir "$RUNNER_TEMP/repos"
+          for r in WittyModule WittyPlay; do
+            url="https://github.com/wittywilla/$r"
+            if [ -n "$BASE" ] && git ls-remote --exit-code --heads "$url" "$BASE" >/dev/null; then
+              echo "$r: $BASE"; git clone -q --depth 1 --branch "$BASE" "$url" "$RUNNER_TEMP/repos/$r"
+            else
+              echo "$r: its main branch"; git clone -q --depth 1 "$url" "$RUNNER_TEMP/repos/$r"
+            fi
+          done
+          (cd "$RUNNER_TEMP/repos/WittyPlay" && npm ci --ignore-scripts --no-audit --no-fund)
+          scripts/make-test-catalog.sh "$RUNNER_TEMP/catalog" "$RUNNER_TEMP/repos" WittyPlay
+      - name: The image, as a test build
+        run: |
+          version="$(sed -n 's/^## \([0-9][^ ]*\).*/\1/p' CHANGELOG.md | head -1)"
+          docker build -t wittymediaserver:games --build-arg GOTAGS=updatetest --build-arg VERSION="$version" .
+      - name: Play two games in it
+        run: scripts/test/docker-games.sh wittymediaserver:games "$RUNNER_TEMP/catalog"
+      - name: The same on one processor and 1 GB, as a small NAS
+        env:
+          DOCKER_ARGS: --cpus=1 --memory=1g
+        run: scripts/test/docker-games.sh wittymediaserver:games "$RUNNER_TEMP/catalog"
+
   # One place to look: what each platform did, and a failure when any did not build.
   summary:
-    needs: [web, linux, linux-packages, windows, macos, freebsd, docker]
+    needs: [web, linux, linux-packages, windows, macos, freebsd, docker, docker-games]
     if: always()
     runs-on: ubuntu-latest
     permissions: {}
@@ -440,6 +492,7 @@ jobs:
       RESULT_MACOS: ${{ needs.macos.result }}
       RESULT_FREEBSD: ${{ needs.freebsd.result }}
       RESULT_DOCKER: ${{ needs.docker.result }}
+      RESULT_DOCKER_GAMES: ${{ needs.docker-games.result }}
     steps:
       - name: Results
         run: |
@@ -449,7 +502,7 @@ jobs:
             echo
             echo "| Job | Result |"
             echo "|---|---|"
-            for job in WEB LINUX LINUX_PACKAGES WINDOWS MACOS FREEBSD DOCKER; do
+            for job in WEB LINUX LINUX_PACKAGES WINDOWS MACOS FREEBSD DOCKER DOCKER_GAMES; do
               eval "result=\$RESULT_$job"
               case "$result" in
                 success) mark="✅" ;;
@@ -460,7 +513,7 @@ jobs:
               echo "$job: $result" >&2
             done
           } | tee -a "$GITHUB_STEP_SUMMARY"
-          for job in WEB LINUX LINUX_PACKAGES WINDOWS MACOS FREEBSD DOCKER; do
+          for job in WEB LINUX LINUX_PACKAGES WINDOWS MACOS FREEBSD DOCKER DOCKER_GAMES; do
             eval "result=\$RESULT_$job"
             [ "$result" = success ] || [ "$result" = skipped ] || failed=1
           done

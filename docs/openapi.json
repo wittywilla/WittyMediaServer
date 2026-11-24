@@ -15491,11 +15491,65 @@
           "serverTime": {
             "type": "integer"
           },
+          "startOver": {
+            "type": "boolean"
+          },
           "streamToken": {
             "type": "string"
           },
           "streamUrl": {
             "type": "string"
+          },
+          "timeline": {
+            "anyOf": [
+              {
+                "properties": {
+                  "breaks": {
+                    "items": {
+                      "properties": {
+                        "end": {
+                          "type": "integer"
+                        },
+                        "start": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "end",
+                        "start"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "earliest": {
+                    "type": "integer"
+                  },
+                  "from": {
+                    "type": "integer"
+                  },
+                  "live": {
+                    "type": "integer"
+                  },
+                  "programme": {
+                    "$ref": "#/components/schemas/GuideProgramme"
+                  }
+                },
+                "required": [
+                  "breaks",
+                  "earliest",
+                  "live",
+                  "programme"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "url": {
             "type": "string"
@@ -17932,86 +17986,6 @@
         "x-wms-auth": "admin"
       }
     },
-    "/channels/videos": {
-      "get": {
-        "operationId": "getChannelsVideos",
-        "parameters": [
-          {
-            "description": "Library ids, comma separated",
-            "in": "query",
-            "name": "libraries",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "1 to include the bumper list: uploads and videos chosen from other libraries",
-            "in": "query",
-            "name": "own",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Only these item ids, comma separated",
-            "in": "query",
-            "name": "ids",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Part of a title",
-            "in": "query",
-            "name": "search",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Where the page starts",
-            "in": "query",
-            "name": "offset",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "At most 200; 50 by default",
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "items (each a video, as in the bumper library) and total."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "A page of the videos a channel's bumpers and commercials can come from.",
-        "tags": [
-          "Channels and live TV"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
     "/channels/bumpers": {
       "get": {
         "operationId": "getChannelsBumpers",
@@ -18383,6 +18357,86 @@
           }
         ],
         "summary": "Channel suggestions.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/videos": {
+      "get": {
+        "operationId": "getChannelsVideos",
+        "parameters": [
+          {
+            "description": "Library ids, comma separated",
+            "in": "query",
+            "name": "libraries",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1 to include the bumper list: uploads and videos chosen from other libraries",
+            "in": "query",
+            "name": "own",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only these item ids, comma separated",
+            "in": "query",
+            "name": "ids",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Part of a title",
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Where the page starts",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "At most 200; 50 by default",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "items (each a video, as in the bumper library) and total."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A page of the videos a channel's bumpers and commercials can come from.",
         "tags": [
           "Channels and live TV"
         ],
@@ -19294,6 +19348,279 @@
         "x-wms-auth": "user"
       }
     },
+    "/connect": {
+      "get": {
+        "operationId": "getConnect",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "away": {
+                      "type": "string"
+                    },
+                    "canTurnOn": {
+                      "type": "boolean"
+                    },
+                    "p2p": {
+                      "type": "boolean"
+                    },
+                    "words": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "GET /connect: whether devices can connect from away, in words: `away` (off, checking, yes, partly, no), `words`, `p2p`, `canTurnOn`.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/connect/answer": {
+      "post": {
+        "operationId": "postConnectAnswer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "device": {
+                    "type": "string"
+                  },
+                  "find": {
+                    "type": "string"
+                  },
+                  "nonce": {
+                    "type": "string"
+                  },
+                  "platform": {
+                    "type": "string"
+                  },
+                  "proof": {
+                    "type": "string"
+                  },
+                  "serverNonce": {
+                    "type": "string"
+                  },
+                  "v": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "serverName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "token": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "`{v: 1, find, nonce, serverNonce, proof, device, platform}`: the device's proof. A right one signs it in: `{status: approved, token, user, serverName}`. Three wrong proofs end the code. Failures say why in `reason`, as `/pair/redeem`.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/connect/hello": {
+      "post": {
+        "operationId": "postConnectHello",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "find": {
+                    "type": "string"
+                  },
+                  "nonce": {
+                    "type": "string"
+                  },
+                  "v": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "nonce": {
+                      "type": "string"
+                    },
+                    "proof": {
+                      "type": "string"
+                    },
+                    "publicKey": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [],
+        "summary": "A code from Connect a device, typed on a device: `{v: 1, find, nonce}` (scrypt lookup key, 16 random bytes). The server that made it answers `{nonce, publicKey, proof}`, proving it knows the code; 404 `not-here` from any other. The code itself is never sent.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "public"
+      }
+    },
+    "/connect/offer": {
+      "delete": {
+        "operationId": "deleteConnectOffer",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ends the code and link this person has open.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      },
+      "post": {
+        "operationId": "postConnectOffer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "otp": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "away": {
+                      "type": "boolean"
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "expiresInSec": {
+                      "type": "integer"
+                    },
+                    "link": {
+                      "type": "string"
+                    },
+                    "qrLink": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Connect a device: `{userId, password, otp}` gives a `code` (`K7QM-2XHD`) for a device on the same network, and with peer to peer on a `link` and a shorter `qrLink` for one away from home, for this account or a Kids or Guest profile it manages. One way in: whichever is used first ends the other. Adults only; an administrator's takes the password again (403 `password-required`). Works once, for 15 minutes; a new one ends the one before.",
+        "tags": [
+          "Remote access and signed-in devices"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/creators": {
       "get": {
         "operationId": "getCreators",
@@ -19489,6 +19816,215 @@
           "Vertical and creator videos"
         ],
         "x-wms-auth": "user"
+      }
+    },
+    "/data-location": {
+      "get": {
+        "operationId": "getDataLocation",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Where the data folder is, where it came from, whether setup asks, the places it could go, and a move waiting or done.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postDataLocation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Keep the data in another folder: {choice: documents|install|custom, path}. 202 and the server restarts to move it; 200 when it is already there.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/data-location/check": {
+      "post": {
+        "operationId": "postDataLocationCheck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What choosing a place would mean: {path, problem, free, synced, current}. Changes nothing.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/data-location/old/delete": {
+      "post": {
+        "operationId": "postDataLocationOldDelete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete the copy a move kept: {password, code}. Only what was copied out of it goes.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/data-location/progress": {
+      "get": {
+        "operationId": "getDataLocationProgress",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Whether a move is running, how far it is, and the folder in use.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/data-location/request": {
+      "delete": {
+        "operationId": "deleteDataLocationRequest",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take back a move waiting for the next start.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
       }
     },
     "/diagnose/browse": {
@@ -22001,59 +22537,6 @@
         "x-wms-stream-token": true
       }
     },
-    "/items/{id}/scene/{sec}": {
-      "get": {
-        "operationId": "getItemsSceneById",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "sec",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "image/jpeg": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": "The content."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          },
-          {
-            "streamToken": []
-          }
-        ],
-        "summary": "A small picture (320 wide) of a video file at a whole second, for its scene picker and the seek-bar preview; the first request makes it.",
-        "tags": [
-          "Playback"
-        ],
-        "x-wms-auth": "user",
-        "x-wms-stream-token": true
-      }
-    },
     "/items/{id}/download": {
       "post": {
         "operationId": "postItemsDownload",
@@ -22849,6 +23332,59 @@
         "x-wms-auth": "user"
       }
     },
+    "/items/{id}/scene/{sec}": {
+      "get": {
+        "operationId": "getItemsSceneById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sec",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The content."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "streamToken": []
+          }
+        ],
+        "summary": "A small picture (320 wide) of a video file at a whole second, for its scene picker and the seek-bar preview; the first request makes it.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
     "/items/{id}/search": {
       "get": {
         "operationId": "getItemsSearch",
@@ -23152,14 +23688,14 @@
                 "schema": {
                   "properties": {
                     "directml": {
-                      "type": "boolean",
-                      "description": "ONNX Runtime's DirectML build comes with an install for a graphics card here (64-bit Windows)."
+                      "description": "ONNX Runtime's DirectML build comes with an install for a graphics card here (64-bit Windows).",
+                      "type": "boolean"
                     },
                     "directmlPackages": {
-                      "type": "array",
                       "items": {
                         "type": "string"
-                      }
+                      },
+                      "type": "array"
                     },
                     "downloadMB": {
                       "type": "integer"
@@ -23170,8 +23706,69 @@
                     },
                     "installed": {
                       "properties": {
+                        "accel": {
+                          "description": "What songs run on now: the choice in Settings (`karaokeDevice`), or what the install chose.",
+                          "properties": {
+                            "device": {
+                              "type": "string"
+                            },
+                            "downloadMB": {
+                              "type": "integer"
+                            },
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "at": {
                           "format": "date-time",
+                          "type": "string"
+                        },
+                        "auto": {
+                          "description": "What the install chose: the fastest that passed its test.",
+                          "properties": {
+                            "device": {
+                              "type": "string"
+                            },
+                            "downloadMB": {
+                              "type": "integer"
+                            },
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "choices": {
+                          "description": "What `karaokeDevice` can be set to, besides `auto`.",
+                          "items": {
+                            "properties": {
+                              "device": {
+                                "type": "string"
+                              },
+                              "downloadMB": {
+                                "type": "integer"
+                              },
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "device": {
+                          "description": "The `karaokeDevice` setting: `auto`, or one of `choices`.",
                           "type": "string"
                         },
                         "model": {
@@ -23182,67 +23779,6 @@
                         },
                         "version": {
                           "type": "string"
-                        },
-                        "accel": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "device": {
-                              "type": "string"
-                            },
-                            "downloadMB": {
-                              "type": "integer"
-                            }
-                          },
-                          "description": "What songs run on now: the choice in Settings (`karaokeDevice`), or what the install chose."
-                        },
-                        "auto": {
-                          "type": "object",
-                          "properties": {
-                            "id": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "device": {
-                              "type": "string"
-                            },
-                            "downloadMB": {
-                              "type": "integer"
-                            }
-                          },
-                          "description": "What the install chose: the fastest that passed its test."
-                        },
-                        "choices": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "device": {
-                                "type": "string"
-                              },
-                              "downloadMB": {
-                                "type": "integer"
-                              }
-                            }
-                          },
-                          "description": "What `karaokeDevice` can be set to, besides `auto`."
-                        },
-                        "device": {
-                          "type": "string",
-                          "description": "The `karaokeDevice` setting: `auto`, or one of `choices`."
                         }
                       },
                       "type": "object"
@@ -24086,6 +24622,46 @@
         "x-wms-auth": "admin"
       }
     },
+    "/libraries/{id}/purge-metadata": {
+      "post": {
+        "operationId": "postLibrariesIdPurgeMetadata",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "{deleted}: how many files. 409 for a read-only library. The library is scanned again."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete every .nfo and .metadata.json file in the library's folders.",
+        "tags": [
+          "Browsing"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/libraries/{id}/read-only": {
       "put": {
         "operationId": "putLibrariesIdReadOnly",
@@ -24134,46 +24710,6 @@
           }
         ],
         "summary": "Whether anything the server does may write into the library's folders: uploads, details and pictures saved beside the files, conversions. Any kind of library.",
-        "tags": [
-          "Browsing"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/libraries/{id}/purge-metadata": {
-      "post": {
-        "operationId": "postLibrariesIdPurgeMetadata",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "{deleted}: how many files. 409 for a read-only library. The library is scanned again."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete every .nfo and .metadata.json file in the library's folders.",
         "tags": [
           "Browsing"
         ],
@@ -33681,279 +34217,6 @@
         "x-wms-auth": "user"
       }
     },
-    "/connect": {
-      "get": {
-        "operationId": "getConnect",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "away": {
-                      "type": "string"
-                    },
-                    "canTurnOn": {
-                      "type": "boolean"
-                    },
-                    "p2p": {
-                      "type": "boolean"
-                    },
-                    "words": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "GET /connect: whether devices can connect from away, in words: `away` (off, checking, yes, partly, no), `words`, `p2p`, `canTurnOn`.",
-        "tags": [
-          "Remote access and signed-in devices"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/connect/offer": {
-      "delete": {
-        "operationId": "deleteConnectOffer",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Ends the code and link this person has open.",
-        "tags": [
-          "Remote access and signed-in devices"
-        ],
-        "x-wms-auth": "user"
-      },
-      "post": {
-        "operationId": "postConnectOffer",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "otp": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string"
-                  },
-                  "userId": {
-                    "type": "integer"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "away": {
-                      "type": "boolean"
-                    },
-                    "code": {
-                      "type": "string"
-                    },
-                    "expiresInSec": {
-                      "type": "integer"
-                    },
-                    "link": {
-                      "type": "string"
-                    },
-                    "qrLink": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Connect a device: `{userId, password, otp}` gives a `code` (`K7QM-2XHD`) for a device on the same network, and with peer to peer on a `link` and a shorter `qrLink` for one away from home, for this account or a Kids or Guest profile it manages. One way in: whichever is used first ends the other. Adults only; an administrator's takes the password again (403 `password-required`). Works once, for 15 minutes; a new one ends the one before.",
-        "tags": [
-          "Remote access and signed-in devices"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/connect/hello": {
-      "post": {
-        "operationId": "postConnectHello",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "find": {
-                    "type": "string"
-                  },
-                  "nonce": {
-                    "type": "string"
-                  },
-                  "v": {
-                    "type": "integer"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "nonce": {
-                      "type": "string"
-                    },
-                    "proof": {
-                      "type": "string"
-                    },
-                    "publicKey": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [],
-        "summary": "A code from Connect a device, typed on a device: `{v: 1, find, nonce}` (scrypt lookup key, 16 random bytes). The server that made it answers `{nonce, publicKey, proof}`, proving it knows the code; 404 `not-here` from any other. The code itself is never sent.",
-        "tags": [
-          "Remote access and signed-in devices"
-        ],
-        "x-wms-auth": "public"
-      }
-    },
-    "/connect/answer": {
-      "post": {
-        "operationId": "postConnectAnswer",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "device": {
-                    "type": "string"
-                  },
-                  "find": {
-                    "type": "string"
-                  },
-                  "nonce": {
-                    "type": "string"
-                  },
-                  "platform": {
-                    "type": "string"
-                  },
-                  "proof": {
-                    "type": "string"
-                  },
-                  "serverNonce": {
-                    "type": "string"
-                  },
-                  "v": {
-                    "type": "integer"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "serverName": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string"
-                    },
-                    "token": {
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [],
-        "summary": "`{v: 1, find, nonce, serverNonce, proof, device, platform}`: the device's proof. A right one signs it in: `{status: approved, token, user, serverName}`. Three wrong proofs end the code. Failures say why in `reason`, as `/pair/redeem`.",
-        "tags": [
-          "Remote access and signed-in devices"
-        ],
-        "x-wms-auth": "public"
-      }
-    },
     "/p2p/invite": {
       "post": {
         "operationId": "postP2pInvite",
@@ -37584,215 +37847,6 @@
           }
         ],
         "summary": "Restart, for a fix that waits for the next start.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/data-location": {
-      "get": {
-        "operationId": "getDataLocation",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Where the data folder is, where it came from, whether setup asks, the places it could go, and a move waiting or done.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "post": {
-        "operationId": "postDataLocation",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Keep the data in another folder: {choice: documents|install|custom, path}. 202 and the server restarts to move it; 200 when it is already there.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/data-location/check": {
-      "post": {
-        "operationId": "postDataLocationCheck",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "What choosing a place would mean: {path, problem, free, synced, current}. Changes nothing.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/data-location/old/delete": {
-      "post": {
-        "operationId": "postDataLocationOldDelete",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete the copy a move kept: {password, code}. Only what was copied out of it goes.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/data-location/progress": {
-      "get": {
-        "operationId": "getDataLocationProgress",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Whether a move is running, how far it is, and the folder in use.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/data-location/request": {
-      "delete": {
-        "operationId": "deleteDataLocationRequest",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Take back a move waiting for the next start.",
         "tags": [
           "Server"
         ],

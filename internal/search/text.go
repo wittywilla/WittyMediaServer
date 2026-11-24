@@ -142,3 +142,28 @@ func allowed(n int) int {
 var little = map[string]bool{"the": true, "a": true, "an": true, "of": true, "and": true, "to": true, "in": true,
 	"on": true, "at": true, "for": true, "la": true, "le": true, "les": true, "el": true, "los": true, "der": true,
 	"die": true, "das": true, "de": true, "du": true}
+
+// slip says whether a four-letter word typed is a word of the name with one letter
+// left out ("shrk" for "shrek") or two swapped ("lvoe" for "love"): slips of the
+// fingers. A letter changed is a different word too often ("love", "lode") to count.
+// still: the word is still being typed, so it may be the start of n.
+func slip(w, n []rune, still bool) bool {
+	if still && len(n) > len(w)+1 {
+		n = n[:len(w)+1]
+	}
+	switch {
+	case len(n) == len(w)+1: // one left out
+		for i := range n {
+			if string(n[:i])+string(n[i+1:]) == string(w) {
+				return true
+			}
+		}
+	case len(n) == len(w): // two side by side swapped
+		for i := 0; i+1 < len(w); i++ {
+			if w[i] != n[i] {
+				return w[i] == n[i+1] && w[i+1] == n[i] && string(w[i+2:]) == string(n[i+2:])
+			}
+		}
+	}
+	return false
+}

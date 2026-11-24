@@ -226,3 +226,18 @@ func TestSearchTypingIsNotLooser(t *testing.T) {
 		t.Errorf("still typing: %v", got)
 	}
 }
+
+// A four-letter word may have a letter left out or two swapped, not one changed. (On its
+// own, a swapped short word shares no grams with the right one: it needs another word.)
+func TestSearchFourLetterSlips(t *testing.T) {
+	x := New()
+	x.Replace(1, []Doc{{Group: "films", ID: 1, Title: "Shrek"}, {Group: "films", ID: 2, Title: "Love Actually"}, {Group: "games", ID: 3, Title: "Lode Runner"}})
+	for q, want := range map[string]string{"shrk": "Shrek", "lvoe actually": "Love Actually"} {
+		if got := titles(x.Search(Query{Text: q}), "films"); len(got) != 1 || got[0] != want {
+			t.Errorf("%q: %v", q, got)
+		}
+	}
+	if r := x.Search(Query{Text: "love"}); r.Group("games") != nil {
+		t.Errorf("love isn't lode")
+	}
+}

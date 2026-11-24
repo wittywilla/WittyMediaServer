@@ -47796,6 +47796,195 @@
         ],
         "x-wms-auth": "admin"
       }
+    },
+    "/search": {
+      "get": {
+        "operationId": "search",
+        "summary": "The one search across every library the account can open, a letter or two wrong still matching, grouped by kind (films, shows, episodes, artists, albums, songs, books, comics, games, photos, channels, people...), the best group first. Each group's items are the search page's cards.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "description": "What to find: two letters or more. year:1999, year:1990-1999 or year:1990s in it narrows it to those years.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "groups",
+            "description": "Only these groups, comma-separated.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "description": "Narrows it to a year, as year: in q does.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Most items in each group, 1 to 40; 12 if left out.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "remember",
+            "description": "1 keeps the search among the profile's recent searches: send it when someone picks a result or presses Enter, not as they type.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "query",
+                    "groups"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string"
+                    },
+                    "tookMs": {
+                      "type": "number",
+                      "description": "How long the index took, in milliseconds."
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "label",
+                          "items"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "more": {
+                            "type": "boolean"
+                          },
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "description": "A card, as an SDUI source item."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The search index is still being built on a server that has just started."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/search/recent": {
+      "get": {
+        "operationId": "getRecentSearches",
+        "summary": "The profile's last ten searches, newest first.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "recent"
+                  ],
+                  "properties": {
+                    "recent": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "forgetRecentSearches",
+        "summary": "Forgets the profile's recent searches, or with q just that one.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "description": "Forget only this search.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Forgotten."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "security": [

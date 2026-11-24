@@ -468,7 +468,7 @@ func (sc *scorer) score(name string) int {
 	for wi, w := range sc.qr {
 		last := wi == len(sc.qr)-1
 		lim := allowed(len(w))
-		best := lim + 1
+		best, slipped := lim+1, false
 		for _, at := range sc.words {
 			n := sc.nr[at[0]:at[1]]
 			d := distance(w, n, lim, &sc.rows)
@@ -479,12 +479,15 @@ func (sc *scorer) score(name string) int {
 					}
 				}
 			}
+			if d > lim && len(w) == 4 && slip(w, n, last) {
+				d, slipped = 1, true
+			}
 			best = min(best, d)
 			if best == 0 {
 				break
 			}
 		}
-		if best > lim {
+		if best > lim && !(slipped && best == 1) {
 			missed++
 			if missed > 1 || len(sc.qr) < 3 {
 				return 0

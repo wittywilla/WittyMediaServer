@@ -1267,6 +1267,25 @@ department; a title is `{target, id, title, year, character, job, episodes, gues
 (open `/items/{id}`, poster `/items/{id}/poster`) or `show` (`/shows/{id}`, `/shows/{id}/art/poster`).
 `GET /people?search=` finds people by name. A library filtered to one person is `GET /browse?person=<id>`.
 
+## Search
+
+`GET /search?q=` is the one search across every library the account can open, the same as the
+search page: films, shows and episodes, artists, albums and songs, audiobooks, podcasts, books,
+comics, games, karaoke, videos, photos, radio, channels and people. A letter or two wrong still
+matches (one from five letters, two from nine; a four-letter word may have a letter left out), and
+the last word typed matches the start of a word, so a client can search as someone types.
+`year:1999`, `year:1990-1999` or `year:1990s` in the text narrows it. Results come in `groups`,
+the best-matching group first, each with `key`, `label`, `more` and `items` (the search page's
+cards). `groups=films,shows` keeps only those; `limit` is the most items in each.
+
+Send `remember=1` when someone picks a result or presses Enter, so the search is kept among the
+profile's recent searches (`GET /search/recent`, ten, newest first; `DELETE /search/recent`
+forgets them, or with `q` one of them). The search page keeps what is searched on it by itself, a
+search that carries on from the newest one ("inter", then "interstellar") taking its place.
+
+The server answers from an index in memory, rebuilt for a library after each scan and when its
+titles change; a server that has just started answers 503 until it's ready.
+
 Everything follows the profile's limits: a hidden title's credits answer 404, a person's filmography
 names only titles the profile may see, and a person credited on nothing it may see answers 404 and
 isn't found, so an app needs no checks of its own. The first time a person is opened the server may
@@ -1593,6 +1612,9 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /people` | user | People credited on titles the account may see: `search` (two letters or more), `limit`. Each with `titles`, how many of theirs the account may see. |
 | `GET /people/{id}` | user | A `person` (name, dates, birthplace, biography, ids) and their `filmography` here, grouped by what they did. 404 for someone credited only on titles the account may not see. |
 | `GET /people/{id}/photo` | user, `st` | A person's picture; `w` asks for a smaller copy. |
+| `GET /search` | user | The one search, grouped by kind: `q`, `groups`, `year`, `limit`, `remember`. See "Search". |
+| `GET /search/recent` | user | The profile's recent searches, newest first. |
+| `DELETE /search/recent` | user | Forgets the profile's recent searches, or with `q` one of them. |
 | `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. `{id}` `show-<n>` with `{"watched": true}` marks every episode of the show this profile may see watched. |
 | `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). `{id}` `show-<n>`: in every episode of the show. |
 

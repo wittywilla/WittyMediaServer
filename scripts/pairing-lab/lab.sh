@@ -15,7 +15,7 @@
 # needs the real internet, for the public address book).
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
-NETS="direct fullcone cone-relay ipv4-only symmetric-relay cgnat-relay udp-blocked ipv6-only"
+NETS="direct fullcone cone-relay ipv4-only symmetric-relay cgnat-relay udp-blocked ipv6-only docker-home docker-away"
 SERVERS="fresh settled restart"
 ONLYS="on off"
 PHONES="fresh upgrade previous"
@@ -33,7 +33,9 @@ cone-relay.settled.off.previous.link
 direct.fresh.on.fresh.link
 fullcone.settled.on.fresh.link
 ipv4-only.settled.off.fresh.link
-cone-relay.settled.on.fresh.code"
+cone-relay.settled.on.fresh.code
+docker-home.settled.on.fresh.link
+docker-away.fresh.on.fresh.link"
 
 full() {
   local n s o p w
@@ -104,7 +106,7 @@ case "$cmd" in
     fi
     (cd "$srv" && go build -o "$out/bin/wittymediaserver" ./cmd/wittymediaserver)
     # The phone is built from this lab's own folder against that checkout's library: the one the app embeds.
-    rm -rf "$srv/.pl-labphone"; mkdir -p "$srv/.pl-labphone"; cp "$HERE/labphone/main.go" "$srv/.pl-labphone/"
+    rm -rf "$srv/.pl-labphone"; mkdir -p "$srv/.pl-labphone"; cp "$HERE"/labphone/*.go "$srv/.pl-labphone/"
     (cd "$srv" && go build -o "$out/bin/labphone" ./.pl-labphone); rm -rf "$srv/.pl-labphone"
     (cd "$relay" && GOWORK=off go build -o "$out/bin/wittyrelay" ./cmd/wittyrelay)
     { echo "server $(git -C "$srv" describe --tags --always 2>/dev/null)"; echo "relay $(git -C "$relay" describe --tags --always 2>/dev/null)"; } | tee "$out/versions.txt"

@@ -17,10 +17,17 @@
 #   cgnat-relay       cone behind a provider's symmetric CGNAT (100.64.0.0/10) / symmetric / own WittyRelay
 #   udp-blocked       port-restricted cone / symmetric, and no UDP out at all (TCP only) / own WittyRelay
 #   ipv6-only         IPv6 only: stateful home firewalls, no NAT / own WittyRelay on IPv6
+#   docker-home       the server in a container on Docker's bridge (172.17.0.2), behind its host's NAT, the
+#                     web and peer-to-peer ports published, the host behind a cone router; the phone on the
+#                     same home network as the host / only an ordinary public relay (issue #683)
+#   docker-away       as docker-home, the phone away behind its own cone router / own WittyRelay
+#
+# PL_RELAY_KIND says which relay a network has: own (WittyRelay, with the owner's key), public (an
+# ordinary libp2p relay with default limits, the kind found on the public network) or none.
 #
 # "uplink" also routes the pretend internet out to the real one (NAT through this machine), for
 # joining by a code, which needs the public address book (the DHT). Nothing else leaves.
-PL_NS="pl-inet pl-relay pl-rs pl-srv pl-rc pl-cli pl-cgn"
+PL_NS="pl-inet pl-relay pl-rs pl-srv pl-rc pl-cli pl-cgn pl-dh"
 PL_RELAY4=80.0.0.10
 PL_RELAY6=2001:db8::10
 PL_SRV_WAN4=80.0.1.1
@@ -120,10 +127,19 @@ lab_net() {
   nsx pl-inet ip link add br0 type bridge
   nsx pl-inet ip link set br0 up
   PL_V6=no
+  PL_RELAY_KIND=own
   PL_RELAY_ADDRS=/ip4/$PL_RELAY4/udp/4001/quic-v1,/ip4/$PL_RELAY4/tcp/4001
   local snat=cone cnat=cone
   case "$net" in
-    direct) PL_RELAY_ADDRS= ;;
+    docker-home | docker-away)
+      PL_RELAY_KIND=public
+      [ "$net" = docker-away ] && PL_RELAY_KIND=own
+      _docker "$net"
+      [ "$uplink" = uplink ] && _uplink
+      return 0 ;;
+  esac
+  case "$net" in
+    direct) PL_RELAY_ADDRS=; PL_RELAY_KIND=none ;;
     fullcone) snat=fullcone ;;
     cone-relay | ipv4-only) ;;
     symmetric-relay) snat=symmetric; cnat=symmetric ;;
@@ -178,6 +194,64 @@ lab_net() {
   fi
   [ "$uplink" = uplink ] && _uplink
   true
+}
+
+# _docker docker-home|docker-away: a home network (a bridge in the router, 192.168.1.0/24) with a
+# computer on it (pl-dh, 192.168.1.10) running the server in a container on Docker's default bridge
+# (pl-srv, 172.17.0.2). As Docker does it: the host hands the container's traffic on with its own
+# address, and only the web port is published. The peer-to-peer port is not.
+_docker() {
+  local net=$1
+  _wire pl-rc wan "$PL_CLI_WAN4/16"
+  _wire pl-relay eth0 "$PL_RELAY4/16"
+  _wire pl-rs wan "$PL_SRV_WAN4/16"
+  nsx pl-rs ip link add brl type bridge
+  nsx pl-rs ip addr add 192.168.1.1/24 dev brl
+  nsx pl-rs ip link set brl up
+  # The host's cable to the home network.
+  ip link add lp1 netns pl-rs type veth peer name eth0 netns pl-dh
+  nsx pl-rs ip link set lp1 master brl up
+  nsx pl-dh ip addr add 192.168.1.10/24 dev eth0; nsx pl-dh ip link set eth0 up
+  nsx pl-dh ip route add default via 192.168.1.1
+  # docker0 and the container.
+  ip link add docker0 netns pl-dh type veth peer name eth0 netns pl-srv
+  nsx pl-dh ip addr add 172.17.0.1/16 dev docker0; nsx pl-dh ip link set docker0 up
+  nsx pl-srv ip addr add 172.17.0.2/16 dev eth0; nsx pl-srv ip link set eth0 up
+  nsx pl-srv ip route add default via 172.17.0.1
+  nsx pl-dh sysctl -qw net.ipv4.ip_forward=1
+  nsx pl-dh iptables -t nat -A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
+  nsx pl-dh iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 19890 -j DNAT --to-destination 172.17.0.2:19890
+  # The peer-to-peer port too, UDP and TCP, as the compose files publish it since #683.
+  local p
+  for p in udp tcp; do
+    nsx pl-dh iptables -t nat -A PREROUTING -i eth0 -p "$p" --dport "$PL_P2P" -j DNAT --to-destination "172.17.0.2:$PL_P2P"
+    nsx pl-dh iptables -A FORWARD -i eth0 -o docker0 -p "$p" -d 172.17.0.2 --dport "$PL_P2P" -j ACCEPT
+  done
+  nsx pl-dh iptables -P FORWARD DROP
+  nsx pl-dh iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  nsx pl-dh iptables -A FORWARD -i docker0 -j ACCEPT
+  nsx pl-dh iptables -A FORWARD -i eth0 -o docker0 -p tcp -d 172.17.0.2 --dport 19890 -j ACCEPT
+  # The home router: lan is the bridge here.
+  nsx pl-rs sysctl -qw net.ipv4.ip_forward=1
+  nsx pl-rs iptables -t nat -A POSTROUTING -o wan -j MASQUERADE
+  nsx pl-rs iptables -P FORWARD DROP
+  nsx pl-rs iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  nsx pl-rs iptables -A FORWARD -i brl -o wan -j ACCEPT
+  nsx pl-rs iptables -A INPUT -i wan -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  nsx pl-rs iptables -A INPUT -i wan -j DROP
+  if [ "$net" = docker-home ]; then
+    # The phone on the same Wi-Fi as the server's computer.
+    ip link add lp2 netns pl-rs type veth peer name eth0 netns pl-cli
+    nsx pl-rs ip link set lp2 master brl up
+    nsx pl-cli ip addr add 192.168.1.20/24 dev eth0; nsx pl-cli ip link set eth0 up
+    nsx pl-cli ip route add default via 192.168.1.1
+  else
+    _home pl-rc pl-cli 192.168.2 ""
+    _nat pl-rc cone
+  fi
+  for n in pl-srv pl-cli pl-dh; do nsx "$n" sysctl -qw net.ipv6.conf.all.disable_ipv6=1; done
+  PL_SRV_IP=172.17.0.2
+  PL_HOME_URL=http://192.168.1.10:19890
 }
 
 # The pretend internet's way out to the real one: a cable to this machine, which hands packets on

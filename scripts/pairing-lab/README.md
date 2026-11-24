@@ -16,11 +16,11 @@ internet except, for joining by a code, the public address book (DHT) through th
 - **WittyRelay**, the owner-style relay, on the pretend internet.
 - **The phone**: either
   - `labphone` (default): `pkg/wittyconnect/mobile`, the library the Android app embeds, driven in the
-    order Android 0.6.x drives it (`PeerManager.join`/`joinByCode` and `App.joinedFromAway`): start the
-    connection, wait up to 45 s for a path, show the invite, prove the server's identity
+    order the Android app drives it (`PeerManager.join`/`joinByCode` and `App.joinedFromAway`). `PL_ORDER`
+    picks the app: `0.6.3` (the default: start the connection and show the invite at once) or `0.6.2` (start
+    the connection, wait up to 45 s for a path, and only then show the invite). Then: prove the server's identity
     (`POST /api/v1/identity`), redeem the sign-in code (`POST /api/v1/pair/redeem`), use it, then close and
-    open again from what was kept (the next launch), up to 25 s. `PL_ORDER=enrol-first` shows the invite as
-    soon as the connection starts, as the desktop app's helper does.
+    open again from what was kept (the next launch), up to 25 s.
   - the real app (`PL_PHONE=emulator`): an APK on an Android emulator started **inside** the phone's
     namespace, so all its traffic crosses the phone's router. `PL_APK` is the app; `PL_OLD_APK` the one an
     upgrade starts from.
@@ -31,7 +31,7 @@ A case is `network.server.only.phone.way`, for example `symmetric-relay.restart.
 
 | part | values |
 |---|---|
-| network | `direct` (the server on a public address), `fullcone` (the server's port forwarded), `cone-relay`, `ipv4-only`, `symmetric-relay`, `cgnat-relay` (the server behind a provider's CGNAT), `udp-blocked` (the phone's network lets no UDP out: TCP only), `ipv6-only` (no IPv4 at all; home routers are firewalls without NAT). Every network but `direct` has the owner's own WittyRelay. `net.sh` has the details. |
+| network | `direct` (the server on a public address), `fullcone` (the server's port forwarded), `cone-relay`, `ipv4-only`, `symmetric-relay`, `cgnat-relay` (the server behind a provider's CGNAT), `udp-blocked` (the phone's network lets no UDP out: TCP only), `ipv6-only` (no IPv4 at all; home routers are firewalls without NAT), `docker-home` (the server in a container on Docker's bridge behind its host, web and peer-to-peer ports published, the phone on the same Wi-Fi, and only an ordinary public relay: issue #683) and `docker-away` (the same server, the phone away, the owner's relay). Every other network but `direct` has the owner's own WittyRelay. `net.sh` has the details. |
 | server | `fresh`: the invite is made as soon as the server answers, before it holds a place on the relay. `settled`: the server has its relay place. `restart`: the server restarts between the invite (or the code shown) and the claim. |
 | only | "Only paired devices" `on` or `off`. |
 | phone | `fresh`: a new install. `upgrade`: an older app's leftovers (its key, the local port it used, addresses kept for this server from before it restarted on new ports); on the emulator, the old APK signed in at home, then updated. `previous`: paired with another server first, whose connection is still open when this one starts. |

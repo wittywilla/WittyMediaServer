@@ -63,7 +63,7 @@ var (
 	start    = time.Now()
 	stepMu   sync.Mutex
 	stepW    io.Writer = os.Stdout
-	order              = "app"
+	order              = "0.6.3"
 	codeWait           = 180 * time.Second
 )
 
@@ -100,10 +100,18 @@ func main() {
 	codeFile := flag.String("codefile", "", "code mode: the code is written here for the lab to type in")
 	name := flag.String("name", "Lab phone", "this phone's name on the server's list")
 	newKey := flag.Bool("newkey", false, "print a new device key and exit")
-	orderFlag := flag.String("order", "app", "app (the Android app 0.6.x: a path first, then the invite) or enrol-first (the desktop helper's order)")
+	orderFlag := flag.String("order", "0.6.3", "which app's order: 0.6.2 (a path first, then the invite) or 0.6.3 (the invite at once, as the desktop helper does; also enrol-first)")
 	cw := flag.Duration("codewait", 180*time.Second, "code mode: how long the phone waits for the server to take its code")
 	t0 := flag.Int64("t0", 0, "the case's start, in Unix milliseconds, so both sides share a clock")
+	relayListen := flag.String("public-relay", "", "run an ordinary public relay on these multiaddrs (comma-separated) instead")
 	flag.Parse()
+	if *relayListen != "" {
+		if err := publicRelay(*relayListen); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if *t0 > 0 {
 		start = time.UnixMilli(*t0)
 	}
@@ -271,7 +279,7 @@ func run(mode, link, state, dir, codeFile, name string) error {
 	// The Android app 0.6.x waits for a path before it shows the invite; the desktop app's
 	// helper (and -order enrol-first) shows it at once, which is what gets an unlisted device
 	// past a relay that admits only listed ones.
-	if order != "enrol-first" || mode != "link" {
+	if !enrolFirst() || mode != "link" {
 		if st, ok := waitConnected(sess, joinWait); !ok {
 			return fmt.Errorf("the server wasn't reached from away in %v (last state %s)", joinWait, st)
 		}
@@ -293,7 +301,7 @@ func run(mode, link, state, dir, codeFile, name string) error {
 			return fmt.Errorf("the server didn't take the invite: %v %s %s", err, a.Reason, a.Error)
 		}
 		signIn = a.Code
-		if order == "enrol-first" {
+		if enrolFirst() {
 			if st, ok := waitConnected(sess, joinWait); !ok {
 				return fmt.Errorf("listed, but the server wasn't reached from away in %v (last state %s)", joinWait, st)
 			}
@@ -524,3 +532,7 @@ func redact(ans string) json.RawMessage {
 	b, _ := json.Marshal(m)
 	return b
 }
+
+// enrolFirst: the app shows an invite as soon as the connection starts (0.6.3 on, and the desktop
+// helper), rather than after a path is found (0.6.2 and before).
+func enrolFirst() bool { return order == "0.6.3" || order == "enrol-first" }

@@ -81,7 +81,16 @@ fi
 sstep network-ready true "{\"network\":\"$NET\",\"uplink\":\"${UPLINK:-no}\",\"ipv6\":\"$PL_V6\"}"
 
 RELAY=
-if [ -n "$PL_RELAY_ADDRS" ]; then
+PUBLIC_RELAY=
+if [ "$PL_RELAY_KIND" = public ]; then
+  # An ordinary public relay: the server finds it as it would one on the public network (here named in
+  # Settings, Remote Access as a relay to use, since this network has no address book to find it in).
+  asuser pl-relay "$BUILD/bin/labphone" -public-relay "/ip4/$PL_RELAY4/udp/4001/quic-v1,/ip4/$PL_RELAY4/tcp/4001" >"$OUT/relay.log" 2>&1 &
+  for _ in $(seq 1 75); do grep -q 'relay address' "$OUT/relay.log" 2>/dev/null && break; sleep 0.2; done
+  PUBLIC_RELAY=$(grep -m1 -o '/ip4/[^ ]*/udp/4001/quic-v1/p2p/12D3KooW[1-9A-HJ-NP-Za-km-z]*' "$OUT/relay.log")
+  [ -n "$PUBLIC_RELAY" ] || die "the public relay didn't start: $(tail -3 "$OUT/relay.log")"
+  sstep relay-ready true "{\"publicRelay\":\"$PUBLIC_RELAY\"}"
+elif [ -n "$PL_RELAY_ADDRS" ]; then
   mkdir -p "$OUT/relay"; chown "$RUNAS" "$OUT/relay"
   RELAY_HTTP=$PL_RELAY4:8080; [ "$PL_V6" = yes ] && RELAY_HTTP="[$PL_RELAY6]:8080"
   asuser pl-relay env WITTYRELAY_DATA_DIR="$OUT/relay" WITTYRELAY_HTTP="$RELAY_HTTP" WITTYRELAY_KEYS="$KEY" \
@@ -119,10 +128,14 @@ stop_server() { # by its own PID, never by name
 }
 # api <tag> <method> <path> [json]
 api() {
-  local port=$PL_HTTP tokvar=TOK_$1
+  local port=$PL_HTTP tokvar=TOK_$1 where=pl-srv base
   [ "$1" = b ] && port=$PL_HTTP_B
-  ip netns exec pl-srv curl -sS -m 60 -X "$2" -H "Authorization: Bearer ${!tokvar:-}" -H 'Content-Type: application/json' \
-    ${4:+--data "$4"} "http://127.0.0.1:$port$3"
+  base=http://127.0.0.1:$port
+  # A server in a container is used the way its owner uses it: from a computer at home, at the host's
+  # published address (what Connect a device takes the home network's address from).
+  if [ "$1" = a ] && [ -n "${PL_HOME_URL:-}" ]; then where=pl-rs; base=$PL_HOME_URL; fi
+  ip netns exec "$where" curl -sS -m 60 -X "$2" -H "Authorization: Bearer ${!tokvar:-}" -H 'Content-Type: application/json' \
+    ${4:+--data "$4"} "$base$3"
 }
 PW=$(head -c 18 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')x9
 # setup_server <tag> <p2p port>: an administrator, then peer to peer on as the owner would set it.
@@ -137,7 +150,16 @@ setup_server() {
   [ "$ONLY" = off ] && only=false
   [ "$WAY" = code ] && dht=true
   [ -n "$RELAY" ] && relays="[{\"addr\":\"$RELAY\",\"key\":\"$KEY\"}]"
-  local body="{\"accept\":true,\"enabled\":true,\"port\":$p2p,\"devicesOnly\":$only,\"layers\":{\"dht\":$dht,\"relay\":$relayon,\"holePunch\":true,\"portMap\":false,\"ipv6\":true},\"ownRelays\":$relays}"
+  local static='[]'
+  if [ -n "$PUBLIC_RELAY" ]; then
+    # Nothing here has the public address book, which is what introduces a server to the public network's
+    # nodes. Naming the public relay as an own relay too stands in for it (as scripts/smoke/remote.sh does):
+    # the server dials it, its registration fails, and from then on that node tells the server it can't be
+    # reached (AutoNAT) and the server holds a place on it like on any public node.
+    static="[\"$PUBLIC_RELAY\"]"
+    relays="[{\"addr\":\"$PUBLIC_RELAY\",\"key\":\"stand-in-for-the-address-book\"}]"
+  fi
+  local body="{\"accept\":true,\"enabled\":true,\"port\":$p2p,\"devicesOnly\":$only,\"layers\":{\"dht\":$dht,\"relay\":$relayon,\"holePunch\":true,\"portMap\":false,\"ipv6\":true},\"ownRelays\":$relays,\"staticRelays\":$static}"
   api "$tag" PUT /api/p2p/settings "$body" >"$OUT/p2p-settings-$tag.json"
   python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if isinstance(d, dict) and 'settings' in d else 1)" "$OUT/p2p-settings-$tag.json"
 }
@@ -183,7 +205,7 @@ print(json.dumps(out, sort_keys=True))' 2>/dev/null)
 
 # ---------------------------------------------------------------- the phone's state before pairing
 PHONE=$OUT/phone; mkdir -p "$PHONE"; chown "$RUNAS" "$PHONE"
-phone() { asuser pl-cli env GOLOG_LOG_LEVEL="${PL_PHONE_GOLOG:-error}" "$BUILD/bin/labphone" -t0 "$T0" -order "${PL_ORDER:-app}" -steps "$STEPS" -statedir "$PHONE" "$@"; }
+phone() { asuser pl-cli env GOLOG_LOG_LEVEL="${PL_PHONE_GOLOG:-error}" "$BUILD/bin/labphone" -t0 "$T0" -order "${PL_ORDER:-0.6.3}" -steps "$STEPS" -statedir "$PHONE" "$@"; }
 
 # PL_PHONE=emulator: the real app instead (PL_APK, and PL_OLD_APK for an upgrade), on an emulator started
 # inside the phone's namespace (AVD PL_AVD, console port PL_EMU_PORT), so its traffic crosses the phone's router.
@@ -222,7 +244,7 @@ if [ "$CSTATE" = previous ]; then
   SIDE=prep sstep prep-other-server true null
   start_server b "$PL_HTTP_B" || die "server B didn't start"
   setup_server b "$PL_P2P_B" || die "server B: settings refused: $(cat "$OUT/p2p-settings-b.json")"
-  wait_p2p b "$([ -n "$RELAY" ] && echo yes || echo no)" 90 || die "server B: no peer to peer"
+  wait_p2p b "$([ -n "$RELAY$PUBLIC_RELAY" ] && echo yes || echo no)" 90 || die "server B: no peer to peer"
   LB=$(make_invite b); [ -n "$LB" ] || die "server B: no invite"
   T_PREP=$(date +%s%3N)
   # The order that gets through a relay: this is only the setting-up, not what is tested.
@@ -261,12 +283,12 @@ fi
 if [ "$SSTATE" = fresh ]; then
   wait_p2p a no 60 || die "peer to peer never came up"
 else
-  if wait_p2p a "$([ -n "$RELAY" ] && echo yes || echo no)" 90; then
+  if wait_p2p a "$([ -n "$RELAY$PUBLIC_RELAY" ] && echo yes || echo no)" 90; then
     sstep settled true "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps({"addrs": d.get("addrs")}))' "$OUT/p2p-a.json")"
   else
     sstep settled false "$(jstr "no place on the relay after 90 s: $(head -c 400 "$OUT/p2p-a.json")")"
   fi
-  [ -z "$RELAY" ] && sleep 5
+  [ -z "$RELAY$PUBLIC_RELAY" ] && sleep 5
 fi
 SID=$(jget "d['serverId']" <"$OUT/p2p-a.json")
 POLLER_START

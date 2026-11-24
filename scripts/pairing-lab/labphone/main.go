@@ -43,6 +43,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,6 +66,7 @@ var (
 	stepW    io.Writer = os.Stdout
 	order              = "0.6.3"
 	codeWait           = 180 * time.Second
+	webHome, webCode   string
 )
 
 func step(name string, ok bool, detail any) {
@@ -103,6 +105,8 @@ func main() {
 	orderFlag := flag.String("order", "0.6.3", "which app's order: 0.6.2 (a path first, then the invite) or 0.6.3 (the invite at once, as the desktop helper does; also enrol-first)")
 	cw := flag.Duration("codewait", 180*time.Second, "code mode: how long the phone waits for the server to take its code")
 	t0 := flag.Int64("t0", 0, "the case's start, in Unix milliseconds, so both sides share a clock")
+	wh := flag.String("home", "", "webcode mode: the web address the phone finds the server at, at home")
+	wc := flag.String("code", "", "webcode mode: the Connect a device code typed in")
 	relayListen := flag.String("public-relay", "", "run an ordinary public relay on these multiaddrs (comma-separated) instead")
 	flag.Parse()
 	if *relayListen != "" {
@@ -133,6 +137,7 @@ func main() {
 		stepW = f
 	}
 	order = *orderFlag
+	webHome, webCode = *wh, *wc
 	codeWait = *cw
 	err := run(*mode, *link, *state, *stateDir, *codeFile, *name)
 	if err != nil {
@@ -191,6 +196,30 @@ func run(mode, link, state, dir, codeFile, name string) error {
 			old = s
 			time.Sleep(2 * time.Second)
 			k.Port = s.Port()
+		}
+	}
+
+	// 0.6.3 at home: the QR code's address and code (h=, c=) are tried first, through the web port, as
+	// is a code typed in (mode webcode); no peer-to-peer path is needed. Away, they don't answer and the
+	// link goes on as an invite.
+	if enrolFirst() && (mode == "link" || mode == "webcode") {
+		home, code := webHome, webCode
+		if mode == "link" {
+			if u, err := url.Parse(link); err == nil {
+				home, code = u.Query().Get("h"), u.Query().Get("c")
+			}
+		}
+		if home != "" && code != "" {
+			tok, err := webJoin(home, code, name)
+			if err == nil {
+				return useAtHome(home, tok)
+			}
+			if mode == "webcode" {
+				return err
+			}
+			step("qr-at-home-unanswered", true, map[string]any{"err": errText(err)})
+		} else if mode == "webcode" {
+			return errors.New("lab error: webcode needs -home and -code")
 		}
 	}
 
@@ -536,3 +565,21 @@ func redact(ans string) json.RawMessage {
 // enrolFirst: the app shows an invite as soon as the connection starts (0.6.3 on, and the desktop
 // helper), rather than after a path is found (0.6.2 and before).
 func enrolFirst() bool { return order == "0.6.3" || order == "enrol-first" }
+
+// useAtHome: signed in at home through the web port; the server's libraries, there.
+func useAtHome(home, tok string) error {
+	t := time.Now()
+	req, _ := http.NewRequest("GET", strings.TrimRight(home, "/")+"/api/v1/libraries", nil)
+	req.Header.Set("Authorization", "Bearer "+tok)
+	res, err := client.Do(req)
+	code := 0
+	if err == nil {
+		code = res.StatusCode
+		res.Body.Close()
+	}
+	step("use-after-pairing", err == nil && code == 200, map[string]any{"ms": time.Since(t).Milliseconds(), "at": home, "status": code, "err": errText(err)})
+	if err != nil || code != 200 {
+		return fmt.Errorf("using the server at home: HTTP %d %v", code, err)
+	}
+	return nil
+}

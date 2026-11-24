@@ -176,8 +176,19 @@ wait_p2p() {
   done
   return 1
 }
-# make_invite <tag>: prints the link.
-make_invite() { api "$1" POST /api/p2p/invite "{\"name\":\"Lab phone\",\"password\":\"$PW\"}" | tee "$OUT/invite-$1.json" | jget "d.get('link') or ''"; }
+# make_invite <tag>: prints the link the QR code holds. As the owner does it: Settings, Remote Access, Connect a
+# device (POST /api/connect/offer: a code and a link together), the QR code's link; the plain invite (POST
+# /api/p2p/invite) on a server without Connect a device.
+make_invite() {
+  api "$1" POST /api/connect/offer "{\"password\":\"$PW\"}" >"$OUT/invite-$1.json"
+  local l
+  l=$(jget "d.get('qrLink') or d.get('link') or ''" <"$OUT/invite-$1.json")
+  if [ -z "$l" ]; then
+    api "$1" POST /api/p2p/invite "{\"name\":\"Lab phone\",\"password\":\"$PW\"}" >"$OUT/invite-$1.json"
+    l=$(jget "d.get('link') or ''" <"$OUT/invite-$1.json")
+  fi
+  echo "$l"
+}
 redact_link() { sed 's/s=[^&"]*/s=…/' <<<"$1"; }
 
 # The server's side, every second while the case runs: what /api/p2p and the device list say, when it changes.
@@ -329,7 +340,7 @@ if [ "$WAY" = link ]; then
   sstep invite-made true "$(python3 -c '
 import json, sys, urllib.parse as u
 l = sys.argv[1]; q = u.parse_qs(u.urlparse(l).query); a = q.get("a", [])
-print(json.dumps({"addrs": a, "relayed": any("p2p-circuit" in x for x in a), "link": l.split("?")[0]}))' "$LINK")"
+print(json.dumps({"addrs": a, "relayed": any("p2p-circuit" in x for x in a), "home": q.get("h", [""])[0], "link": l.split("?")[0]}))' "$LINK")"
   [ "$SSTATE" = restart ] && restart_server
   if [ -n "$EMU" ]; then
     echo "$LINK" >"$PHONE/link.txt.tmp"; chown "$RUNAS" "$PHONE/link.txt.tmp"; mv "$PHONE/link.txt.tmp" "$PHONE/link.txt"
@@ -337,7 +348,17 @@ print(json.dumps({"addrs": a, "relayed": any("p2p-circuit" in x for x in a), "li
   else
     phone -mode link -link "$LINK" -state "$CSTATE" >"$OUT/phone.log" 2>&1 || RC=1
   fi
+elif [ -n "${PL_PHONE_HOME:-}" ] && [ -z "$EMU" ] && [ "${PL_ORDER:-0.6.3}" != 0.6.2 ]; then
+  # At home, from 0.6.3 on: the code Connect a device shows, typed into the phone (Enter a code), and
+  # answered through the web port.
+  make_invite a >/dev/null
+  CODE=$(jget "d.get('code') or ''" <"$OUT/invite-a.json")
+  [ -n "$CODE" ] || die "Connect a device gave no code: $(head -c 300 "$OUT/invite-a.json")"
+  sstep code-shown true null
+  [ "$SSTATE" = restart ] && restart_server
+  phone -mode webcode -home "$PL_PHONE_HOME" -code "$CODE" -state "$CSTATE" >"$OUT/phone.log" 2>&1 || RC=1
 else
+  # Away: the phone shows a code (Join your server from away) and the owner types it into the server.
   CODEF=$OUT/phone/code.txt
   if [ -n "$EMU" ]; then
     PPID_=$EMUPID

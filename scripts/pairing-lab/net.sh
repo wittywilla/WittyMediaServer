@@ -237,6 +237,9 @@ _docker() {
   nsx pl-rs iptables -P FORWARD DROP
   nsx pl-rs iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   nsx pl-rs iptables -A FORWARD -i brl -o wan -j ACCEPT
+  # Between computers at home the router is a switch, whatever br_netfilter makes of bridged frames.
+  nsx pl-rs sysctl -qw net.bridge.bridge-nf-call-iptables=0 2>/dev/null
+  nsx pl-rs iptables -A FORWARD -i brl -o brl -j ACCEPT
   nsx pl-rs iptables -A INPUT -i wan -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   nsx pl-rs iptables -A INPUT -i wan -j DROP
   if [ "$net" = docker-home ]; then
@@ -252,6 +255,8 @@ _docker() {
   for n in pl-srv pl-cli pl-dh; do nsx "$n" sysctl -qw net.ipv6.conf.all.disable_ipv6=1; done
   PL_SRV_IP=172.17.0.2
   PL_HOME_URL=http://192.168.1.10:19890
+  # The phone is at home only on docker-home: there it can use the web port with a code.
+  [ "$net" = docker-home ] && PL_PHONE_HOME=$PL_HOME_URL
 }
 
 # The pretend internet's way out to the real one: a cable to this machine, which hands packets on

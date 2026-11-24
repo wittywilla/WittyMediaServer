@@ -94,7 +94,7 @@ func (b *backupServer) waitJob(t *testing.T) backupJob {
 func TestBackupRoutesCheckWhoIsAsking(t *testing.T) {
 	b := newBackupServer(t)
 	for _, c := range []struct{ method, path string }{
-		{"GET", "/api/backup"}, {"GET", "/api/backup/estimate"}, {"POST", "/api/backup/create"}, {"POST", "/api/backup/cancel"}, {"PUT", "/api/backup/schedule"},
+		{"GET", "/api/backup"}, {"GET", "/api/backup/estimate"}, {"POST", "/api/backup/create"}, {"POST", "/api/backup/cancel"}, {"PUT", "/api/backup/schedule"}, {"PUT", "/api/backup/folder"},
 		{"DELETE", "/api/backup/files/wms-backup-x.zip"}, {"POST", "/api/backup/files/wms-backup-x.zip/link"}, {"POST", "/api/backup/restore/upload"},
 		{"POST", "/api/backup/restore/inspect"}, {"POST", "/api/backup/restore/start"}, {"DELETE", "/api/backup/restore/request"}, {"POST", "/api/backup/undo"},
 	} {
@@ -480,4 +480,63 @@ func TestScheduledBackupRuns(t *testing.T) {
 		t.Fatal(err)
 	}
 	in.Close()
+}
+
+// A folder of one's own: checked, marked, used, and noticed when the drive goes.
+func TestBackupFolderThroughTheRoutes(t *testing.T) {
+	b := newBackupServer(t)
+	drive := filepath.Join(t.TempDir(), "usb", "wms")
+	if err := os.MkdirAll(drive, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if w := b.call("PUT", "/api/backup/folder", b.admin, map[string]any{"folder": drive}); w.Code != 403 {
+		t.Fatalf("chose a folder with no password: %d", w.Code)
+	}
+	for _, bad := range []string{"relative/folder", b.Cfg.DataDir, filepath.Join(drive, "not-made")} {
+		if w := b.call("PUT", "/api/backup/folder", b.admin, map[string]any{"folder": bad, "current": backupPassword}); w.Code != 400 {
+			t.Errorf("%s: %d %s", bad, w.Code, w.Body)
+		}
+	}
+	w := b.call("PUT", "/api/backup/folder", b.admin, map[string]any{"folder": drive, "current": backupPassword})
+	if w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	var v backupView
+	if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil {
+		t.Fatal(err)
+	}
+	real, _ := filepath.EvalSymlinks(drive)
+	if v.Chosen != real || v.Folder != real || v.FolderProblem != "" {
+		t.Fatalf("view: %+v", v)
+	}
+	if w := b.call("POST", "/api/backup/create", b.admin, map[string]any{"parts": []string{"settings"}}); w.Code != 202 && w.Code != 200 {
+		t.Fatalf("create: %d %s", w.Code, w.Body)
+	}
+	if j := b.waitJob(t); j.Error != "" || j.File == "" {
+		t.Fatalf("job: %+v", j)
+	}
+	if _, err := os.Stat(filepath.Join(real, b.backup.job.File)); err != nil {
+		t.Fatalf("not in the chosen folder: %v", err)
+	}
+	// The drive is unplugged: the page says so, and nothing is made.
+	if err := os.Remove(filepath.Join(real, backup.MarkerName)); err != nil {
+		t.Fatal(err)
+	}
+	w = b.call("GET", "/api/backup", b.admin, nil)
+	if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(v.FolderProblem, "plugged in") {
+		t.Fatalf("no problem shown: %+v", v.FolderProblem)
+	}
+	if w := b.call("POST", "/api/backup/create", b.admin, map[string]any{"parts": []string{"settings"}}); w.Code != 409 || !strings.Contains(w.Body.String(), "plugged in") {
+		t.Fatalf("made one anyway: %d %s", w.Code, w.Body)
+	}
+	// Back to the data folder.
+	if w := b.call("PUT", "/api/backup/folder", b.admin, map[string]any{"folder": "", "current": backupPassword}); w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	if got := b.backupFolders().Store; got != "" {
+		t.Fatalf("still %q", got)
+	}
 }

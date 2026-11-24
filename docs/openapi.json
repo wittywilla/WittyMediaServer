@@ -17261,6 +17261,37 @@
         "x-wms-auth": "public"
       }
     },
+    "/backup/folder": {
+      "put": {
+        "operationId": "putBackupFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose where backups are kept: `{folder, current, code}`.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/backup/schedule": {
       "put": {
         "operationId": "putBackupSchedule",

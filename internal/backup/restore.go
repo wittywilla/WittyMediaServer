@@ -947,17 +947,19 @@ func targetsAllowed(f Folders, swaps []swap) bool {
 // be a decrypted copy, so it doesn't wait about. The grace is in case the command line is
 // making one right now.
 func cleanLeftovers(f Folders) {
-	entries, err := os.ReadDir(f.Dir())
-	if err != nil {
-		return
-	}
-	for _, e := range entries {
-		n := e.Name()
-		if !strings.HasPrefix(n, ".backup-") && !strings.HasPrefix(n, ".restore-check-") {
+	for _, dir := range f.archiveDirs() {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
 			continue
 		}
-		if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) > 10*time.Minute {
-			_ = os.RemoveAll(filepath.Join(f.Dir(), n))
+		for _, e := range entries {
+			n := e.Name()
+			if !strings.HasPrefix(n, ".backup-") && !strings.HasPrefix(n, ".restore-check-") {
+				continue
+			}
+			if fi, err := e.Info(); err == nil && time.Since(fi.ModTime()) > 10*time.Minute {
+				_ = os.RemoveAll(filepath.Join(dir, n))
+			}
 		}
 	}
 }

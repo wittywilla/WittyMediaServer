@@ -6,7 +6,8 @@
 // page's console in the run's folder, so a failure says what was on the screen.
 //
 //   WMS_URL=... WMS_NAME=... WMS_PASS=... WMS_TOKEN=... node scripts/smoke/web.mjs <out folder> [step ...]
-import { mkdirSync, writeFileSync, appendFileSync, readdirSync } from 'node:fs'
+import { mkdirSync, writeFileSync, appendFileSync, readdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { launch } from '../../web/scripts/cdp.mjs'
 
@@ -166,6 +167,45 @@ await step('Open settings', async (log) => {
   const crash = await p.eval(`document.body.innerText.match(/Something went wrong|went wrong/i)?.[0] || ''`)
   if (crash) throw new Error('settings shows: ' + crash)
   log(await p.eval(`[...document.querySelectorAll('h1, h2')].map((h) => h.textContent).join(' | ')`))
+})
+
+// Settings, Backup: a folder of one's own (typed, as a second drive would be), a backup made into it,
+// and back to the data folder after.
+await step('Back up to a folder of your own', async (log) => {
+  const dir = join(process.env.SMOKE_TMP || tmpdir(), `smoke-backups-${process.pid}`)
+  mkdirSync(dir, { recursive: true })
+  const send = async (method, path, body) => {
+    const r = await fetch(server + path, { method, headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    if (!r.ok) throw new Error(`${method} ${path}: ${r.status} ${(await r.text()).slice(0, 200)}`)
+    return r.json()
+  }
+  try {
+    await p.go(server + '/settings/backup')
+    await click('^\\s*Schedule\\s*$')
+    await p.until(`document.querySelector('.bk-folder input')`, 15000, 'the folder field')
+    await type('.bk-folder input', dir)
+    await p.until(`document.querySelector('.bk-folder input[type=password]')`, 5000, 'the password field')
+    await type('.bk-folder input[type=password]', process.env.WMS_PASS)
+    await click('^\\s*Use this folder')
+    const end = Date.now() + 15000
+    while (!(await api('/api/backup')).chosenFolder) {
+      if (Date.now() > end) throw new Error('the folder was not chosen: ' + (await p.eval(`document.querySelector('[role=alert]')?.innerText || ''`)))
+      await wait(300)
+    }
+    log('chosen: ' + (await api('/api/backup')).chosenFolder)
+    await send('POST', '/api/backup/create', { parts: ['settings'] })
+    const made = Date.now() + 120000
+    while (!readdirSync(dir).some((f) => /^wms-backup-.*\.zip$/.test(f))) {
+      if (Date.now() > made) throw new Error('no backup in the folder: ' + JSON.stringify((await api('/api/backup')).job))
+      await wait(500)
+    }
+    log('in the folder: ' + readdirSync(dir).join(', '))
+    await p.go(server + '/settings/backup')
+    await p.until(`/In your folder/.test(document.body.innerText)`, 20000, 'the backup listed as in the chosen folder')
+  } finally {
+    await send('PUT', '/api/backup/folder', { folder: '', current: process.env.WMS_PASS }).catch((e) => log('could not put the folder back: ' + e.message))
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
 
 await b.close()

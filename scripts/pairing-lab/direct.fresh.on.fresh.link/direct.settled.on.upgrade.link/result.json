@@ -1,0 +1,10 @@
+{
+  "case": "direct.settled.on.upgrade.link",
+  "ok": false,
+  "outcome": "lab-error",
+  "seconds": 34.0,
+  "failedStep": "lab-error",
+  "why": null,
+  "failedDetail": "settings refused: ",
+  "at": {}
+}

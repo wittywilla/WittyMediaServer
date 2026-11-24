@@ -1,0 +1,10 @@
+{
+  "case": "direct.restart.on.fresh.link",
+  "ok": false,
+  "outcome": "lab-error",
+  "seconds": 42.6,
+  "failedStep": "lab-error",
+  "why": null,
+  "failedDetail": "settings refused: ",
+  "at": {}
+}

@@ -1,0 +1,3 @@
+{"t":526,"at":"2026-11-24T18:38:50.834Z","side":"server","step":"network-ready","ok":true,"detail":{"network":"direct","uplink":"no","ipv6":"no"}}
+{"t":578,"at":"2026-11-24T18:38:50.883Z","side":"prep","step":"prep-other-server","ok":true,"detail":null}
+{"t":62585,"at":"2026-11-24T18:39:52.892Z","side":"server","step":"lab-error","ok":false,"detail":"server B didn't start"}

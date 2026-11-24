@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pairing-lab" tests="18" failures="18">
+  <testcase classname="pairing" name="cgnat-relay.settled.on.fresh.link" time="16.6">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;cgnat-relay.settled.on.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.6,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="cone-relay.fresh.on.fresh.link" time="16.8">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;cone-relay.fresh.on.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.8,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="cone-relay.settled.off.fresh.code" time="16.6">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;cone-relay.settled.off.fresh.code&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.6,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="cone-relay.settled.off.fresh.link" time="16.5">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;cone-relay.settled.off.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.5,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="cone-relay.settled.on.previous.link" time="16.9">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;cone-relay.settled.on.previous.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.9,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="cone-relay.settled.on.upgrade.link" time="16.9">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;cone-relay.settled.on.upgrade.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.9,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="direct.restart.on.fresh.link" time="42.6">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;direct.restart.on.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 42.6,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;settings refused: &quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="direct.settled.off.fresh.link" time="32.4">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;direct.settled.off.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 32.4,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;settings refused: &quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="direct.settled.on.fresh.code" time="53.9">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;direct.settled.on.fresh.code&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 53.9,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;settings refused: &quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="direct.settled.on.previous.link" time="62.6">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;direct.settled.on.previous.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 62.6,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;server B didn&#x27;t start&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="direct.settled.on.upgrade.link" time="34.0">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;direct.settled.on.upgrade.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 34.0,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;settings refused: &quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="fullcone.settled.off.fresh.link" time="16.5">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;fullcone.settled.off.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.5,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="fullcone.settled.on.fresh.link" time="15.9">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;fullcone.settled.on.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 15.9,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="ipv4-only.settled.on.fresh.link" time="16.6">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;ipv4-only.settled.on.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.6,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="ipv6-only.settled.on.fresh.link" time="16.6">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;ipv6-only.settled.on.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.6,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="symmetric-relay.restart.off.fresh.link" time="17.2">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;symmetric-relay.restart.off.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 17.2,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="symmetric-relay.settled.on.fresh.link" time="16.4">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;symmetric-relay.settled.on.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.4,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+  <testcase classname="pairing" name="udp-blocked.settled.on.fresh.link" time="16.9">
+    <failure message="lab-error">{
+ &quot;case&quot;: &quot;udp-blocked.settled.on.fresh.link&quot;,
+ &quot;ok&quot;: false,
+ &quot;outcome&quot;: &quot;lab-error&quot;,
+ &quot;seconds&quot;: 16.9,
+ &quot;failedStep&quot;: &quot;lab-error&quot;,
+ &quot;why&quot;: null,
+ &quot;failedDetail&quot;: &quot;the relay didn&#x27;t start: env: &#x27;/bin/wittyrelay&#x27;: No such file or directory\nenv: use -[v]S to pass options in shebang lines&quot;,
+ &quot;at&quot;: {}
+}</failure>
+  </testcase>
+</testsuite>

@@ -1,0 +1,2 @@
+{"t":815,"at":"2026-11-24T18:43:11.598Z","side":"server","step":"network-ready","ok":true,"detail":{"network":"cone-relay","uplink":"no","ipv6":"no"}}
+{"t":16928,"at":"2026-11-24T18:43:27.710Z","side":"server","step":"lab-error","ok":false,"detail":"the relay didn't start: env: '/bin/wittyrelay': No such file or directory\nenv: use -[v]S to pass options in shebang lines"}

@@ -1,0 +1,119 @@
+name: pairing-lab
+# Pairing a phone with a server from away, across simulated networks (NAT kinds, CGNAT, IPv6 only,
+# UDP blocked, the owner's own WittyRelay, direct), phone states and server states, on the first
+# try: scripts/pairing-lab/README.md says what each case is and how to read the results.
+#
+#   every pull request and push to a release branch: the fast set (about a dozen cases)
+#   nightly, on the newest release branch: the whole matrix, in shards
+#   by hand (Actions, pairing-lab, Run workflow; or gh workflow run pairing-lab.yml -r <branch> -f set=full):
+#     the whole matrix before a release tag. tag.yml wants every check on the commit green, this one included.
+on:
+  pull_request:
+    branches: ['v0.*']
+  push:
+    branches: ['v0.*']
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+    inputs:
+      set:
+        description: fast, full, or a filter such as "net=symmetric-relay way=link"
+        default: full
+      relay_ref:
+        description: WittyRelay tag or branch (empty: main)
+      server_ref:
+        description: Test this WittyMediaServer ref instead (for example v0.8.4-alpha, to see what a release does)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      ref: ${{ steps.p.outputs.ref }}
+      set: ${{ steps.p.outputs.set }}
+      shards: ${{ steps.p.outputs.shards }}
+    steps:
+      - id: p
+        env:
+          EVENT: ${{ github.event_name }}
+          SET: ${{ inputs.set }}
+          PICK: ${{ inputs.server_ref }}
+        run: |
+          ref=${PICK:-${{ github.sha }}}
+          if [ "$EVENT" = schedule ]; then
+            # Nightly: the release branch being worked on, the newest v0.*.
+            ref=$(git ls-remote --heads https://github.com/${{ github.repository }} 'v0.*' | sed 's|.*refs/heads/||' | sort -V | tail -1)
+          fi
+          set=fast
+          [ "$EVENT" = schedule ] && set=full
+          [ "$EVENT" = workflow_dispatch ] && set=${SET:-full}
+          # The whole matrix is split eight ways (its cases take about a minute each); the fast set runs as one.
+          shards='["1/1"]'
+          [ "$set" != fast ] && shards='["1/8","2/8","3/8","4/8","5/8","6/8","7/8","8/8"]'
+          { echo "ref=$ref"; echo "set=$set"; echo "shards=$shards"; } >>"$GITHUB_OUTPUT"
+          echo "::notice title=Pairing lab::$set at $ref"
+
+  lab:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          path: lab
+      # The server under test: this change, or the ref asked for (the lab's own scripts always come from this checkout).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          ref: ${{ needs.plan.outputs.ref }}
+          path: srv
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          repository: wittywilla/WittyRelay
+          ref: ${{ inputs.relay_ref || 'main' }}
+          path: relay
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+          cache-dependency-path: srv/go.sum
+      - name: Build the server, WittyRelay and the lab's phone
+        run: bash lab/scripts/pairing-lab/lab.sh build "$RUNNER_TEMP/plab" srv relay
+      - name: The cases
+        env:
+          SET: ${{ needs.plan.outputs.set }}
+          PL_SHARD: ${{ matrix.shard }}
+        run: |
+          echo "$(bash lab/scripts/pairing-lab/lab.sh list $SET | wc -l) cases in shard $PL_SHARD"
+          # shellcheck disable=SC2086
+          sudo env "PATH=$PATH" PL_SHARD="$PL_SHARD" SUDO_USER="$USER" \
+            bash lab/scripts/pairing-lab/lab.sh run "$RUNNER_TEMP/plab" "$RUNNER_TEMP/plab-results" $SET
+      - name: Results readable by the upload
+        if: always()
+        run: sudo chmod -R a+rX "$RUNNER_TEMP/plab-results" 2>/dev/null || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: pairing-lab-${{ strategy.job-index }}
+          path: |
+            ${{ runner.temp }}/plab-results/**/steps.jsonl
+            ${{ runner.temp }}/plab-results/**/result.json
+            ${{ runner.temp }}/plab-results/**/*.log
+            ${{ runner.temp }}/plab-results/**/invite-*.json
+            ${{ runner.temp }}/plab-results/summary.md
+            ${{ runner.temp }}/plab-results/junit.xml
+            ${{ runner.temp }}/plab-results/versions.txt
+          retention-days: 14

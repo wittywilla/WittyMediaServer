@@ -1,0 +1,10 @@
+{
+  "case": "fullcone.settled.on.fresh.link",
+  "ok": false,
+  "outcome": "lab-error",
+  "seconds": 15.9,
+  "failedStep": "lab-error",
+  "why": null,
+  "failedDetail": "the relay didn't start: env: '/bin/wittyrelay': No such file or directory\nenv: use -[v]S to pass options in shebang lines",
+  "at": {}
+}

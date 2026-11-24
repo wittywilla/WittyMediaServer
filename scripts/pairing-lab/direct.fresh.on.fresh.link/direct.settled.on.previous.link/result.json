@@ -1,0 +1,10 @@
+{
+  "case": "direct.settled.on.previous.link",
+  "ok": false,
+  "outcome": "lab-error",
+  "seconds": 62.6,
+  "failedStep": "lab-error",
+  "why": null,
+  "failedDetail": "server B didn't start",
+  "at": {}
+}

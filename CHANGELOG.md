@@ -3,7 +3,9 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
-## Unreleased
+## 0.8.4-alpha
+
+Released 2026-11-24.
 
 **Languages (#497, #498)**
 
@@ -138,6 +140,40 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **A break between programmes is named as one.** The guide and Home's On TV now said "We'll be right back" as if it
   were a programme. A gap is now "Short break" (or "Off air" for an hour or more), and "Next" always names the next
   programme.
+
+**Notifications (#654)**
+
+- **A bell beside Activity, for each profile:** new episodes of shows the profile can watch, finished recordings,
+  and for administrators failed scans, module updates and server news. Mark one or all read; in TV mode it's the
+  last pill in the bar. Settings → Notifications chooses which kinds each profile gets.
+- **Email and webhooks for administrators,** off until turned on, through your own mail server or a web address you
+  enter. A backup made without a password leaves their addresses and secrets out.
+
+**Live TV: start over and time-shift (#655)**
+
+- **Start over, pause, rewind and skip breaks** on library and custom channels (cloned stations too), for one viewer
+  while the channel keeps running live for everyone else. **Back to live** is one button, and **Skip break** jumps a
+  whole run of bumpers and commercials on a started-over programme. Parental limits apply to every one of them.
+
+**Search (#645)**
+
+- **One search across every library:** grouped by kind, typo-tolerant, recent searches per profile, voice where the
+  device offers it.
+
+**Library health and backups (#646, #647)**
+
+- **Settings → Library health** lists what needs a look (files that have gone, titles with no match, possible
+  duplicates, odd names, NFO files and artwork) with the fix beside each.
+- **Scheduled backups can go to a folder of your own,** such as a second drive. A folder that isn't there (a drive
+  not plugged in) is never written to: the backup says why instead.
+- **Pause for scenes:** opening the scenes panel pauses the film on phones and TVs, or on every screen if you choose
+  (#632).
+
+**Modules in this release:** WittyPlay 0.7.18 (console photo switches a remote can reach; N64 homebrew and the
+graphics card check on Linux; games on phones).
+
+**WittyMediaClient 0.6.2** goes with this release: the same settings menu as the web, the notifications bell, the
+parents' PIN to leave a kids' profile, start over and time-shift, voice search, and new native player menus.
 
 ## 0.8.3-alpha
 

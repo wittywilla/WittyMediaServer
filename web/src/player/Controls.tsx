@@ -52,6 +52,9 @@ type Props = {
   // A phone (or a phone on its side): the picture first. Play and the skips sit big in the middle of the picture, the
   // time, Options and Full screen along the bottom over the seek bar, and everything else in the Options sheet.
   compact?: boolean
+  // pauseForScenes: the film waits while the scenes panel is open, and plays on when it closes (ViewSettings, Pause for
+  // scenes: phones, tablets and TVs by default, every screen if chosen).
+  pauseForScenes?: boolean
   // More rows for the Options sheet from the player around these controls (watch party, mini player).
   sheetItems?: SheetItem[]
   // Live TV: what's on can't be sped up or slowed down, so there is no speed (chip, sheet row or < and > keys).
@@ -97,9 +100,20 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, onEditInfo, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen, compact = false, sheetItems = [], live = false }: Props) {
+  onFullscreen, onSettings, onEditInfo, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen, compact = false, sheetItems = [], live = false, pauseForScenes = false }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | 'more' | null>(null)
+  const resumeAfterScenes = useRef(false)
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    if (pop === 'chapters') {
+      if (pauseForScenes && !v.paused) { v.pause(); resumeAfterScenes.current = true }
+    } else if (resumeAfterScenes.current) {
+      resumeAfterScenes.current = false
+      v.play().catch(() => {})
+    }
+  }, [pop]) // eslint-disable-line react-hooks/exhaustive-deps
   const barRef = useRef<HTMLDivElement | null>(null)
   const [sheet, setSheet] = useState<SheetPage | null>(null)
   useEffect(() => { if (!compact) setSheet(null) }, [compact])

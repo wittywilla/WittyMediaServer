@@ -250,9 +250,10 @@ try {
             await s.page.until(`!!document.getElementById(${JSON.stringify(id)})`, 15000, id).catch(() => {})
             await wait(500)
             await s.page.eval(`location.hash = ${JSON.stringify('#' + id)}`)
-            // The page scrolls to the section once it's drawn and holds it there while the page settles (settings/jump.ts):
-            // wait until it has stayed put for a second, for up to fifteen.
-            await s.page.eval(`new Promise((done) => { let last = NaN, still = 0, n = 0; const t = setInterval(() => { const e = document.getElementById(${JSON.stringify(id)}); const y = e ? Math.round(e.getBoundingClientRect().top) : NaN; still = y === last ? still + 1 : 0; last = y; if (still >= 5 || ++n > 75) { clearInterval(t); done() } }, 200) })`)
+            // The page scrolls to the section once it's drawn and holds it there while the page settles (settings/jump.ts).
+            // Judged once it has stayed put for a second near the top of the window, or for three seconds anywhere (a long
+            // page still drawing, Appearance on a phone, can start its jump after a second's stillness), for up to fifteen.
+            await s.page.eval(`new Promise((done) => { let last = NaN, still = 0, n = 0; const t = setInterval(() => { const e = document.getElementById(${JSON.stringify(id)}); const y = e ? Math.round(e.getBoundingClientRect().top) : NaN; still = y === last ? still + 1 : 0; last = y; const near = y >= 0 && y < innerHeight / 3; if ((near && still >= 5) || still >= 15 || ++n > 75) { clearInterval(t); done() } }, 200) })`)
             const a = await s.page.eval(ANCHOR_CHECK(id))
             if (a.missing) { console.log('SKIP', link, sizeName, lookName, 'no such section here'); continue }
             // Below the bar, and in view: a section left far down the page means the link didn't take you there.

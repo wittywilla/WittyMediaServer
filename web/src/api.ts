@@ -25,6 +25,8 @@ export type Access = {
   // What the profile may not do: games, recordings, downloads, sharing, comments, syncplay, remoteControl, remote, editProfile.
   off?: string[]
   time?: TimeRules | null
+  // Leaving the profile on its device (switching, signing out) takes the parents' PIN.
+  pinToLeave?: boolean
 }
 export type KindLimit = { maxAge: number; allowUnrated: boolean }
 // When a profile may play, and for how long a day. Minutes of 0 and times of '' are no limit.
@@ -32,9 +34,13 @@ export type TimeRules = { schoolDayMinutes: number; weekendMinutes: number; from
 // How long a profile may still play today (GET /me/screen-time). remainingSec -1 = nothing stops it.
 export type ScreenTime = { allowed: boolean; reason?: string; allowanceSec: number; usedSec: number; extraSec: number; remainingSec: number; message?: string; until?: number; nextAt?: number }
 // What the signed-in profile may do (GET /me/limits), for hiding what is off.
-export type MyLimits = { limited: boolean; kind: string; features: Record<string, boolean>; maxAge: number; time: TimeRules | null; screenTime: ScreenTime; parentPin: boolean }
+export type MyLimits = { limited: boolean; kind: string; features: Record<string, boolean>; maxAge: number; kinds?: Record<string, KindLimit>; time: TimeRules | null; screenTime: ScreenTime; parentPin: boolean
+  // Switching away or signing out takes the parents' PIN on this device.
+  pinToLeave?: boolean }
 export type RatingSystem = { id: string; name: string; country: string; kinds: string[]; ratings: { label: string; age: number }[] }
-export type ParentalLists = { kinds: string[]; systems: RatingSystem[]; features: string[]; avatars: string[]; avatarColours: string[]; maxExtraMinutes: number }
+export type ParentalLists = { kinds: string[]; systems: RatingSystem[]; features: string[]; avatars: string[]; avatarColours: string[]; maxExtraMinutes: number
+  // Whose certificates titles keep, and the countries to choose from; what a new profile of each kind starts with.
+  country?: string; countries?: { code: string; name: string }[]; newProfile?: Record<string, Access> }
 // A profile as the list for switching has it (GET /profiles/household).
 export type HouseholdProfile = { id: number; name: string; displayName?: string; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; avatar?: string; current: boolean }
 export type UserView = User & { access: Access | null }

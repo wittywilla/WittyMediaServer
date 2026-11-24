@@ -1311,6 +1311,9 @@ func (s *Server) handleLivePlaylist(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 404, "channel not found")
 		return
 	}
+	if s.liveRefused(w, r, kind, id, time.Now()) { // what is on now, by its rating (parental_live.go)
+		return
+	}
 	ls := s.liveLookup(r, kind, key)
 	if ls == nil {
 		// Stopped while nobody was looking: start it again where it should be.
@@ -1357,6 +1360,11 @@ func (s *Server) handleLiveSegment(w http.ResponseWriter, r *http.Request) {
 	kind, id, ok := parseKey(key)
 	if !ok || !s.canWatchLive(r, kind, id) {
 		writeErr(w, 404, "channel not found")
+		return
+	}
+	// Every part, not just the playlist: a player that guesses the next part's name still
+	// stops when the programme changes to one this profile may not watch.
+	if s.liveRefused(w, r, kind, id, time.Now()) {
 		return
 	}
 	ls := s.liveLookup(r, kind, key)

@@ -11,6 +11,7 @@ import { handledIds } from '../spec/model'
 import { askParentSpec } from '../spec/specs/screentime'
 import { Dialog } from '../ui/Overlay'
 import { useSwitchProfile } from './SwitchProfile'
+import { StandaloneCard } from '../components/StandaloneCard'
 import './switchprofile.css'
 import { date, t, tn, tx } from '../i18n'
 
@@ -116,11 +117,87 @@ export default function ScreenTimeWatch() {
     // Whatever was playing can't go on: leave the player for the page it came from.
     if (!st.allowed && /^\/(watch|play|game|big|tv\/watch)\//.test(loc.pathname)) nav('/', { replace: true })
   }
-  if (telling && !st.allowed) return <TimeUp st={st} pin={!!limits?.parentPin} onClose={close} onMore={(next) => { was.current = next.allowed; setSt(next); if (next.allowed) setTelling(false) }} />
+  const more = (next: ScreenTime) => { was.current = next.allowed; setSt(next); if (next.allowed) setTelling(false) }
+  // A kids' profile gets a page of its own, friendly and plain; others a dialog over what they were doing.
+  if (telling && !st.allowed && user.kind === 'kids') return <KidsTimeUp st={st} pin={!!limits?.parentPin} onClose={close} onMore={more} />
+  if (telling && !st.allowed) return <TimeUp st={st} pin={!!limits?.parentPin} onClose={close} onMore={more} />
   if (st.allowed && st.remainingSec >= 0 && st.remainingSec <= 600) {
     return <div className="st-left" role="status">{t('{time} of screen time left', { time: minutes(st.remainingSec) })}</div>
   }
   return null
+}
+
+// The words of the time's-up page, by why playing stopped.
+function upWords(st: ScreenTime) {
+  const when = nextText(st)
+  switch (st.reason) {
+    case 'bedtime': return { title: t('Time for bed'), lead: [t('It’s past bedtime for this profile.'), when].filter(Boolean).join(' ') }
+    case 'early': return { title: t('It’s a bit early'), lead: when || t('It’s too early for this profile to watch.') }
+    default: return { title: t('That’s all for today'), lead: [t('Today’s screen time is used up.'), when].filter(Boolean).join(' ') }
+  }
+}
+
+// Asking a parent for more time: how much, and the parents' PIN or a parent's own name and password.
+function useAskParent(pin: boolean, onMore: (st: ScreenTime) => void) {
+  const [more, setMore] = useState('30')
+  const [code, setCode] = useState('')
+  const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
+  const [byPassword, setByPassword] = useState(!pin)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const give = async () => {
+    setErr(''); setBusy(true)
+    try {
+      const body = byPassword ? { minutes: Number(more), name, password } : { minutes: Number(more), pin: code }
+      onMore(await api.post<ScreenTime>('/me/screen-time/extra', body))
+    } catch (e) { setErr((e as Error).message); setCode(''); setPassword('') } finally { setBusy(false) }
+  }
+  const page = askParentSpec({ more, byPassword, hasPin: pin, name, password, code, error: err })
+  const ready = byPassword ? !!name.trim() && !!password : code.length >= 4
+  const onAction = (id: string) => { if (id.startsWith('more:')) setMore(id.slice(5)); else if (id === 'switch') { setByPassword(!byPassword); setErr('') } }
+  const onField = (id: string, v: string | number | boolean | File) => { if (id === 'code') setCode(String(v).replace(/\D/g, '').slice(0, 12)); else if (id === 'name') setName(String(v)); else if (id === 'password') setPassword(String(v)) }
+  return { page, handled: handledIds(page), ready, busy, give, onAction, onField, reset: () => setErr('') }
+}
+
+// A kids' profile's time's-up page: one card in the middle of the screen with the server's logo and name, a
+// friendly heading and one sentence, that fits a TV, a computer and a phone without scrolling (the standalone page
+// standard, components/StandaloneCard.tsx). It covers whatever was on screen, which has stopped. OK goes back to
+// browsing: nothing plays until a parent gives more time or the next day starts.
+function KidsTimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean; onClose: () => void; onMore: (st: ScreenTime) => void }) {
+  const [asking, setAsking] = useState(false)
+  const ask = useAskParent(pin, onMore)
+  const sw = useSwitchProfile()
+  const words = upWords(st)
+  // A video in the browser's own full screen would sit over the page.
+  useEffect(() => { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}) }, [])
+  return (
+    <div className="st-page" role="alertdialog" aria-modal="true" aria-labelledby="st-page-title">
+      <StandaloneCard className="st-card">
+        {asking ? (
+          <form className="st-ask" onSubmit={(e) => { e.preventDefault(); if (ask.ready && !ask.busy) void ask.give() }}>
+            <h1 id="st-page-title">{t('Ask a parent')}</h1>
+            <SpecPage embedded page={ask.page} handled={ask.handled} onAction={ask.onAction} onField={ask.onField} />
+            <div className="sa-actions">
+              <Button variant="primary" busy={ask.busy} disabled={!ask.ready} type="submit">{t('Give more time')}</Button>
+              <button type="button" className="sa-text-btn" onClick={() => { setAsking(false); ask.reset() }}>{t('Back')}</button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <h1 id="st-page-title">{words.title}</h1>
+            <p className="sa-lead">{words.lead}</p>
+            <div className="sa-actions">
+              <Button variant="primary" autoFocus onClick={onClose}>{t('OK')}</Button>
+              <button type="button" className="sa-text-btn" onClick={() => setAsking(true)}>{t('Ask a parent')}</button>
+              <button type="button" className="sa-text-btn" onClick={sw.start}>{t('Switch profile')}</button>
+            </div>
+          </>
+        )}
+      </StandaloneCard>
+      {sw.dialog}
+    </div>
+  )
 }
 
 function TimeUp({ st, pin, onClose, onMore }: { st: ScreenTime; pin: boolean; onClose: () => void; onMore: (st: ScreenTime) => void }) {

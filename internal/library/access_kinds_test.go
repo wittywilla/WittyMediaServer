@@ -240,7 +240,13 @@ func TestUnresolvedLimitsAllowNothing(t *testing.T) {
 func TestRatingSystemsMatchTheAgesTitlesGet(t *testing.T) {
 	for _, sys := range parental.Systems {
 		for _, r := range sys.Ratings {
-			got := AgeFor(r.Label)
+			// A board's ratings are read as its country's, which is how the server keeps them
+			// when that is its rating country.
+			label := r.Label
+			if sys.Country != "" {
+				label = sys.Country + ":" + label
+			}
+			got := AgeFor(label)
 			if got == nil || *got != r.Age {
 				t.Errorf("%s %q: a title rated this gets age %v, and Settings says %d", sys.Name, r.Label, got, r.Age)
 			}

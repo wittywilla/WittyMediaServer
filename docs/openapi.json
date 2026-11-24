@@ -153,6 +153,9 @@
               "null"
             ]
           },
+          "pinToLeave": {
+            "type": "boolean"
+          },
           "time": {
             "anyOf": [
               {
@@ -27798,6 +27801,35 @@
           }
         ],
         "summary": "What this profile may do: features (games, recordings, downloads, sharing, comments, writeComments, syncplay, remoteControl, remote, editProfile, liveTv), its age limits (maxAge, kinds), its time rules and screenTime now. For hiding what is off.",
+        "tags": [
+          "Sign-in and accounts"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putMeLimits",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A parent changes this Kids or Guest profile's time rules and age limits on its own device, with the parents' PIN or their own name and password.",
         "tags": [
           "Sign-in and accounts"
         ],

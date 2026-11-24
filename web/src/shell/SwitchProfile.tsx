@@ -11,6 +11,7 @@ import SpecPage from '../spec/SpecPage'
 import { switchSpec } from '../spec/specs/auth'
 import { isSubmitKey } from '../spec/specs/submit'
 import { Dialog } from '../ui/Overlay'
+import { withParentPin } from './ParentPin'
 import './switchprofile.css'
 import { t } from '../i18n'
 
@@ -23,7 +24,10 @@ export function useSwitchProfile() {
   const { setUser } = useApp()
   const nav = useNavigate()
   const [open, setOpen] = useState(false)
-  const signOut = async () => { try { await api.post('/logout') } catch { /* signed out here all the same */ } nav('/', { replace: true }); setUser(null) }
+  const signOut = async () => {
+    try { if ((await withParentPin((pin) => api.post('/logout', pin ? { pin } : {}))).cancelled) return } catch { /* signed out here all the same */ }
+    nav('/', { replace: true }); setUser(null)
+  }
   const start = async () => {
     try {
       const r = await api.get<{ profiles: HouseholdProfile[] }>('/profiles/household')
@@ -50,7 +54,10 @@ function SwitchProfile({ onClose, onSignOut }: { onClose: () => void; onSignOut:
   const go = async (p: HouseholdProfile, pw: string) => {
     setErr(''); setBusy(true)
     try {
-      const r = await api.post<{ token: string; user: User }>('/profiles/switch', { name: p.name, password: pw, code, device: navigator.userAgent.slice(0, 80) })
+      // Leaving a kids' profile kept on this device: the server asks for the parents' PIN first.
+      const out = await withParentPin((pin) => api.post<{ token: string; user: User }>('/profiles/switch', { name: p.name, password: pw, code, parentPin: pin, device: navigator.userAgent.slice(0, 80) }))
+      if (out.cancelled) return
+      const r = out.value
       setToken(r.token)
       onClose()
       nav('/', { replace: true })

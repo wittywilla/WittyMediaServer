@@ -51,7 +51,55 @@ func (s *Server) catchupTarget(w http.ResponseWriter, r *http.Request, start str
 		writeErr(w, 404, "that isn't in this channel's archive")
 		return nil, 0, false
 	}
+	if s.liveRefused(w, r, "tun", id, time.Unix(at, 0)) { // the programme's rating (parental_live.go)
+		return nil, 0, false
+	}
 	return c, at, true
+}
+
+// catchupSpanRefused: a catch-up stream runs from start to end, which a request can ask to be
+// later than the programme's end. For a profile with limits every programme in that span is
+// asked about, so an allowed programme isn't a way into the next one.
+func (s *Server) catchupSpanRefused(w http.ResponseWriter, r *http.Request, c *livetv.Channel, start, end int64) bool {
+	a := s.access(r)
+	if a == nil {
+		return false
+	}
+	if end <= start {
+		end = start + 6*3600
+	}
+	list, err := s.TV.Guide(r.Context(), c, time.Unix(start, 0), time.Unix(end, 0))
+	if err != nil {
+		writeJSON(w, 403, map[string]any{"error": "What is on then can't be checked for this profile.", "code": "programme-rating"})
+		return true
+	}
+	for _, p := range list {
+		if p.End <= start || p.Start >= end {
+			continue
+		}
+		if !a.AllowsOutside("episode", p.Rating, nil) {
+			s.noteRefused(r.Context(), userFrom(r), "blocked", 0, p.Title, p.Rating)
+			writeJSON(w, 403, map[string]any{"error": "Part of that is not available to this profile.", "code": "programme-rating"})
+			return true
+		}
+	}
+	return false
+}
+
+// catchupEnd is where a catch-up stream started without an end stops for a profile with
+// limits: the end of the programme it started in, so it never runs on into the next one.
+func (s *Server) catchupEnd(r *http.Request, c *livetv.Channel, start int64) int64 {
+	if s.access(r) == nil {
+		return 0
+	}
+	if list, err := s.TV.Guide(r.Context(), c, time.Unix(start, 0), time.Unix(start+1, 0)); err == nil {
+		for _, p := range list {
+			if p.Start <= start && p.End > start {
+				return p.End
+			}
+		}
+	}
+	return start + 6*3600 // no programme there: as far as catchupSpanRefused looked
 }
 
 // GET /api/tv/{key}/catchup?start=&end=&viewer=: the programme from its start. The answer
@@ -83,6 +131,12 @@ func (s *Server) handleCatchup(w http.ResponseWriter, r *http.Request) {
 	if end != 0 && (end <= start || end-start > 24*3600) {
 		writeErr(w, 400, "a catch-up programme is up to a day long")
 		return
+	}
+	if s.catchupSpanRefused(w, r, c, start, end) {
+		return
+	}
+	if end == 0 {
+		end = s.catchupEnd(r, c, start)
 	}
 	ls, err := s.ensureCatchup(r, c.ID, start, end)
 	if err != nil {
@@ -165,7 +219,11 @@ func (s *Server) handleCatchupPlaylist(w http.ResponseWriter, r *http.Request) {
 	ls := s.HLS.GetLive(catchupID(c.ID, start) + s.streamTag(r))
 	if ls == nil {
 		var err error
-		if ls, err = s.ensureCatchup(r, c.ID, start, 0); err != nil {
+		end := s.catchupEnd(r, c, start)
+		if s.catchupSpanRefused(w, r, c, start, end) {
+			return
+		}
+		if ls, err = s.ensureCatchup(r, c.ID, start, end); err != nil {
 			s.tuneError(w, r, err)
 			return
 		}

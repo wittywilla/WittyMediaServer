@@ -194,7 +194,7 @@ var plainRoutes = []string{
 	"GET /api/logos/{id}/image",
 	"GET /api/me",
 	"GET /api/me/2fa",
-	"GET /api/me/limits",
+	"GET /api/me/limits", "PUT /api/me/limits",
 	"GET /api/me/recommended",
 	"GET /api/me/review",
 	"GET /api/me/screen-time",

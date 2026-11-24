@@ -38,7 +38,7 @@ var settingKeys = []string{"tmdbKey", "tvdbKey", "tvdbPin", "guideKey", "hwAccel
 	"ffmpegVideoArgs", "ffmpegOutputArgs", "timeZone", "theme", "brandName", "brandColouring", "brandSpans", "brandMark", "maxSpeed",
 	"loginStyle", "profilesRemote", "setupDone", "kidsManagedBy", "insertSound", "tvmaze", "wikidata", "musicbrainz", "animeIn", "animeTitles",
 	"libraryGrouping", "updateCheck", "moduleUpdateCheck", "moduleAutoInstall", "uploads", "uploadMaxMb", "uploadAccountMb", "shareLinks", "lanDiscovery", "radioDirectory", "radioChecks",
-	"legalOwnerNotice", "legalOwnerContact", "noPoster", "pairRequirePin", settingSecondOpinion}
+	"legalOwnerNotice", "legalOwnerContact", "noPoster", "pairRequirePin", settingSecondOpinion, "ratingCountry"}
 
 // settingDefaults are returned when a key has never been saved.
 var settingDefaults = map[string]string{"saveMetadata": "1", "saveWittyinfo": "1", "brandMark": brandname.DefaultMark, "noPoster": library.NoPosterFrame, "dvdStart": "menu", "insertFx": "1", "episodeView": "cards",
@@ -62,7 +62,9 @@ var settingDefaults = map[string]string{"saveMetadata": "1", "saveWittyinfo": "1
 	// radioDirectory: search the free station directory, and refresh details of
 	// stations that came from it. radioChecks: try stations in the background, which
 	// contacts them when nobody is listening, so it's off unless the owner wants it.
-	"radioDirectory": "1", "radioChecks": "0"}
+	"radioDirectory": "1", "radioChecks": "0",
+	// ratingCountry: whose certificates titles keep, and how letters such as "M" are read.
+	"ratingCountry": "US"}
 
 // settingChecks: settings handed to FFmpeg or used as numbers. A wrong value
 // would otherwise only show up as every transcode failing.
@@ -81,6 +83,7 @@ var settingChecks = map[string]func(string) bool{
 	"moduleUpdateCheck": oneOf("", "0", "1"),
 	"moduleAutoInstall": oneOf("0", "1"),
 	"uploadAccountMb":   intBetween(0, 1<<30),
+	"ratingCountry":     library.ValidRatingCountry,
 }
 
 var bitrateRe = regexp.MustCompile(`^[0-9]{1,6}(\.[0-9]{1,3})?[kKmM]?$`)
@@ -208,6 +211,9 @@ func (s *Server) handlePutSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, ok := in["timeZone"]; ok {
 		s.restartForTimeZone(r.Context(), adminName(r)) // time.Local isn't changed while the server runs
+	}
+	if v, ok := in["ratingCountry"]; ok {
+		s.ratingCountryChanged(r.Context(), v, adminName(r))
 	}
 	s.protectSecrets(r.Context()) // a new API key is hidden from the log from now on
 	if s.Discovery != nil {

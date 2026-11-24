@@ -372,9 +372,24 @@ func (t *TVDB) Series(ctx context.Context, id string) (*SeriesMeta, error) {
 	for _, g := range d.Genres {
 		m.Genres = append(m.Genres, g.Name)
 	}
-	for _, r := range d.ContentRatings {
-		if strings.EqualFold(r.Country, "usa") || m.ContentRating == "" {
-			m.ContentRating = r.Name
+	// TVDB names countries with three letters. The chosen country's certificate, or the US one;
+	// failing both, the first it gives, with its country written in front so it is read by that
+	// country's table and not taken for one of ours.
+	m.ContentRating = PickCertificate(func(iso string) string {
+		for _, r := range d.ContentRatings {
+			if strings.EqualFold(r.Country, iso3[iso]) {
+				return r.Name
+			}
+		}
+		return ""
+	})
+	if m.ContentRating == "" && len(d.ContentRatings) > 0 {
+		r := d.ContentRatings[0]
+		m.ContentRating = r.Name
+		for two, three := range iso3 {
+			if strings.EqualFold(r.Country, three) {
+				m.ContentRating = two + ":" + r.Name
+			}
 		}
 	}
 	// English translation (the base record is in the original language).

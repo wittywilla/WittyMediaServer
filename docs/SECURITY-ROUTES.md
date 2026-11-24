@@ -286,6 +286,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/profiles/household` | Signed-in | Names, kinds and pictures of every profile, where the sign-in screen shows profiles, or anywhere for an adult's account. No limits and no passwords |
 | `POST /api/profiles/switch` | Signed-in | 16 KB body. The other profile's password or PIN, and code, with the attempt limits of signing in. A profile with no password only at home with the profile screen on. Ends the session it came from |
 | `GET /api/me/limits` | Signed-in | own. Names no titles |
+| `PUT /api/me/limits` | Signed-in | own; Kids and Guest profiles only. 16 KB body. The parents' PIN, or the name and password of an account that manages the caller, each with an attempt limit. Only time rules and age limits |
 | `GET /api/me/screen-time` | Signed-in | own |
 | `POST /api/me/screen-time/extra` | Signed-in | own. 16 KB body. The parents' PIN, or the name and password of an account that manages the caller, each with an attempt limit. 1 to 240 minutes |
 | `POST /api/users/{id}/screen-time/extra` | Signed-in | Caller may manage that account. Not their own, not an administrator's. 1 to 240 minutes |
@@ -408,7 +409,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/p2p/rotate` | Admin | The admin's own password (and code), with an attempt limit |
 | `GET /api/sessions` | Signed-in | own. Everyone's with 'all=1', for an admin |
 | `DELETE /api/sessions` | Signed-in | own, except the current one |
-| `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin |
+| `DELETE /api/sessions/{id}` | Signed-in | own. Any account's for an admin. Not a Kids or Guest profile kept on its device by the parents' PIN |
 | `GET /api/me/2fa` | Signed-in | own |
 | `POST /api/me/2fa/setup` | Signed-in | Own password, with an attempt limit |
 | `POST /api/me/2fa/confirm` | Signed-in | Code, with an attempt limit |

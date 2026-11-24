@@ -59,6 +59,31 @@ var Systems = []System{
 	{ID: "pegi", Name: "PEGI", Country: "", Kinds: []string{KindGame}, Ratings: []Rating{{"PEGI 3", 3}, {"PEGI 7", 7}, {"PEGI 12", 12}, {"PEGI 16", 16}, {"PEGI 18", 18}}},
 	{ID: "usk", Name: "USK", Country: "DE", Kinds: []string{KindGame}, Ratings: []Rating{{"USK 0", 0}, {"USK 6", 6}, {"USK 12", 12}, {"USK 16", 16}, {"USK 18", 18}}},
 	{ID: "advisory", Name: "Parental advisory", Country: "", Kinds: []string{KindMusic}, Ratings: []Rating{{"Clean", 0}, {"Explicit", 17}}},
+	// Film and television boards of more countries. Their certificates are read by the country
+	// the server keeps them for (the ratingCountry setting), as letters mean different ages in
+	// different places.
+	{ID: "acb", Name: "Australian Classification", Country: "AU", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"G", 0}, {"PG", 10}, {"M", 15}, {"MA15+", 15}, {"R18+", 18}}},
+	{ID: "nzcl", Name: "NZ Classification Office", Country: "NZ", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"G", 0}, {"PG", 10}, {"R13", 13}, {"R15", 15}, {"M", 16}, {"R16", 16}, {"R18", 18}}},
+	{ID: "chvrs", Name: "Canadian Home Video Rating", Country: "CA", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"G", 0}, {"PG", 10}, {"14A", 14}, {"18A", 18}, {"R", 18}}},
+	{ID: "cnc", Name: "CNC", Country: "FR", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"U", 0}, {"10", 10}, {"12", 12}, {"16", 16}, {"18", 18}}},
+	{ID: "ifco", Name: "IFCO", Country: "IE", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"G", 0}, {"PG", 10}, {"12A", 12}, {"15A", 15}, {"16", 16}, {"18", 18}}},
+	{ID: "icaa", Name: "ICAA", Country: "ES", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"A", 0}, {"7", 7}, {"12", 12}, {"16", 16}, {"18", 18}}},
+	{ID: "mic", Name: "Italian ratings", Country: "IT", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"T", 0}, {"6+", 6}, {"VM14", 14}, {"VM18", 18}}},
+	{ID: "classind", Name: "ClassInd", Country: "BR", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"L", 0}, {"10", 10}, {"12", 12}, {"14", 14}, {"16", 16}, {"18", 18}}},
+	{ID: "eirin", Name: "Eirin", Country: "JP", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"G", 0}, {"PG12", 12}, {"R15+", 15}, {"R18+", 18}}},
+	{ID: "kmrb", Name: "KMRB", Country: "KR", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"ALL", 0}, {"12", 12}, {"15", 15}, {"18", 18}}},
+	{ID: "smr", Name: "Statens medieråd", Country: "SE", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"Btl", 0}, {"7", 7}, {"11", 11}, {"15", 15}}},
+	{ID: "medietilsynet", Name: "Medietilsynet", Country: "NO", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"A", 0}, {"6", 6}, {"9", 9}, {"12", 12}, {"15", 15}, {"18", 18}}},
+	{ID: "medieraadet", Name: "Medierådet", Country: "DK", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"A", 0}, {"7", 7}, {"11", 11}, {"15", 15}}},
+	{ID: "kavi", Name: "KAVI", Country: "FI", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"S", 0}, {"K7", 7}, {"K12", 12}, {"K16", 16}, {"K18", 18}}},
+	{ID: "cbfc", Name: "CBFC", Country: "IN", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"U", 0}, {"UA 7+", 7}, {"UA 13+", 13}, {"UA 16+", 16}, {"A", 18}}},
+	{ID: "rtc", Name: "RTC", Country: "MX", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"AA", 0}, {"A", 0}, {"B", 12}, {"B15", 15}, {"C", 18}}},
+	{ID: "cce", Name: "CCE", Country: "PT", Kinds: []string{KindFilm, KindTV}, Ratings: []Rating{{"M/3", 3}, {"M/6", 6}, {"M/12", 12}, {"M/14", 14}, {"M/16", 16}, {"M/18", 18}}},
+	// Games boards of more countries.
+	{ID: "cero", Name: "CERO", Country: "JP", Kinds: []string{KindGame}, Ratings: []Rating{{"CERO A", 0}, {"CERO B", 12}, {"CERO C", 15}, {"CERO D", 17}, {"CERO Z", 18}}},
+	{ID: "acb-games", Name: "Australian Classification (games)", Country: "AU", Kinds: []string{KindGame}, Ratings: []Rating{{"ACB G", 0}, {"ACB PG", 8}, {"ACB M", 15}, {"ACB MA15+", 15}, {"ACB R18+", 18}}},
+	{ID: "grac", Name: "GRAC", Country: "KR", Kinds: []string{KindGame}, Ratings: []Rating{{"GRAC ALL", 0}, {"GRAC 12", 12}, {"GRAC 15", 15}, {"GRAC 18", 18}}},
+	{ID: "classind-games", Name: "ClassInd (games)", Country: "BR", Kinds: []string{KindGame}, Ratings: []Rating{{"ClassInd L", 0}, {"ClassInd 10", 10}, {"ClassInd 12", 12}, {"ClassInd 14", 14}, {"ClassInd 16", 16}, {"ClassInd 18", 18}}},
 }
 
 // Allowed is the ratings of a system that a limit of maxAge lets through.

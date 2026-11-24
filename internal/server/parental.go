@@ -141,6 +141,7 @@ type parentalState struct {
 	mu    sync.Mutex
 	rules map[string]resolvedRules // an account's collections and tags, looked up lately
 	seen  map[string]time.Time     // refusals written down lately, so one isn't written a hundred times
+	live  map[string]liveVerdict   // whether a profile may watch what is on a channel now (parental_live.go)
 }
 
 type resolvedRules struct {
@@ -209,6 +210,7 @@ func (s *Server) accessOf(ctx context.Context, u *auth.User) *library.Access {
 func (s *Server) forgetRules() {
 	s.parental.mu.Lock()
 	s.parental.rules = nil
+	s.parental.live = nil
 	s.parental.mu.Unlock()
 	// A watch party asked what each member may see when they sat down. A collection that
 	// limits go by has just changed, or someone's limits have, so it asks again.

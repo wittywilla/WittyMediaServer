@@ -154,6 +154,7 @@ Released 2026-11-24.
 - **Start over, pause, rewind and skip breaks** on library and custom channels (cloned stations too), for one viewer
   while the channel keeps running live for everyone else. **Back to live** is one button, and **Skip break** jumps a
   whole run of bumpers and commercials on a started-over programme. Parental limits apply to every one of them.
+- **Start over on a phone** is in the player's Options sheet (#667).
 
 **Search (#645)**
 
@@ -174,6 +175,9 @@ Released 2026-11-24.
 - **A module that is only slow to start no longer looks like a crash in the log.** When a module's helper doesn't say
   hello in time, the log now says the server stopped it, and says so when it wrote nothing, rather than "exit code 1"
   with nothing to go on.
+
+- **A module that is too slow to start says so.** The log reads "stopped by the server: no hello within 45s" with
+  what the module wrote, instead of a bare "exit code 1" (#671).
 
 **Modules in this release:** WittyPlay 0.7.18 (console photo switches a remote can reach; N64 homebrew and the
 graphics card check on Linux; games on phones).

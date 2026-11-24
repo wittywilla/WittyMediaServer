@@ -82,6 +82,18 @@ func cmdHardware(args []string) int {
 			}
 			fmt.Printf("  %-18s %s%s\n", h.Name, state, dev)
 		}
+		g := tools.GraphicsStatus()
+		fmt.Println("\nWhat the graphics chip is used for:")
+		for _, c := range []struct {
+			name string
+			c    ffmpeg.GraphicsCheck
+		}{{"Video encoding", g.VAAPI}, {"Games, OpenGL (EGL)", g.EGL}, {"Games, Vulkan", g.Vulkan}} {
+			if c.c.OK {
+				fmt.Printf("  %-20s yes: %s\n", c.name, c.c.Detail)
+			} else {
+				fmt.Printf("  %-20s no: %s\n", c.name, c.c.Detail)
+			}
+		}
 	}
 	if !working {
 		return 1

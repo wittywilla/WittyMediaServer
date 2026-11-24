@@ -3,6 +3,30 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+**Parental controls (#649)**
+
+- **Live TV is checked programme by programme.** Antenna, cable and IPTV channels now go by the guide's rating: a
+  programme above a profile's TV limit isn't shown when tuning in, stops a stream when it comes on, and can't be
+  reached through catch-up. Library channels are held to the same. A programme the guide doesn't rate counts as
+  unrated.
+- **Ratings country** (Settings → Profiles): titles keep that country's age rating, with the US one when it has none,
+  and ratings are read as that country's, since letters mean different ages in different places. Settings offers the
+  boards of 21 more countries.
+- **Explicit songs are known.** A song's explicit or clean label is read from its file when it is scanned, so an age
+  limit keeps explicit songs from kids.
+- **The parents' PIN keeps a kids' profile on its device.** With **Ask for the parents' PIN to switch away or sign
+  out**, switching to another profile, signing out, or picking a profile with no password on that device's sign-in
+  screen asks for the PIN. A parent's own password works too.
+- **Limits, for a parent:** a parent changes a kids' profile's screen time, bedtime and age on the child's own device
+  with the PIN.
+- **New kids' profiles start kid-safe:** no explicit songs, no antenna or IPTV channels, at home only, no recording,
+  downloads, sharing, comments, watch parties or playing on other devices, two hours of screen time on school days and
+  three at weekends with a bedtime, and the PIN to leave. Profiles made before keep their limits.
+- **A friendly "time's up" page** for kids' profiles: one card with the server's name, saying why and when they can
+  watch again, with **Ask a parent** and **Switch profile**, on a computer, a phone and in TV mode.
+
 ## 0.8.3-alpha
 
 Released 2026-11-24.

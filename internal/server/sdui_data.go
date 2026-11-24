@@ -849,7 +849,8 @@ func (rv *sduiResolver) channels(favouritesOnly bool, search string, limit int, 
 					} else if p.ItemID > 0 {
 						it.Images["backdrop"] = "/api/items/" + itoa(p.ItemID) + "/backdrop"
 					}
-				} else if p.Start > rv.now.Unix() && it.Next == nil {
+				} else if p.Start > rv.now.Unix() && it.Next == nil && p.Kind != "slate" && p.Kind != "none" {
+					// A break or nothing at all isn't what a viewer means by "next" (#634): the next programme is.
 					it.Next = pg
 					break
 				}

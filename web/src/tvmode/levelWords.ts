@@ -16,6 +16,7 @@ export const TV_LEVEL_WORDS = [
   tk('Live transcoding'),
   tk('Library transcoding'),
   tk('Network'),
+  tk('Data folder'),
   tk('Remote Access'),
   tk('Profiles'),
   tk('Sign-in and security'),

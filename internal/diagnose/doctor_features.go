@@ -189,7 +189,7 @@ func checkOverrides(ctx context.Context, e *DoctorEnv) []Issue {
 			Title: o.Module + " " + o.Version + " runs under a manual override",
 			What: "Checks it would normally have to pass were skipped" + who + when + ": " + strings.Join(o.Kinds, ", ") +
 				". It isn't updated by itself while overridden.",
-			Steps: []string{"Open Settings, Modules, " + o.Module + ", and remove the override when a version that passes the checks is out.",
+			Steps: []string{"Open Settings, Module store, " + o.Module + ", and remove the override when a version that passes the checks is out.",
 				"Settings, WittyLog, Follow: Audit records lists every override and who made it."}})
 	}
 	return out
@@ -217,7 +217,7 @@ func checkModuleHealth(ctx context.Context, e *DoctorEnv) []Issue {
 	var out []Issue
 	for _, m := range f.Modules {
 		name := orWords(m.Name, m.ID)
-		steps := []string{"Open Settings, Modules, " + name + ", for its state and what it last said.",
+		steps := []string{"Open Settings, Module store, " + name + ", for its state and what it last said.",
 			"Settings, WittyLog, Module: " + name + " shows its lines; turn on its options there for more."}
 		switch {
 		case m.State == "fallback":

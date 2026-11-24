@@ -143,7 +143,7 @@ func (s *Server) qualityFor(r *http.Request, width, height, kbps int) *qualityVi
 	asked := s.viewerChoice(r)
 	v := &qualityView{Choice: asked.Within(lim).String(), Asked: asked.String(), Limits: lim, Away: !clientFrom(r).Where.AtHome(),
 		SourceWidth: width, SourceHeight: height, SourceKbps: kbps, VideoCodecs: playback.VideoCodecs, AudioRates: playback.AudioRates}
-	for _, p := range playback.PresetsFor(width, height) {
+	for _, p := range playback.PresetsForSource(width, height, kbps) {
 		if lim.MaxHeight > 0 && p.Height > lim.MaxHeight {
 			continue
 		}

@@ -81,10 +81,15 @@ func ParseEpisode(root, path string) (EpisodeRef, bool) {
 	if loc := sxeRe.FindStringSubmatchIndex(name); loc != nil {
 		ref.Season = atoiFirst(name[loc[2]:loc[3]])
 		ref.Episode = atoiFirst(name[loc[4]:loc[5]])
+		titleFrom = loc[1]
 		if loc[6] >= 0 {
-			ref.EpisodeEnd = atoiFirst(name[loc[6]:loc[7]])
+			if sxeRangeEnd(name, loc[5], loc[6], loc[7]) {
+				ref.EpisodeEnd = atoiFirst(name[loc[6]:loc[7]])
+			} else {
+				titleFrom = loc[5] // a number that starts the title ("S01E05 - 80's Cats"), not the end of a range
+			}
 		}
-		prefix, titleFrom, matched = name[:loc[0]], loc[1], true
+		prefix, matched = name[:loc[0]], true
 	} else if loc := xRe.FindStringSubmatchIndex(name); loc != nil {
 		ref.Season = atoiFirst(name[loc[2]:loc[3]])
 		ref.Episode = atoiFirst(name[loc[4]:loc[5]])
@@ -148,6 +153,21 @@ func ParseEpisode(root, path string) (EpisodeRef, bool) {
 		ref.ShowDir = filepath.Join(root, ref.Show)
 	}
 	return ref, true
+}
+
+// sxeRangeEnd says whether the number after an SxxEyy (name[start:end], the episode number
+// ending at epEnd) ends a range of episodes: E05E06, E05-E06, E05-06. A number set apart
+// by spaces ("S01E05 - 100 Days") or running on into a word ("S01E05 - 80's Cats") starts
+// the title instead (#470).
+func sxeRangeEnd(name string, epEnd, start, end int) bool {
+	if end < len(name) {
+		c := name[end]
+		if c == '\'' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || strings.HasPrefix(name[end:], "’") {
+			return false
+		}
+	}
+	sep := name[epEnd:start]
+	return strings.ContainsAny(sep, "eE") || strings.Trim(sep, "._") == "-"
 }
 
 func isDigit(c byte) bool { return c >= '0' && c <= '9' }

@@ -14,7 +14,8 @@ import AutoSkip from './AutoSkip'
 import ContentFilters from './ContentFilters'
 import { editorAllowed } from '../wittyinfo/desktopOnly'
 import { useApp } from '../state'
-import { Controls, useVideoState } from './Controls'
+import { Controls, useCompactBar, useVideoState } from './Controls'
+import { useMedia } from '../shell/useNav'
 import { haveHls, toggleFullscreen, useIdle, useSource, type NetNote } from './hooks'
 import { deviceStreaming, mayBeRobust, measureSpeed, rememberSpeed, setDeviceStreaming, type DeviceStreaming } from './streaming'
 import Hls from 'hls.js'
@@ -35,7 +36,6 @@ import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStream
 import { announce } from '../a11y'
 import { t, tk, tn, tx } from '../i18n'
 import { trackLang } from './trackLang'
-import { useMedia } from '../shell/useNav'
 import { ownPageTitle } from '../theme'
 
 // Opened from the player's top bar, and not before.
@@ -83,12 +83,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const mini = chrome.mini
   const view = useViewPrefs(item.id, legacyRemote())
   const prefs = view.prefs
-  // A phone or tablet, upright or on its side (or a narrow window): the picture first, the rest in the Options sheet
-  // (Controls' compact bar). The full bar needs about 900 px for one row.
-  const narrow = useMedia('(max-width: 900px), (max-height: 500px) and (pointer: coarse)')
+  // A phone or tablet: the picture first, the rest in the Options sheet (Controls' compact bar).
+  const compact = useCompactBar(prefs.controls)
   // A phone, a tablet or a TV: the scenes panel covers the picture there, so the film waits while it's open.
   const touchOrTv = useMedia('(pointer: coarse)') || getTvMode()
-  const compact = prefs.controls === 'simple' || (prefs.controls !== 'detailed' && narrow && !getTvMode())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [picker, setPicker] = useState<'audio' | 'subtitle' | null>(null)
   const closePicker = useCallback(() => setPicker(null), [])
@@ -381,6 +379,12 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   // The picture has the arrow keys until the viewer goes to the controls.
   useEffect(() => { if (!mini) root.current?.focus({ preventScroll: true }) }, [mini, root])
 
+  // Down from the picture on a TV: the timeline (or, with none, the first control of the bar) takes the focus.
+  const intoBar = () => {
+    const bar = root.current?.querySelector('.bottom')
+    const to = bar?.querySelector<HTMLElement>('.seek[tabindex]') || bar?.querySelector<HTMLElement>('button:not([disabled])')
+    to?.focus({ preventScroll: true })
+  }
   // Keyboard and TV remotes (not while minimized: the app owns the keys then).
   useEffect(() => {
     if (mini) return
@@ -397,8 +401,10 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
         case ' ': case 'k': case 'MediaPlayPause': e.preventDefault(); v.paused ? v.play() : v.pause(); break
         case 'ArrowRight': case 'l': seek(v.currentTime + offset + 10); break
         case 'ArrowLeft': case 'j': seek(v.currentTime + offset - 10); break
-        case 'ArrowUp': v.volume = Math.min(1, v.volume + 0.1); break
-        case 'ArrowDown': v.volume = Math.max(0, v.volume - 0.1); break
+        // A TV has a volume of its own on its remote: there Up only brings the controls back (any key does) and Down
+        // goes down into them, at the timeline, as a TV app does. A computer keeps Up and Down for volume.
+        case 'ArrowUp': if (getTvMode()) { e.preventDefault(); break } v.volume = Math.min(1, v.volume + 0.1); break
+        case 'ArrowDown': if (getTvMode()) { e.preventDefault(); intoBar(); break } v.volume = Math.max(0, v.volume - 0.1); break
         case 'f': toggleFullscreen(root.current); break
         case 'm': v.muted = !v.muted; break
         case 'r': setRemoteOn(!remoteOn); break

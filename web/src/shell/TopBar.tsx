@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import ActivitySlot from '../components/ActivitySlot'
+import NoteSlot from '../components/NoteSlot'
 import { Brand, BrandMark } from '../components/common'
 import { t, tx, txc } from '../i18n'
 import { IconDown, IconLeft, IconMenu, IconMore, IconSearch, IconSettings, IconSidebar } from '../icons'
@@ -224,6 +225,7 @@ export function TopBar({ onMenu, showMenu, topNav, menuOpen, wide, allTabs }: { 
       </form>
       {!topNav && <div className="spacer" />}
       <ActivitySlot />
+      <NoteSlot />
       <ProfileMenu />
     </header>
   )

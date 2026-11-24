@@ -10,7 +10,7 @@ import { ScanControl, scanProgressText, useScanProgress } from '../components/Sc
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { ModuleSettingsView, useModuleSettingsTabs, type ModuleSettingsTab } from '../moduleRegistry'
-import { IconHelp, IconActivity, IconChannels, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
+import { IconHelp, IconActivity, IconBell, IconChannels, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { settingsPageHidden } from '../profileWords'
 import { useMyLimits } from '../myLimits'
@@ -51,6 +51,7 @@ const ModulePage = lazy(() => import('./settings/store/ModulePage'))
 const OtherStores = lazy(() => import('./settings/store/OtherStores'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
 const ActivitySettings = lazy(() => import('./settings/Activity'))
+const NotificationSettings = lazy(() => import('./settings/Notifications'))
 const LibraryTranscoding = lazy(() => import('./settings/LibraryTranscoding'))
 const LogSettings = lazy(() => import('./LogSettings'))
 const LegalSettings = lazy(() => import('./settings/Legal'))
@@ -85,7 +86,7 @@ type Page = { to: string; label: string; icon: React.ReactNode; admin?: boolean;
 // settings). The owner's tools, Server and System, are all the one quiet colour.
 const QUIET = '#5d6474'
 const TINTS: Record<string, string> = {
-  users: '#b8500d', security: '#2e7d3c', appearance: '#0e7c6f', games: '#7f46b8', activity: '#99690a', sharing: '#0a6fb8',
+  users: '#b8500d', security: '#2e7d3c', appearance: '#0e7c6f', games: '#7f46b8', activity: '#99690a', notifications: '#99690a', sharing: '#0a6fb8',
   reset: 'var(--danger)', help: '#99690a',
 }
 const tint = (to: string) => ({ '--tint': TINTS[to] || QUIET }) as React.CSSProperties
@@ -108,6 +109,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'quality', label: tk('Video quality'), icon: <IconPlay />, hint: tk('The picture size and data videos play at, at home and away') },
     { to: 'appearance', label: tk('Appearance'), icon: <IconPalette />, hint: tk('Theme, colours, layout, and the look of WittyTV and the player') },
     { to: 'activity', label: tk('Activity'), icon: <IconActivity />, hint: tk('The button showing library scans and other background work') },
+    { to: 'notifications', label: tk('Notifications'), icon: <IconBell />, hint: tk('What the bell tells you about, and email or a webhook') },
     { to: 'sharing', label: tk('Sharing & photos'), icon: <IconImage />, hint: tk('Uploads, links, the photo map') },
     { to: 'module-settings', label: tk('Module settings'), icon: <IconPlug />, hint: tk('What the modules on this server let you set') },
   ] },
@@ -248,6 +250,7 @@ export default function SettingsPage() {
           <Route path="remote" element={<Suspense fallback={null}><RemoteAccess /></Suspense>} />
           <Route path="security" element={<Suspense fallback={null}><Security /></Suspense>} />
           <Route path="activity" element={<Suspense fallback={null}><ActivitySettings /></Suspense>} />
+          <Route path="notifications" element={<Suspense fallback={null}><NotificationSettings /></Suspense>} />
           <Route path="diagnoser" element={<Suspense fallback={null}><Diagnoser /></Suspense>} />
           <Route path="metadata-files" element={<Navigate to="/settings/repair?tab=files" replace />} />
           <Route path="backup" element={<Suspense fallback={null}><BackupSettings /></Suspense>} />

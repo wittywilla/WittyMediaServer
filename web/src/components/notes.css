@@ -1,0 +1,37 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Copyright (C) 2026 WittyWilla and contributors */
+/* The bell and its list. */
+.note-btn { position: relative; color: var(--fg-3); }
+.note-btn.on { color: var(--fg); }
+.note-count {
+  position: absolute; top: 0; right: 0; min-width: 1.05rem; height: 1.05rem; padding: 0 var(--sp-1); border-radius: var(--r-full);
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-fg); font-size: var(--text-2xs); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+}
+html.using-controller .note-btn { width: 3rem; height: 3rem; } /* at least 48 at ten feet */
+@media (pointer: none) { .note-btn { width: 3rem; height: 3rem; } }
+
+/* TV mode: a round pill at the end of the row of tabs. */
+.tvm-bell { position: relative; justify-content: center; width: var(--tvm-bar-pill); padding: 0; }
+.tvm-bell.tvm-bell-side { justify-content: flex-start; width: auto; padding: 0 calc(var(--tvu) * 24); }
+.tvm-bell svg { width: calc(var(--tvu) * 32); height: calc(var(--tvu) * 32); }
+.tvm-bell .note-count { top: calc(var(--tvu) * -4); right: calc(var(--tvu) * -4); min-width: calc(var(--tvu) * 30); height: calc(var(--tvu) * 30); font-size: calc(var(--tvu) * 18); }
+
+.modal.note-sheet { width: min(30rem, 100vw); }
+.note-bar { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding-block: var(--sp-2) var(--sp-3); }
+.note-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.note { display: flex; align-items: flex-start; gap: var(--sp-1); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); min-width: 0; }
+.note.unread { border-color: var(--accent); }
+.note-open { flex: 1; display: flex; align-items: flex-start; gap: var(--sp-3); min-width: 0; padding: var(--sp-3); border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; border-radius: var(--r-md); }
+.note-open:hover { background: var(--bg-3); }
+.note > .btn { margin: var(--sp-2); }
+.note-icon { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: var(--r-full); background: var(--bg-3); color: var(--fg-2); }
+.note.unread .note-icon { color: var(--accent); }
+.note-text { display: grid; gap: 2px; min-width: 0; }
+.note-title { font-size: var(--text-md); font-weight: 600; overflow-wrap: anywhere; }
+.note:not(.unread) .note-title { font-weight: 500; color: var(--fg-2); }
+.note-body { color: var(--fg-2); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.note-when { color: var(--fg-3); font-size: var(--text-xs); }
+.note-more { display: flex; justify-content: center; margin-top: var(--sp-3); }
+
+@media (max-width: 600px) { .modal.note-sheet { width: 100%; max-height: 88dvh; } }
+.note-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding-block: var(--sp-3) var(--sp-1); }

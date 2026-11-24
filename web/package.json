@@ -20,7 +20,8 @@
     "test:quality": "node scripts/test-quality-menu.mjs",
     "test:contrast": "node scripts/test-contrast.mjs",
     "test:tv-levels": "node scripts/test-tv-levels.mjs",
-    "test:tv-keys": "node scripts/test-tv-keys.mjs"
+    "test:tv-keys": "node scripts/test-tv-keys.mjs",
+    "test:notifications": "node scripts/test-notifications.mjs"
   },
   "dependencies": {
     "hls.js": "^1.7.4",

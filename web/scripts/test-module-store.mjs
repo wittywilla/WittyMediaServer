@@ -118,6 +118,10 @@ try {
   await settle(`/Updates · 1/.test(document.querySelector('.st-tabs').innerText)`, 60000, 'the Updates tab counting one')
   check(/What the updates bring/.test(await text()) && /Store test: a newer version/.test(await text()), 'Updates shows what the new version brings')
   await snap('updates')
+  // Pressed again within the minute, the server doesn't look: the store says when it last did.
+  await press('^Check now$')
+  await settle(`/already looked at/.test(document.body.innerText)`, 15000, 'the "already looked" words')
+  check(true, 'a second Check now within the minute says when the server last looked, not "up to date"')
   check(await press('^Update All Modules'), 'Update All is offered')
   await pollApi(async () => { const s = await stats(); return s && s.version !== from && !s.latest }, 90000, 'WittyStats updated')
   check(true, `WittyStats updates from ${from}`)

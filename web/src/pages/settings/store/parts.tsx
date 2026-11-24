@@ -40,12 +40,18 @@ export function useStoreView() {
   // Check now, for every tab: asks the stores again and says how it went.
   const [checking, setChecking] = useState(false)
   const [checkFailure, setCheckFailure] = useState<Failure | null>(null)
+  const lastChecked = useRef<number | undefined>(undefined)
+  lastChecked.current = view?.checkedAt
   const check = useCallback(async () => {
     setChecking(true)
+    const before = lastChecked.current
     try {
       const v = await checkAll()
       setView(v); setError(null)
-      if (v.checkError || v.stores.some((s) => s.problem)) toast(t('The check didn’t all work. What happened is on the page.'))
+      // The server looks at most once a minute: when it didn't look this time, say when it last did,
+      // never "up to date" for a look it didn't make.
+      if (before && v.checkedAt === before) toast(t('This server already looked at {time}, and looks at most once a minute. Try again in a moment.', { time: date(before, { timeStyle: 'short' }) }))
+      else if (v.checkError || v.stores.some((s) => s.problem)) toast(t('The check didn’t all work. What happened is on the page.'))
       else toast(v.updates ? tn('{count} update found', '{count} updates found', v.updates) : t('Every module is up to date'))
     } catch (e) { setCheckFailure(failureOf(e, t('The check'))) } finally { setChecking(false) }
   }, [])

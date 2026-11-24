@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 )
 
 // The evidence the server keeps for when something goes wrong: the flight recorder and
@@ -24,7 +25,7 @@ import (
 
 func init() {
 	settingDefaults["logFlight"] = "1"
-	settingDefaults["logTrace"] = "1"
+	settingDefaults["logTrace"] = traceDefault()
 }
 
 // ApplyEvidenceSettings turns the recorders on or off as Settings say. At start, and
@@ -34,7 +35,7 @@ func (s *Server) ApplyEvidenceSettings(ctx context.Context) {
 		return
 	}
 	s.Logs.SetFlightRecorder(s.DB.GetSetting(ctx, "logFlight", "1") == "1")
-	if s.DB.GetSetting(ctx, "logTrace", "1") == "1" {
+	if s.DB.GetSetting(ctx, "logTrace", settingDefaults["logTrace"]) == "1" {
 		if err := logging.StartTraceRecorder(); err != nil {
 			s.Log.WarnContext(ctx, "the execution trace can't be kept", "cat", "server", "err", err)
 		}
@@ -156,4 +157,16 @@ func (s *Server) handleCrashPart(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", partTypes[part])
 	w.Header().Set("Content-Disposition", `attachment; filename="`+id+"."+part+`"`)
 	http.ServeContent(w, r, "", st.ModTime(), f)
+}
+
+// traceDefault: Go's execution trace is kept by default only on a roomy machine. Keeping it
+// wakes the server about 3,500 times a minute while it does nothing (its reader looks for new
+// events ten times a second, on every thread it touches) and takes about four times the
+// processor of an idle server without it, which a small machine shouldn't spend on
+// something only a developer reads (#643). Settings → Logs turns it on anywhere.
+func traceDefault() string {
+	if pace.Machine() == pace.Roomy {
+		return "1"
+	}
+	return "0"
 }

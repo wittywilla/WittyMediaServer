@@ -17,7 +17,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -29,6 +28,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/sysinfo"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
 )
@@ -102,7 +102,7 @@ func (e *Engine) Env(ctx context.Context) Env {
 	env := Env{Encoders: e.Tools.Encoders, HasFilter: e.Tools.HasFilter, ToneMap: e.Tools.ToneMapFilter, Threads: s.Threads,
 		Sidecars: e.SaveMeta == nil || e.SaveMeta()}
 	if env.Threads == 0 {
-		env.Threads = max(runtime.NumCPU()/2, 1)
+		env.Threads = max(pace.Cores()/2, 1)
 	}
 	if s.UseHardware && e.HardwareAllowed != nil {
 		env.Hardware = e.workingHardware(ctx, e.HardwareAllowed())

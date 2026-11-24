@@ -21,8 +21,6 @@ import { ranked } from '../ui/spatial'
 import BrandDialog from '../components/BrandDialog'
 import { applyPreset, DEVICES, deviceOf, LAYOUT_PRESETS, merged, zoneOf, type DeviceId, type Placement, type Placements, type Region, type Zone } from './layoutModel.ts'
 import './layoutEditor.css'
-import { useTvMode } from '../tvmode/mode'
-import { OnAComputerDialog } from '../tvmode/OnAComputer'
 import { t, tk, tx } from '../i18n'
 
 type Answer = { experience: string; regions: Region[]; placements: Placements; own?: Placements; editable: boolean }
@@ -282,17 +280,5 @@ function Row({ label, text, children }: { label: string; text?: string; children
   return <div className="le-row"><span>{text || label}</span>{children}</div>
 }
 
-// The editor wherever it is asked for (Settings, Appearance, or Ctrl+Shift+L): one host in the app.
-export const LAYOUT_EVENT = 'wms:layout-editor'
-export function ShellEditorHost() {
-  const [open, setOpen] = useState(false)
-  useEffect(() => {
-    const on = () => setOpen(true)
-    window.addEventListener(LAYOUT_EVENT, on)
-    return () => window.removeEventListener(LAYOUT_EVENT, on)
-  }, [])
-  // On a television the layout is edited on a computer (docs/TV-MODE.md): the button says where.
-  const tv = useTvMode()
-  if (!open) return null
-  return tv ? <OnAComputerDialog part="shell.editor" onClose={() => setOpen(false)} /> : <ShellEditor onClose={() => setOpen(false)} />
-}
+// The host that opens this editor is shell/ShellEditorHost, which fetches this file only then.
+export { LAYOUT_EVENT } from '../shell/layoutEvent'

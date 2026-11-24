@@ -75,6 +75,7 @@ export const GROUPS: GuideGroup[] = [
   { title: tk('Looking after the server'), guides: [
     { file: 'INSTALL', title: tk('Installing and updating'), about: tk('Each system’s installer, and what each program is.') },
     { file: 'HARDWARE', title: tk('What hardware it needs'), about: tk('Memory and processor for each thing it does, from measurements.') },
+    { file: 'MINIMUM-HARDWARE', title: tk('Minimum hardware'), about: tk('What a Raspberry Pi, an old laptop or a NAS can do, and what needs a graphics card.') },
     { file: 'DOCKER', title: tk('Docker'), about: tk('The image, its tags and folders, graphics cards, hardening and updating.') },
     { file: 'DOCKER-UGREEN', title: tk('Docker on a UGREEN NAS'), about: tk('UGOS Pro’s Docker app, with Intel graphics.') },
     { file: 'DOCKER-SYNOLOGY', title: tk('Docker on a Synology NAS'), about: tk('Container Manager on DSM 7.2.') },

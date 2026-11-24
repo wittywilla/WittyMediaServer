@@ -24,9 +24,12 @@ export type ViewPrefs = {
   // The control bar: every button on it (detailed), the picture first with the rest in one Options sheet (simple), or
   // whichever suits the screen (auto: simple on a phone or tablet, detailed wider than 900 px).
   controls: 'auto' | 'detailed' | 'simple'
+  // The scenes panel pauses the film while it's open: on a phone, a tablet or a TV, where it covers the picture
+  // ('touch', the default), or on every screen, a computer's too ('always').
+  scenesPause: 'touch' | 'always'
 }
 
-export const DEFAULT_VIEW: ViewPrefs = { seekBar: true, chapterMarks: true, hideAfter: 3.5, subtitleSize: 1, picture: 'fit', remote: false, remoteStyle: 'floating', stereo: 'off', stereoOut: '2d', forcedSubs: true, discLocks: true, controls: 'auto' }
+export const DEFAULT_VIEW: ViewPrefs = { seekBar: true, chapterMarks: true, hideAfter: 3.5, subtitleSize: 1, picture: 'fit', remote: false, remoteStyle: 'floating', stereo: 'off', stereoOut: '2d', forcedSubs: true, discLocks: true, controls: 'auto', scenesPause: 'touch' }
 
 const GLOBAL = 'wms.view'
 const itemKey = (id: number) => `wms.view.item.${id}`

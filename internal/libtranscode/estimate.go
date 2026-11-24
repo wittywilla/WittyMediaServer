@@ -5,7 +5,8 @@ package libtranscode
 
 import (
 	"math"
-	"runtime"
+
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 )
 
 // Rough figures, shown as rough. A sample encode (engine.go) measures the real ones for
@@ -24,7 +25,7 @@ func estimate(src *Source, pl *Plan) {
 	}
 	var kbpsOut float64
 	var seconds float64
-	cores := float64(max(runtime.NumCPU(), 1))
+	cores := float64(pace.Cores())
 	for _, st := range pl.Steps {
 		switch st.Action {
 		case ActDrop, ActLeave:

@@ -904,5 +904,9 @@
   "and {count} more invitations": {
     "one": "és még {count} meghívó",
     "other": "és még {count} meghívó"
-  }
+  },
+  "Pause for scenes": "Szüneteltetés jeleneteknél",
+  "Pause the film while the scenes are open": "A film szüneteltetése, amíg a jelenetek nyitva vannak",
+  "Phones and TVs": "Telefonok és tévék",
+  "Every screen": "Minden képernyő"
 }

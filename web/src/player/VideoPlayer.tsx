@@ -15,6 +15,7 @@ import ContentFilters from './ContentFilters'
 import { editorAllowed } from '../wittyinfo/desktopOnly'
 import { useApp } from '../state'
 import { Controls, useCompactBar, useVideoState } from './Controls'
+import { useMedia } from '../shell/useNav'
 import { haveHls, toggleFullscreen, useIdle, useSource, type NetNote } from './hooks'
 import { deviceStreaming, mayBeRobust, measureSpeed, rememberSpeed, setDeviceStreaming, type DeviceStreaming } from './streaming'
 import Hls from 'hls.js'
@@ -84,6 +85,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const prefs = view.prefs
   // A phone or tablet: the picture first, the rest in the Options sheet (Controls' compact bar).
   const compact = useCompactBar(prefs.controls)
+  // A phone, a tablet or a TV: the scenes panel covers the picture there, so the film waits while it's open.
+  const touchOrTv = useMedia('(pointer: coarse)') || getTvMode()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [picker, setPicker] = useState<'audio' | 'subtitle' | null>(null)
   const closePicker = useCallback(() => setPicker(null), [])
@@ -687,7 +690,7 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
             audio={info?.audio.map((a) => ({ id: a.index, label: [trackLang(a.language), ownName(a), a.codec?.toUpperCase(), channelWords(a.channels)].filter(Boolean).map(bidi).join(' · '), active: a.index === audio }))}
             subtitles={info?.subtitles.map((s) => ({ id: s.index, label: trackLabel(s), active: s.index === sub }))}
             onAudio={(id) => switchTrack('audio', id)} onSubtitle={(id) => switchTrack('sub', id)} onPick={(k) => { if (k !== 'angle') setPicker((p) => (p === k ? null : k)) }}
-            compact={compact} sheetItems={[
+            compact={compact} pauseForScenes={prefs.scenesPause === 'always' || touchOrTv} sheetItems={[
               ...((may.party || party.room) ? [{ key: 'party', icon: <IconUsers />, label: t('Watch party'), value: party.room ? tn('{count} watching', '{count} watching', party.room.members.length) : undefined, on: party.active, onClick: () => setPartyOpen(true) }] : []),
               { key: 'mini', icon: <IconMini />, label: t('Keep playing in a corner'), onClick: chrome.minimize },
             ]}

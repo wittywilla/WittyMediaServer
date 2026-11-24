@@ -3,7 +3,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { api, cornerName, profileName } from '../api'
 import { IconDevices, IconDownload, IconFull, IconGamepad, IconHelp, IconLogout, IconPalette, IconSettings, IconStar, IconTv, IconUsers } from '../icons'
-import { Avatar } from '../pages/AuthPage'
+import { Avatar } from '../ui/Avatar'
 import { UpdateDot } from '../components/common'
 import { useApp } from '../state'
 import { Menu, type MenuEntry } from '../ui/Menu'

@@ -889,5 +889,9 @@
   },
   "and {count} more invitations": {
     "other": "외 초대 {count}개"
-  }
+  },
+  "Pause for scenes": "장면 선택 시 일시 정지",
+  "Pause the film while the scenes are open": "장면 목록이 열려 있는 동안 영화 일시 정지",
+  "Phones and TVs": "휴대폰 및 TV",
+  "Every screen": "모든 화면"
 }

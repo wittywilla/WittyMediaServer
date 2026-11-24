@@ -55,3 +55,25 @@ func TestCompressedOnlyAssets(t *testing.T) {
 		t.Errorf("a file that isn't there: %d %q", w.Code, w.Header().Get("Content-Encoding"))
 	}
 }
+
+// The client's files outside assets/ (fonts, icons) carry a tag from their content, so a
+// browser asking again gets 304 and not the whole file each visit (#643), and still asks each
+// time (no-cache), so an update reaches it at once.
+func TestWebFilesAnswerNotModified(t *testing.T) {
+	font := bytes.Repeat([]byte("font"), 1000)
+	s := &Server{Web: fstest.MapFS{"index.html": {Data: []byte("<html></html>")}, "fonts/a.woff2": {Data: font}}}
+	h := s.spa()
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/fonts/a.woff2", nil))
+	tag := w.Header().Get("ETag")
+	if w.Code != 200 || w.Body.Len() != len(font) || tag == "" || w.Header().Get("Cache-Control") != "no-cache" {
+		t.Fatalf("first visit: %d, %d bytes, tag %q, %q", w.Code, w.Body.Len(), tag, w.Header().Get("Cache-Control"))
+	}
+	r := httptest.NewRequest("GET", "/fonts/a.woff2", nil)
+	r.Header.Set("If-None-Match", tag)
+	w = httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != 304 || w.Body.Len() != 0 {
+		t.Fatalf("asked again with its tag: %d, %d bytes; want 304 and nothing", w.Code, w.Body.Len())
+	}
+}

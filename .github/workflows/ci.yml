@@ -73,6 +73,9 @@ jobs:
         run: cd web && npm run test:links
       - name: Every button has a name a screen reader can say
         run: cd web && npm run test:names
+      # What a first visit to each route downloads, against web/bundle-budget.json (#643).
+      - name: Web download budget per route
+        run: cd web && node scripts/bundle-budget.mjs
       - name: Every source file has its licence header
         run: python3 scripts/license-headers.py
       - name: Known vulnerabilities in web packages
@@ -196,6 +199,56 @@ jobs:
             ~/.cache/go-build
           key: ${{ steps.go-cache.outputs.cache-primary-key }}
 
+  # The server's budget (#643): scripts/perf on a small library, held to two processors like a
+  # small machine, against scripts/perf/budget.json: memory while idle after the scans, the
+  # scans' floor in items a second, what the main routes allocate and how many statements they
+  # run, and how long a transcode takes to start. docs/PERFORMANCE.md says how to read a failure.
+  perf-budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
+        with:
+          go-version: "1.27.x"
+          check-latest: true
+          cache: false
+      - name: Restore the Go caches
+        id: go-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('go.sum') }}
+          restore-keys: go-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-
+      - name: Install FFmpeg
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get -o Acquire::Retries=3 update -qq && sudo apt-get -o Acquire::Retries=3 install -y -qq ffmpeg
+      - name: Build the measured server and the benchmark
+        run: |
+          go build -tags wmsprofile -o "$RUNNER_TEMP/wms-prof" ./cmd/wittymediaserver
+          go build -o "$RUNNER_TEMP/perf" ./scripts/perf
+      - name: Make the test library (300 films, 200 songs)
+        run: scripts/perf/make-media.sh "$RUNNER_TEMP/media" 300 20
+      # taskset holds the server, FFmpeg and Go's own processor count to two processors.
+      - name: Measure against the budget
+        run: |
+          taskset -c 0,1 "$RUNNER_TEMP/perf" -exe "$RUNNER_TEMP/wms-prof" -ffmpeg "$(command -v ffmpeg)" -ffprobe "$(command -v ffprobe)" \
+            -lib "movies=$RUNNER_TEMP/media/movies" -lib "music=$RUNNER_TEMP/media/music" -out "$RUNNER_TEMP/perf-out" \
+            -starts 1 -settle 15s -idle 30s -repeat 10 -transcodes 3 -budget scripts/perf/budget.json
+      - name: Keep the Go caches
+        if: github.event_name != 'pull_request' && steps.go-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
+
   # Arabic and Hebrew pages in a headless browser, on a server of its own with a small library that FFmpeg makes: Latin
   # titles, file names and "2 hr 10 min" keep their order and show their start (web/scripts/test-rtl.mjs). The
   # screenshots are kept.
@@ -206,7 +259,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7
         with:
           go-version: "1.27.x"
           check-latest: true

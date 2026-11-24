@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -23,6 +22,7 @@ import (
 
 	"github.com/wittywilla/wittymediaserver/internal/desktop"
 	"github.com/wittywilla/wittymediaserver/internal/library"
+	"github.com/wittywilla/wittymediaserver/internal/pace"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
 
@@ -202,7 +202,7 @@ const (
 
 // loginConcurrency: checking a password takes real work, so a flood of sign-in
 // attempts must not take the whole machine.
-func loginConcurrency() int { return max(2, runtime.NumCPU()/2) }
+func loginConcurrency() int { return max(2, pace.Cores()/2) }
 
 // loginLimiter slows down password guessing: after 5 failures for one name
 // from one address, each further attempt waits longer (up to 15 minutes). Away

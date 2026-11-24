@@ -57,14 +57,19 @@ RUN printf '%s\n' 'path-exclude /usr/share/doc/*' 'path-include /usr/share/doc/*
 # with its encoding kernels from non-free, i965 with its shaders for older chips, and
 # the oneVPL runtime for Quick Sync. vainfo is for checking by hand. NVIDIA's libraries
 # come from the host through the NVIDIA Container Toolkit, when the container starts.
+# Games draw through Mesa, on every architecture: EGL and OpenGL (iris for Intel, radeonsi
+# for AMD, panfrost and others on ARM boards, llvmpipe on the processor where there's no
+# card) and Vulkan (anv, radv, lavapipe). Without libEGL, WittyPlay found no card at all,
+# even with /dev/dri passed in, and GameCube and Wii couldn't use the processor's OpenGL.
 RUN set -eux; \
     gpu=""; \
+    mesa="libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri libgbm1 mesa-vulkan-drivers"; \
     if [ "$TARGETARCH" = amd64 ]; then \
       sed -i 's/^Components: main$/Components: main non-free/' /etc/apt/sources.list.d/debian.sources; \
       gpu="mesa-va-drivers intel-media-va-driver-non-free i965-va-driver-shaders libmfx-gen1.2 vainfo"; \
     fi; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ffmpeg ca-certificates tzdata tini libgl1 $gpu; \
+    apt-get install -y --no-install-recommends ffmpeg ca-certificates tzdata tini libgl1 $mesa $gpu; \
     rm -rf /var/lib/apt/lists/* /var/cache/debconf/*-old /var/log/apt /var/log/dpkg.log; \
     groupadd -g 1000 wms && useradd -u 1000 -g wms -m wms; \
     mkdir -p /config /media && chown wms:wms /config && chmod 0777 /config
@@ -79,7 +84,7 @@ ENV WMS_DOCKER=1 \
     WMS_LISTEN=:9797 \
     WMS_TRANSCODE_DIR=/config/transcode \
     XDG_CACHE_HOME=/config/cache/xdg \
-    NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    NVIDIA_DRIVER_CAPABILITIES=compute,video,utility,graphics
 EXPOSE 9797
 VOLUME ["/config"]
 USER wms

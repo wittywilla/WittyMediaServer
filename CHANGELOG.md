@@ -9,6 +9,15 @@ Not released yet.
 
 **Games in Docker**
 
+- **Games can use an Intel or AMD graphics chip in Docker.** The image had no OpenGL library (libEGL) and no Vulkan
+  drivers, so WittyPlay found "no graphics card" on every NAS, even with `/dev/dri` passed in. It now has Mesa's EGL,
+  OpenGL and Vulkan drivers on every architecture (iris and anv for Intel, radeonsi and radv for AMD, and llvmpipe and
+  lavapipe on the processor), about 21 MB more. With no card, GameCube and Wii can now draw on the processor too. An
+  NVIDIA card gets its graphics libraries for games (`NVIDIA_DRIVER_CAPABILITIES` includes `graphics`). With WittyPlay
+  0.7.21, a chip that can't be used says why: no `/dev/dri` passed in, or the group to add under `group_add:`.
+  [docs/DOCKER.md](docs/DOCKER.md#intel-and-amd-graphics-for-games) and the
+  [UGREEN guide](docs/DOCKER-UGREEN.md#5-games-on-the-graphics-chip) say how to set it up and check it. CI checks
+  the image's OpenGL and Vulkan on the processor, with no card, on amd64 and arm64.
 - **Games play in Docker, with WittyPlay 0.7.19.** On a NAS with Docker's usual network, games started but no picture
   ever arrived: WebRTC could only offer the container's private address, and the WebSocket the player should have
   fallen back to was refused. The fix is all in WittyPlay, which updates from Settings, Modules on any 0.8 server.

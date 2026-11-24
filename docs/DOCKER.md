@@ -296,13 +296,24 @@ Most NAS boxes have none that games can use, and most consoles don't need one. T
 |---|---|
 | Yes, on one processor thread or less | NES, SNES, Game Boy, Game Boy Advance, Master System, Mega Drive, PC Engine and the other 8-bit and 16-bit consoles: every core their console offers |
 | Yes, needing a fast processor | Nintendo 64 (Mupen64Plus-Next and ParaLLEl N64 draw with angrylion, on about one core), PlayStation (the software cores, not *Beetle PSX HW* or *SwanStation*), PSP (PPSSPP's software renderer, four or five threads) |
-| No | Nintendo 64 homebrew made with libdragon, which needs a card with Vulkan. Starting one says "This game needs a graphics card with Vulkan on the server to show a picture." GameCube and Wii need a fast processor and play only slowly without a card |
+| No | Nintendo 64 homebrew made with libdragon, which needs a card with Vulkan. Starting one says "This game needs a graphics card with Vulkan on the server to show a picture." GameCube and Wii play without a card on Mesa's llvmpipe, but need a fast processor; Dreamcast needs a card |
 
 A game that can't run here says why on its start screen, in words, never by hanging.
 
 ### Intel and AMD graphics for games
 
-Games use the same device as transcoding. Pass `/dev/dri` in and add its group, as in [Intel and AMD](#intel-and-amd) above: WittyPlay checks for a card when it starts, draws the cores that need one on it, and can encode the stream with it (Quick Sync or VAAPI). An NVIDIA card works as for transcoding, with `NVIDIA_DRIVER_CAPABILITIES=all` in place of the image's own list (`compute,video,utility`), as drawing a game needs the driver's graphics libraries too.
+Games use the same device as transcoding. Pass `/dev/dri` in and add its group, as in [Intel and AMD](#intel-and-amd) above, and nothing else: the image has Mesa's OpenGL and Vulkan drivers (iris and anv for Intel, radeonsi and radv for AMD, and llvmpipe and lavapipe on the processor). WittyPlay checks for a card when it starts, draws the cores that need one on it, and can encode the stream with it (Quick Sync or VAAPI). **Settings → Consoles & cores** names the card it found. A game that can't use it says why, in words you can act on:
+
+| It says | Do this |
+|---|---|
+| *no graphics device was passed into the container* | Add `- /dev/dri:/dev/dri` under `devices:` |
+| *this server's user can't open /dev/dri/renderD128, which belongs to group 105* | Add that number under `group_add:`. A container that runs as a user (not root), with no capabilities, can't join a group once it has started, so it has to be given the group |
+| *which only root may use* | [Only root may open the render node](#only-root-may-open-the-render-node) |
+| *this server's Docker image has no OpenGL library (libEGL)* | An image from before 0.8.5-alpha: pull a newer one. Before it, games found no card even with `/dev/dri` passed in |
+
+[`compose.intel-amd.yml`](https://github.com/wittywilla/WittyMediaServer/blob/master/deploy/docker/compose.intel-amd.yml) has the lines for transcoding and games alike. An NVIDIA card works as for transcoding: the image asks the NVIDIA Container Toolkit for the driver's graphics libraries too (`NVIDIA_DRIVER_CAPABILITIES` includes `graphics`).
+
+**Tried:** Mesa's OpenGL and Vulkan on the processor (llvmpipe and lavapipe) in the image, with no card, in CI on amd64 and arm64. **Not yet:** a real Intel or AMD chip passed into a container. On a UGREEN NAS, [its guide](DOCKER-UGREEN.md#5-games-on-the-graphics-chip) says what to check.
 
 ## Behind a reverse proxy
 

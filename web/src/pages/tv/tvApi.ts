@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { api, ApiError, mediaUrl, serverBase, getToken, type QualityView } from '../../api'
 import { parseCatchupKey, type TvSet } from './guideLogic'
+import { isLibraryKey, type Timeline } from './timeshift'
 import { date, t } from '../../i18n'
 
 // What the TV pages talk to the server about. See docs/CHANNELS.md.
@@ -52,6 +53,10 @@ export type TuneInfo = {
   atsc3?: boolean; security?: Security; notices?: string[]; alternative?: Alternative
   // What the quality menu offers, and what is chosen (docs/CLIENT-API.md, Quality).
   quality?: QualityView
+  // Time-shift (#648): this channel can start the programme on now over. On a start-over
+  // answer, timeline says where its programme and breaks are (timeshift.ts).
+  startOver?: boolean
+  timeline?: Timeline
 }
 
 export type Rules = {
@@ -173,7 +178,11 @@ export async function tune(key: string, viewer: string, signal: AbortSignal): Pr
   for (let i = 0; ; i++) {
     try {
       const cu = parseCatchupKey(key)
-      return await api.get<TuneInfo>(cu ? `/tv/${cu.key}/catchup?start=${cu.start}&end=${cu.end}&viewer=${viewer}` : `/tv/${key}/tune?viewer=${viewer}`)
+      // A library channel starts over on a stream of this viewer's own; a tuner channel from its archive.
+      const path = !cu ? `/tv/${key}/tune?viewer=${viewer}`
+        : isLibraryKey(cu.key) ? `/tv/${cu.key}/startover?from=${cu.start}&viewer=${viewer}`
+          : `/tv/${cu.key}/catchup?start=${cu.start}&end=${cu.end}&viewer=${viewer}`
+      return await api.get<TuneInfo>(path)
     } catch (e) {
       if (!(e instanceof ApiError) || e.status !== 503 || i >= 3 || signal.aborted) throw e
       await new Promise((r) => setTimeout(r, 1500))
@@ -187,7 +196,10 @@ export function leaveChannel(key: string, viewer: string, quality = '') {
   const headers: Record<string, string> = {}
   const tok = getToken()
   if (tok) headers.Authorization = 'Bearer ' + tok
-  fetch(serverBase() + `/api/tv/${parseCatchupKey(key)?.key ?? key}/leave?viewer=${viewer}${quality ? '&quality=' + encodeURIComponent(quality) : ''}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
+  const cu = parseCatchupKey(key)
+  // A start-over stream of a library channel is this viewer's alone, so leaving stops it.
+  const shift = cu && isLibraryKey(cu.key) ? '&shift=1' : cu ? `&start=${cu.start}` : ''
+  fetch(serverBase() + `/api/tv/${cu?.key ?? key}/leave?viewer=${viewer}${shift}${quality ? '&quality=' + encodeURIComponent(quality) : ''}`, { method: 'POST', headers, credentials: 'same-origin', keepalive: true }).catch(() => {})
 }
 
 export async function uploadLogo(id: number, file: File): Promise<{ logo: string }> {

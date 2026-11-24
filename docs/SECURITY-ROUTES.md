@@ -539,6 +539,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/tv-sets/{id}/channels` | Signed-in | own; a shared set, an administrator. Added channels must be ones the account may watch |
 | `DELETE /api/tv-sets/{id}` | Signed-in | own; a shared set, an administrator |
 | `GET /api/tv/{key}/programme` | Signed-in | Channel key. Channel visible to the account and enabled; for a library channel, limits on what is on then. Credits, trailers and schedule only from what the profile may see |
+| `GET /api/tv/{key}/startover` | Signed-in | Library channel: visible to the profile, start over on (`tvStartOver`), what was on then visible. Tuner channel: as GET /api/tv/{key}/catchup. The stream is named by the account, the player and its quality, so it is the viewer's alone |
+| `GET /api/tv/{key}/timeline` | Signed-in | Library channel visible to the profile. Reads the schedule only |
+| `GET /api/tv/{key}/shift/{viewer}/playlist.m3u8` | Signed-in | Library channel visible to the profile; the stream of this account and player only. A stream token for that channel |
+| `GET /api/tv/{key}/shift/{viewer}/seg/{name}` | Signed-in | As the playlist. Only segment names FFmpeg wrote |
 | `GET /api/tv/{key}/catchup` | Signed-in | Tuner channel key. Tuner channels allowed for the profile; channel visible, enabled and not encrypted; a start within the source's archive |
 | `GET /api/tv/{key}/catchup/{start}/playlist.m3u8` | Signed-in | As GET /api/tv/{key}/catchup. A stream token for that channel |
 | `GET /api/tv/{key}/catchup/{start}/seg/{name}` | Signed-in | As GET /api/tv/{key}/catchup. Only segment names FFmpeg wrote |

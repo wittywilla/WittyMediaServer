@@ -15718,11 +15718,65 @@
           "serverTime": {
             "type": "integer"
           },
+          "startOver": {
+            "type": "boolean"
+          },
           "streamToken": {
             "type": "string"
           },
           "streamUrl": {
             "type": "string"
+          },
+          "timeline": {
+            "anyOf": [
+              {
+                "properties": {
+                  "breaks": {
+                    "items": {
+                      "properties": {
+                        "end": {
+                          "type": "integer"
+                        },
+                        "start": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "end",
+                        "start"
+                      ],
+                      "type": "object"
+                    },
+                    "type": [
+                      "array",
+                      "null"
+                    ]
+                  },
+                  "earliest": {
+                    "type": "integer"
+                  },
+                  "from": {
+                    "type": "integer"
+                  },
+                  "live": {
+                    "type": "integer"
+                  },
+                  "programme": {
+                    "$ref": "#/components/schemas/GuideProgramme"
+                  }
+                },
+                "required": [
+                  "breaks",
+                  "earliest",
+                  "live",
+                  "programme"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "url": {
             "type": "string"
@@ -46486,6 +46540,192 @@
           }
         ],
         "summary": "WittyTV More info: one programme in full, from the guide and the library: `channel`, `programme`, `actions`, `library`, `credits`, `trailers`, `schedule`, `ids`",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/{key}/shift/{viewer}/playlist.m3u8": {
+      "get": {
+        "operationId": "getTvKeyShiftViewerPlaylist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "viewer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A viewer's start-over stream; 410 once it has stopped",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
+    "/tv/{key}/shift/{viewer}/seg/{name}": {
+      "get": {
+        "operationId": "getTvKeyShiftViewerSegName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "viewer",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A segment of a viewer's start-over stream",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user",
+        "x-wms-stream-token": true
+      }
+    },
+    "/tv/{key}/startover": {
+      "get": {
+        "operationId": "getTvKeyStartover",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start the programme on now over, or from `from`, for this viewer only: `viewer`, `from`. Answers like `/tune` with `timeline`; 409 at live",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/tv/{key}/timeline": {
+      "get": {
+        "operationId": "getTvKeyTimeline",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A library channel's programme and breaks at `at`, and where live is. Starts nothing",
         "tags": [
           "Channels and live TV"
         ],

@@ -42,6 +42,7 @@ func (s *Server) channelRoutes(m *http.ServeMux) {
 	m.Handle("GET /api/tv/{key}/live/seg/{name}", a(s.handleLiveSegment))
 	m.Handle("GET /api/tv/{key}/live/work", a(s.handleLiveWork))
 	m.Handle("POST /api/tv/{key}/leave", a(s.handleLiveLeave))
+	s.timeshiftRoutes(m)
 	m.Handle("GET /api/tv/settings", ad(s.handleTVSettings))
 	m.Handle("PUT /api/tv/settings", ad(s.handlePutTVSettings))
 	m.Handle("PUT /api/libraries/{id}/main", ad(s.handleLibraryShowMain))
@@ -548,7 +549,7 @@ func (s *Server) handleDeleteChannelLogo(w http.ResponseWriter, r *http.Request)
 // tvSettings are stored in the settings table under these names.
 var tvSettings = map[string]string{
 	"tvLibraryBufferMin": "5",  // minutes kept for pausing a library channel
-	"tvTunerBufferMin":   "30", // and a tuner channel
+	"tvTunerBufferMin":   "10", // and a tuner channel: small by default, for low-end machines (#648)
 	"tvCopyVideo":        "1",  // pass H.264 through instead of converting it
 	"tvMaxHeight":        "0",  // 0 = the server's general limit
 	// tvTheme is the owner's WittyTV look for anyone whose own choice and UI suggest none: a theme
@@ -557,8 +558,12 @@ var tvSettings = map[string]string{
 	// tvBackgroundPlay: whether a device that hasn't chosen keeps playing a channel while its tab
 	// or app is in the background. Each device can choose for itself: see backgroundPlay.
 	"tvBackgroundPlay": "1",
-	"dvrFolder":        "", // "" = recordings in the data folder
-	"dvrLibrary":       "", // a library to rescan after recording
+	// tvStartOver: viewers may start a library channel's programme over, pause and rewind it
+	// and skip its breaks, each on a stream of their own ("0" = off, for a server that can't
+	// spare the FFmpeg).
+	"tvStartOver": "1",
+	"dvrFolder":   "", // "" = recordings in the data folder
+	"dvrLibrary":  "", // a library to rescan after recording
 }
 
 func (s *Server) tvSetting(ctx context.Context, k string) string {
@@ -618,7 +623,7 @@ func (s *Server) handlePutTVSettings(w http.ResponseWriter, r *http.Request) {
 				writeErr(w, 400, "unknown WittyTV theme")
 				return
 			}
-		case "tvCopyVideo", "tvBackgroundPlay":
+		case "tvCopyVideo", "tvBackgroundPlay", "tvStartOver":
 			if v != "0" && v != "1" {
 				writeErr(w, 400, "bad value")
 				return
@@ -951,6 +956,11 @@ type tuneInfo struct {
 	Notices        []string      `json:"notices,omitempty"`
 	// Alternative: the same station with sound, when this one has none.
 	Alternative *livetv.Alternative `json:"alternative,omitempty"`
+	// StartOver: this channel can start the programme on now from its beginning for this
+	// viewer (/startover). On an answer from /startover, it says this is such a stream, and
+	// Timeline says where its programme and breaks are.
+	StartOver bool      `json:"startOver,omitempty"`
+	Timeline  *timeline `json:"timeline,omitempty"`
 }
 
 func parseKey(key string) (kind string, id int64, ok bool) {
@@ -1041,6 +1051,7 @@ func (s *Server) handleTune(w http.ResponseWriter, r *http.Request) {
 		info.Playing = &p
 	}
 	info.BufferSec = float64(s.tvSettingInt(r.Context(), "tvLibraryBufferMin") * 60)
+	info.StartOver = s.startOverOn(r.Context())
 	info.BackgroundPlay = s.backgroundPlay(r.Context())
 	if err := s.addLiveTicket(r, &info); err != nil {
 		writeErr(w, 500, err.Error())
@@ -1065,7 +1076,10 @@ func (s *Server) handleLiveLeave(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 400, "bad channel")
 		return
 	}
-	if v := viewerName(r); v != "" {
+	if v := viewerName(r); v != "" && r.URL.Query().Get("shift") == "1" {
+		// A start-over stream is the viewer's alone: it stops.
+		s.leaveShift(r, key, v)
+	} else if v != "" {
 		// A catch-up stream is left by naming the programme's start as well.
 		if start, err := strconv.ParseInt(r.URL.Query().Get("start"), 10, 64); err == nil && start > 0 && strings.HasPrefix(key, "tun-") {
 			id, _ := strconv.ParseInt(strings.TrimPrefix(key, "tun-"), 10, 64)
@@ -1142,6 +1156,12 @@ func feedPlan(now time.Time, lastEnd int64) (at time.Time, wait time.Duration, c
 
 // libraryFeed says what a library channel plays next: see feedPlan.
 func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK bool) hls.LiveFeed {
+	return s.shiftedFeed(id, q, maxHeight, copyOK, 0)
+}
+
+// shiftedFeed is libraryFeed for a viewer shift behind the clock (start over): the same
+// schedule, played as it was shift ago.
+func (s *Server) shiftedFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK bool, shift time.Duration) hls.LiveFeed {
 	var lastEnd int64
 	var lastRev int
 	return func(ctx context.Context, _ time.Time) (*hls.LiveInput, error) {
@@ -1149,7 +1169,7 @@ func (s *Server) libraryFeed(id int64, q ffmpeg.Quality, maxHeight int, copyOK b
 		if err != nil {
 			return nil, &hls.FatalError{Err: errors.New("this channel no longer exists")}
 		}
-		now := time.Now()
+		now := time.Now().Add(-shift)
 		if lastRev != 0 && c.Rev != lastRev && lastEnd > now.Unix() {
 			// The schedule was made again. An edit keeps what is on now, so it
 			// still ends when it did; after a reset it doesn't, and the channel

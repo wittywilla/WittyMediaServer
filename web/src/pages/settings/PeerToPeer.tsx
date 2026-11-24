@@ -12,6 +12,7 @@ import { ConfirmOwner, type OwnerAsk } from './ConfirmOwner'
 import { HelpLink } from '../../components/HelpLink'
 import { ask } from '../../ui/Overlay'
 import { t, tk, tn, tx } from '../../i18n'
+import { CheckConnection, RecentTries } from './CheckConnection'
 
 // Settings → Remote Access → Peer-to-peer connections: reaching the server
 // from away with nothing set up on the router. Off until the owner turns it
@@ -222,6 +223,7 @@ export default function PeerToPeer() {
         <p className="rem-note"><IconCheck size={14} /> {t('The test connects to this server the way an app away from home would, from a second connection made on this computer.')}</p>
         <Steps steps={test.steps} />
       </>}
+      <CheckConnection running={v.running} />
       <details className="p2p-more">
         <summary>{t('Each way of connecting')}</summary>
         <Steps steps={v.steps} />
@@ -230,6 +232,7 @@ export default function PeerToPeer() {
 
       <h4 className="p2p-head">{t('Devices that may connect')}</h4>
       <SpecPage embedded bare page={devicesPage} handled={devicesHandled} onAction={(id) => { const d = v.devices.find((x) => x.id === id.slice(7)); if (d) void remove(d) }} />
+      <RecentTries />
 
       <SpecPage embedded bare page={optionsPage} onField={(id, val) => {
         if (busy) return

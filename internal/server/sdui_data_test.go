@@ -218,9 +218,9 @@ func TestSDUIBuiltInPagesFromALibrary(t *testing.T) {
 	if g := findNode(&none.Root, "all"); g == nil || g.State != "empty" || none.Page.Params["genre"] != "Western" {
 		t.Errorf("a filter that matches nothing: %+v", g)
 	}
-	// Search finds by title, in each library the account can open.
+	// Search finds by title, in a group of its kind.
 	found := sduiDoc(t, ts.do(t, "GET", "/api/sdui/pages/search?q=grown", f.admin, nil))
-	if r := findNode(&found.Root, fmt.Sprintf("found-%d", f.open)); r == nil || len(r.Children) != 1 || findNode(&found.Root, "q").Props["query"] != "grown" {
+	if r := findNode(&found.Root, "found-films"); r == nil || len(r.Children) != 1 || findNode(&found.Root, "q").Props["query"] != "grown" {
 		t.Errorf("search: %+v", found.Root.Children)
 	}
 }

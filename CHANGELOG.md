@@ -26,6 +26,61 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   three at weekends with a bedtime, and the PIN to leave. Profiles made before keep their limits.
 - **A friendly "time's up" page** for kids' profiles: one card with the server's name, saying why and when they can
   watch again, with **Ask a parent** and **Switch profile**, on a computer, a phone and in TV mode.
+**Clone a station (#622)**
+
+- **A channel can follow a real TV station's schedule, played from your own files.** On **Channels**, press
+  **Clone a station**, pick where the guide comes from (TVmaze's free public schedule, an XMLTV link or file, or the
+  guide your tuners and IPTV playlists already have), the days and the station. Every programme is matched to your
+  library by series, season and episode, episode title, air date and metadata ids, with how sure each match is.
+- **What you don't have is filled in**, and each slot says how: the closest episode of the same series, another
+  episode of it, a similar show (genre, network, era, rating), or whatever fits the time. Green, amber and red show
+  exact matches, stand-ins and gaps, and **Swap** chooses another in one press.
+- **It keeps to the station's clock**, with commercials on by default: spread through each programme at its natural
+  breaks where your files mark them, from the programme's own era first. **Advanced options** has the matching rules,
+  how many breaks, repeating, the time zone, a shift, and **Follow the station**, which reads the guide again each week.
+  Only the guide's words are used: nothing is recorded or decrypted. See docs/CHANNELS.md, "Clone a station".
+**Connecting another device**
+
+- **A link or QR code works from away through your own WittyRelay (#614).** A device that had never been at home
+  couldn't join when the server's only way in was its own relay, which lets through only devices the server has
+  listed. While an invite is open, the server now also lists a single-use key made from it, which the app uses only to
+  show the invite; the relay still lets through no key the server hasn't listed.
+**Players (#470)**
+
+- **A TV remote's Up and Down no longer change the volume of a film.** A TV has a volume of its own: on the picture,
+  Up brings the controls back and Down goes into them, at the timeline. On a computer Up and Down still set the volume.
+- **The quality menu never offers more than the original has.** A 1080p film of 6.4 Mbps no longer lists "1080p,
+  about 8 Mbps"; Original covers it, and the smaller sizes are held to the original's rate.
+- **Live TV on a phone gets the simple bar,** as films do: channel up and down, the last channel, now and next and the
+  guide are in its Options sheet. Live TV no longer has a speed setting.
+- **Picture in picture** is in the player's More menu (and a phone's Options sheet) where the browser has it. Not on
+  a TV; the apps use their system's own.
+- **On a computer, the music bar no longer shows the page's words in the gap under it.**
+
+**Pages (#438)**
+
+- **WittyTV's channel pages start where every other page starts,** at the top and on the page's left edge, not lower
+  down in a narrower column of their own.
+- **The chosen game on WittyPlay's home rows stays inside its row.** It grew twice, so its top ran under the tabs and
+  the first one started off the left edge of the screen.
+
+**Libraries**
+
+- **An episode whose title starts with a number keeps it.** "S01E05 - 80's Cats" is episode 5, "80's Cats", not
+  episodes 5 to 80 called "'s Cats". Run **Scan for changes** to correct ones already scanned.
+
+**Settings, the same everywhere (#612)**
+
+- **One settings menu on every device.** The web (computer and phone), its TV mode, the desktop app, and the
+  Android and Apple apps show the same groups and rows, in the same order and words: the Android phone app's You
+  page. On a computer and a TV the person is on the left and the groups on the right, and each settings page has the
+  same rows beside it. The list comes from the server (`settingsMenu` in its catalogue, docs/SETTINGS-MENU.md).
+- **A TV shows every row, and says where to change the ones it can't.** Such a row stays in its place, says what is
+  set (Remote access: Off, Live transcoding: Graphics chip…), and opens a panel with that setting's own address and
+  QR code to open on a computer or phone.
+- **Module settings and Module store sit side by side** under Modules (both were called Modules before, in two
+  places), and each page links to the other. **Look** is now **Layout**, beside Edit layout and Theme.
+- **Choose colours has no preview,** only the theme cards, like Choose a layout.
 
 ## 0.8.3-alpha
 
@@ -1499,7 +1554,6 @@ as well (see its section below).
 - Pictures load when the browser holds another server's (or an expired) sign-in cookie.
 - The docked music player no longer moves the profile button; the profile's name shows beside it.
 
-
 ### Updates
 
 - **One-click updates**: *Settings → About & legal → Updates* shows the installed and the newest
@@ -1565,7 +1619,6 @@ as well (see its section below).
 
 - **Version and modules**, in *About & legal* and at the foot of the settings menu: this server's
   version and those of WittyDVD, WittyBluray, WittyDisc and the readers inside it.
-
 
 ### Disc engines as Go modules
 

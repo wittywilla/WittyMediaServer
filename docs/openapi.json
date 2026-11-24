@@ -2888,6 +2888,9 @@
               }
             ]
           },
+          "for": {
+            "type": "string"
+          },
           "genre": {
             "type": "string"
           },
@@ -10736,6 +10739,15 @@
           "schemaVersion": {
             "type": "integer"
           },
+          "settingsMenu": {
+            "items": {
+              "type": "integer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "sources": {
             "items": {
               "$ref": "#/components/schemas/SDUISourceSpec"
@@ -10810,6 +10822,7 @@
           "revision",
           "routes",
           "schemaVersion",
+          "settingsMenu",
           "sources",
           "spacing",
           "tvLevels",
@@ -17251,6 +17264,37 @@
         "x-wms-auth": "public"
       }
     },
+    "/backup/folder": {
+      "put": {
+        "operationId": "putBackupFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose where backups are kept: `{folder, current, code}`.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/backup/schedule": {
       "put": {
         "operationId": "putBackupSchedule",
@@ -18091,6 +18135,130 @@
           }
         ],
         "summary": "Try a scene.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/clone/candidates": {
+      "post": {
+        "operationId": "postChannelsCloneCandidates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What one cloned slot could play instead, best first.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/clone/import": {
+      "post": {
+        "operationId": "postChannelsCloneImport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a station's guide and match each programme to the library: the clone to save in a channel's definition, the commercials libraries it uses by default, and how many slots each rule filled. With `slots`, matches those again instead.",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/clone/stations": {
+      "post": {
+        "operationId": "postChannelsCloneStations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stations a guide source has for the days asked, with whose data it is (`credit`).",
+        "tags": [
+          "Channels and live TV"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/channels/clone/upload": {
+      "post": {
+        "operationId": "postChannelsCloneUpload",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "See the guide for this kind of library."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload an XMLTV guide to clone a station from. The body is the file, gzipped or not, up to 200 MB; the answer gives the `url` to use as the source.",
         "tags": [
           "Channels and live TV"
         ],
@@ -37672,6 +37840,107 @@
         "x-wms-auth": "admin"
       }
     },
+  "/health/library": {
+    "get": {
+      "operationId": "getHealthLibrary",
+      "responses": {
+        "200": {
+          "description": "Success."
+        },
+        "default": {
+          "$ref": "#/components/responses/Error"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Library health: what needs a look in the libraries, a section each, with the fixes each row offers.",
+      "tags": [
+        "Server"
+      ],
+      "x-wms-auth": "admin"
+    }
+  },
+  "/health/library/check": {
+    "delete": {
+      "operationId": "deleteHealthLibraryCheck",
+      "responses": {
+        "200": {
+          "description": "Success."
+        },
+        "default": {
+          "$ref": "#/components/responses/Error"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Stop the NFO check.",
+      "tags": [
+        "Server"
+      ],
+      "x-wms-auth": "admin"
+    },
+    "post": {
+      "operationId": "postHealthLibraryCheck",
+      "responses": {
+        "200": {
+          "description": "Success."
+        },
+        "default": {
+          "$ref": "#/components/responses/Error"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Read the NFO and metadata files beside the media, in the background.",
+      "tags": [
+        "Server"
+      ],
+      "x-wms-auth": "admin"
+    }
+  },
+  "/health/library/fix": {
+    "post": {
+      "operationId": "postHealthLibraryFix",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "description": "Success."
+        },
+        "default": {
+          "$ref": "#/components/responses/Error"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "A fix from Library health: `{action, key, target, id, ids}`.",
+      "tags": [
+        "Server"
+      ],
+      "x-wms-auth": "admin"
+    }
+  },
     "/repair": {
       "get": {
         "operationId": "getRepair",
@@ -47827,6 +48096,195 @@
           "Media extras"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "search",
+        "summary": "The one search across every library the account can open, a letter or two wrong still matching, grouped by kind (films, shows, episodes, artists, albums, songs, books, comics, games, photos, channels, people...), the best group first. Each group's items are the search page's cards.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "description": "What to find: two letters or more. year:1999, year:1990-1999 or year:1990s in it narrows it to those years.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "groups",
+            "description": "Only these groups, comma-separated.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "description": "Narrows it to a year, as year: in q does.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Most items in each group, 1 to 40; 12 if left out.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "remember",
+            "description": "1 keeps the search among the profile's recent searches: send it when someone picks a result or presses Enter, not as they type.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "query",
+                    "groups"
+                  ],
+                  "properties": {
+                    "query": {
+                      "type": "string"
+                    },
+                    "tookMs": {
+                      "type": "number",
+                      "description": "How long the index took, in milliseconds."
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "key",
+                          "label",
+                          "items"
+                        ],
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "more": {
+                            "type": "boolean"
+                          },
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "description": "A card, as an SDUI source item."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The search index is still being built on a server that has just started."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/search/recent": {
+      "get": {
+        "operationId": "getRecentSearches",
+        "summary": "The profile's last ten searches, newest first.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "recent"
+                  ],
+                  "properties": {
+                    "recent": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "forgetRecentSearches",
+        "summary": "Forgets the profile's recent searches, or with q just that one.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "description": "Forget only this search.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Forgotten."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
       }
     }
   },

@@ -14,6 +14,8 @@ export type Programme = {
   // Why a stretch of bumpers is there, and how much was cut to keep the timetable.
   role?: 'pre' | 'post' | 'break' | 'ad' | 'between' | 'pad'; rule?: string; mandatory?: boolean; offset?: number; trimmed?: number
   clip?: ClipRef
+  // On a cloned station: the programme this one stands in for.
+  for?: string
   // Very short programmes the grid has no room to draw one by one.
   group?: Programme[]
 }
@@ -60,7 +62,7 @@ export type Rules = {
 }
 export type Order = { mode: '' | 'rotate' | 'sequential' | 'aired' | 'shuffle'; keepEpisodeOrder?: boolean }
 export type DiscClip = { id: string; item: number; title?: number; start?: number; end?: number; fromChapter?: number; toChapter?: number; label?: string }
-export type Block = { id: string; name?: string; days?: number[]; start: string; end: string; rules?: Rules; order?: Order; fit?: '' | 'fill' | 'overrun' | 'cut'; fromDate?: string; toDate?: string; marathon?: boolean }
+export type Block = { id: string; name?: string; days?: number[]; start: string; end: string; rules?: Rules; order?: Order; fit?: '' | 'fill' | 'overrun' | 'cut'; fromDate?: string; toDate?: string; marathon?: boolean; once?: boolean; standIn?: boolean }
 export type BumperWhen = 'before' | 'after' | 'between' | 'every'
 export type BumperRule = { id: string; name?: string; off?: boolean; when: BumperWhen; everyMin?: number; source: Rules; count?: number; mandatory?: boolean; only?: Rules }
 export type TrimChoice = '' | 'cut' | 'drop' | 'keep'
@@ -69,11 +71,28 @@ export type Trim = { on?: boolean; ads?: TrimChoice; bumpers?: TrimChoice; minKe
 // come from its commercials libraries.
 export type BumperPlan = { rules?: BumperRule[]; trim?: Trim; libraries?: CommercialPick[]; fromCommercials?: boolean }
 export type Definition = {
-  mode: 'simple' | 'rules' | 'timetable'; rules: Rules; order: Order; blocks: Block[] | null
+  mode: 'simple' | 'rules' | 'timetable' | 'clone'; rules: Rules; order: Order; blocks: Block[] | null
   // fromBumpers: commercials may also come from the bumper libraries.
   filler: { rules?: Rules; between?: number; maxSeconds?: number; commercials?: CommercialPick[]; fromBumpers?: boolean; breakEveryMin?: number; breakAds?: number }; alignMin: number
   bumpers?: BumperPlan
+  // A real station's schedule this channel follows: see CloneStation.tsx.
+  clone?: Clone
 }
+export type CloneRule = 'exact' | 'title' | 'aired' | 'near' | 'series' | 'similar' | 'filler' | 'manual' | 'none'
+export type CloneSource = { kind: 'xmltv' | 'guide' | 'tvmaze'; url?: string; channel?: string; country?: string; tz?: string }
+export type CloneOptions = {
+  repeat?: '' | 'daily' | 'weekly' | 'once'; realTime?: boolean; shiftMin?: number
+  noNear?: boolean; noSeries?: boolean; noSimilar?: boolean; noFiller?: boolean; libraries?: number[]
+  adsOff?: boolean; density?: '' | 'low' | 'normal' | 'high'; noEra?: boolean; refresh?: boolean
+}
+export type CloneSlot = {
+  start: number; dur: number; wall: string; title: string; sub?: string; season?: number; episode?: number; year?: number; aired?: string
+  genres?: string[]; network?: string; rating?: string; movie?: boolean; imdb?: string; tvdb?: string; tvmaze?: string; tmdb?: string; gap?: boolean
+  item?: number; rule: CloneRule; confidence: number; why?: string; itemTitle?: string; itemSub?: string; itemDur?: number; show?: number; pinned?: boolean
+}
+export type Clone = { source: CloneSource; station: string; from: string; days: number; credit?: string; options: CloneOptions; slots: CloneSlot[]; importedAt?: number }
+export type CloneCandidate = { item: number; title: string; sub?: string; dur: number; rule: CloneRule; confidence: number; why?: string; show?: number }
+export type Station = { id: string; name: string; country?: string; tz?: string; count?: number }
 export type CommercialPick = { library: number; only?: boolean; items?: number[] }
 export type Visibility = { mode: '' | 'adults' | 'only'; users?: number[] }
 export type Channel = {

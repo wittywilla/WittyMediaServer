@@ -1,0 +1,16 @@
+[
+ {"id":1,"name":"The One with the Thumb","season":1,"number":3,"airdate":"2026-11-23","airtime":"20:00","airstamp":"2026-11-24T01:00:00+00:00","runtime":30,
+  "show":{"id":431,"name":"Friends","genres":["Comedy","Romance"],"premiered":"1994-09-22","runtime":30,
+   "network":{"id":1,"name":"NBC","country":{"name":"United States","code":"US","timezone":"America/New_York"}},
+   "externals":{"tvrage":3616,"thetvdb":79168,"imdb":"tt0108778"}}},
+ {"id":2,"name":"Pilot","season":1,"number":1,"airdate":"2026-11-23","airtime":"20:30","airstamp":"2026-11-24T01:30:00+00:00","runtime":null,
+  "show":{"id":999,"name":"Some New Show","genres":["Comedy"],"premiered":"2026-01-01","runtime":30,
+   "network":{"id":1,"name":"NBC","country":{"name":"United States","code":"US","timezone":"America/New_York"}},
+   "externals":{"thetvdb":null,"imdb":null}}},
+ {"id":3,"name":"Episode 5","season":2,"number":5,"airdate":"2026-11-23","airtime":"20:00","airstamp":"2026-11-24T01:00:00+00:00","runtime":60,
+  "show":{"id":5,"name":"A Drama","genres":["Drama"],"premiered":"2020-01-01","runtime":60,
+   "network":{"id":2,"name":"CBS","country":{"name":"United States","code":"US","timezone":"America/New_York"}},
+   "externals":{}}},
+ {"id":4,"name":"Web thing","season":1,"number":1,"airdate":"2026-11-23","airtime":"","airstamp":"2026-11-23T12:00:00+00:00","runtime":20,
+  "show":{"id":6,"name":"Web Only","genres":[],"network":null,"externals":{}}}
+]

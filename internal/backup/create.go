@@ -150,7 +150,13 @@ func newName(f Folders, auto bool, at time.Time) string {
 	}
 	name := prefix + at.Format(stampForm) + nameSuffix
 	for i := 2; ; i++ {
-		if _, err := os.Lstat(filepath.Join(f.Dir(), name)); errors.Is(err, fs.ErrNotExist) {
+		free := true
+		for _, dir := range f.archiveDirs() {
+			if _, err := os.Lstat(filepath.Join(dir, name)); !errors.Is(err, fs.ErrNotExist) {
+				free = false
+			}
+		}
+		if free {
 			return name
 		}
 		name = fmt.Sprintf("%s%s-%d%s", prefix, at.Format(stampForm), i, nameSuffix)
@@ -271,13 +277,19 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 			return "", nil, err
 		}
 	}
-	if err := os.MkdirAll(o.Folders.Dir(), 0o700); err != nil {
-		return "", nil, err
-	}
 	at := time.Now()
 	out = o.Output
 	if out == "" {
-		out = filepath.Join(o.Folders.Dir(), newName(o.Folders, o.Auto, at))
+		// A chosen folder isn't made: it's checked, as it may be a drive that isn't there.
+		if err := o.Folders.StoreReady(); err != nil {
+			return "", nil, err
+		}
+		if o.Folders.Store == "" {
+			if err := os.MkdirAll(o.Folders.Dir(), 0o700); err != nil {
+				return "", nil, err
+			}
+		}
+		out = filepath.Join(o.Folders.ArchiveDir(), newName(o.Folders, o.Auto, at))
 	}
 	work, err := os.MkdirTemp(filepath.Dir(out), ".backup-work-")
 	if err != nil {

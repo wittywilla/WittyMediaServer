@@ -630,17 +630,28 @@ func cases() []kase {
 			checks: []string{"the server answers 404; there is no document"}},
 
 		{id: "search-idle", title: "Search before anything is typed", in: Input{Page: stock("search"), Request: request("tv"), Data: homeData()},
-			checks: []string{"the search box has focus (autofocus)", "the hint is shown; no rows"}},
+			checks: []string{"the search box has focus (autofocus)", "the hint is shown; no rows; no recent searches or Clear button when there are none"}},
 		{id: "search-results", title: "Search with results", in: func() Input {
-			in := Input{Page: stock("search"), Request: request("desktop"), Data: Data{Each: homeData().Each, Sources: []CannedSource{
-				src(map[string]any{"type": "search", "library": "1"}, films(3), 0),
-				src(map[string]any{"type": "search", "library": "3"}, albums(1), 0),
-				src(map[string]any{"type": "search", "in": "channels"}, channels(1), 0),
-				src(map[string]any{"type": "search", "in": "people"}, []sdui.Item{person(1, "", "Acting · 3 titles"), person(3, "", "Directing · 1 title")}, 0)}}}
+			// The groups the search found, best first (the server's searchGroups): films, then people, albums and channels.
+			each := homeData().Each
+			each["searchGroups"] = []CannedEach{{Key: "films", Label: "Films", Kind: "films"}, {Key: "people", Label: "People", Kind: "people"},
+				{Key: "albums", Label: "Albums", Kind: "albums"}, {Key: "channels", Label: "Channels", Kind: "channels"}}
+			in := Input{Page: stock("search"), Request: request("desktop"), Data: Data{Each: each, Sources: []CannedSource{
+				src(map[string]any{"type": "search", "group": "films"}, films(3), 0),
+				src(map[string]any{"type": "search", "group": "albums"}, albums(1), 0),
+				src(map[string]any{"type": "search", "group": "channels"}, channels(1), 0),
+				src(map[string]any{"type": "search", "group": "people"}, []sdui.Item{person(1, "", "Acting · 3 titles"), person(3, "", "Directing · 1 title")}, 0)}}}
 			in.Request.Vars = map[string]string{"query": "exam"}
 			in.Request.Flags = map[string]bool{"hasQuery": true}
 			return in
-		}(), checks: []string{"a row per library with matches, titled with the library's name", "libraries without matches are left out", "the box holds the query", "people whose names match, as person cards that open their page"}},
+		}(), checks: []string{"a row per group of results (films, people, albums, channels), in the order the server sends, titled with the group's name", "groups with nothing found are left out", "the box holds the query; there is no sort control", "people whose names match, as person cards that open their page"}},
+		{id: "search-recent", title: "Search before anything is typed, with recent searches", in: func() Input {
+			in := Input{Page: stock("search"), Request: request("phone"), Data: Data{Each: homeData().Each, Sources: []CannedSource{
+				src(map[string]any{"type": "recentSearches"}, []sdui.Item{{ID: "recent-0", Kind: "view", Title: "interstellar", Icon: "history", Route: "/search?q=interstellar"},
+					{ID: "recent-1", Kind: "view", Title: "shrek", Icon: "history", Route: "/search?q=shrek"}}, 0)}}}
+			in.Request.Flags = map[string]bool{"hasRecentSearches": true}
+			return in
+		}(), checks: []string{"the profile's recent searches as a list, each row opening its search", "a Clear recent searches button runs the search.forgetRecent command"}},
 
 		{id: "livetv-native-guide", title: "Live TV on a client with its own guide", in: func() Input {
 			in := Input{Page: stock("livetv"), Request: request("tv"), Data: homeData()}

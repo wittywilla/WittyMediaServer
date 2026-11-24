@@ -32,7 +32,7 @@ a notice of its own.
 | Which streaming services list a title | `listings` | Library pages and the brand page showing listings, the disclosure screen |
 | Games and game details | `games` | Games library, game pages |
 | Downloading cores | `cores` | Settings, Games & emulators, Consoles & cores, and the install dialog |
-| Modules and their updates | `modules` | Settings, Modules |
+| Modules and their updates | `modules` | Settings, Module store |
 | Creator videos and the people named in them | `creators` | Creator libraries, channels, watch page, vertical videos' creators and About |
 | Books and comics, reader content | `reader` | Books library, book pages |
 | A connection to a server someone else runs | `thirdPartyServer` | Game PCs: `pages/Couch.tsx`, `pages/Rigs.tsx`, Settings, Game PCs |

@@ -421,7 +421,7 @@ func (s *Server) applyP2P(ctx context.Context) error {
 		for _, d := range s.p2p.devices.list() {
 			ids = append(ids, d.ID)
 		}
-		return ids
+		return append(ids, s.p2p.invites.enrolIDs()...)
 	}
 	if s.p2p.tune != nil {
 		s.p2p.tune(&nc)
@@ -667,6 +667,9 @@ type p2pInvite struct {
 	userID  int64
 	expires time.Time
 	used    bool
+	// enrolID is the invite's own key, listed with this server's relays while
+	// the invite is open, so a device can show it through them (p2p.EnrolSeed).
+	enrolID string
 	// spent is shared with the code shown beside this link (api_connect.go):
 	// the link, the code over the web port and the code from away are one way
 	// in, and whichever is used first ends the others. nil for a link alone.
@@ -708,8 +711,34 @@ func (in *p2pInvites) makeShared(by, userID int64, session string, spent *atomic
 		return "", err
 	}
 	secret := base64.RawURLEncoding.EncodeToString(raw)
-	in.open[p2pSecretHash(secret)] = &p2pInvite{by: by, session: session, userID: userID, expires: now.Add(p2pInviteTTL), spent: spent}
+	enrolID, err := p2p.EnrolID(secret)
+	if err != nil {
+		return "", err
+	}
+	in.open[p2pSecretHash(secret)] = &p2pInvite{by: by, session: session, userID: userID, expires: now.Add(p2pInviteTTL), spent: spent, enrolID: enrolID}
 	return secret, nil
+}
+
+// enrolIDs are the enrol keys of the invites still open: not used, not
+// expired, and not spent another way (the code beside a link).
+func (in *p2pInvites) enrolIDs() []string {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+	now := time.Now()
+	var ids []string
+	for _, v := range in.open {
+		if !v.used && now.Before(v.expires) && (v.spent == nil || !v.spent.Load()) && v.enrolID != "" {
+			ids = append(ids, v.enrolID)
+		}
+	}
+	return ids
+}
+
+// p2pInviteOpened tells this server's relays about a new invite's enrol key
+// now, and again when the invite runs out, so it is listed no longer than that.
+func (s *Server) p2pInviteOpened() {
+	s.p2pDevicesChanged()
+	time.AfterFunc(p2pInviteTTL+time.Second, s.p2pDevicesChanged)
 }
 
 // take uses an invite, once. It answers the invite, or why not.
@@ -741,7 +770,19 @@ func (s *Server) p2pEnrol(ctx context.Context, id string, req p2p.EnrolRequest, 
 		s.Log.InfoContext(ctx, "peer-to-peer invite refused", "cat", "p2p", "session", p2p.ConnSession(id), "why", reason, "device", p2p.ShortID(id), "from", from.String())
 		return p2p.EnrolResponse{Reason: reason, Error: msg}
 	}
+	// Shown through a relay from the invite's own key, on behalf of the device's: only with its signature.
+	serverID := ""
+	if node := s.p2pNode(); node != nil {
+		serverID = node.ID()
+	}
+	listID, err := p2p.CheckEnrolFor(req, id, serverID)
+	if err != nil {
+		return fail("wrong", "That invite was shown on behalf of a device it couldn't speak for.")
+	}
 	in, reason := s.p2p.invites.take(req.Secret)
+	if reason == "" || reason == "used" {
+		s.p2pDevicesChanged() // its enrol key is no longer listed
+	}
 	switch reason {
 	case "wrong":
 		return fail(reason, "That invite isn't right. Ask for a new one.")
@@ -754,7 +795,7 @@ func (s *Server) p2pEnrol(ctx context.Context, id string, req p2p.EnrolRequest, 
 		return fail("expired", "Whoever made that invite has signed out. Ask for a new one.")
 	}
 	name := p2p.CleanName(req.Name, 60)
-	dev, err := s.p2pAddDevice(ctx, in.userID, id, name, req.Platform, "invite")
+	dev, err := s.p2pAddDevice(ctx, in.userID, listID, name, req.Platform, "invite")
 	if err != nil {
 		return fail("refused", err.Error())
 	}
@@ -768,7 +809,8 @@ func (s *Server) p2pEnrol(ctx context.Context, id string, req p2p.EnrolRequest, 
 	if u != nil {
 		who = u.Name
 	}
-	logging.Audit(ctx, s.Log, "a device was added to the peer-to-peer list by invite", "cat", "p2p", "session", p2p.ConnSession(id), "device", p2p.ShortID(id), "name", dev.Name,
+	logging.Audit(ctx, s.Log, "a device was added to the peer-to-peer list by invite", "cat", "p2p", "session", p2p.ConnSession(id), "device", p2p.ShortID(listID), "name", dev.Name,
+		"throughRelay", listID != id,
 		"platform", dev.Platform, "account", who, "from", from.String())
 	res := p2p.EnrolResponse{OK: true, ServerName: s.ServerName(ctx)}
 	if code != nil {
@@ -949,6 +991,9 @@ func (s *Server) handleP2PInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	secret, err := s.p2p.invites.make(me.ID, target.ID, tokenFrom(r))
+	if err == nil {
+		s.p2pInviteOpened()
+	}
 	if errors.Is(err, errPairBusy) {
 		w.Header().Set("Retry-After", "60")
 		writeErr(w, 429, "Too many invites are waiting to be used. Try again in a few minutes.")

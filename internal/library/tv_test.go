@@ -29,6 +29,10 @@ func TestParseEpisode(t *testing.T) {
 		{"Firefly/Specials/Episode 2 - Here's How It Was.mkv", "Firefly", 0, 2, 0, "Here's How It Was"},
 		{"Breaking.Bad.S01E01E02.Pilot.mkv", "Breaking Bad", 1, 1, 2, "Pilot"},
 		{"Show/Season 01/Show.s01e03.mkv", "Show", 1, 3, 0, ""},
+		// A title that starts with a number isn't the end of a range (#470).
+		{"Dinosaur Train/Season 1/Dinosaur Train - S01E05 - 80's Cats.mkv", "Dinosaur Train", 1, 5, 0, "80's Cats"},
+		{"Show/Season 1/Show - S01E05 - 100 Days.mkv", "Show", 1, 5, 0, "100 Days"},
+		{"Show/Season 1/Show.S01E05-06.Two.Parter.mkv", "Show", 1, 5, 6, "Two Parter"},
 		// Anime-style absolute numbering
 		{"[SubsPlease] Frieren - 012 [1080p].mkv", "Frieren", 1, 12, 0, ""},
 		{"Cowboy Bebop/Cowboy Bebop - 05v2.mkv", "Cowboy Bebop", 1, 5, 0, ""},

@@ -5,12 +5,12 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-route
 import { api, type Library } from '../api'
 import AddLibrary, { GroupingChoice, type Grouping } from '../components/AddLibrary'
 import { SettingsHelp } from '../components/HelpLink'
-import { BackLink, UpdateDot, VersionTag, LoadError } from '../components/common'
+import { BackLink, VersionTag, LoadError } from '../components/common'
 import { ScanControl, scanProgressText, useScanProgress } from '../components/ScanControl'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
 import { ModuleSettingsView, useModuleSettingsTabs, type ModuleSettingsTab } from '../moduleRegistry'
-import { IconHelp, IconActivity, IconChannels, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
+import { IconActivity, IconChannels, IconCheck, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { settingsPageHidden } from '../profileWords'
 import { useMyLimits } from '../myLimits'
@@ -40,9 +40,9 @@ import { UpdateBanner } from '../components/UpdateBanner'
 import { Updates } from './settings/Updates'
 import { useFeatures } from '../sdui/useSdui'
 import { useTvMode } from '../tvmode/mode'
-import { tvScreenFor } from '../tvmode/levelTable'
-import { tvElsewhere } from '../tvmode/OnAComputer'
 import { t, tk, tn, tx } from '../i18n'
+import { SettingsHome, SettingsRows, useSettingsMenu, type SettingsMenuState } from './settings/menu/SettingsMenu'
+import type { MenuRow } from './settings/menu/model'
 
 const ModulesSettings = lazy(() => import('./settings/Modules'))
 const WittyTvLookDialog = lazy(() => import('./tv/WittyTvLookPrompt').then((m) => ({ default: m.WittyTvLookDialog })))
@@ -57,6 +57,7 @@ const LegalSettings = lazy(() => import('./settings/Legal'))
 const ResetSettings = lazy(() => import('./settings/Reset'))
 const BackupSettings = lazy(() => import('./settings/Backup'))
 const RepairSettings = lazy(() => import('./settings/Repair'))
+const LibraryHealth = lazy(() => import('./settings/LibraryHealth'))
 const RemoteAccess = lazy(() => import('./settings/RemoteAccess'))
 const NetworkSettings = lazy(() => import('./settings/Network'))
 const DataFolderSettings = lazy(() => import('./settings/DataFolder'))
@@ -71,24 +72,17 @@ const PagesSettings = lazy(() => import('./settings/pages/PagesSettings'))
 // section cards in the middle of the screen. On wide screens the menu sits beside the
 // page. Where that would squeeze the page, the menu is a page of its own, explaining
 // each item, with a way back to it from each page.
-const NARROW = '(max-width: 1280px)'
-const useNarrow = () => useSyncExternalStore((changed) => {
-  const m = window.matchMedia(NARROW)
+const PHONE = '(max-width: 760px)'
+const usePhone = () => useSyncExternalStore((changed) => {
+  const m = window.matchMedia(PHONE)
   m.addEventListener('change', changed)
   return () => m.removeEventListener('change', changed)
-}, () => window.matchMedia(NARROW).matches)
+}, () => window.matchMedia(PHONE).matches)
+const MODULE_ICON = { android: 'extension', apple: 'puzzlepiece.extension', web: 'Plug' }
 
 type Page = { to: string; label: string; icon: React.ReactNode; admin?: boolean; hint: string; launch?: string }
 
-// Each row's colour on a phone, where the menu is a grouped list with tinted icon tiles: the
-// same colours as the apps' You page (WittyMediaClient's docs/APP-DESIGN.md, You and
-// settings). The owner's tools, Server and System, are all the one quiet colour.
-const QUIET = '#5d6474'
-const TINTS: Record<string, string> = {
-  users: '#b8500d', security: '#2e7d3c', appearance: '#0e7c6f', games: '#7f46b8', activity: '#99690a', sharing: '#0a6fb8',
-  reset: 'var(--danger)', help: '#99690a',
-}
-const tint = (to: string) => ({ '--tint': TINTS[to] || QUIET }) as React.CSSProperties
+// The pages for the settings search, with a line about each (the menu itself is settingsmenu.json, SettingsMenu.tsx).
 const GROUPS: { title: string; pages: Page[] }[] = [
   { title: tk('Server'), pages: [
     { to: 'libraries', label: tk('Libraries'), icon: <IconLibrary />, admin: true, hint: tk('Folders of movies, shows, music and books') },
@@ -114,8 +108,9 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: tk('System'), pages: [
     { to: 'logs', label: tk('WittyLog'), icon: <IconFile />, admin: true, hint: tk('What is recorded and for how long, and downloading logs to share') },
     { to: 'diagnoser', label: tk('WittyDiagnoser'), icon: <IconTune />, admin: true, hint: tk('The disk diagnoser: checks your discs and your drives, and changes nothing') },
-    { to: 'modules', label: tk('Modules'), icon: <IconPlug />, admin: true, hint: tk('What this server can do: add, remove, update and choose versions') },
+    { to: 'modules', label: tk('Module store'), icon: <IconPlug />, admin: true, hint: tk('What this server can do: add, remove, update and choose versions') },
     { to: 'backup', label: tk('Backup'), icon: <IconDownload />, admin: true, hint: tk('A ZIP of your data and metadata, on demand or on a schedule, and bringing one back') },
+    { to: 'health', label: tk('Library health'), icon: <IconCheck />, admin: true, hint: tk('Missing files, titles with no match, duplicates, odd names, NFO files and artwork, with the fixes in one place') },
     { to: 'repair', label: tk('Repair'), icon: <IconWrench />, admin: true, hint: tk('Finds and fixes problems with metadata, the database, modules and this install') },
     { to: 'reset', label: tk('Reset'), icon: <IconRefresh />, admin: true, hint: tk('Back to a new install, with a copy kept if you want one') },
     { to: 'about', label: tk('About'), icon: <IconInfo />, hint: tk('Version, modules, licenses and credits') },
@@ -164,7 +159,9 @@ export default function SettingsPage() {
     return jumpWhenReady(decodeURIComponent(loc.hash.slice(1)))
   }, [loc.pathname, loc.hash])
   const slug = loc.pathname.split('/')[2]
-  const narrow = useNarrow()
+  const phone = usePhone()
+  const menu = useSettingsMenu(false)
+  const menuPaths = useMemo(() => new Set(menu.groups.flatMap((g) => g.rows.map((r) => (r.path || '').split('#')[0]))), [menu.groups])
   const tvMode = useTvMode()
   // A crash the owner hasn't looked at yet is pointed out on every settings page.
   // Asked again on leaving the logs page, where it may just have been dealt with.
@@ -180,34 +177,23 @@ export default function SettingsPage() {
     Promise.all(unseenCrashes.map((id) => api.post(`/logs/crashes/${encodeURIComponent(id)}/seen`))).catch((e) => toast(e.message))
     setUnseenCrashes([])
   }
+  // The menu every client draws (settingsmenu.json, as the Android app's You page), with what only this server's own
+  // web pages add on a computer: sections modules draw that the menu doesn't name, and modules' own pages.
+  const extra: MenuRow[] = [
+    ...moduleTabs.filter((m) => !menuPaths.has('/settings/' + m.id)).map((m): MenuRow => ({ id: 'tab-' + m.module + '-' + m.id, key: '', title: m.label, icon: MODULE_ICON, tint: '#7f46b8', path: m.launch || '/settings/' + m.id })),
+    ...modulePages.map((p): MenuRow => ({ id: 'page-' + p.module + '-' + p.id, key: '', title: p.title, icon: MODULE_ICON, tint: '#7f46b8', path: `/m/${p.module}/${p.id}` })),
+  ]
+  const shown: SettingsMenuState = extra.length ? { ...menu, groups: [...menu.groups.slice(0, -1), { id: 'fromModules', key: '', title: tk('From modules'), rows: extra }, ...menu.groups.slice(-1)] } : menu
   if (!user?.isAdmin && GROUPS.some((g) => g.pages.some((p) => p.admin && p.to === slug))) return <Navigate to="/settings/users" replace />
+  // The menu as a page: the person and every group, one column on a phone, two on a computer, as on a TV.
+  if (!slug) return tvMode ? <Navigate to="/you" replace /> : <SettingsHome wide={!phone} tv={false} menu={shown} />
   return (
-    <div className={'set-shell' + (slug ? '' : ' at-menu') + (tvMode && !slug ? ' tv-menu' : '')}>
+    <div className="set-shell">
       <nav className="set-nav" aria-label={t('Settings')}>
-        <div className="set-nav-title">{t('Settings')}</div>
+        <Link to="/settings" className="set-nav-title">{t('Settings')}</Link>
         <SettingsSearch value={query} onChange={setQuery} />
         {query.trim() ? <SettingsResults query={query} pages={pages} extra={moduleResults} admin={!!user?.isAdmin} onPick={() => setQuery('')} /> : <>
-        {groups.map((g) => (
-          <div key={g.title} className="set-nav-group">
-            <div className="set-nav-head">{tx(g.title)}</div>
-            {g.pages.map((p) => (
-              <NavLink key={p.to} to={p.launch || `/settings/${p.to}`} className="set-nav-link" title={tx(p.hint)}>
-                <span className="set-nav-icon" style={tint(p.to)}>{p.icon}</span><span className="set-nav-text"><span>{tx(p.label)}</span><small className="set-nav-hint">{tvMode && tvScreenFor('/settings/' + p.to)?.level === 'desktopOnly' && <span className="tvl-chip">{tvElsewhere()}</span>}{tx(p.hint)}</small></span>{p.to === 'about' && <UpdateDot />}<IconRight className="set-nav-go" />
-              </NavLink>
-            ))}
-          </div>
-        ))}
-        {modulePages.length > 0 && (
-          <div className="set-nav-group">
-            <div className="set-nav-head">{t('From modules')}</div>
-            {modulePages.map((p) => (
-              <NavLink key={p.module + p.id} to={`/m/${p.module}/${p.id}`} className="set-nav-link">
-                <span className="set-nav-icon" style={tint('')}><IconPlug /></span><span className="set-nav-text"><span>{p.title}</span><small className="set-nav-hint">{t('Added by a module')}</small></span><IconRight className="set-nav-go" />
-              </NavLink>
-            ))}
-          </div>
-        )}
-        <div className="set-nav-group"><NavLink to="/help" className="set-nav-link" title={t('Guides to everything here, built in')}><span className="set-nav-icon" style={tint('help')}><IconHelp /></span><span className="set-nav-text"><span>{t('Help')}</span><small className="set-nav-hint">{t('Guides to everything here, built in')}</small></span><IconRight className="set-nav-go" /></NavLink></div>
+        <SettingsRows menu={shown} variant="nav" />
         <NavLink to="/settings/about#modules" className="set-nav-version" title={t('Version and modules')}>
           <VersionTag version={version} /><span>{t('Version and modules')}</span>
         </NavLink>
@@ -225,7 +211,6 @@ export default function SettingsPage() {
         {slug !== 'about' && <UpdateBanner />}
         {moduleTab?.launch ? <Navigate to={moduleTab.launch} replace /> : moduleTab ? <ModuleSettingsView tab={moduleTab} /> : <Routes>
           {/* On a television the menu is the page: its first choice may be one a computer changes (TV mode's guide). */}
-          <Route index element={narrow || tvMode ? null : <Navigate to={user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />
           <Route path="libraries" element={<Libraries />} />
           <Route path="pages/*" element={<Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><PagesSettings /></Suspense>} />
           <Route path="metadata" element={<MetadataSettings />} />
@@ -252,6 +237,7 @@ export default function SettingsPage() {
           <Route path="metadata-files" element={<Navigate to="/settings/repair?tab=files" replace />} />
           <Route path="backup" element={<Suspense fallback={null}><BackupSettings /></Suspense>} />
           <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
+          <Route path="health" element={<Suspense fallback={null}><LibraryHealth /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
           <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /><WittyTvLookDialog /></Suspense>} />
           <Route path="module-settings" element={<Suspense fallback={null}><ModuleSettingsList /></Suspense>} />

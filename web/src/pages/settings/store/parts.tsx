@@ -105,8 +105,8 @@ export function StateTags({ item, server = '' }: { item: StoreItem; server?: str
   return (
     <span className="ms-tags">
       <OriginTag item={item} />
-      {item.kind === 'in-development' && <Tag tone="off">{t('In development')}</Tag>}
-      {item.kind === 'refused' && <Tag tone="bad" icon={<IconClose size={12} />}>{t('Can’t be used')}</Tag>}
+      {item.kind === 'in-development' && <Tag tone="off">{t('Coming later')}</Tag>}
+      {item.kind === 'refused' && <Tag tone="bad" icon={<IconClose size={12} />}>{t('Refused')}</Tag>}
       {m && PHASE[m.phase] && <Tag tone="new">{PHASE[m.phase]}</Tag>}
       {m?.installed && !PHASE[m.phase] && m.enabled === false && <Tag tone="off">{t('Turned off')}</Tag>}
       {m?.installed && !PHASE[m.phase] && m.enabled !== false && (item.failure ? <Tag tone="bad" icon={<IconInfo size={12} />}>{t('Needs a look')}</Tag> : m.latest ? <Tag tone="new">{t('Update available')}</Tag> : <Tag tone="ok" icon={<IconCheck size={12} />}>{t('Installed')}</Tag>)}

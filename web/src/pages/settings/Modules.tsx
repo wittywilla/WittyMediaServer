@@ -17,6 +17,7 @@ import './modules.css'
 import LegalNote from '../../components/LegalNote'
 import { ChangeNotes, FailureNotice, ModuleIcon, ModuleLogDialog, PolicyNote, SandboxNote, UpdateAllPanel, UpdateNotes, WhatsNew, type StoreViewState } from './store/parts'
 import { compat, strictMinimum } from './store/compat'
+import { choicesOf, ModuleChoiceList } from './store/ModuleChoices'
 import { failureForStatus, type Failure } from './store/storeApi'
 import { olderOf, type OlderVersion } from './store/olderServer'
 import { useOlderAsk } from './store/OlderServerDialog'
@@ -240,6 +241,7 @@ export default function ModulesSettings({ store, mode }: { store: StoreViewState
     </div>
   )
   if (!r) return <Spinner />
+  const choiceIds = new Set(store.view ? choicesOf(store.view.items, store.view.server).map((x) => x.item.id) : [])
   const canUpload = !!features?.has('module-upload')
   const canAudit = !!features?.has('module-audit') && !!user?.isAdmin
 
@@ -260,7 +262,9 @@ export default function ModulesSettings({ store, mode }: { store: StoreViewState
 
   return (
     <div className="ms-page st-tab">
-      {mode === 'installed' && <Attention modules={r.modules} onOpen={(id) => { setOpen(id); setHi(id) }} server={r.server} />}
+      {/* What needs a choice before it can run here (the same list post-update setup shows), then anything else that needs a look. */}
+      {mode === 'installed' && <ModuleChoiceList store={store} />}
+      {mode === 'installed' && <Attention modules={r.modules.filter((m) => !choiceIds.has(m.id))} onOpen={(id) => { setOpen(id); setHi(id) }} server={r.server} />}
       {/* What's new can run long, so it's folded: the list of modules is what this tab is for. */}
       {mode === 'installed' && store.view && (
         <details className="ms-more st-news-fold">

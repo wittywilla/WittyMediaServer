@@ -149,6 +149,27 @@ try {
     }
   }
 
+  // I. Modules that need a choice (the list post-update setup reuses): one with an update for this
+  //    server, one withdrawn for security with nothing to switch to. Each says so, with its buttons.
+  const fake = (id, name, status, fit) => ({ key: 'official/' + id, store: 'official', storeName: 'Test', storeHost: 'x', official: true, kind: 'official', id, name, fit, status: { id, name, installed: true, phase: 'idle', state: 'installed', version: '0.8.1', ...status } })
+  const choiceBody = { server: '0.9.0-alpha', platform: 'linux-amd64', policy: '', repairRoute: '/settings/repair', stores: [], updates: 1, items: [
+    fake('wittyold', 'WittyOld', { olderServer: true, madeFor: '0.8.x', latest: { version: '0.9.0' } }, { ok: true, kind: 'ok' }),
+    fake('wittygone', 'WittyGone', { withdrawn: { version: '0.8.1', severity: 'security', reason: 'x' } }, { ok: false, kind: 'withdrawn' }),
+  ] }
+  await p.send('Fetch.enable', { patterns: [{ urlPattern: '*/api/modulestore', requestStage: 'Response' }] })
+  p.on('Fetch.requestPaused', (e) => p.send('Fetch.fulfillRequest', { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }], body: Buffer.from(JSON.stringify(choiceBody)).toString('base64') }))
+  await go('/settings/modules', '.st-tabs')
+  await settle(`!!document.querySelector('.st-choices')`, 15000, 'the choices list')
+  const choices = await p.eval(`document.querySelector('.st-choices').innerText`)
+  check(/2 modules need your choice/.test(choices), 'Installed lists the two modules that need a choice')
+  check(/Needs an update/.test(choices) && !!(await p.eval(`!!document.querySelector('.st-choices [aria-label="Update WittyOld to 0.9.0"]')`)), 'an older module: Needs an update, with Update')
+  check(/security problem/.test(choices) && !!(await p.eval(`!!document.querySelector('.st-choices [aria-label="Remove WittyGone"]')`)), 'withdrawn for security: says so, with Remove')
+  await press('^Remove WittyGone$', `document.querySelector('.st-choices')`)
+  await settle(`!!document.querySelector('[role=dialog]')`, 5000, 'the Remove question')
+  check(/saved data are kept/.test(await p.eval(`document.querySelector('[role=dialog]').innerText`)), 'Remove says the module’s data is kept')
+  await snap('choices')
+  await p.send('Fetch.disable')
+
   // H. A store answer of the wrong shape (a server or catalogue this page doesn't expect): the
   //    store copes, or at worst its own fence catches it; the app around it carries on.
   await p.send('Fetch.enable', { patterns: [{ urlPattern: '*/api/modulestore', requestStage: 'Response' }] })

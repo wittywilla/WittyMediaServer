@@ -1,0 +1,28 @@
+{
+  "_": "The server's budget (#643), for scripts/perf -budget on the CI library (scripts/perf/make-media.sh with 300 films and 20 albums), held to two processors. docs/PERFORMANCE.md#budgets says what each catches. Memory and allocations are counts a busy machine doesn't change much, and are kept close; times and rates vary with the machine, and are kept well clear.",
+  "idleRssMiB": 140,
+  "idleHeapLiveMiB": 32,
+  "scanPeakRssMiB": 200,
+  "scanItemsPerSecond": { "movies": 2, "music": 8 },
+  "routeAllocKiB": {
+    "/api/home": 600,
+    "/api/sdui/pages/home": 220,
+    "/api/sdui/pages/library?library={id}": 200,
+    "/api/browse?library={id}": 400,
+    "/api/browse/facets?library={id}": 400,
+    "/api/items?limit=60&search=film": 450,
+    "/api/items?library={id}&limit=60": 400,
+    "/api/music/home?library={id}": 400
+  },
+  "routeStatements": {
+    "/api/home": 14,
+    "/api/sdui/pages/home": 5,
+    "/api/sdui/pages/library?library={id}": 5,
+    "/api/browse?library={id}": 10,
+    "/api/browse/facets?library={id}": 12,
+    "/api/items?limit=60&search=film": 7,
+    "/api/items?library={id}&limit=60": 7,
+    "/api/music/home?library={id}": 15
+  },
+  "transcodeStartSeconds": 15
+}

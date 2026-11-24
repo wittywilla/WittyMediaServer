@@ -1,15 +1,71 @@
 {
   "_": "Most a first visit to each route may fetch, in bytes as sent (compressed). Checked by scripts/bundle-budget.mjs in CI (#643). 'code' is the route's own page code, as the build's manifest names it; the app's entry comes with every route.",
   "routes": {
-    "Home, a library, search (server-drawn pages)": { "code": ["chunk:SduiPage"], "js": 0, "css": 0 },
-    "A title's page": { "code": ["chunk:SduiPage", "src/sdui/extras/DetailExtras.tsx"], "js": 0, "css": 0 },
-    "TV guide": { "code": ["chunk:SduiPage", "src/sdui/render/NativeViewHost.tsx", "src/pages/tv/GuidePage.tsx"], "js": 0, "css": 0 },
-    "Settings": { "code": ["chunk:SettingsPage"], "js": 0, "css": 0 },
-    "Help": { "code": ["src/pages/HelpPage.tsx"], "js": 0, "css": 0 },
-    "Sign-in": { "code": ["src/pages/AuthPage.tsx"], "js": 0, "css": 0 },
-    "Playing a video": { "code": ["chunk:SduiPage", "src/player/VideoPlayer.tsx"], "js": 0, "css": 0 },
-    "Reading a book": { "code": ["src/pages/Reader.tsx"], "js": 0, "css": 0 }
+    "Home, a library, search (server-drawn pages)": {
+      "code": [
+        "chunk:SduiPage"
+      ],
+      "js": 356352,
+      "css": 78848
+    },
+    "A title's page": {
+      "code": [
+        "chunk:SduiPage",
+        "src/sdui/extras/DetailExtras.tsx"
+      ],
+      "js": 371712,
+      "css": 80896
+    },
+    "TV guide": {
+      "code": [
+        "chunk:SduiPage",
+        "src/sdui/render/NativeViewHost.tsx",
+        "src/pages/tv/GuidePage.tsx"
+      ],
+      "js": 410624,
+      "css": 99328
+    },
+    "Settings": {
+      "code": [
+        "chunk:SettingsPage"
+      ],
+      "js": 452608,
+      "css": 89088
+    },
+    "Help": {
+      "code": [
+        "src/pages/HelpPage.tsx"
+      ],
+      "js": 328704,
+      "css": 70656
+    },
+    "Sign-in": {
+      "code": [
+        "src/pages/AuthPage.tsx"
+      ],
+      "js": 319488,
+      "css": 69632
+    },
+    "Playing a video": {
+      "code": [
+        "chunk:SduiPage",
+        "src/player/VideoPlayer.tsx"
+      ],
+      "js": 595968,
+      "css": 83968
+    },
+    "Reading a book": {
+      "code": [
+        "src/pages/Reader.tsx"
+      ],
+      "js": 316416,
+      "css": 69632
+    }
   },
-  "chunkMax": 0,
-  "chunkExempt": ["pdf.worker", "pdf-", "hls-"]
+  "chunkMax": 112640,
+  "chunkExempt": [
+    "pdf.worker",
+    "pdf-",
+    "hls-"
+  ]
 }

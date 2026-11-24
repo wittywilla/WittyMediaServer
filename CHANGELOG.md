@@ -55,6 +55,7 @@ Android app is now signed with one permanent key, so later versions install over
 - docs/GAMING-STREAM.md: nothing is sent before a game stream's hello (#607).
 - CI: jobs side by side, caches from master only, known.json checked, flaky tests fixed (#616).
 - Updated dependencies from dependabot (#625).
+- gorilla/websocket moves to its fixed commit for GO-2026-6278 (a weak random mask key).
 - `scripts/set-tag-rules.sh` covers WittyRelay (#626); docs/PUBLISHING.md lists every repository that needs
   `SITE_BUILD_TOKEN` (#619).
 

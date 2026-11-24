@@ -13,6 +13,7 @@ Two players:
   retries a second or two apart, then the app's own three new requests for the stream, and a
   `500` ends it. That is how "it stalls and then stops early on" looked on a small NAS. Add
   `--buffer 50` for ExoPlayer's buffer.
+- `--client exo-new`: the Android app from 0.6.3: 75-second timeouts, six retries.
 
 ```bash
 # A small NAS: two processors, 2 GB, media read-only.
@@ -29,5 +30,5 @@ converted. Each run prints one JSON line: `result` (`end`, or why it stopped), `
 `leadAvg`, the server's lead in seconds of the film (negative: the player waited for it).
 
 `scripts/test/nas-playback.sh <image>` is the CI check (the `docker` job in `build.yml`): one
-processor, 1 GB, a 90-second MPEG-2 clip, played at 2× by both players, failing on any stall after
+processor, 1 GB, a 90-second MPEG-2 clip, played at 2× by the web player and the 0.6.3 Android player, failing on any stall after
 the start or an end before the true end.

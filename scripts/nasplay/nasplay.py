@@ -132,7 +132,9 @@ def play(a):
     # app sets it up in 0.6.2: 8 s connect and read timeouts, 3 retries 0/1/2 s apart, then the
     # app's own 3 new requests for the stream at the same place, and a 500 ends it at once.
     exo = a.client == 'exo'
-    per_try, retries = (a.exo_timeout, 3) if exo else (60, 6)
+    exo_new = a.client == 'exo-new'  # the Android app from 0.6.3: 75 s per try, 6 retries
+    if exo_new: a.exo_timeout = 75
+    per_try, retries = (a.exo_timeout, 3) if exo else (75, 6) if exo_new else (60, 6)
     reopens = {"n": 0}
     def fetch(i, u):
         tries = 0
@@ -152,7 +154,7 @@ def play(a):
                 if exo: time.sleep(min((tries - 1) * 1, 5))
     last, end_reason = time.time(), None
     # The fixed players keep the same wait ahead at any speed: the buffer grows with the rate.
-    target = a.buffer if a.no_rate else min(a.buffer * max(1, a.rate), 150 if exo else 300)
+    target = a.buffer if a.no_rate else min(a.buffer * max(1, a.rate), 150 if (exo or exo_new) else 300)
     out["buffer"] = target
     tick = 0
     while True:
@@ -233,7 +235,7 @@ if __name__ == '__main__':
     p.add_argument('--title'); p.add_argument('--rate', type=float, default=1); p.add_argument('--profile', default='web')
     p.add_argument('--buffer', type=float, default=30, help='media seconds the player buffers ahead (hls.js maxBufferLength)')
     p.add_argument('--quality'); p.add_argument('--force', action='store_true'); p.add_argument('--timeout', type=float, default=900)
-    p.add_argument('--client', default='hlsjs', choices=['hlsjs', 'exo']); p.add_argument('--exo-timeout', type=float, default=8)
+    p.add_argument('--client', default='hlsjs', choices=['hlsjs', 'exo', 'exo-new']); p.add_argument('--exo-timeout', type=float, default=8)
     p.add_argument('--no-rate', action='store_true', help='say nothing of the rate, as players before 0.8.5')
     p.add_argument('--fail-on-stall', action='store_true', help='exit 1 on any stall after the start, or an early end')
     p.add_argument('-v', '--verbose', action='store_true')

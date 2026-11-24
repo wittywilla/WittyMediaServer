@@ -32,7 +32,7 @@ docker run -d --name "$name" --cpus "$CPUS" --memory "$MEM" --memory-swap "$MEM"
 py=scripts/nasplay/nasplay.py
 python3 $py setup --url http://127.0.0.1:$PORT --container "$name" || { docker logs "$name" 2>&1 | tail -40; exit 1; }
 fails=0
-for client in hlsjs exo; do
+for client in hlsjs exo-new; do
   echo "== $client at 2x, $CPUS CPU, $MEM"
   if ! python3 $py play --container "$name" --title "NAS Test" --rate 2 --client "$client" --fail-on-stall --timeout 300; then
     fails=$((fails + 1))

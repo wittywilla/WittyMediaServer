@@ -342,6 +342,25 @@ def main():
             time.sleep(1)
         step('away', True, None)
         install(A.apk, over=True)
+        # The updated app, opened away: one that put itself on the server's list at home reaches it from away by
+        # itself, and needs no pairing. That is this case's success (the lab's server-state steps show the path).
+        t = time.time()
+        launch()
+        end = time.time() + 90
+        while time.time() < end:
+            past_welcome()
+            ns = nodes()
+            if dismiss(ns):
+                continue
+            if signed_in_home(ns):
+                shot('reached-from-away')
+                step('reached-from-away', True, {'afterMs': int((time.time() - t) * 1000)})
+                step('result', True, 'the updated app reached its server from away with what it kept')
+                return 0
+            if find('Join with a link or code|Connect from anywhere|Choose a server', ns):
+                break
+            time.sleep(1)
+        step('reached-from-away', False, {'afterMs': int((time.time() - t) * 1000), 'screen': texts()[:15]})
     else:
         adb('uninstall', PKG, check=False)
         install(A.apk, over=False)

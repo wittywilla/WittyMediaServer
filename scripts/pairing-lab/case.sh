@@ -176,13 +176,14 @@ wait_p2p() {
   done
   return 1
 }
-# make_invite <tag>: prints the link the QR code holds. As the owner does it: Settings, Remote Access, Connect a
+# make_invite <tag> [plain]: prints the link the QR code holds (plain: the link to paste instead). As the owner does it: Settings, Remote Access, Connect a
 # device (POST /api/connect/offer: a code and a link together), the QR code's link; the plain invite (POST
 # /api/p2p/invite) on a server without Connect a device.
 make_invite() {
   api "$1" POST /api/connect/offer "{\"password\":\"$PW\"}" >"$OUT/invite-$1.json"
   local l
-  l=$(jget "d.get('qrLink') or d.get('link') or ''" <"$OUT/invite-$1.json")
+  if [ "${2:-qr}" = plain ]; then l=$(jget "d.get('link') or ''" <"$OUT/invite-$1.json")
+  else l=$(jget "d.get('qrLink') or d.get('link') or ''" <"$OUT/invite-$1.json"); fi
   if [ -z "$l" ]; then
     api "$1" POST /api/p2p/invite "{\"name\":\"Lab phone\",\"password\":\"$PW\"}" >"$OUT/invite-$1.json"
     l=$(jget "d.get('link') or ''" <"$OUT/invite-$1.json")
@@ -258,7 +259,7 @@ if [ "$CSTATE" = previous ]; then
   start_server b "$PL_HTTP_B" || die "server B didn't start"
   setup_server b "$PL_P2P_B" || die "server B: settings refused: $(cat "$OUT/p2p-settings-b.json")"
   wait_p2p b "$([ -n "$RELAY$PUBLIC_RELAY" ] && echo yes || echo no)" 90 || die "server B: no peer to peer"
-  LB=$(make_invite b); [ -n "$LB" ] || die "server B: no invite"
+  LB=$(make_invite b plain); [ -n "$LB" ] || die "server B: no invite"
   T_PREP=$(date +%s%3N)
   # The order that gets through a relay: this is only the setting-up, not what is tested.
   if asuser pl-cli "$BUILD/bin/labphone" -order enrol-first -mode link -link "$LB" -state fresh -statedir "$PHONE" -steps "$OUT/prep-steps.jsonl" -name "Lab phone" \
@@ -337,7 +338,7 @@ restart_server() {
 
 RC=0
 if [ "$WAY" = link ]; then
-  LINK=$(make_invite a)
+  LINK=$(make_invite a "${PL_LINK:-qr}")  # PL_LINK=plain: the link pasted instead of the QR code scanned
   [ -n "$LINK" ] || die "no invite: $(cat "$OUT/invite-a.json")"
   sstep invite-made true "$(python3 -c '
 import json, sys, urllib.parse as u

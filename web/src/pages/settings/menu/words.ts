@@ -20,6 +20,7 @@ export const SETTINGS_MENU_WORDS = [
   tk('Video quality'),
   tk('Share links'),
   tk('Activity'),
+  tk('Notifications'),
   tk('Game settings'),
   tk('Controllers'),
   tk('Remote control'),

@@ -32,7 +32,8 @@ function left(until: number, now: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-export default function ConnectDevice() {
+// titled: false where the page's own title already says Connect a device (From away), so it isn't said twice.
+export default function ConnectDevice({ titled = true }: { titled?: boolean } = {}) {
   const [st, setSt] = useState<Status | null>(null)
   const [offer, setOffer] = useState<Offer | null>(null)
   const [busy, setBusy] = useState(false)
@@ -76,8 +77,8 @@ export default function ConnectDevice() {
   // Not plain ok and bad: those are app-wide classes that colour all the text.
   const level = !st ? 'cd-wait' : st.away === 'yes' ? 'cd-ok' : st.away === 'off' ? 'cd-off' : st.away === 'no' ? 'cd-bad' : 'cd-wait'
   return (
-    <section className="set-card cd" aria-labelledby="cd-title">
-      <h2 id="cd-title">{t('Connect a device')}</h2>
+    <section className="set-card cd" {...(titled ? { 'aria-labelledby': 'cd-title' } : { 'aria-label': t('Connect a device') })}>
+      {titled && <h2 id="cd-title">{t('Connect a device')}</h2>}
       <ul className="cd-who" aria-live="polite">
         <li className="cd-ok"><span aria-hidden="true"><IconCheck size={16} /></span>{t('Devices on your home network can connect.')}</li>
         {st && st.away !== 'off' && <li className={level}><span aria-hidden="true">{level === 'cd-ok' ? <IconCheck size={16} /> : <IconInfo size={16} />}</span>{st.words}</li>}

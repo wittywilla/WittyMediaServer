@@ -8,18 +8,25 @@
 /* ---------------------------------------------------------------- menu */
 /* The menu scrolls by itself when it's longer than the window, and a scroll that
    reaches its end stops there instead of moving the page beside it. */
-.set-nav { --set-nav-top: calc(var(--topbar-h) + var(--sp-4)); position: sticky; top: var(--set-nav-top); max-height: calc(100dvh - var(--set-nav-top) - var(--sp-4) - var(--dock-space)); overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: var(--sp-4); padding-bottom: var(--sp-6);
+.set-nav { --set-nav-top: calc(var(--topbar-h) + var(--sp-4)); --set-nav-end: calc(var(--sp-16) + var(--dock-space, 0px)); position: sticky; top: var(--set-nav-top); max-height: calc(100dvh - var(--set-nav-top) - var(--set-nav-end)); overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: var(--sp-4); padding-bottom: var(--sp-6);
   /* Room for the scroll bar, so the chosen page and the search box end before it, and a thin bar in the theme's colours (#521). */
   padding-right: var(--sp-5); scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--fg-3) 55%, var(--bg)) transparent; }
 
+/* The menu ends above the room the page keeps clear at its foot (styles.css .content, and the players' and docks' own
+   rules): at the end of a short page the menu would otherwise be pushed up under the top bar (test:layout). */
+.app:has(~ .audio-bar) .set-nav, .app:has(~ .np) .set-nav { --set-nav-end: 128px; }
+.app:has(~ .audio-bar.collapsed) .set-nav { --set-nav-end: 88px; }
+.app:has(~ .player.mini) .set-nav { --set-nav-end: 260px; }
+body:has(.play-dock) .set-nav { --set-nav-end: calc(4.5rem + var(--text-xs) * 2 + var(--sp-5) * 2 + var(--dock-space, 0px) + env(safe-area-inset-bottom, 0px)); }
+
 /* ---------------------------------------------------------------- page */
 .set-main { min-width: 0; padding-bottom: 96px; }
-/* The page's title and lead are centred in its column, and its buttons, as a group, under them (docs/DESIGN.md, Centring,
-   #609). The sections under them are forms, and read from the start. */
-.set-head { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); margin: 4px 0 22px; text-align: center; }
+/* The page's title, lead and buttons start where its sections start, so the page reads down one edge
+   (docs/DESIGN.md, Centring). npm run test:layout fails a title that doesn't. */
+.set-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-3); margin: 4px 0 22px; text-align: start; }
 .set-head h1 { margin: 0 0 6px; font-size: var(--page-title); letter-spacing: var(--tracking-display); }
-.set-head p { margin: 0 auto; color: var(--fg-2); font-size: var(--text-md); max-width: 62ch; line-height: var(--leading-body); }
-.set-head-actions { flex: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.set-head p { margin: 0; color: var(--fg-2); font-size: var(--text-md); max-width: 62ch; line-height: var(--leading-body); }
+.set-head-actions { flex: none; display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 8px; }
 
 /* Section cards. The older pages' panels look the same. */
 .set-card, .set-main .panel { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--r-lg); margin: 0 0 var(--sp-5); max-width: none; padding: 0; }

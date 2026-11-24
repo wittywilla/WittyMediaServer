@@ -3,6 +3,21 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+**Layout (#678)**
+
+- **Nothing sits under the top bar.** On a computer, You's picture and name stay below the bar as the groups scroll.
+  The settings menu's title and search box no longer slide under it at the end of a short page, because the version
+  line the menu already shows isn't repeated under the page. Help's list of guides stays below the bar too.
+- **A Settings page reads from one edge.** Its title, lead and buttons start where its sections start, and Connect a
+  device on Remote access does too. "Remote Access" is "Remote access", as the menu says.
+- **From away** says Connect a device once, not as the page's title and again on the card under it.
+- **A layout check** (`npm run test:layout`, in the smoke tests) opens every page at computer, laptop, phone and TV
+  sizes. It fails on anything under the top bar (as a page opens, after scrolling, and after a link to a section),
+  a Settings title out of line with its content, centred words in an off-centre box, a Title Case title, and a heading
+  said twice.
+
 ## 0.8.4-alpha
 
 Released 2026-11-24.

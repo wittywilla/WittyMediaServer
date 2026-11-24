@@ -311,7 +311,7 @@ function PlainAwayBar() {
   if (!warning) return null
   return (
     <div className="legal-ack-bar plain-away-bar" role="region" aria-label={t('Security warning')}>
-      <p><b>{t('Warning:')}</b> {tx(warning)} <Link to="/settings/remote">{t('Remote Access')}</Link></p>
+      <p><b>{t('Warning:')}</b> {tx(warning)} <Link to="/settings/remote">{t('Remote access')}</Link></p>
     </div>
   )
 }

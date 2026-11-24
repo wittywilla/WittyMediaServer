@@ -130,6 +130,8 @@ func (t *Tools) ProbeHardware(ctx context.Context) {
 		hw.mu.Unlock()
 	}
 	t.probePaths(ctx, log)
+	// One line to say, at a glance, which uses of the chip are ready and why the others aren't.
+	log.Info("graphics: " + t.GraphicsStatus().Line())
 	hw.mu.Lock()
 	hw.done = true
 	hw.mu.Unlock()

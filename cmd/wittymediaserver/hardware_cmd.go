@@ -40,7 +40,7 @@ func cmdHardware(args []string) int {
 	gpus := ffmpeg.GPUs()
 	working := slices.ContainsFunc(list, func(h ffmpeg.HWStatus) bool { return h.Working })
 	if asJSON {
-		out, _ := json.MarshalIndent(map[string]any{"container": ffmpeg.InContainer(), "user": os.Getuid(), "groups": ffmpeg.OwnGroups(), "gpus": gpus, "encoders": list}, "", "  ")
+		out, _ := json.MarshalIndent(map[string]any{"container": ffmpeg.InContainer(), "user": os.Getuid(), "groups": ffmpeg.OwnGroups(), "gpus": gpus, "encoders": list, "graphics": tools.GraphicsStatus()}, "", "  ")
 		fmt.Println(string(out))
 	} else {
 		fmt.Printf("FFmpeg: %s\nRunning as user %d, groups %v", tools.FFmpeg, os.Getuid(), ffmpeg.OwnGroups())

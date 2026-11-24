@@ -104,7 +104,9 @@ sudo docker exec wittymediaserver wittymediaserver hardware
 
 Most consoles don't need the graphics chip: NES, SNES, Game Boy, Mega Drive, PlayStation and Nintendo 64 play on the NAS's processor, even with no `devices:` lines. The chip makes the heavier ones possible (GameCube, Wii, PSP and PlayStation 2 at full speed, Dreamcast at all) and takes the stream's encoding off the processor. Games use the same `devices:` and `group_add:` lines as transcoding, so with step 4 working there's nothing more to add.
 
-Then, in WittyPlay's **Settings → Consoles & cores**, the graphics line should name the chip, such as *Mesa Intel(R) Graphics (ADL-N)* on an N100 or N305. Starting a game that needs it tells you if it can't be used, and why:
+To check it all at once: **Settings → Live transcoding → Graphics** lists *Video encoding*, *Games: OpenGL (EGL)* and *Games: Vulkan*, each **Yes** with the driver (*Mesa iris* and *Mesa intel* on an N100 or N305) or **No** with the reason. Over SSH, `sudo docker exec wittymediaserver wittymediaserver hardware` ends with the same three lines, and the server's log says it in one line when it starts (search it for `graphics:`).
+
+In WittyPlay's **Settings → Consoles & cores → Advanced**, *Graphics card* should name the chip, such as *Mesa Intel(R) Graphics (ADL-N)*. Starting a game that needs it tells you if it can't be used, and why:
 
 | It says | Do this |
 |---|---|

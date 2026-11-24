@@ -97,7 +97,9 @@ const DETECT = (phase, tv) => `(() => {
         // Along the edge: the title starts where the content under it starts.
         const textLeft = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const rs = [...rg.getClientRects()].filter((r) => r.width > 0); return rs.length ? Math.min(...rs.map((r) => r.left)) : e.getBoundingClientRect().left }
         let head = h1; while (head.parentElement && head.parentElement !== main && head.parentElement.children.length === 1) head = head.parentElement
-        const first = head.parentElement && [...head.parentElement.children].find((c) => c !== head && vis(c) && !c.matches('p, .sr-only, script, style') && c.getBoundingClientRect().top >= head.getBoundingClientRect().bottom - 1 && getComputedStyle(c).position === 'static')
+        // The page's content under it: a block at least half as wide as the column (not a row of switches at the end).
+        const colW = head.parentElement ? head.parentElement.getBoundingClientRect().width : vw
+        const first = head.parentElement && [...head.parentElement.children].find((c) => c !== head && vis(c) && !c.matches('p, .sr-only, script, style') && c.getBoundingClientRect().top >= head.getBoundingClientRect().bottom - 1 && getComputedStyle(c).position === 'static' && c.getBoundingClientRect().width >= colW / 2)
         if (first && getComputedStyle(head).direction !== 'rtl') {
           const fr = first.getBoundingClientRect(), d = Math.round(textLeft(h1) - fr.left)
           const fullBleed = fr.width >= vw - 2
@@ -143,7 +145,9 @@ const DETECT = (phase, tv) => `(() => {
     for (const e of main.querySelectorAll('*')) {
       if (!vis(e) || getComputedStyle(e).position !== 'sticky' || layer(e)) continue
       const r = e.getBoundingClientRect()
-      if (r.top < barBottom - 1 && r.bottom > barBottom && r.top > -r.height) add('under-bar', e, 'stays at ' + Math.round(r.top) + ', the bar ends at ' + Math.round(barBottom))
+      // Only while it is stuck (at its own top): once what holds it scrolls away it goes with it, as sticky parts do.
+      const stuck = Math.abs(r.top - (parseFloat(getComputedStyle(e).top) || 0)) < 2
+      if (stuck && r.top < barBottom - 1 && r.bottom > barBottom && r.top > -r.height) add('under-bar', e, 'stays at ' + Math.round(r.top) + ', the bar ends at ' + Math.round(barBottom))
     }
   }
   return out

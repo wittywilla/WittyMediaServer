@@ -483,6 +483,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/channels/suggestions` | Admin | Nothing further |
 | `GET /api/channels/options` | Admin | Nothing further |
 | `POST /api/channels/from-network` | Admin | Network name of up to 200 characters. Definition validated |
+| `POST /api/channels/clone/upload` | Admin | Body up to 200 MB, stored under a random name in the data folder, removed after a week |
+| `POST /api/channels/clone/stations` | Admin | Guide links fetched only from the internet (no local addresses), up to 200 MB; `{key}` filled from the masked guideKey setting, never stored in the channel. TVmaze country two capital letters |
+| `POST /api/channels/clone/import` | Admin | As stations. Body up to 4 MB, at most 1500 slots, 1 to 7 days |
+| `POST /api/channels/clone/candidates` | Admin | Nothing further |
 | `POST /api/channels/networks/refresh` | Admin | Nothing further |
 | `GET /api/channels/networks/refresh` | Admin | Nothing further |
 | `GET /api/channels/{id}` | Admin | Channel exists |
@@ -542,6 +546,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/backup/create` | Admin | Known parts, and what each needs. A password of at least 8 characters, if given. One job at a time. The file stays on the server until a download asks for the password |
 | `POST /api/backup/cancel` | An admin, or before any account exists this machine or the setup code | Nothing: stops the job going |
 | `PUT /api/backup/schedule` | Admin | Frequency, hour, weekday, keep of 1 to 365, known parts. A password of at least 8 characters, kept only as a key made from it. Keeping fewer than before takes the account's password, and code with two-factor sign-in |
+| `PUT /api/backup/folder` | Admin | Takes the account's password, and code with two-factor sign-in. An absolute path to a folder that already exists, not a drive's top, not in or holding the data, program, cache, log or library folders. A marker file is written; no backup is made there while it's missing. Never restored from a backup |
 | `DELETE /api/backup/files/{name}` | Admin | Name has the form of one of this folder's backups, and is a plain file there. The account's password, and code with two-factor sign-in, with an attempt limit |
 | `POST /api/backup/files/{name}/link` | Admin | The account's password, and code with two-factor sign-in, with an attempt limit. Name as for deleting. A ticket for that one file, for 10 minutes |
 | `GET /api/backup/download` | Public, with a ticket | The ticket (`?st=`) names one file and lasts 10 minutes. It isn't a sign-in, and opens nothing else |

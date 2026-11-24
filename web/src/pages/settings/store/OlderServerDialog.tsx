@@ -8,7 +8,7 @@ import { confirmedIds, olderTitle, olderWords, startChoices, type OlderChoices, 
 import './olderServer.css'
 
 // The pop-up before a module version made for an older server is installed, wherever that can
-// happen: the store, Settings, Modules, first-run setup and a setup step's "add the module". It
+// happen: the store, Settings, Module store, first-run setup and a setup step's "add the module". It
 // says which version, which server it was made for and what may not work. "Don't install" is
 // first, focused, and what Escape means; only "Install anyway" sends confirmOlder. Several at once
 // (setup installs a set) are one pop-up, with a choice for each. The dialog keeps the focus inside

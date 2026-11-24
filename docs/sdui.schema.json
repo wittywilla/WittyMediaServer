@@ -301,6 +301,7 @@
         "schemaVersion": {
           "type": "integer"
         },
+        "settingsMenu": {},
         "sources": {
           "items": {
             "$ref": "#/$defs/SourceSpec"
@@ -335,6 +336,7 @@
         "remote",
         "music",
         "tvLevels",
+        "settingsMenu",
         "icons",
         "placeholders",
         "repeats",

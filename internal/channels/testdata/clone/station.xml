@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A made-up station for the clone tests: one evening, its own clock at +0100. -->
+<tv>
+  <channel id="kwit.test"><display-name>KWIT 4</display-name></channel>
+  <channel id="other.test"><display-name>Other</display-name></channel>
+  <programme start="20261123180000 +0100" stop="20261123183000 +0100" channel="kwit.test">
+    <title>Friends</title><sub-title>The One with the Thumb</sub-title><category>Sitcom</category>
+    <episode-num system="xmltv_ns">0 . 2 . </episode-num>
+  </programme>
+  <programme start="20261123183000 +0100" stop="20261123190000 +0100" channel="kwit.test">
+    <title>Friends</title><sub-title>The One with the Sonogram at the End</sub-title><category>Sitcom</category>
+    <episode-num system="xmltv_ns">0 . 8 . </episode-num>
+  </programme>
+  <programme start="20261123190000 +0100" stop="20261123193000 +0100" channel="kwit.test">
+    <title>Frasier</title><category>Comedy</category><date>1993</date>
+  </programme>
+  <programme start="20261123193000 +0100" stop="20261123193100 +0100" channel="kwit.test">
+    <title>Station ident</title>
+  </programme>
+  <programme start="20261123194500 +0100" stop="20261123214500 +0100" channel="kwit.test">
+    <title>Die Hard</title><category>Movie</category><date>1988</date>
+  </programme>
+  <programme start="20261123180000 +0100" stop="20261123190000 +0100" channel="other.test">
+    <title>News</title>
+  </programme>
+</tv>

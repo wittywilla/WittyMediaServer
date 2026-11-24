@@ -135,13 +135,14 @@ friends, WittyPlay options, cores and emulators, console photos.
 |---|---|---|
 | Libraries | `/settings/libraries`, `/manage/*` | libraries, by kind |
 | Pages and menu (page, menu and layout editors) | `/settings/pages/*` | |
-| Metadata agents | `/settings/metadata` | |
+| Metadata agents | `/settings/metadata` | metadata agents on |
 | Channels and tuners, bumpers | `/settings/channels/*`, `/settings/tuners/*` | channels, commercials and bumpers |
 | Channel editor | `/tv/channels/:id` | channels, commercials and bumpers |
 | Live transcoding | `/settings/transcoding` | graphics chip, largest picture |
 | Library transcoding | `/settings/library-transcoding` | |
 | Network | `/settings/network` | the address it listens on |
-| Remote Access | `/settings/remote` | |
+| Data folder | `/settings/data-folder` | where the data is |
+| Remote Access | `/settings/remote` | on or off, and the public address |
 | WittyLog | `/settings/logs` | |
 | WittyDiagnoser | `/settings/diagnoser` | |
 | Modules and the module store | `/settings/modules/*` | modules in use |

@@ -29,6 +29,7 @@ var DataEntries = map[string]string{
 	"certs":                 "HTTPS certificates",
 	"branding":              "your server's logo",
 	"channel-logos":         "TV channel logos",
+	"clone-guides":          "TV guides read for cloning a station, kept a week",
 	"bumpers":               "TV bumpers",
 	"separator":             "the karaoke voice separator (Demucs) and its Python",
 	"lyrics-corrections":    "lyrics you corrected",

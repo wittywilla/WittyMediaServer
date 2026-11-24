@@ -27,3 +27,9 @@ test('modules top: auto install follows auto check; notes only when they are so;
   assert.deepEqual(p.sections.find((s) => s.kind === 'chips' && s.items[0].id === 'check').items[0], { id: 'check', title: 'Checking…', disabled: true })
   assert.equal(fields(modulesTopSpec({ ...v, loaded: false }))[0].disabled, true)
 })
+
+test('modules top: no filters, no Show row (the store’s Updates tab)', () => {
+  const p = modulesTopSpec({ ...v, filters: [] })
+  assert.equal(p.sections.find((s) => s.h === 'Show'), undefined)
+  assert.deepEqual(problems(withIds(p)), [])
+})

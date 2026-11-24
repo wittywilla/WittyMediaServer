@@ -31,3 +31,18 @@ test('what only Settings loads is used only by Settings', () => {
     }
   }
 })
+
+// The module store's classes start st- (st-page, st-card, …). Another part of the app that styled
+// one of them once drew the whole store as a fixed layer over the app (#694), so no stylesheet
+// outside the store may name an st- class.
+test('only the store styles st- classes', () => {
+  const css = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((f) => (f.isDirectory() ? css(join(dir, f.name)) : f.name.endsWith('.css') ? [join(dir, f.name)] : []))
+  const store = join(src, 'pages/settings/store')
+  for (const f of css(src)) {
+    if (f.startsWith(store)) continue
+    const text = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+    const heads = [...text.matchAll(/([^{}]+)\{[^{}]*\}/g)].map((m) => m[1])
+    // Naming the store inside :has() to style something else (the help link beside it) is fine.
+    for (const h of heads) assert.ok(!/(^|[^\w-])\.st-[a-z]/.test(h.replace(/:has\([^)]*\)/g, '')), `${relative(src, f)} styles a store class: "${h.trim()}". Use a prefix of its own.`)
+  }
+})

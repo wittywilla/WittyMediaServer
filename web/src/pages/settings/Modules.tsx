@@ -12,12 +12,13 @@ import { shelves, type LibraryKind, type ModuleEvent, type ModuleReport, type Mo
 import { toast, useApp } from '../../state'
 import SpecPage from '../../spec/SpecPage'
 import { modulesTopSpec } from '../../spec/specs/modules'
-import { PageHead, Row, Section, Switch } from './ui'
+import { Row, Section, Switch } from './ui'
 import './modules.css'
 import LegalNote from '../../components/LegalNote'
-import { LinkButton } from '../../ui'
-import { ChangeNotes, FailureNotice, ModuleIcon, ModuleLogDialog, PolicyNote, SandboxNote, UpdateAllPanel, useStoreView, WhatsNew } from './store/parts'
-import { checkAll, failureForStatus, type Failure } from './store/storeApi'
+import { ChangeNotes, FailureNotice, ModuleIcon, ModuleLogDialog, PolicyNote, SandboxNote, UpdateAllPanel, UpdateNotes, WhatsNew, type StoreViewState } from './store/parts'
+import { compat, strictMinimum } from './store/compat'
+import { choicesOf, ModuleChoiceList } from './store/ModuleChoices'
+import { failureForStatus, type Failure } from './store/storeApi'
 import { olderOf, type OlderVersion } from './store/olderServer'
 import { useOlderAsk } from './store/OlderServerDialog'
 import { Dialog } from '../../ui/Overlay'
@@ -100,12 +101,15 @@ function Confirm({ ask, onClose }: { ask: Ask; onClose: () => void }) {
 // A module installed past the rules that vouch for its publisher: what it says about itself is unchecked.
 const unvouched = (m: { override?: { kinds?: string[] } | null }) => !!m.override?.kinds?.some((k) => k === 'unsigned' || k === 'untrusted-key' || k === 'custom')
 
-export default function ModulesSettings() {
+// The module store's Installed and Updates tabs (StoreHome draws the tabs). Installed is what's on this
+// server, what needs a look first, and what's new; Updates is how updates happen, the ones waiting,
+// and what each brings.
+export default function ModulesSettings({ store, mode }: { store: StoreViewState; mode: 'installed' | 'updates' }) {
   const [r, setR] = useState<ModuleReport | null>(null)
   const [failed, setFailed] = useState('')
   const [checking, setChecking] = useState(false)
   const [settings, setSettings] = useState<Record<string, string> | null>(null)
-  const [filter, setFilter] = useState<Filter>('installed')
+  const [filter, setFilter] = useState<Filter>(mode === 'updates' ? 'updates' : 'installed')
   const [open, setOpen] = useState<string | null>(null)
   const [hi, setHi] = useState('')
   const [ask, setAsk] = useState<Ask | null>(null)
@@ -116,7 +120,6 @@ export default function ModulesSettings() {
   const loc = useLocation()
   const target = params.get('add') || loc.hash.slice(1)
   const reached = useRef('')
-  const store = useStoreView()
   const [logOf, setLogOf] = useState<ModuleStatus | null>(null)
   const features = useFeatures()
   const { user } = useApp()
@@ -159,11 +162,9 @@ export default function ModulesSettings() {
     if (checking) return
     setChecking(true)
     try {
-      store.setView(await checkAll())
+      await store.check()
       const n = await api.get<ModuleReport>('/modules')
       setR(n)
-      if (n.checkError) toast(t('The check didn’t work. What happened is on the page.'))
-      else if (!n.modules.some((m) => m.latest)) toast(t('Every module is up to date'))
     } catch (e: any) { toast(e.message) } finally { setChecking(false) }
   }
   const save = async (k: string, v: boolean) => {
@@ -236,11 +237,11 @@ export default function ModulesSettings() {
 
   if (failed) return (
     <div>
-      <PageHead title={tk('Module store')} />
       <div className="set-card set-empty big"><IconPlug size={34} /><b>{t('Modules aren’t available')}</b><p>{failed}</p></div>
     </div>
   )
-  if (!r) return <div><PageHead title={tk('Module store')} /><Spinner /></div>
+  if (!r) return <Spinner />
+  const choiceIds = new Set(store.view ? choicesOf(store.view.items, store.view.server).map((x) => x.item.id) : [])
   const canUpload = !!features?.has('module-upload')
   const canAudit = !!features?.has('module-audit') && !!user?.isAdmin
 
@@ -253,52 +254,60 @@ export default function ModulesSettings() {
   const groups = shelves(shown.filter((m) => !m.core))
   const nameOf = (id: string) => r.modules.find((m) => m.id === id)?.name || id
   const row = (m: ModuleStatus) => (
-    <ModuleRow key={m.id} m={m} onGoAhead={() => goAhead(m)} onOverride={(n) => { if (n) setR(n); else api.get<ModuleReport>('/modules').then(setR).catch(() => {}); void store.reload() }} isOpen={open === m.id} marked={hi === m.id} checkedAt={r.checkedAt} nameOf={nameOf} refused={refused?.id === m.id ? refused.why : ''}
+    <ModuleRow key={m.id} m={m} server={r.server} onGoAhead={() => goAhead(m)} onOverride={(n) => { if (n) setR(n); else api.get<ModuleReport>('/modules').then(setR).catch(() => {}); void store.reload() }} isOpen={open === m.id} marked={hi === m.id} checkedAt={r.checkedAt} nameOf={nameOf} refused={refused?.id === m.id ? refused.why : ''}
       onToggle={() => setOpen(open === m.id ? null : m.id)} onReport={setR}
       onAdd={() => add(m)} onRemove={() => remove(m)} onUpdate={() => update(m)} onVersions={() => setVersionsOf(m)}
       onPin={() => pin(m)} onRollback={() => rollback(m)} onOfficial={() => official(m)} onAuto={(on) => setAuto(m, on)} onLatest={() => toLatest(m)} onLog={() => setLogOf(m)} repairRoute={store.view?.repairRoute || '/settings/repair'} serverFailure={store.view?.items.find((i) => i.official && i.id === m.id)?.failure} serverAuto={settings?.moduleAutoInstall === '1' && autoCheck} kinds={r.libraries || []} />
   )
 
   return (
-    <div className="ms-page">
-      <PageHead title={tk('Module store')} desc={<>{t('What this server can do, one piece at a time. Add what you want and remove what you don’t.')} <Link to="/settings/module-settings">{t('Each module’s own settings are in Module settings.')}</Link></>}
-        actions={<LinkButton variant="primary" to="/settings/modules/store" icon={<IconPlug />}>{t('Browse the store')}</LinkButton>} />
+    <div className="ms-page st-tab">
+      {/* What needs a choice before it can run here (the same list post-update setup shows), then anything else that needs a look. */}
+      {mode === 'installed' && <ModuleChoiceList store={store} />}
+      {mode === 'installed' && <Attention modules={r.modules.filter((m) => !choiceIds.has(m.id))} onOpen={(id) => { setOpen(id); setHi(id) }} server={r.server} />}
+      {/* What's new can run long, so it's folded: the list of modules is what this tab is for. */}
+      {mode === 'installed' && store.view && (
+        <details className="ms-more st-news-fold">
+          <summary>{t('What’s new in your modules')}</summary>
+          <WhatsNew view={store.view} limit={3} />
+        </details>
+      )}
 
-      {store.view && <WhatsNew view={store.view} />}
-
-      <SpecPage embedded page={modulesTopSpec({
-        autoCheck, autoInstall: settings?.moduleAutoInstall === '1', loaded: !!settings, checkedAt: r.checkedAt ? when(r.checkedAt) : '', held: held ? when(held) : '', checkError: r.checkError || '', checking,
+      {mode === 'updates' && <SpecPage embedded page={modulesTopSpec({
+        autoCheck, autoInstall: settings?.moduleAutoInstall === '1', loaded: !!settings, checkedAt: r.checkedAt ? when(r.checkedAt) : '', held: held ? when(held) : '', checkError: r.checkError || '', checking: checking || store.checking,
         server: r.server, api: String(r.minApi === r.api ? r.api : t('{from} to {to}', { from: r.minApi, to: r.api })),
-        filters: FILTERS.map((f) => ({ id: f.id, label: tx(f.label), count: r.modules.filter(f.test).length })), filter,
-      })} handled={new Set(['check', ...FILTERS.map((f) => 'filter:' + f.id)])}
-        onAction={(id) => { if (id === 'check') void check(); else if (id.startsWith('filter:')) setFilter(id.slice(7) as Filter) }}
+        filters: [], filter,
+      })} handled={new Set(['check'])}
+        onAction={(id) => { if (id === 'check') void check() }}
         onField={(id, v) => { if (id === 'autoCheck') save('moduleUpdateCheck', !!v); else if (id === 'autoInstall') save('moduleAutoInstall', !!v) }}
         after={{ 1: (
           <>
             {store.view && <UpdateAllPanel view={store.view} onChanged={() => { void store.reload(); api.get<ModuleReport>('/modules').then(setR).catch(() => {}) }} />}
             {store.view && <PolicyNote view={store.view} />}
-            <SandboxNote sandbox={r.sandbox} />
           </>
-        ) }} />
+        ) }} />}
+      {mode === 'installed' && <SandboxNote sandbox={r.sandbox} />}
+      {mode === 'updates' && store.view && <UpdateNotes view={store.view} />}
 
       {shown.length === 0 && (
         <div className="set-card set-empty">
-          <b>{filter === 'updates' ? t('No updates known') : filter === 'absent' ? t('Every module is on this server') : filter === 'installed' ? t('No modules yet') : t('Nothing here')}</b>
+          <b>{filter === 'updates' ? t('Everything is up to date') : filter === 'absent' ? t('Every module is on this server') : filter === 'installed' ? t('No modules yet') : t('Nothing here')}</b>
           {filter === 'updates' && <p>{r.checkedAt ? t('Nothing newer was found when the server last looked, {when}.', { when: when(r.checkedAt) }) : t('The server hasn’t looked yet.')}</p>}
-          {filter === 'installed' && <p>{t('The server works without any.')} <Link to="/settings/modules/store">{t('Browse the store')}</Link> {t('to add what you want.')}</p>}
-          {filter === 'updates' && <button className="btn sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? t('Checking…') : t('Check now')}</button>}
+          {filter === 'installed' && <p>{t('The server works without any.')} <Link to="/settings/modules?tab=browse">{t('Browse the store')}</Link> {t('to add what you want.')}</p>}
+          {filter === 'updates' && mode !== 'updates' && <button className="btn sm" onClick={check} aria-busy={checking}><IconRefresh /> {checking ? t('Checking…') : t('Check now')}</button>}
         </div>
       )}
 
+      {mode === 'updates' && shown.length > 0 && <h2 className="st-tab-h">{tn('{count} module to update', '{count} modules to update', shown.length)}</h2>}
       {groups.map((g) => <Section key={g.id} id={'shelf-' + g.id} title={g.title}>{g.modules.map(row)}</Section>)}
 
-      {core.length > 0 && (
+      {mode === 'installed' && core.length > 0 && (
         <div className="ms-quiet">
           <Section title={tk('What other modules are built on')} desc={t('These stay for as long as something uses them, and can’t be removed on their own.')}>{core.map(row)}</Section>
         </div>
       )}
 
-      {canUpload ? (
+      {mode === 'installed' && (canUpload ? (
         <Section id="custom-modules" title={tk('Custom modules')} actions={<InstallFromFile onInstalled={() => { api.get<ModuleReport>('/modules').then(setR).catch(() => {}); void store.reload() }} />}
           desc={t('Install a module from its release archive: one you built, or one someone gave you. The server checks the file and says what it found before anything is installed. Replacing an existing module with someone’s fork is done from that module above, under Advanced.')}>
           <p className="ms-note">{t('A module is someone’s code running on your server, so only install one from a publisher you trust. Anything unsigned, signed by a key this server doesn’t trust, or new to this server needs an override, gets no permissions you don’t tick, and never updates by itself.')} <HelpLink to="module-store#installing-from-a-file">{t('Installing from a file')}</HelpLink></p>
@@ -310,9 +319,9 @@ export default function ModulesSettings() {
             <p className="ms-note">{t('When it comes, the same rule will apply: a module is someone’s code running on your server, so only take one from a publisher you trust.')}</p>
           </Section>
         </div>
-      )}
+      ))}
 
-      {canAudit && <ModuleAudit nameOf={nameOf} stamp={r} />}
+      {mode === 'installed' && canAudit && <ModuleAudit nameOf={nameOf} stamp={r} />}
       {over.dialog}
       {older.dialog}
 
@@ -321,8 +330,34 @@ export default function ModulesSettings() {
       {ask && <Confirm ask={ask} onClose={() => setAsk(null)} />}
       {logOf && <ModuleLogDialog moduleId={logOf.id} name={logOf.name} onClose={() => setLogOf(null)} />}
 
-      <LegalNote kind="modules" className="set-legal" />
+      {mode === 'installed' && <LegalNote kind="modules" className="set-legal" />}
     </div>
+  )
+}
+
+// What needs a look before anything else, at the top of Installed: one line each on what's wrong and
+// what to do, and a button that opens the module's row, where the fix is.
+function Attention({ modules, server, onOpen }: { modules: ModuleStatus[]; server: string; onOpen: (id: string) => void }) {
+  const list = modules.filter((m) => m.installed && !busy(m) && needsLook(m))
+  if (!list.length) return null
+  const why = (m: ModuleStatus) => {
+    if (m.phase === 'failed') return t('The last install didn’t work, and nothing changed: {error}', { error: m.error || t('no reason was given') })
+    if (m.withdrawn || m.olderServer) { const c = compat({ name: m.name, fit: { ok: true, kind: 'ok' }, status: m }, server); return [c.line, c.todo].filter(Boolean).join(' ') }
+    if (m.state === 'fallback') return t('Its downloaded version couldn’t start, so the one built into the server is in use.')
+    return m.notice || ''
+  }
+  return (
+    <section className="set-card st-attention" aria-labelledby="st-att-h">
+      <header className="set-card-head"><div><h2 id="st-att-h">{tn('{count} module needs a look', '{count} modules need a look', list.length)}</h2></div></header>
+      <ul className="set-card-body st-att-list">
+        {list.map((m) => (
+          <li key={m.id}>
+            <span><b>{m.name}</b> {why(m)}</span>
+            <button type="button" className="btn sm" onClick={() => onOpen(m.id)} aria-label={t('Open {name}', { name: m.name })}>{t('Open')}</button>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -330,7 +365,9 @@ function Tag({ tone, icon, children }: { tone?: 'ok' | 'warn' | 'bad' | 'new' | 
   return <span className={'ms-tag' + (tone ? ' ' + tone : '')}>{icon}{children}</span>
 }
 
-function Tags({ m }: { m: ModuleStatus }) {
+function Tags({ m, server }: { m: ModuleStatus; server: string }) {
+  // On 0.9 and later a module made for an older server is turned off, and says what to do (compat.ts).
+  const older = m.installed && m.olderServer ? compat({ name: m.name, fit: { ok: true, kind: 'ok' }, status: m }, server) : null
   return (
     <span className="ms-tags">
       {!m.installed ? <Tag tone="off">{m.comesInside ? t('Comes with other modules') : m.unavailable ? t('No build here') : t('Not installed')}</Tag>
@@ -339,8 +376,8 @@ function Tags({ m }: { m: ModuleStatus }) {
         : m.latest ? <Tag tone="new">{t('Update available')}</Tag>
         : <Tag tone="ok" icon={<IconCheck size={12} />}>{t('Installed')}</Tag>}
       {m.pending && <Tag tone="warn">{t('Needs your go-ahead')}</Tag>}
-      {m.installed && m.olderServer && <Tag tone="warn" icon={<IconInfo size={12} />}>{t('Made for an older server')}</Tag>}
-      {!m.installed && !m.latest && m.olderOffer && <Tag tone="warn">{t('Only for an older server')}</Tag>}
+      {older && <Tag tone="warn" icon={<IconInfo size={12} />}>{older.tag}</Tag>}
+      {!m.installed && !m.latest && m.olderOffer && !strictMinimum(server) && <Tag tone="warn">{t('Only for an older server')}</Tag>}
       {m.installed && m.pin && <Tag>{t('Pinned')}</Tag>}
       {m.source && <Tag tone="warn" icon={<IconShield size={12} />}>{t('Other publisher')}</Tag>}
       <OverrideTags override={m.override} status={m.releaseStatus} />
@@ -349,6 +386,7 @@ function Tags({ m }: { m: ModuleStatus }) {
 }
 
 type RowProps = {
+  server: string
   m: ModuleStatus; isOpen: boolean; marked: boolean; checkedAt?: number; nameOf: (id: string) => string; refused: string
   onToggle: () => void; onReport: (r: ModuleReport) => void
   onAdd: () => void; onRemove: () => void; onUpdate: () => void; onVersions: () => void; onPin: () => void; onRollback: () => void; onOfficial: () => void
@@ -366,7 +404,7 @@ function ModuleRow(p: RowProps) {
         <button type="button" className="ms-head" aria-expanded={isOpen} aria-controls={isOpen ? detail : undefined} onClick={p.onToggle}>
           {m.icon ? <ModuleIcon item={{ icon: m.icon, name: m.name, official: true }} size={36} /> : <span className="ms-ic">{moduleIcon(m)}</span>}
           <span className="ms-title">
-            <span className="ms-name"><b>{m.name}</b>{m.installed && <span className="ms-ver">{m.version}</span>}{m.license && <span className="ms-ver">{m.license}</span>}<Tags m={m} /></span>
+            <span className="ms-name"><b>{m.name}</b>{m.installed && <span className="ms-ver">{m.version}</span>}{m.license && <span className="ms-ver">{m.license}</span>}<Tags m={m} server={p.server} /></span>
             {m.summary && <span className="ms-sum">{m.summary}</span>}
           </span>
           <span className="ms-chev"><IconDown size={20} /></span>

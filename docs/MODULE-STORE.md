@@ -20,11 +20,17 @@ A module adds something your server can do, such as playing DVD menus or streami
 
 The server works with very few of them, so you only add what you want. Taking a module away leaves your media, watch history and settings as they are. **Remove** asks whether to keep the module's own data, such as its saves or settings, for when you add it again.
 
-Only administrators can add, update or remove modules. **Settings → Modules** shows what's on this server. **Browse the store** on that page shows everything that can be added.
+Only administrators can add, update or remove modules. Everything is in **Settings → Module store**, on three tabs:
+
+- **Installed:** what's on this server. Anything that needs a look is listed first, with what to do, and **What's new in your modules** opens the latest from each.
+- **Browse:** everything the store offers, by what it's for, with search. Each card says what the module does in one sentence, how big it is, what it asks for, and whether it works on this server.
+- **Updates:** whether the server looks for updates and installs them by itself, **Check now**, **Update All Modules**, and what each waiting update brings.
+
+If a part of the store can't be shown (a store's list this server can't read, say), that part says so in plain words with **Try again**. Your modules, Settings and every other page keep working.
 
 **Modules for 0.8 use Module API 5.** That's the only kind this server runs. A module made for 0.7.x or older can't run here, and isn't offered.
 
-**A version made for an older server only installs if you say so.** Each module says which servers it was made for. A version whose range stops below this server may still start, but pages, settings and features may be missing. So nothing installs one by itself: not automatic updates, not **Update all**, not first-time setup. Where it's the only version, a pop-up names it, says what it was made for and what may not work, and **Don't install** is the default. A module already on such a version says so in **Settings → Modules**, with **Update** when a version made for this server is out.
+**A version made for an older server only installs if you say so.** Each module says which servers it was made for. A version whose range stops below this server may still start, but pages, settings and features may be missing. So nothing installs one by itself: not automatic updates, not **Update all**, not first-time setup. Where it's the only version, a pop-up names it, says what it was made for and what may not work, and **Don't install** is the default. A module already on such a version says so in **Settings → Module store**, with **Update** when a version made for this server is out.
 
 ## Every module and what it adds
 
@@ -106,17 +112,17 @@ WittyCouch Host has no build for FreeBSD, so WittyCouch and WittyRigs say so the
 ![A module's own page in the store](images/store-module.webp)
 *A module's page in the store.*
 
-1. Open **Settings → Modules**, and press **Browse the store**.
+1. Open **Settings → Module store**, and choose **Browse**.
 2. Type in the search box, or use the category buttons. Every word you type has to match the name, description, category or publisher, so "blu ray" finds Blu-ray.
-3. Narrow it down if you want: **Installed**, **Updates available**, **Publisher**, **Platform**, **Kind** (helper, web bundle, program or library) and **Status** (stable, beta, experimental or incomplete). These stay in the page's address, so Back returns you to the same results.
+3. Narrow it down if you want, under **More filters**: **Publisher**, **Platform**, **Kind** (helper, web bundle, program or library) and **Status** (stable, beta, experimental or incomplete). These stay in the page's address, so Back returns you to the same results. Parts that come with other modules aren't on the shelves; searching for one finds it.
 4. Open a module to read its page: what it does, what's new, what it asks for, its licence, which servers it fits, and what an update can change. **What this adds** lists its pages in every app, its menu entries, its sections in Settings, its steps in first-time setup, the kinds of library it handles, how many kinds of request it answers and who may make them, and whether it keeps a database of its own. Before you install, this comes from the catalogue; once it's installed, from the copy on the server, which also says who may call each kind of request.
 5. Press **Install**.
 
 If the module is built on others, a dialog lists them in order and asks first: press **Install 2 modules**, or however many it says. You'll see **Downloading**, **Checking the signature** and **Installing**, and then it's ready. If something it's built on fails, the module isn't attempted.
 
-You can also add a module from where you need it. **Settings → Modules** has a **Not installed** button that lists them with **Install**, adding a library shows which kinds need a module, and a page missing its module has its own button.
+You can also add a module from where you need it: adding a library shows which kinds need a module, and a page missing its module has its own button.
 
-Opening the store doesn't look for new versions. It shows what the last check found, and a check happens when you press **Check for updates**, or by itself if you allow that. The one thing a page can fetch is a module's icon or screenshots, and the server does that itself.
+Opening the store doesn't look for new versions. It shows what the last check found, and a check happens when you press **Check now** on **Updates**, or by itself if you allow that. The server looks at most once a minute, however often it's pressed. The one thing a page can fetch is a module's icon or screenshots, and the server does that itself.
 
 ### What the labels mean
 
@@ -126,26 +132,30 @@ Opening the store doesn't look for new versions. It shows what the last check fo
 | **Update available** | A newer version fits this server |
 | **Needs a look** | Something's wrong. Open it to see what, and what to try |
 | **Pinned** | You've kept it on this version on purpose |
-| **Turned off** | It's on this server, and not in use |
+| **Turned off** | It's on this server, and not in use: you turned it off, or it kept failing here and the server stopped using it (its card says which, and what to try) |
 | **Other publisher** | This is someone's fork, not the official module |
 | **Third-party** | It comes from a store you added |
-| **Not available yet** | No version has been released |
+| **Works on this server** | It can be installed here |
+| **Needs an update** | The version you have was made for an older WittyMediaServer, so it's turned off. Update it: nothing it saved is lost |
+| **Not ready yet** | The version you have was made for an older WittyMediaServer, and there's no version for this one yet. It's turned off, nothing it saved is lost, and you'll be told when it's ready |
+| **Not available yet** | There's no version of it for this server yet |
+| **Nothing to install yet** | No version has been released |
 | **Comes with other modules** | There's nothing to install on its own |
-| **Not for this computer** | It has no build for this system |
-| **Built for an older server** | It can't run here, and its page says what to do |
-| **Made for an older server** | The only version there is was made for an earlier series. Installing it asks first, and it may not work |
-| **Needs a newer server** | Update this server first |
-| **Withdrawn** | Its publisher took this version back |
+| **Not for this system** | It has no version for this kind of computer |
+| **Made for an older server** | 0.8 only: the only version there is was made for an earlier series. Installing it asks first, and it may not work. From 0.9 a version like that isn't offered |
+| **Needs a newer server** | Update this server first, from **Settings → About** |
+| **Withdrawn** | Its publisher took this version back. The card says why and what to do |
+| **Can't be read** | The store's entry for it isn't in a form this server understands |
 | **In development** | A module this server doesn't know. It can only be installed from a file (see [Installing from a file](#installing-from-a-file)) |
 | **Beta** | Its publisher says it's nearly finished |
 | **Experimental** | Its publisher says it may change a lot or break. Its page shows the publisher's note. Installing it needs an override |
 | **Incomplete** | Its publisher says parts are missing. Its page shows what. Installing it needs an override |
-| **Overridden** | It was installed past a rule that would normally stop it. Its page and its row in **Settings → Modules** say which rules, who accepted them and when |
+| **Overridden** | It was installed past a rule that would normally stop it. Its page and its row in **Settings → Module store** say which rules, who accepted them and when |
 | **Needs your go-ahead** | A version was downloaded and checked, and then turned out to need an override. Nothing changed until you say yes |
 
 ## Turning off and removing
 
-Both are on a module's page in the store, under **Manage**. **Remove** is also on the module's row in **Settings → Modules**.
+Both are on a module's page in the store, under **Manage**. **Remove** is also on the module's row in **Settings → Module store**.
 
 - **Turn off** keeps the module on this server and stops using it. **Turn on** brings it straight back, with nothing to download.
 - **Remove** deletes the versions that were downloaded. You can add it back any time. A part of the server stays on disk, and only its row has **Remove**.
@@ -155,8 +165,8 @@ Neither touches your files, watch history or settings. Both are refused while a 
 ## Updating
 
 - **One module:** press **Update** on its row, or open it and press **Update to** with the version.
-- **All of them:** press **Update All Modules** on **Settings → Modules**, or in the store when there are updates. What others are built on goes first. One failure doesn't stop the rest.
-- **To look for new versions now:** press **Check now** on **Settings → Modules**, or **Check for updates** in the store.
+- **All of them:** press **Update All Modules** on **Updates**. What others are built on goes first. One failure doesn't stop the rest. **What the updates bring** lists each one's notes.
+- **To look for new versions now:** press **Check now** on **Updates**.
 
 Update All shows each module's progress and ends with a summary, which stays until you press **Dismiss**, even across a restart. It skips these, and says why:
 
@@ -170,7 +180,7 @@ Every update is signed, and the server installs only what it can verify. It inst
 
 ## Automatic updates
 
-Under **Updates** on **Settings → Modules**:
+On the **Updates** tab of **Settings → Module store**:
 
 - **Look for updates automatically** looks online twice a day. Until you set it, it follows the server's own update check. When it's off, the server only looks when you press **Check now**.
 - **Install updates automatically** installs what the check finds, if it works with this server. It's off to begin with. A version that fails is taken back out by itself. Pinned modules and forks are left alone.
@@ -181,7 +191,7 @@ If GitHub asks your network to wait, the page says until when, and everything ke
 
 ## Choosing a version, pinning and going back
 
-Open a module's row on **Settings → Modules**.
+Open a module’s row on the **Installed** tab of **Settings → Module store**.
 
 - **Versions** lists every version the last check knew of, newest first, with its notes. One that doesn't fit this server shows why, and can't be chosen. Press **Install** or **Switch to this** on the one you want.
 - **Pin this version** keeps it where it is. **Unpin** lets automatic updates move it again.
@@ -287,7 +297,7 @@ You can add a store run by someone else, and see the modules it offers beside th
 
 ### Adding a store
 
-1. Open **Settings → Modules → Browse the store → Other stores**.
+1. Open **Settings → Module store → Other stores**.
 2. Under **Add a store**, enter the **Address** of its `catalog.json`, which starts with `https://`. Get this from whoever runs the store.
 3. Paste **The store's public key** if the owner gave you one. This is better, because then even the first answer doesn't have to be taken on trust. Otherwise the server shows the key the store itself offers, for you to check. A store that offers none needs its owner's key.
 4. Tick **Allow an address on my own network** only for a store you run yourself. It asks for your password, as what comes back says what's listening there. Without the tick, an address on this machine or your own network is refused. With it, this one store may also use plain `http`.
@@ -338,7 +348,7 @@ There's no button to accept a new key, on purpose.
 
 A fork is someone's own version of a module. Choosing one replaces that module on this server, and everything else treats it as that module.
 
-1. On **Settings → Modules**, open the module's row and then **Advanced**.
+1. On **Settings → Module store**, open the module's row and then **Advanced**.
 2. Under **Use someone's fork of this module**, enter the **Repository**, such as `someone/WittyDVD`, and **The publisher's public key**.
 3. Press **Check**. Nothing changes yet. Read the warning and the key's fingerprint, and check the fingerprint with the publisher, somewhere other than where you got the key.
 4. Tick **I trust this publisher**, enter your password and press **Confirm**.
@@ -387,13 +397,13 @@ A module that's unsigned, signed by an untrusted key, new to this server or less
 
 Some things can never be overridden, such as a module API this server doesn't speak, a version withdrawn for security reasons, a system with no sandbox for other publishers' modules, or a server started with `WMS_NO_MODULE_FORKS=1`. Those are refused with the reason.
 
-After an override, the module is labelled **Overridden**. Its page, and its row in **Settings → Modules**, list each rule, who accepted it and when, the version, the key's fingerprint and the permissions given. It stays on that version: **Update this module by itself** is off and can't be turned on until the override goes. Choosing a version that needs no override clears it; one that needs an override asks again.
+After an override, the module is labelled **Overridden**. Its page, and its row in **Settings → Module store**, list each rule, who accepted it and when, the version, the key's fingerprint and the permissions given. It stays on that version: **Update this module by itself** is off and can't be turned on until the override goes. Choosing a version that needs no override clears it; one that needs an override asks again.
 
 **Remove override** goes back to the last version on this server that needed none, or, if there isn't one, takes the module off the server. Your files and history stay as they are.
 
 A version can also turn out to need an override only once it's downloaded, for example when its own files say it's experimental. It's then held, labelled **Needs your go-ahead**: press **Review…** to see the dialog, or **Drop it** to throw it away. The version in use keeps running meanwhile.
 
-Every override, upload, removed override and refused password is written to the **Module audit log** at the bottom of **Settings → Modules**, newest first.
+Every override, upload, removed override and refused password is written to the **Module audit log** at the bottom of **Settings → Module store**, newest first.
 
 ## Installing from a file
 

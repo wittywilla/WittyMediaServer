@@ -262,6 +262,7 @@
   "Channels with what is on now and next.",
   "Check again in a few minutes.",
   "Check again in two minutes.",
+  "Check again later: whoever publishes it may already have put it right.",
   "Check for updates and install the newest version.",
   "Check for updates in case the list has been corrected, then try again.",
   "Check for updates, then try again.",
@@ -572,6 +573,7 @@
   "If it keeps happening, copy the details and ask for help.",
   "If it keeps happening, tell whoever publishes the module.",
   "If it keeps happening, tell whoever publishes the module. Don't look for another copy of it elsewhere.",
+  "If it keeps happening, update this server, or tell whoever runs that store.",
   "If it moved, say where it went, with the button below.",
   "If it moved: wittymediaserver doctor remap --from \"{path}\" --to \"\u003cthe new folder\u003e\" --fix, or use Moved a drive? in Settings, Repair.",
   "If it plays badly at those places, make a new copy from a clean disc.",
@@ -1447,6 +1449,7 @@
   "The library folder {printableName}, because {why}.",
   "The library it's in has gone.",
   "The library knows these, but they aren't on the disk any more: moved, renamed or deleted.",
+  "The list couldn't be read",
   "The list couldn't be read: {error}.",
   "The list of installed modules can't be read",
   "The list of modules described this version of {name} differently from what its signed files say, so it wasn't installed. Either the list or the release is wrong.",
@@ -2592,5 +2595,6 @@
   "{count} titles",
   "{count} tracks",
   "{kind} (port {port})",
+  "{name} has something in it that this server can't read, so it was set aside. Nothing changed: everything installed keeps working, and the last list this server could read is still used.",
   "“Show profiles outside your home” is on, so anyone who finds this server sees everyone's names."
 ]

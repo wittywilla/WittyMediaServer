@@ -41,12 +41,13 @@ import { Updates } from './settings/Updates'
 import { useFeatures } from '../sdui/useSdui'
 import { useTvMode } from '../tvmode/mode'
 import { t, tk, tn, tx } from '../i18n'
+import StoreBoundary from './settings/store/StoreBoundary'
 import { SettingsHome, SettingsRows, useSettingsMenu, type SettingsMenuState } from './settings/menu/SettingsMenu'
 import type { MenuRow } from './settings/menu/model'
 
-const ModulesSettings = lazy(() => import('./settings/Modules'))
+const StoreHome = lazy(() => import('./settings/store/StoreHome'))
+const OldBrowse = lazy(() => import('./settings/store/StoreHome').then((m) => ({ default: m.OldBrowse })))
 const WittyTvLookDialog = lazy(() => import('./tv/WittyTvLookPrompt').then((m) => ({ default: m.WittyTvLookDialog })))
-const ModuleStore = lazy(() => import('./settings/store/ModuleStore'))
 const ModulePage = lazy(() => import('./settings/store/ModulePage'))
 const OtherStores = lazy(() => import('./settings/store/OtherStores'))
 const Diagnoser = lazy(() => import('./settings/Diagnoser'))
@@ -110,7 +111,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
   { title: tk('System'), pages: [
     { to: 'logs', label: tk('WittyLog'), icon: <IconFile />, admin: true, hint: tk('What is recorded and for how long, and downloading logs to share') },
     { to: 'diagnoser', label: tk('WittyDiagnoser'), icon: <IconTune />, admin: true, hint: tk('The disk diagnoser: checks your discs and your drives, and changes nothing') },
-    { to: 'modules', label: tk('Module store'), icon: <IconPlug />, admin: true, hint: tk('What this server can do: add, remove, update and choose versions') },
+    { to: 'modules', label: tk('Module store'), icon: <IconPlug />, admin: true, hint: tk('What’s installed, more to add, and updates') },
     { to: 'backup', label: tk('Backup'), icon: <IconDownload />, admin: true, hint: tk('A ZIP of your data and metadata, on demand or on a schedule, and bringing one back') },
     { to: 'health', label: tk('Library health'), icon: <IconCheck />, admin: true, hint: tk('Missing files, titles with no match, duplicates, odd names, NFO files and artwork, with the fixes in one place') },
     { to: 'repair', label: tk('Repair'), icon: <IconWrench />, admin: true, hint: tk('Finds and fixes problems with metadata, the database, modules and this install') },
@@ -242,13 +243,13 @@ export default function SettingsPage() {
           <Route path="repair" element={<Suspense fallback={null}><RepairSettings /></Suspense>} />
           <Route path="health" element={<Suspense fallback={null}><LibraryHealth /></Suspense>} />
           <Route path="reset" element={<Suspense fallback={null}><ResetSettings /></Suspense>} />
-          <Route path="modules" element={<Suspense fallback={null}><ModulesSettings /><WittyTvLookDialog /></Suspense>} />
+          <Route path="modules" element={<StoreBoundary what={t('The module store couldn’t be shown')}><Suspense fallback={null}><StoreHome /><WittyTvLookDialog /></Suspense></StoreBoundary>} />
           <Route path="module-settings" element={<Suspense fallback={null}><ModuleSettingsList /></Suspense>} />
           <Route path="module-settings/:module" element={<Suspense fallback={null}><ModuleSettingsPage /></Suspense>} />
-          <Route path="modules/store" element={<Suspense fallback={null}><ModuleStore /><WittyTvLookDialog /></Suspense>} />
-          <Route path="modules/store/:id" element={<Suspense fallback={null}><ModulePage /><WittyTvLookDialog /></Suspense>} />
-          <Route path="modules/store/:store/:id" element={<Suspense fallback={null}><ModulePage /><WittyTvLookDialog /></Suspense>} />
-          <Route path="modules/stores" element={<Suspense fallback={null}><OtherStores /></Suspense>} />
+          <Route path="modules/store" element={<Suspense fallback={null}><OldBrowse /></Suspense>} />
+          <Route path="modules/store/:id" element={<StoreBoundary what={t('This module’s page couldn’t be shown')}><Suspense fallback={null}><ModulePage /><WittyTvLookDialog /></Suspense></StoreBoundary>} />
+          <Route path="modules/store/:store/:id" element={<StoreBoundary what={t('This module’s page couldn’t be shown')}><Suspense fallback={null}><ModulePage /><WittyTvLookDialog /></Suspense></StoreBoundary>} />
+          <Route path="modules/stores" element={<StoreBoundary what={t('Other stores couldn’t be shown')}><Suspense fallback={null}><OtherStores /></Suspense></StoreBoundary>} />
           <Route path="about" element={<About />} />
           <Route path="legal" element={<Suspense fallback={null}><LegalSettings /></Suspense>} />
           <Route path="*" element={<Navigate to={tvMode ? '/settings' : user?.isAdmin ? '/settings/libraries' : '/settings/users'} replace />} />

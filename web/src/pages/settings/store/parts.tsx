@@ -10,7 +10,7 @@ import { toast } from '../../../state'
 import { Button, Dialog, LinkButton, Notice, Progress } from '../../../ui'
 import { ConfirmOwner } from '../ConfirmOwner'
 import {
-  anyBusy, changelogBlocks, dayOf, dismissRun, failureOf, mb, moduleLog, NOTHING_NOTABLE, PHASE, showsRun, startUpdateAll, storeView, undoRun,
+  anyBusy, changelogBlocks, checkAll, dayOf, dismissRun, failureOf, mb, moduleLog, NOTHING_NOTABLE, PHASE, showsRun, startUpdateAll, storeView, undoRun,
   type Failure, type ModuleLog, type Run, type RunItem, type SandboxInfo, type StoreItem, type StoreView,
 } from './storeApi'
 import '../modules.css'
@@ -18,6 +18,7 @@ import './store.css'
 import { OverrideTags } from './overrideParts'
 import { itemReleaseStatus } from './overrides'
 import { hasNews, splitNotes } from './changeNotes'
+import { compat } from './compat'
 
 // ------------------------------------------------------------------- staying up to date
 
@@ -36,8 +37,27 @@ export function useStoreView() {
     const t = setInterval(() => { void load() }, 1000)
     return () => clearInterval(t)
   }, [busy, load])
-  return { view, setView, error, reload: load, busy }
+  // Check now, for every tab: asks the stores again and says how it went.
+  const [checking, setChecking] = useState(false)
+  const [checkFailure, setCheckFailure] = useState<Failure | null>(null)
+  const lastChecked = useRef<number | undefined>(undefined)
+  lastChecked.current = view?.checkedAt
+  const check = useCallback(async () => {
+    setChecking(true)
+    const before = lastChecked.current
+    try {
+      const v = await checkAll()
+      setView(v); setError(null)
+      // The server looks at most once a minute: when it didn't look this time, say when it last did,
+      // never "up to date" for a look it didn't make.
+      if (v.looked === false || (before && v.checkedAt === before)) toast(t('This server already looked at {time}, and looks at most once a minute. Try again in a moment.', { time: date(v.checkedAt || before || Date.now(), { timeStyle: 'short' }) }))
+      else if (v.checkError || v.stores.some((s) => s.problem)) toast(t('The check didn’t all work. What happened is on the page.'))
+      else toast(v.updates ? tn('{count} update found', '{count} updates found', v.updates) : t('Every module is up to date'))
+    } catch (e) { setCheckFailure(failureOf(e, t('The check'))) } finally { setChecking(false) }
+  }, [])
+  return { view, setView, error, reload: load, busy, check, checking, checkFailure, clearCheckFailure: () => setCheckFailure(null) }
 }
+export type StoreViewState = ReturnType<typeof useStoreView>
 
 // ------------------------------------------------------------------- labels
 
@@ -80,28 +100,25 @@ export function OriginTag({ item }: { item: StoreItem }) {
 }
 
 // Why it can't be installed, in a word or two. The whole reason is on its page.
-function FitTag({ kind }: { kind: string }) {
-  if (kind === 'no-version') return <Tag tone="off">{t('Not available')}</Tag>
-  if (kind === 'library') return <Tag tone="off">{t('Comes with other modules')}</Tag>
-  if (kind === 'no-build') return <Tag tone="off">{t('Not for this computer')}</Tag>
-  if (kind === 'withdrawn') return <Tag tone="bad" icon={<IconInfo size={12} />}>{t('Withdrawn')}</Tag>
-  if (kind === 'older-server') return <Tag tone="warn" icon={<IconInfo size={12} />}>{t('Made for an older server')}</Tag>
-  return <Tag tone="bad" icon={<IconInfo size={12} />}>{kind === 'too-old' ? t('Built for an older server') : t('Needs a newer server')}</Tag>
+function FitTag({ item, server }: { item: StoreItem; server: string }) {
+  const c = compat(item, server)
+  return <Tag tone={c.tone === 'ok' ? 'ok' : c.tone} icon={c.tone === 'bad' || c.tone === 'warn' ? <IconInfo size={12} /> : undefined}>{c.tag}</Tag>
 }
 
 // What state it's in, in words. Each state also has its own wording or icon, never only a colour.
-export function StateTags({ item }: { item: StoreItem }) {
+export function StateTags({ item, server = '' }: { item: StoreItem; server?: string }) {
   const m = item.status
   return (
     <span className="ms-tags">
       <OriginTag item={item} />
-      {item.kind === 'in-development' && <Tag tone="off">{t('In development')}</Tag>}
-      {item.kind === 'refused' && <Tag tone="bad" icon={<IconClose size={12} />}>{t('Can’t be used')}</Tag>}
+      {item.kind === 'in-development' && <Tag tone="off">{t('Coming later')}</Tag>}
+      {item.kind === 'refused' && <Tag tone="bad" icon={<IconClose size={12} />}>{t('Refused')}</Tag>}
       {m && PHASE[m.phase] && <Tag tone="new">{PHASE[m.phase]}</Tag>}
       {m?.installed && !PHASE[m.phase] && m.enabled === false && <Tag tone="off">{t('Turned off')}</Tag>}
       {m?.installed && !PHASE[m.phase] && m.enabled !== false && (item.failure ? <Tag tone="bad" icon={<IconInfo size={12} />}>{t('Needs a look')}</Tag> : m.latest ? <Tag tone="new">{t('Update available')}</Tag> : <Tag tone="ok" icon={<IconCheck size={12} />}>{t('Installed')}</Tag>)}
-      {!m?.installed && item.kind !== 'in-development' && item.kind !== 'refused' && !item.fit.ok && <FitTag kind={item.fit.kind} />}
-      {m?.installed && m.olderServer && <Tag tone="warn" icon={<IconInfo size={12} />}>{t('Made for an older server')}</Tag>}
+      {!m?.installed && item.kind !== 'in-development' && item.kind !== 'refused' && !item.fit.ok && <FitTag item={item} server={server} />}
+      {m?.installed && m.olderServer && <FitTag item={item} server={server} />}
+      {m?.installed && m.withdrawn && !m.olderServer && <FitTag item={item} server={server} />}
       {m?.pin && <Tag>{t('Pinned')}</Tag>}
       {item.official && m?.source && <Tag tone="warn" icon={<IconShield size={12} />}>{t('Other publisher')}</Tag>}
       {m?.pending && <Tag tone="warn">{t('Needs your go-ahead')}</Tag>}
@@ -170,6 +187,32 @@ export function WhatsNew({ view, limit = 5 }: { view: StoreView; limit?: number 
             </article>
           )
         })}
+      </div>
+    </section>
+  )
+}
+
+// The Updates tab's list: each module with an update waiting, the version it goes to, and what that
+// version brings, in its own words.
+export function UpdateNotes({ view }: { view: StoreView }) {
+  const list = view.items.filter((i) => i.status?.installed && i.status.latest)
+  if (!list.length) return null
+  return (
+    <section className="set-card st-news st-update-notes" aria-labelledby="st-upd-h">
+      <header className="set-card-head"><div><h2 id="st-upd-h">{t('What the updates bring')}</h2></div></header>
+      <div className="set-card-body">
+        {list.map((i) => (
+          <article key={i.key} className="st-news-item" aria-label={i.name}>
+            <div className="st-news-head">
+              <ModuleIcon item={i} size={32} />
+              <Link to={itemPath(i)}><b>{i.name}</b></Link>
+              <span className="ms-ver">{t('{from} to {to}', { from: i.status!.version, to: i.status!.latest!.version })}</span>
+              {i.status!.latest!.size ? <span className="muted">{mb(i.status!.latest!.size)}</span> : null}
+              <OriginTag item={i} />
+            </div>
+            <ChangeNotes text={i.status!.latest!.notes} />
+          </article>
+        ))}
       </div>
     </section>
   )

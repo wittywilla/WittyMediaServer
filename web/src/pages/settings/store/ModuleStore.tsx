@@ -4,28 +4,25 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { HelpLink } from '../../../components/HelpLink'
 import { Link, useSearchParams } from 'react-router-dom'
 import { IconSearch, IconShield } from '../../../icons'
-import { toast } from '../../../state'
 import { Button, EmptyState, LinkButton, Notice, Spinner } from '../../../ui'
 import SpecPage from '../../../spec/SpecPage'
 import { handledIds } from '../../../spec/model'
 import { storeSearchSpec } from '../../../spec/specs/store'
-import { PageHead } from '../ui'
 import { ItemCard } from './ItemCard'
-import { FailureDialog, FailureNotice, SandboxNote, UpdateAllPanel, useStoreView } from './parts'
+import { FailureNotice, type StoreViewState } from './parts'
 import { itemModuleKind, MODULE_KINDS, moduleKindTitle, passesExtra, readFilters, STATUSES, statusTitle } from './overrides'
 import { useFeatures } from '../../../sdui/useSdui'
 import { t, tn } from '../../../i18n'
-import { CATEGORIES, categoryOf, categoryTitle, checkAll, failureOf, matches, platformName, rank, showsRun, type Failure, type StoreItem } from './storeApi'
+import { CATEGORIES, categoryOf, categoryTitle, matches, platformName, rank, type StoreItem } from './storeApi'
+import { compat } from './compat'
 
-// The store: find a module by searching or by what it's for, and see at a glance what's installed
-// and what can be updated. The filters live in the address, so Back returns to the same results
-// and a filtered view can be shared with another admin.
+// Browse, in the module store: find a module by searching or by what it's for. What's installed
+// and what can be updated are the store's other tabs. The filters live in the address, so Back
+// returns to the same results and a filtered view can be shared with another admin.
 
-export default function ModuleStore() {
-  const { view, setView, error, reload } = useStoreView()
+export default function ModuleStore({ store }: { store: StoreViewState }) {
+  const { view, error, reload } = store
   const [params, setParams] = useSearchParams()
-  const [checking, setChecking] = useState(false)
-  const [failure, setFailure] = useState<Failure | null>(null)
   const results = useRef<HTMLDivElement>(null)
 
   // What's typed is the page's own, and reaches the address when typing pauses: an address that
@@ -37,25 +34,25 @@ export default function ModuleStore() {
     return () => clearTimeout(t)
   }, [q, params, setParams])
   const cat = params.get('cat') || ''
-  const show = params.get('show') || ''
   const publisher = params.get('publisher') || ''
   const platform = params.get('platform') || ''
   const set = (k: string, v: string) => setParams((p) => { const n = new URLSearchParams(p); if (v) n.set(k, v); else n.delete(k); return n }, { replace: true })
   const extra = readFilters(params)
   const { moduleKind, status } = extra
-  const filtered = !!(q || cat || show || publisher || platform || moduleKind || status)
+  const filtered = !!(q || cat || publisher || platform || moduleKind || status)
   const features = useFeatures()
 
   const items = view?.items
+  const server = view?.server || ''
   const shown = useMemo(() => (items || []).filter((i) =>
     matches(i, q) &&
+    // A library part and an entry with nothing to install are found by searching, not shown on the shelves.
+    (!!q || !!i.status?.installed || !compat(i, server).hidden) &&
     (!cat || categoryOf(i) === cat) &&
-    (show !== 'installed' || i.status?.installed) &&
-    (show !== 'updates' || (i.status?.installed && i.status.latest)) &&
     (!publisher || i.publisher?.name === publisher) &&
     (!platform || i.platforms?.includes(platform) || i.platforms?.includes('all')) &&
     passesExtra(i, { moduleKind, status })
-  ).sort((a, b) => rank(a, q) - rank(b, q) || a.name.localeCompare(b.name)), [items, q, cat, show, publisher, platform, moduleKind, status])
+  ).sort((a, b) => rank(a, q) - rank(b, q) || a.name.localeCompare(b.name)), [items, server, q, cat, publisher, platform, moduleKind, status])
   // Kinds are offered when the server says what each module is; a status, whenever any isn't stable.
   const kindsHere = useMemo(() => MODULE_KINDS.filter((k) => (items || []).some((i) => itemModuleKind(i) === k)), [items])
 
@@ -63,64 +60,46 @@ export default function ModuleStore() {
   const platforms = useMemo(() => [...new Set((items || []).flatMap((i) => i.platforms || []).filter((p) => p !== 'all'))].sort(), [items])
   const categories = useMemo(() => {
     const n: Record<string, number> = {}
-    for (const i of items || []) { const c = categoryOf(i); n[c] = (n[c] || 0) + 1 }
+    for (const i of items || []) { if (!i.status?.installed && compat(i, server).hidden) continue; const c = categoryOf(i); n[c] = (n[c] || 0) + 1 }
     const list = CATEGORIES.filter((c) => n[c.id]).map((c) => ({ ...c, n: n[c.id] }))
     if (n.other) list.push({ id: 'other', title: t('Other'), n: n.other })
     return list
-  }, [items])
+  }, [items, server])
 
-  const check = async () => {
-    if (checking) return
-    setChecking(true)
-    try {
-      const v = await checkAll()
-      setView(v)
-      if (v.checkError || v.stores.some((s) => s.problem)) toast(t('The check didn’t all work. What happened is on the page.'))
-      else toast(v.updates ? tn('{count} update found', '{count} updates found', v.updates) : t('Every module is up to date'))
-    } catch (e) { setFailure(failureOf(e, t('The check'))) } finally { setChecking(false) }
-  }
-
-  const head = (
-    <PageHead title={t('Module store')} desc={t('Add to what this server can do. Everything here is signed, and nothing runs until you choose it.')}
-      actions={<>
-        <LinkButton size="sm" variant="ghost" to="/settings/modules">{t('Installed modules')}</LinkButton>
-        <LinkButton size="sm" variant="ghost" to="/settings/modules/stores" icon={<IconShield />}>{t('Other stores')}</LinkButton>
-      </>} />
-  )
-  if (error && !view) return <div className="ms-page st-page">{head}<Notice tone="danger" title={error.title} action={<Button size="sm" onClick={() => reload()}>{t('Try again')}</Button>}>{error.message}</Notice></div>
-  if (!view) return <div className="ms-page st-page">{head}<Spinner /></div>
+  if (error && !view) return <Notice tone="danger" title={error.title} action={<Button size="sm" onClick={() => reload()}>{t('Try again')}</Button>}>{error.message}</Notice>
+  if (!view) return <Spinner />
 
   const official = shown.filter((i) => i.official || i.kind === 'server')
   const others = shown.filter((i) => !i.official && i.kind !== 'server')
   const groups = categories.map((c) => ({ ...c, items: official.filter((i) => categoryOf(i) === c.id) })).filter((g) => g.items.length)
-  const cards = (list: StoreItem[]) => <div className="st-grid">{list.map((i) => <ItemCard key={i.key} item={i} onChanged={reload} repairRoute={view.repairRoute} />)}</div>
+  const cards = (list: StoreItem[]) => <div className="st-grid">{list.map((i) => <ItemCard key={i.key} item={i} onChanged={reload} repairRoute={view.repairRoute} server={view.server} platform={platformName(view.platform)} />)}</div>
   const count = filtered ? tn('{count} module found', '{count} modules found', shown.length) : tn('{count} module', '{count} modules', shown.length)
   const clear = () => { setQ(''); setParams({}, { replace: true }) }
   const broken = view.stores.filter((s) => s.problem)
   const searchPage = storeSearchSpec({
-    q, cats: categories.map((c) => ({ id: c.id, title: c.title, n: c.n })), cat, show, updates: view.updates,
+    q, cats: categories.map((c) => ({ id: c.id, title: c.title, n: c.n })), cat,
     publishers, publisher, platforms: platforms.map((p) => ({ value: p, label: p === view.platform ? t('{platform} (this server)', { platform: platformName(p) }) : platformName(p) })), platform,
     kinds: features?.has('module-store-kinds') || kindsHere.length > 0 ? MODULE_KINDS.map((k) => ({ value: k, label: moduleKindTitle(k) })) : [],
-    moduleKind, statuses: STATUSES.map((st) => ({ value: st, label: statusTitle(st) })), status, checking,
+    moduleKind, statuses: STATUSES.map((st) => ({ value: st, label: statusTitle(st) })), status,
   })
   const searchHandled = handledIds(searchPage)
+  const onAction = (id: string) => { if (id.startsWith('cat:')) { const c = id.slice(4); set('cat', cat === c ? '' : c) } }
+  const onField = (id: string, v: unknown) => { const x = String(v); if (id === 'q') setQ(x); else if (id === 'publisher') set('publisher', x); else if (id === 'platform') set('platform', x); else if (id === 'kind') set('moduleKind', x); else if (id === 'status') set('status', x) }
 
   return (
-    <div className="ms-page st-page">
-      {head}
-      <SandboxNote sandbox={view.sandbox} />
-
-      <SpecPage embedded handled={searchHandled} page={searchPage}
-        onAction={(id) => { if (id === 'check') void check(); else if (id.startsWith('cat:')) { const c = id.slice(4); set('cat', cat === c ? '' : c) } else if (id.startsWith('show:')) { const v = id.slice(5); set('show', show === v ? '' : v) } }}
-        onField={(id, v) => { const x = String(v); if (id === 'q') setQ(x); else if (id === 'publisher') set('publisher', x); else if (id === 'platform') set('platform', x); else if (id === 'kind') set('moduleKind', x); else if (id === 'status') set('status', x) }} />
+    <div className="st-browse">
+      {/* Search and what it's for come first; the rest of the filters are folded away until wanted. */}
+      <SpecPage embedded handled={searchHandled} page={{ ...searchPage, sections: searchPage.sections.slice(0, 2) }} onAction={onAction} onField={onField} />
+      <details className="ms-more st-more-filters" open={!!(publisher || platform || moduleKind || status)}>
+        <summary>{t('More filters')}{publisher || platform || moduleKind || status ? ' · ' + t('on') : ''}</summary>
+        <SpecPage embedded handled={searchHandled} page={{ ...searchPage, sections: searchPage.sections.slice(2) }} onAction={onAction} onField={onField} />
+      </details>
 
       {broken.map((s) => s.official
-        ? <FailureNotice key={s.id} failure={s.problem!} name={t('The list of modules')} repairRoute={view.repairRoute} onRetry={check} />
+        ? <FailureNotice key={s.id} failure={s.problem!} name={t('The list of modules')} repairRoute={view.repairRoute} onRetry={() => void store.check()} />
         : <Notice key={s.id} tone={s.problem!.kind === 'key-changed' ? 'danger' : 'warn'} title={`${s.name} (${s.host}): ${s.problem!.title}`} action={<LinkButton size="sm" to="/settings/modules/stores">{t('See this store')}</LinkButton>}>{s.problem!.message}</Notice>
       )}
       {view.checkError && !broken.some((s) => s.official) && <Notice tone="warn" title={t('The last check didn’t work')}>{view.checkError} {t('Everything keeps working as it is.')}</Notice>}
-
-      {(view.updates > 0 || showsRun(view.run)) && <UpdateAllPanel view={view} onChanged={reload} />}
 
       <div ref={results} className="st-results" role="region" aria-label={t('Modules')}>
         <p className="st-count" role="status">{count}{filtered && <> · <button type="button" className="st-link" onClick={clear}>{t('Clear search and filters')}</button></>}</p>
@@ -147,7 +126,6 @@ export default function ModuleStore() {
         )}
       </div>
 
-      {failure && <FailureDialog failure={failure} name={t('The store')} repairRoute={view.repairRoute} onClose={() => setFailure(null)} />}
     </div>
   )
 }

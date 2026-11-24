@@ -929,16 +929,17 @@ func TestMediaIsOnlyWhatACatalogueLists(t *testing.T) {
 
 func TestExplain(t *testing.T) {
 	for want, words := range map[string][]string{
-		FailSignature: {"signature does not verify", "the download of a.tar.gz does not match its signed checksum; it was not installed", "files have changed since they were installed: x.exe is different"},
-		FailNetwork:   {"download: dial tcp: lookup x: no such host", "download: context deadline exceeded", "GitHub answered 503 Service Unavailable"},
-		FailDisk:      {"write /x: no space left on device", "There is not enough space on the disk."},
-		FailTooOld:    {"WittyPlay 0.2.5 is too old for this server: it uses module API 2, and this server needs at least 3", "WittyPlay 0.2.5 supports WittyMediaServer up to 0.5.x, and this server is 0.6.0-alpha"},
-		FailTooNew:    {"WittyPlay 9 needs WittyMediaServer 0.9.0 or newer, and this server is 0.6.0-alpha", "WittyPlay 9 needs a newer server: it uses module API 9, and this server has up to 3"},
-		FailCrash:     {"this version didn't start on this server, which can happen if the data folder doesn't allow programs to run: exit status 3", "it kept failing (it stopped without answering)"},
-		FailCorrupt:   {"unpacking: gzip: invalid header", "the package has no index.js", "download: the file is larger than the release says"},
-		FailMismatch:  {"the catalogue and the release disagree: the catalogue says it asks for [], and the release asks for [network]", "the catalogue and the release's signed list disagree about the archive"},
-		FailKey:       {"the signing key has changed: you agreed to aaaa, and it now offers bbbb"},
-		FailOther:     {"something nobody has seen before"},
+		FailSignature:  {"signature does not verify", "the download of a.tar.gz does not match its signed checksum; it was not installed", "files have changed since they were installed: x.exe is different"},
+		FailNetwork:    {"download: dial tcp: lookup x: no such host", "download: context deadline exceeded", "GitHub answered 503 Service Unavailable"},
+		FailDisk:       {"write /x: no space left on device", "There is not enough space on the disk."},
+		FailTooOld:     {"WittyPlay 0.2.5 is too old for this server: it uses module API 2, and this server needs at least 3", "WittyPlay 0.2.5 supports WittyMediaServer up to 0.5.x, and this server is 0.6.0-alpha"},
+		FailTooNew:     {"WittyPlay 9 needs WittyMediaServer 0.9.0 or newer, and this server is 0.6.0-alpha", "WittyPlay 9 needs a newer server: it uses module API 9, and this server has up to 3"},
+		FailCrash:      {"this version didn't start on this server, which can happen if the data folder doesn't allow programs to run: exit status 3", "it kept failing (it stopped without answering)"},
+		FailCorrupt:    {"unpacking: gzip: invalid header", "the package has no index.js", "download: the file is larger than the release says"},
+		FailMismatch:   {"the catalogue and the release disagree: the catalogue says it asks for [], and the release asks for [network]", "the catalogue and the release's signed list disagree about the archive"},
+		FailKey:        {"the signing key has changed: you agreed to aaaa, and it now offers bbbb"},
+		FailUnreadable: {"the module catalogue was ignored: catalogue: wittybroken: it needs a name, in one line of plain text", "wittymodule: unreadable catalogue: invalid character 't' looking for beginning of value"},
+		FailOther:      {"something nobody has seen before"},
 	} {
 		for _, w := range words {
 			f := Explain("Thing", w)

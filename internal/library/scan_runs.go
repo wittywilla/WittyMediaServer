@@ -7,7 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strconv"
 	"strings"
 	"sync"
@@ -61,7 +61,7 @@ type stuckError struct {
 }
 
 func (e *stuckError) Error() string {
-	return fmt.Sprintf("Nothing moved for %s while %s, so the scan was stopped as stuck.", roundMinutes(e.after), e.what)
+	return i18n.F("Nothing moved for {roundMinutes} while {what}, so the scan was stopped as stuck.", "roundMinutes", roundMinutes(e.after), "what", e.what)
 }
 
 // stuckFix is what to do about a stuck scan.

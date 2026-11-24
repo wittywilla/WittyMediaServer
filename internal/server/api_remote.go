@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net"
 	"net/http"
 	"net/netip"
@@ -531,9 +532,9 @@ func (s *Server) remoteView(r *http.Request, applyErr string, full bool) remoteV
 			case v.Mapping.On && v.Mapping.Shared:
 				rt.State, rt.Detail = "problem", "Your router's outside address is shared with others, so nothing from the internet can reach it. Use a VPN instead, or ask your internet provider for a public address."
 			case v.Mapping.On && !v.Mapping.Working && v.Mapping.Error != "":
-				rt.State, rt.Detail = "problem", "The router didn't open the port: "+v.Mapping.Error
+				rt.State, rt.Detail = "problem", i18n.F("The router didn't open the port: {error}", "error", v.Mapping.Error)
 			case v.HTTPS.Running && v.HTTPS.Error != "":
-				rt.State, rt.Detail = "problem", "The certificate isn't ready: "+v.HTTPS.Error
+				rt.State, rt.Detail = "problem", i18n.F("The certificate isn't ready: {error}", "error", v.HTTPS.Error)
 			case !seenNet.IsZero() || (v.LastProof != nil && v.LastProof.Where == "internet"):
 				rt.State = "ok"
 			}
@@ -579,17 +580,17 @@ func (s *Server) remoteView(r *http.Request, applyErr string, full bool) remoteV
 	warn := func(text string) { v.Notices = append(v.Notices, notice{Level: "warn", Text: text}) }
 	// Behind a proxy on this computer, listening here only is how it should be.
 	if localOnly && st.on && (st.policy == nil || len(st.policy.Trusted) == 0) {
-		warn("The server is set to listen on this computer only (the listen setting), so nothing from outside can reach it.")
+		warn(i18n.T("The server is set to listen on this computer only (the listen setting), so nothing from outside can reach it."))
 	}
 	if st.on {
 		for _, w := range v.WeakAdmins {
 			if w.IsAdmin && !w.Unknown {
-				v.Notices = append(v.Notices, notice{Level: "warn", Text: "The administrator account “" + w.Name + "” has a weak password. Anyone on the internet can try to guess it, so choose a longer one before relying on remote access.", Link: "/settings/users"})
+				v.Notices = append(v.Notices, notice{Level: "warn", Text: i18n.F("The administrator account “{name}” has a weak password. Anyone on the internet can try to guess it, so choose a longer one before relying on remote access.", "name", w.Name), Link: "/settings/users"})
 			}
 		}
 		for _, w := range v.WeakAdmins {
 			if !w.IsAdmin && !w.Unknown {
-				v.Notices = append(v.Notices, notice{Level: "info", Text: "The account “" + w.Name + "” has a weak password.", Link: "/settings/users"})
+				v.Notices = append(v.Notices, notice{Level: "info", Text: i18n.F("The account “{name}” has a weak password.", "name", w.Name), Link: "/settings/users"})
 			}
 		}
 		if s.DB.GetSetting(ctx, "profilesRemote", "0") == "1" {
@@ -597,9 +598,9 @@ func (s *Server) remoteView(r *http.Request, applyErr string, full bool) remoteV
 		}
 		if cert := v.HTTPS.Cert; cert != nil && v.HTTPS.Running && cert.DaysLeft < 14 {
 			if cfg.HTTPSMode == "cert" {
-				warn(fmt.Sprintf("Your HTTPS certificate ends in %d days. Renew it, and the server picks up the new files by itself.", cert.DaysLeft))
+				warn(i18n.F("Your HTTPS certificate ends in {daysLeft} days. Renew it, and the server picks up the new files by itself.", "daysLeft", cert.DaysLeft))
 			} else if cert.DaysLeft < 7 {
-				warn(fmt.Sprintf("The Let's Encrypt certificate ends in %d days and has not been renewed. Check that port %d still reaches this computer.", cert.DaysLeft, cfg.ExternalPort))
+				warn(i18n.F("The Let's Encrypt certificate ends in {daysLeft} days and has not been renewed. Check that port {externalPort} still reaches this computer.", "daysLeft", cert.DaysLeft, "externalPort", cfg.ExternalPort))
 			}
 		}
 		if cert := v.HTTPS.Cert; cert != nil && cert.SelfSigned && v.HTTPS.Running {
@@ -608,10 +609,10 @@ func (s *Server) remoteView(r *http.Request, applyErr string, full bool) remoteV
 	}
 	if !unverAt.IsZero() && time.Since(unverAt) < 24*time.Hour {
 		v.Notices = append(v.Notices, notice{Level: "warn", Trust: unverPeer,
-			Text: "Requests are arriving through a reverse proxy at " + unverPeer + " that isn't on your trusted list, so everyone behind it looks like one visitor from the internet, and their addresses are unknown. If that is your proxy, trust it."})
+			Text: i18n.F("Requests are arriving through a reverse proxy at {unverPeer} that isn't on your trusted list, so everyone behind it looks like one visitor from the internet, and their addresses are unknown. If that is your proxy, trust it.", "unverPeer", unverPeer)})
 	}
 	if !seenPlain.IsZero() && time.Since(seenPlain) < 24*time.Hour && !cfg.AllowPlainAway {
-		warn("Someone on the internet reached the server's plain, unencrypted port, and was turned away. If you opened that port on your router, close it: only the HTTPS port should be open.")
+		warn(i18n.T("Someone on the internet reached the server's plain, unencrypted port, and was turned away. If you opened that port on your router, close it: only the HTTPS port should be open."))
 	}
 	return v
 }
@@ -786,13 +787,13 @@ func (s *Server) handleSelfCheck(w http.ResponseWriter, r *http.Request) {
 	add := func(name, state, detail string) { steps = append(steps, checkStep{name, state, detail}) }
 	base := st.publicURL
 	if base == "" {
-		add("Outside address", "fail", "There is no outside address yet. Enter your domain name above first.")
+		add("Outside address", "fail", i18n.T("There is no outside address yet. Enter your domain name above first."))
 		writeJSON(w, 200, map[string]any{"steps": steps})
 		return
 	}
 	u, err := url.Parse(base)
 	if err != nil {
-		add("Outside address", "fail", "The outside address can't be read.")
+		add("Outside address", "fail", i18n.T("The outside address can't be read."))
 		writeJSON(w, 200, map[string]any{"steps": steps})
 		return
 	}
@@ -836,7 +837,7 @@ func (s *Server) handleSelfCheck(w http.ResponseWriter, r *http.Request) {
 		if a := s.HTTPS.Addr(); a != nil {
 			add("HTTPS port", "ok", "Port "+strconv.Itoa(a.(*net.TCPAddr).Port)+" is open on this computer.")
 		} else {
-			add("HTTPS port", "fail", "The HTTPS port isn't open. "+s.HTTPS.Status(ctx).Error)
+			add("HTTPS port", "fail", i18n.F("The HTTPS port isn't open. {error}", "error", s.HTTPS.Status(ctx).Error))
 		}
 	}
 
@@ -860,11 +861,11 @@ func (s *Server) handleSelfCheck(w http.ResponseWriter, r *http.Request) {
 	case err == nil && res.StatusCode == 200:
 		add("Answer", "ok", "Asking "+base+" from this computer reached this very server, with a valid certificate.")
 	case err == nil:
-		add("Answer", "warn", fmt.Sprintf("Something answers at %s, but it isn't this server (status %d).", base, res.StatusCode))
+		add("Answer", "warn", i18n.F("Something answers at {base}, but it isn't this server (status {statusCode}).", "base", base, "statusCode", res.StatusCode))
 	case strings.Contains(err.Error(), "certificate"):
-		add("Answer", "warn", "The address answers, but its certificate isn't accepted: "+certProblem(err))
+		add("Answer", "warn", i18n.F("The address answers, but its certificate isn't accepted: {certProblem}", "certProblem", certProblem(err)))
 	default:
-		add("Answer", "warn", "This computer couldn't reach "+base+". Many routers don't allow that from inside the house, so this doesn't mean it fails from outside: run the test with your phone.")
+		add("Answer", "warn", i18n.F("This computer couldn't reach {base}. Many routers don't allow that from inside the house, so this doesn't mean it fails from outside: run the test with your phone.", "base", base))
 	}
 	if res != nil {
 		res.Body.Close()

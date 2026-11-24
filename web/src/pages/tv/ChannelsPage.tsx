@@ -12,7 +12,7 @@ import { PageHead, Row, Section, Switch } from '../settings/ui'
 import ChannelEditor from './ChannelEditor'
 import { brandOf, forgetLineup, type Channel, type Suggestion } from './tvApi'
 import './tvsettings.css'
-import { t, tk, tn } from '../../i18n'
+import { t, tk, tn, tx } from '../../i18n'
 
 // WittyTV's channels from your library, on a page of their own: the list, the
 // channels it suggests, and an editor per channel at /tv/channels/<id>. Tuners,
@@ -113,7 +113,7 @@ function ChannelList() {
                 {items.map((s) => (
                   <div key={s.key} className="tvs-sug">
                     {brandOf(s.definition) ? <b className="tvs-sug-name"><BrandLogo kind={brandOf(s.definition)!.kind} name={brandOf(s.definition)!.name} label={false} className="tvs-sug-logo" /><span>{s.name}</span></b> : <b>{s.name}</b>}
-                    <span>{s.description}</span>
+                    <span>{tx(s.description)}</span>
                     <span className="tvs-dim">{tn('{count} title', '{count} titles', s.stats.titles)} · {fmtRuntime(s.stats.seconds)}</span>
                     <div className="tvs-sug-actions">
                       <button className="btn sm primary" disabled={busy === s.key} onClick={() => void add(s)} aria-label={t('Add {name}', { name: s.name })}><IconPlus /> {t('Add')}</button>

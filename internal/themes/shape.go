@@ -5,6 +5,7 @@ package themes
 
 import (
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io/fs"
 	"strconv"
 	"strings"
@@ -82,7 +83,7 @@ type TypeTokens struct {
 
 // The stylesheet's own type, for themes that don't set it.
 var (
-	defaultFonts = []string{"Inter", "Segoe UI Variable Text", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"}
+	defaultFonts = []string{"Inter", i18n.T("Segoe UI Variable Text"), "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"}
 	defaultMono  = []string{"ui-monospace", "Cascadia Mono", "SFMono-Regular", "Menlo", "Consolas", "monospace"}
 )
 

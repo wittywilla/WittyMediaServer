@@ -3,6 +3,7 @@
 
 package sdui
 
+import "github.com/wittywilla/wittymediaserver/internal/i18n"
 import "sync"
 
 // The built-in pages and navigation: what every server shows until an
@@ -45,13 +46,13 @@ func buildStockPages() []Page {
 	home := Page{ID: "home", Kind: "home", Title: "Home", Icon: "home",
 		Description: "The first page: a spotlight, what you were in the middle of, what's on, what's new in each library.",
 		Sections: []Section{
-			when(sec("setup", "Notice", props{"tone": "info", "title": "Finish setting up", "text": "A few things are left to choose before this server is ready for everyone.", "buttonLabel": "Open settings", "native": "settings"}, nil),
+			when(sec("setup", "Notice", props{"tone": "info", "title": i18n.T("Finish setting up"), "text": i18n.T("A few things are left to choose before this server is ready for everyone."), "buttonLabel": "Open settings", "native": "settings"}, nil),
 				Condition{Admin: &yes, Flag: "setupIncomplete"}),
-			when(sec("welcome", "Notice", props{"tone": "info", "title": "Welcome, {user}", "text": "There are no libraries yet. Add one in Settings, Libraries, and what's in its folders appears here.", "buttonLabel": "Open settings", "native": "settings"}, nil),
+			when(sec("welcome", "Notice", props{"tone": "info", "title": "Welcome, {user}", "text": i18n.T("There are no libraries yet. Add one in Settings, Libraries, and what's in its folders appears here."), "buttonLabel": "Open settings", "native": "settings"}, nil),
 				Condition{Flag: "librariesEmpty"}),
 			sec("hero", "Hero", props{"title": "Featured"}, Source{"type": "featured"}),
 			when(sec("libraries", "Shelf", props{"title": "Your libraries", "cardStyle": "tile", "seeAll": "never"}, Source{"type": "libraries"}), notTV),
-			sec("jump", "Shelf", props{"title": "Jump back in"}, Source{"type": "continueWatching", "media": "all"}),
+			sec("jump", "Shelf", props{"title": i18n.T("Jump back in")}, Source{"type": "continueWatching", "media": "all"}),
 			when(scoped(sec("onnow", "Shelf", props{"title": "On TV now"}, Source{"type": "liveNow"}), "wittytv"), Condition{Can: "liveTv", Feature: "live-tv"}),
 			sec("foryou", "Shelf", props{"title": "Recommended for you", "subtitle": "{reason}"}, Source{"type": "recommended", "limit": 20}),
 			sec("nextup", "Shelf", props{"title": "Next up", "cardStyle": "progress"}, Source{"type": "nextUp"}),
@@ -61,11 +62,11 @@ func buildStockPages() []Page {
 		}}
 
 	libraries := Page{ID: "libraries", Kind: "libraries", Title: "Libraries", Icon: "library",
-		Sections: []Section{sec("all", "Grid", props{"cardStyle": "tile", "empty": "message", "emptyText": "No libraries yet."}, Source{"type": "libraries"})}}
+		Sections: []Section{sec("all", "Grid", props{"cardStyle": "tile", "empty": "message", "emptyText": i18n.T("No libraries yet.")}, Source{"type": "libraries"})}}
 
 	library := Page{ID: "library", Kind: "library", Title: "{library}", Icon: "library",
 		Description: "Any library without a page of its own kind: everything in it, newest first.",
-		Sections:    []Section{sec("all", "Grid", props{"empty": "message", "emptyText": "Nothing has been found in this library's folders yet.", "emptyHint": "Add files to its folders; they appear after a scan.", "emptyAction": scanAction}, Source{"type": "recentlyAdded", "library": "$library"})}}
+		Sections:    []Section{sec("all", "Grid", props{"empty": "message", "emptyText": i18n.T("Nothing has been found in this library's folders yet."), "emptyHint": i18n.T("Add files to its folders; they appear after a scan."), "emptyAction": scanAction}, Source{"type": "recentlyAdded", "library": "$library"})}}
 
 	var videoLibs []Page
 	for _, kind := range videoKinds {
@@ -73,7 +74,7 @@ func buildStockPages() []Page {
 			Description: "A library of films or shows: filters and sorting over a grid.",
 			Sections: []Section{
 				sec("filters", "FilterBar", props{"target": "all"}, nil),
-				sec("all", "Grid", props{"empty": "message", "emptyText": "Nothing to show here.", "emptyHint": "If filters are on, clear them. Otherwise this library's folders have nothing in them yet: add files, or add a folder in Settings, Libraries, then scan.", "emptyAction": scanAction}, Source{"type": "browse", "library": "$library", "filterable": true}),
+				sec("all", "Grid", props{"empty": "message", "emptyText": i18n.T("Nothing to show here."), "emptyHint": i18n.T("If filters are on, clear them. Otherwise this library's folders have nothing in them yet: add files, or add a folder in Settings, Libraries, then scan."), "emptyAction": scanAction}, Source{"type": "browse", "library": "$library", "filterable": true}),
 			}})
 	}
 
@@ -82,7 +83,7 @@ func buildStockPages() []Page {
 			sec("played", "Shelf", props{"title": "Recently played"}, Source{"type": "albums", "library": "$library", "sort": "played", "limit": 15}),
 			with(sec("views", "Tabs", props{"style": "segments"}, nil),
 				with(sec("albums", "Tab", props{"label": "Albums", "icon": "album"}, nil),
-					sec("albums-grid", "Grid", props{"empty": "message", "emptyText": "No albums yet."}, Source{"type": "albums", "library": "$library", "sort": "added"})),
+					sec("albums-grid", "Grid", props{"empty": "message", "emptyText": i18n.T("No albums yet.")}, Source{"type": "albums", "library": "$library", "sort": "added"})),
 				with(sec("artists", "Tab", props{"label": "Artists", "icon": "artist"}, nil),
 					sec("artists-grid", "Grid", nil, Source{"type": "artists", "library": "$library"}))),
 		}}
@@ -92,12 +93,12 @@ func buildStockPages() []Page {
 			Description: "Audiobooks or podcasts: what you were listening to, then every book or show.",
 			Sections: []Section{
 				sec("listening", "Shelf", props{"title": "Continue listening"}, Source{"type": "continueWatching", "media": "listen"}),
-				sec("all", "Grid", props{"cardStyle": "square", "empty": "message", "emptyText": "Nothing here yet."}, Source{"type": "albums", "library": "$library", "sort": "title"}),
+				sec("all", "Grid", props{"cardStyle": "square", "empty": "message", "emptyText": i18n.T("Nothing here yet.")}, Source{"type": "albums", "library": "$library", "sort": "title"}),
 			}})
 	}
 	photosLib := Page{ID: "library-photos", Kind: "library", Title: "{library}", Icon: "photo", Match: &Match{LibraryKind: "photos"},
 		Sections: []Section{with(sec("timeline", "NativeView", props{"view": "photoTimeline", "library": "$library"}, nil),
-			sec("all", "Grid", props{"cardStyle": "photo", "showTitles": false, "empty": "message", "emptyText": "No photos yet.", "emptyHint": "Add pictures to the library's folders; they appear after a scan.", "emptyAction": scanAction}, Source{"type": "recentlyAdded", "library": "$library"}))}}
+			sec("all", "Grid", props{"cardStyle": "photo", "showTitles": false, "empty": "message", "emptyText": i18n.T("No photos yet."), "emptyHint": i18n.T("Add pictures to the library's folders; they appear after a scan."), "emptyAction": scanAction}, Source{"type": "recentlyAdded", "library": "$library"}))}}
 	// The bookshelf as WittyInk's has it: every book by title, then a row for each series in
 	// its own order, and for each author by series.
 	booksLib := Page{ID: "library-books", Kind: "library", Title: "{library}", Icon: "book", Match: &Match{LibraryKind: "books"},
@@ -107,7 +108,7 @@ func buildStockPages() []Page {
 			with(sec("shelf", "Tabs", props{"style": "segments"}, nil),
 				with(sec("books", "Tab", props{"label": "Books", "icon": "book"}, nil),
 					sec("filters", "FilterBar", props{"target": "all", "fields": []string{"reading", "format"}, "sorts": []string{"title", "added"}}, nil),
-					sec("all", "Grid", props{"cardStyle": "book", "empty": "message", "emptyText": "No books match.", "emptyHint": "Change the filters, or add books to the library's folders.", "emptyAction": scanAction}, Source{"type": "books", "library": "$library", "filterable": true})),
+					sec("all", "Grid", props{"cardStyle": "book", "empty": "message", "emptyText": i18n.T("No books match."), "emptyHint": i18n.T("Change the filters, or add books to the library's folders."), "emptyAction": scanAction}, Source{"type": "books", "library": "$library", "filterable": true})),
 				with(sec("series", "Tab", props{"label": "Series", "icon": "list"}, nil),
 					repeated(sec("in-series", "Shelf", props{"title": "{each}", "cardStyle": "book"}, Source{"type": "books", "library": "$library", "series": "$each"}), "bookSeries")),
 				with(sec("authors", "Tab", props{"label": "Authors", "icon": "user"}, nil),
@@ -116,7 +117,7 @@ func buildStockPages() []Page {
 	gamesLib := Page{ID: "library-games", Kind: "library", Title: "{library}", Icon: "game", Match: &Match{LibraryKind: "games"}, Scope: "wittyplay",
 		Sections: []Section{
 			sec("playing", "Shelf", props{"title": "Continue playing"}, Source{"type": "continuePlaying", "library": "$library"}),
-			sec("all", "Grid", props{"cardStyle": "game", "empty": "message", "emptyText": "No games yet.", "emptyHint": "Add game files to the library's folders; they appear after a scan.", "emptyAction": scanAction}, Source{"type": "recentlyAdded", "library": "$library"}),
+			sec("all", "Grid", props{"cardStyle": "game", "empty": "message", "emptyText": i18n.T("No games yet."), "emptyHint": i18n.T("Add game files to the library's folders; they appear after a scan."), "emptyAction": scanAction}, Source{"type": "recentlyAdded", "library": "$library"}),
 		}}
 
 	detail := Page{ID: "detail", Kind: "detail", Title: "{title}", Icon: "info",
@@ -139,13 +140,13 @@ func buildStockPages() []Page {
 		Sections: []Section{
 			sec("header", "DetailHeader", props{"facts": []string{"season", "runtime", "contentRating", "year"}, "actions": []string{"play", "restart", "watched", "download", "share", "playOn", "watchParty"}}, nil),
 			sec("credits", "Credits", nil, Source{"type": "credits", "item": "$item"}),
-			sec("season", "Shelf", props{"title": "More from this season", "cardStyle": "episode", "seeAll": "never"}, Source{"type": "episodes", "show": "$show", "season": "$season"}),
+			sec("season", "Shelf", props{"title": i18n.T("More from this season"), "cardStyle": "episode", "seeAll": "never"}, Source{"type": "episodes", "show": "$show", "season": "$season"}),
 		}}
 	detailAlbum := Page{ID: "detail-album", Kind: "detail", Title: "{title}", Icon: "album", Match: &Match{MediaKind: "album"}, Scope: "wittymusic",
 		Sections: []Section{
 			sec("header", "DetailHeader", props{"layout": "poster", "facts": []string{"artist", "year", "count", "runtime", "genres"}, "actions": []string{"play", "shuffle", "queue", "artist", "share"}, "menuAfter": 2}, nil),
 			sec("tracks", "TrackList", nil, Source{"type": "tracks", "library": "$library", "artist": "$artist", "album": "$album"}),
-			sec("more", "Shelf", props{"title": "More by this artist"}, Source{"type": "albums", "library": "$library", "artist": "$artist", "sort": "year"}),
+			sec("more", "Shelf", props{"title": i18n.T("More by this artist")}, Source{"type": "albums", "library": "$library", "artist": "$artist", "sort": "year"}),
 		}}
 	detailArtist := Page{ID: "detail-artist", Kind: "detail", Title: "{title}", Icon: "artist", Match: &Match{MediaKind: "artist"}, Scope: "wittymusic",
 		Description: "A music artist: their albums, newest first, and every song of theirs.",
@@ -158,7 +159,7 @@ func buildStockPages() []Page {
 	detailCollection := Page{ID: "detail-collection", Kind: "detail", Title: "{title}", Icon: "collection", Match: &Match{MediaKind: "collection"},
 		Sections: []Section{
 			sec("header", "DetailHeader", props{"layout": "compact", "facts": []string{"count"}, "actions": []string{"share"}}, nil),
-			sec("all", "Grid", props{"empty": "message", "emptyText": "Nothing in this collection yet."}, Source{"type": "collection", "collection": "$collection"}),
+			sec("all", "Grid", props{"empty": "message", "emptyText": i18n.T("Nothing in this collection yet.")}, Source{"type": "collection", "collection": "$collection"}),
 		}}
 
 	detailPerson := Page{ID: "detail-person", Kind: "detail", Title: "{title}", Icon: "user", Match: &Match{MediaKind: "person"},
@@ -190,7 +191,7 @@ func buildStockPages() []Page {
 			sec("q", "SearchBox", props{"placeholder": "Films, shows, music, books, games, people, channels", "autofocus": true}, nil),
 			when(sec("recent", "List", props{"title": "Recent searches", "empty": "hide"}, Source{"type": "recentSearches"}), Condition{Not: &Condition{Flag: "hasQuery"}}),
 			when(sec("forget", "Button", props{"label": "Clear recent searches", "icon": "history", "op": "search.forgetRecent", "variant": "ghost"}, nil), Condition{Flag: "hasRecentSearches"}),
-			when(sec("idle", "Text", props{"text": "Type at least two letters to search every library you can open. A letter or two wrong still finds it; year:1999 narrows it to a year.", "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
+			when(sec("idle", "Text", props{"text": i18n.T("Type at least two letters to search every library you can open. A letter or two wrong still finds it; year:1999 narrows it to a year."), "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
 			when(sec("narrow", "FilterBar", props{"fields": []string{"year"}, "sorts": []string{}, "showCount": false}, nil), Condition{Flag: "hasQuery"}),
 			when(scopes, Condition{Flag: "hasQuery"}),
 		}}
@@ -199,15 +200,15 @@ func buildStockPages() []Page {
 		Sections: []Section{with(sec("guide", "NativeView", props{"view": "guide"}, nil),
 			sec("favourites", "Shelf", props{"title": "Favourite channels", "seeAll": "never"}, Source{"type": "liveNow", "favourites": true}),
 			when(sec("recordings", "Shelf", props{"title": "Recordings"}, Source{"type": "recordings"}), Condition{Can: "recordings"}),
-			sec("channels", "Grid", props{"title": "All channels", "empty": "message", "emptyText": "No channels yet. An administrator can add them in Settings, Live TV."}, Source{"type": "liveNow"}),
+			sec("channels", "Grid", props{"title": "All channels", "empty": "message", "emptyText": i18n.T("No channels yet. An administrator can add them in Settings, Live TV.")}, Source{"type": "liveNow"}),
 		)}}
 
 	music := Page{ID: "music", Kind: "music", Title: "Music", Icon: "music", Scope: "wittymusic",
 		Sections: []Section{
 			sec("listening", "Shelf", props{"title": "Continue listening"}, Source{"type": "continueWatching", "media": "listen"}),
-			repeated(sec("played", "Shelf", props{"title": "Recently played in {each}"}, Source{"type": "albums", "library": "$each", "sort": "played", "limit": 15}), "libraries", "music"),
+			repeated(sec("played", "Shelf", props{"title": i18n.T("Recently played in {each}")}, Source{"type": "albums", "library": "$each", "sort": "played", "limit": 15}), "libraries", "music"),
 			repeated(sec("added", "Shelf", props{"title": "Recently added in {each}", "seeAll": "always"}, Source{"type": "albums", "library": "$each", "sort": "added", "limit": 30}), "libraries", "music"),
-			repeated(sec("artists", "Shelf", props{"title": "Artists in {each}"}, Source{"type": "artists", "library": "$each"}), "libraries", "music"),
+			repeated(sec("artists", "Shelf", props{"title": i18n.T("Artists in {each}")}, Source{"type": "artists", "library": "$each"}), "libraries", "music"),
 		}}
 	photos := Page{ID: "photos", Kind: "photos", Title: "Photos", Icon: "photo",
 		Sections: []Section{repeated(sec("recent", "Shelf", props{"title": "{each}", "cardStyle": "photo", "showTitles": false, "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each"}), "libraries", "photos")}}
@@ -224,7 +225,7 @@ func buildStockPages() []Page {
 	collections := Page{ID: "collections", Kind: "collections", Title: "Collections", Icon: "collection",
 		Sections: []Section{
 			sec("later", "Shelf", props{"title": "Watch later"}, Source{"type": "watchLater"}),
-			sec("all", "Grid", props{"cardStyle": "tile", "empty": "message", "emptyText": "No collections yet."}, Source{"type": "collections"}),
+			sec("all", "Grid", props{"cardStyle": "tile", "empty": "message", "emptyText": i18n.T("No collections yet.")}, Source{"type": "collections"}),
 		}}
 
 	out := []Page{home, libraries, library}

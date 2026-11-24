@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -387,7 +388,7 @@ func Apply(f Folders) *Result {
 				_ = os.RemoveAll(filepath.Join(from, name))
 			}
 			_ = os.Remove(from)
-			res.Notes = append(res.Notes, "What was here before is kept as "+r.Save+".")
+			res.Notes = append(res.Notes, i18n.F("What was here before is kept as {save}.", "save", r.Save))
 		default:
 			err = fmt.Errorf("no such kind of reset: %q", r.Mode)
 		}
@@ -425,6 +426,6 @@ func clearOutside(r *Request, res *Result) {
 			res.Notes = append(res.Notes, dir+": "+err.Error())
 			continue
 		}
-		res.Notes = append(res.Notes, "What was in "+dir+" is now in its "+name+" folder, and is yours to delete.")
+		res.Notes = append(res.Notes, i18n.F("What was in {dir} is now in its {name} folder, and is yours to delete.", "dir", dir, "name", name))
 	}
 }

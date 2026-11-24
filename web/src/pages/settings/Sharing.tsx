@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { type ShareLink } from '../../gallery'
-import { date, t, tk, tn } from '../../i18n'
+import { date, t, tk, tn, bidi } from '../../i18n'
 import { toast, useApp } from '../../state'
 import { LoadError } from '../../components/common'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './ui'
@@ -66,7 +66,7 @@ function Links() {
       actions={user?.isAdmin ? <label className="set-check"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> {t("Everyone's")}</label> : undefined}>
       {links && !links.length && <p className="muted" style={{ padding: '4px 0' }}>{t('No links yet. Make one with Share on a picture, video or album.')}</p>}
       {links?.map((l) => (
-        <Row key={l.id} label={l.title} desc={[l.kind === 'photos' ? t('Pictures') : t('Single item'), l.owner && all ? t('by {name}', { name: l.owner }) : '', tn('opened {count} time', 'opened {count} times', l.views), l.expiresAt ? t('until {date}', { date: date(l.expiresAt * 1000, { dateStyle: 'short' }) }) : t('no end date'), l.allowDownload ? t('downloads allowed') : ''].filter(Boolean).join(' · ')}>
+        <Row key={l.id} label={l.title} desc={[l.kind === 'photos' ? t('Pictures') : t('Single item'), l.owner && all ? t('by {name}', { name: l.owner }) : '', tn('opened {count} time', 'opened {count} times', l.views), l.expiresAt ? t('until {date}', { date: date(l.expiresAt * 1000, { dateStyle: 'short' }) }) : t('no end date'), l.allowDownload ? t('downloads allowed') : ''].filter(Boolean).map(bidi).join(' · ')}>
           <button className="btn sm ghost" onClick={() => end(l)}>{t('End link')}</button>
         </Row>
       ))}

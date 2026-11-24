@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"path/filepath"
 	"runtime/debug"
@@ -360,7 +361,7 @@ func runOne(ctx context.Context, e *DoctorEnv, c Check) (out []Issue) {
 	defer func() {
 		if p := recover(); p != nil {
 			e.log().Error("a repair check crashed", "cat", "server", "check", c.ID, "err", p, "stack", string(debug.Stack()))
-			out = []Issue{{Severity: SevWarn, Title: "This check stopped unexpectedly: " + c.Title, What: "The check itself failed, which says nothing about your server. Nothing was changed. It's worth reporting.", Safety: SafetyManual, NotChecked: true, Key: c.ID + ":crashed"}}
+			out = []Issue{{Severity: SevWarn, Title: i18n.F("This check stopped unexpectedly: {title}", "title", c.Title), What: i18n.T("The check itself failed, which says nothing about your server. Nothing was changed. It's worth reporting."), Safety: SafetyManual, NotChecked: true, Key: c.ID + ":crashed"}}
 		}
 		for i := range out {
 			out[i].Check, out[i].Area = c.ID, c.Area
@@ -507,9 +508,9 @@ func writeIssue(b *strings.Builder, i *Issue) {
 func (r *DoctorReport) Summary() string {
 	if r.Healthy() {
 		if r.Notes > 0 {
-			return fmt.Sprintf("Nothing needs fixing. %s to read above. %d checks ran.", countOf(r.Notes, "note", "notes"), len(r.Checks))
+			return i18n.F("Nothing needs fixing. {countOf} to read above. {len} checks ran.", "countOf", countOf(r.Notes, "note", "notes"), "len", len(r.Checks))
 		}
-		return fmt.Sprintf("Nothing needs fixing. %d checks ran.", len(r.Checks))
+		return i18n.F("Nothing needs fixing. {len} checks ran.", "len", len(r.Checks))
 	}
 	return fmt.Sprintf("%s and %s. %d can be fixed by this program, and the rest need you.", countOf(r.Problems, "problem", "problems"), countOf(r.Warnings, "warning", "warnings"), r.Fixable)
 }

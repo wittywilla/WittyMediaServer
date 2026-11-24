@@ -5,6 +5,7 @@ package libtranscode
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -424,7 +425,7 @@ func codecName(id string) string {
 	case "ac3":
 		return "Dolby Digital"
 	case "eac3":
-		return "Dolby Digital Plus"
+		return i18n.T("Dolby Digital Plus")
 	case "truehd":
 		return "Dolby TrueHD"
 	case "dts":
@@ -452,7 +453,7 @@ func codecName(id string) string {
 	case "hdmv_pgs_subtitle":
 		return "Blu-ray pictures (PGS)"
 	case "dvd_subtitle":
-		return "DVD pictures (VobSub)"
+		return i18n.T("DVD pictures (VobSub)")
 	case "dvb_subtitle":
 		return "broadcast pictures (DVB)"
 	case "xsub":

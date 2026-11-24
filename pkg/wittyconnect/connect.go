@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"net"
 	"net/http"
@@ -304,7 +305,7 @@ func (c *Connector) proxyError(w http.ResponseWriter, r *http.Request, err error
 		msg = msg[i+2:]
 	}
 	if errors.Is(err, p2p.ErrNoDirectPath) {
-		msg = "Your server was found, but a direct connection through both routers couldn't be made, and no community relay is available to carry it. It often works from another network."
+		msg = i18n.T("Your server was found, but a direct connection through both routers couldn't be made, and no community relay is available to carry it. It often works from another network.")
 	}
 	msg = strings.ToUpper(msg[:1]) + msg[1:]
 	w.Header().Set("Cache-Control", "no-store")

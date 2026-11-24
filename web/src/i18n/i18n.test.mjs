@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
-import { fill, lookup, pickForm, placeholders, isRtl, templateMatcher } from './core.ts'
+import { fill, lookup, pickForm, placeholders, isRtl, templateMatcher, FSI, PDI } from './core.ts'
 import { messagesIn } from './extract.ts'
 import { UI_LANGUAGES, uiLanguageFor } from '../languages.ts'
 
@@ -31,6 +31,30 @@ test('text the server filled in is matched by its pattern', () => {
   assert.equal(m('Movies 2'), undefined, 'a key with almost no words of its own matches nothing')
   assert.equal(m('Sign in'), undefined, 'keys without names are for exact lookups')
   assert.equal(m('Something else'), undefined)
+})
+
+test('a reason the server put inside its own sentence is translated too', () => {
+  const m = templateMatcher({ "This backup can't be used: {why}": 'Diese Sicherung ist nicht nutzbar: {why}', 'The file is damaged.': 'Die Datei ist beschädigt.', 'Disk {name} is full': 'Datenträger {name} ist voll' }, 'de')
+  assert.equal(m("This backup can't be used: The file is damaged."), 'Diese Sicherung ist nicht nutzbar: Die Datei ist beschädigt.')
+  assert.equal(m("This backup can't be used: Disk D: is full"), 'Diese Sicherung ist nicht nutzbar: Datenträger D: ist voll')
+  assert.equal(m("This backup can't be used: something new"), 'Diese Sicherung ist nicht nutzbar: something new')
+})
+
+test('a count the server put in its words takes the language’s form for it', () => {
+  const ru = { '{count} albums': { one: '{count} альбом', few: '{count} альбома', many: '{count} альбомов', other: '{count} альбома' } }
+  const m = templateMatcher({}, 'ru', { '{count} album': '{count} albums' }, ru)
+  assert.equal(m('1 album'), '1 альбом')
+  assert.equal(m('3 albums'), '3 альбома')
+  assert.equal(m('5 albums'), '5 альбомов')
+  assert.equal(m('1,234 albums'), '1 234 альбома'.replace(' ', ' '))
+  assert.equal(templateMatcher({}, 'ru', { '{count} album': '{count} albums' }, {})('1 album'), undefined, 'nothing to say it with: left as it is')
+})
+
+test('in right-to-left languages, filled-in Latin text and numbers with units keep their order', () => {
+  assert.equal(fill('فتح {name}', { name: '00-aurora-2019.flac' }, 'ar'), `فتح ${FSI}00-aurora-2019.flac${PDI}`)
+  assert.equal(fill('{time} מתוך', { time: '2 hr 10 min' }, 'he'), `${FSI}2 hr 10 min${PDI} מתוך`)
+  assert.equal(fill('{name} שלום', { name: 'דנה' }, 'he'), 'דנה שלום', 'right-to-left text needs nothing')
+  assert.equal(fill('Open {name}', { name: 'a-1.mkv' }, 'en'), 'Open a-1.mkv', 'left-to-right languages are left alone')
 })
 
 test('Portuguese comes as written in Brazil and in Portugal', () => {

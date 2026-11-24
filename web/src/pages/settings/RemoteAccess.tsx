@@ -168,14 +168,14 @@ function StatusCard({ st, save, busy }: { st: Status; save: Save; busy: boolean 
   return (
     <section className={'set-card rem-status rem-' + st.level} aria-labelledby="rem-subject">
       <div aria-live="polite">
-        <h2 id="rem-subject" className="rem-subject"><span className="rem-level" aria-hidden="true">{level === 'ok' ? <IconCheck size={20} /> : level === 'problem' ? <IconClose size={20} /> : <IconInfo size={20} />}</span>{st.subject}</h2>
-        <p className="rem-summary">{st.summary}</p>
+        <h2 id="rem-subject" className="rem-subject"><span className="rem-level" aria-hidden="true">{level === 'ok' ? <IconCheck size={20} /> : level === 'problem' ? <IconClose size={20} /> : <IconInfo size={20} />}</span>{tx(st.subject)}</h2>
+        <p className="rem-summary">{tx(st.summary)}</p>
         <ul className="rem-who">
-          <li className={homeOk ? 'yes' : 'part'}><span aria-hidden="true">{homeOk ? <IconCheck size={16} /> : <IconInfo size={16} />}</span>{st.home}</li>
-          <li className={awayOk ? 'yes' : 'no'}><span aria-hidden="true">{awayOk ? <IconCheck size={16} /> : <IconClose size={16} />}</span>{st.away}</li>
+          <li className={homeOk ? 'yes' : 'part'}><span aria-hidden="true">{homeOk ? <IconCheck size={16} /> : <IconInfo size={16} />}</span>{tx(st.home)}</li>
+          <li className={awayOk ? 'yes' : 'no'}><span aria-hidden="true">{awayOk ? <IconCheck size={16} /> : <IconClose size={16} />}</span>{tx(st.away)}</li>
         </ul>
-        <p className="rem-checked">{st.checked}</p>
-        {st.warning && <p className="rem-plain-warn"><span aria-hidden="true"><IconShield size={18} /></span><span><b>{t('Warning:')}</b> {st.warning}{st.plainSessions > 0 && <> {tn('One device is signed in that way.', '{count} devices are signed in that way.', st.plainSessions)}</>}</span></p>}
+        <p className="rem-checked">{tx(st.checked)}</p>
+        {st.warning && <p className="rem-plain-warn"><span aria-hidden="true"><IconShield size={18} /></span><span><b>{t('Warning:')}</b> {tx(st.warning)}{st.plainSessions > 0 && <> {tn('One device is signed in that way.', '{count} devices are signed in that way.', st.plainSessions)}</>}</span></p>}
       </div>
       {st.notices.length > 0 && (
         <ul className="rem-notices">
@@ -201,7 +201,7 @@ function StatusCard({ st, save, busy }: { st: Status; save: Save; busy: boolean 
           <li key={r.kind + r.label}>
             <div className="rem-route-top"><b>{r.kind === 'vpn' ? t('Away, through {name}', { name: r.label }) : t('Away, {way}', { way: tx(r.label).charAt(0).toLowerCase() + tx(r.label).slice(1) })}</b><Badge state={r.state} /></div>
             {r.urls.map((u) => <CopyLine key={u} value={u} />)}
-            {r.detail && <small>{r.detail}</small>}
+            {r.detail && <small>{tx(r.detail)}</small>}
             <small>{t('Last connection: {when}', { when: ago(r.lastSeen) })}</small>
           </li>
         ))}
@@ -569,7 +569,7 @@ function OutsideTest({ st, reload }: { st: Status; reload: () => Promise<void> }
           {!st.test && st.lastProof && <p className="rem-note"><IconCheck size={14} /> {t('Last confirmed {when}, {where}, {how}.', { when: ago(st.lastProof.at), where: whereLabel(st.lastProof.where), how: viaLabel(st.lastProof.where, st.lastProof.via) })}</p>}
           {steps && (
             <ul className="rem-check" aria-live="polite">
-              {steps.map((c) => <li key={c.name} className={c.state}><b>{c.name}</b><span>{c.detail}</span></li>)}
+              {steps.map((c) => <li key={c.name} className={c.state}><b>{tx(c.name)}</b><span>{tx(c.detail)}</span></li>)}
             </ul>
           )}
         </>}

@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -1061,7 +1062,7 @@ func (s *Server) handleSDUIPersonalPut(w http.ResponseWriter, r *http.Request) {
 		err = dec.Decode(&p)
 	}
 	if err != nil {
-		writeErr(w, 400, "That arrangement can't be read: "+err.Error())
+		writeErr(w, 400, i18n.F("That arrangement can't be read: {error}", "error", err.Error()))
 		return
 	}
 	if issues := sdui.ValidatePersonal(&p); sdui.HasErrors(issues) {

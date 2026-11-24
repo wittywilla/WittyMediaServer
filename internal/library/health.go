@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 )
 
 // Library health: what in the libraries needs a look, in one place, each with the fix that
@@ -474,7 +476,7 @@ func (h *healthRun) duplicates() ([]HealthRow, error) {
 	}
 	for _, e := range eps {
 		r := HealthRow{Key: fmt.Sprintf("duplicates:episode:%d:%d:%d", e.show, e.season, e.episode), Target: TargetShow, ID: e.show, LibraryID: e.lib, Title: e.title,
-			Detail: fmt.Sprintf("Season %d episode %d is in more than one file", e.season, e.episode), Fixes: []string{FixOpen, FixSetAside}}
+			Detail: i18n.F("Season {season} episode {episode} is in more than one file", "season", e.season, "episode", e.episode), Fixes: []string{FixOpen, FixSetAside}}
 		for _, idText := range strings.Split(e.ids, ",") {
 			id, _ := strconv.ParseInt(idText, 10, 64)
 			if it, err := h.s.Store.Item(h.ctx, id); err == nil {

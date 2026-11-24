@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
-import { date, language, t, tx } from '../i18n'
+import { date, language, t, tx, bidi } from '../i18n'
 
 // watchOffers.ts can't import the translations (node tests load it): its copy names and details are translated here.
 const copyName = (name: string) => { const m = /^Version (\d+)$/.exec(name); return m ? t('Version {number}', { number: m[1] }) : tx(name) }
-const copyDetail = (detail: string) => detail.split(' · ').map(tx).join(' · ')
+const copyDetail = (detail: string) => detail.split(' · ').map(tx).map(bidi).join(' · ')
 import { useApp } from '../state'
 import { Select } from '../ui'
 import LegalNote from './LegalNote'

@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"os"
 	"path"
@@ -378,13 +379,13 @@ func sanitizeSettings(ctx context.Context, d *sql.DB, in *Inspection) error {
 		}
 	}
 	if len(places) > 0 {
-		in.Dropped = append(in.Dropped, "Settings that name a program or folder on the old machine, which you set again here: "+strings.Join(places, ", ")+".")
+		in.Dropped = append(in.Dropped, i18n.F("Settings that name a program or folder on the old machine, which you set again here: {places}.", "places", strings.Join(places, ", ")))
 	}
 	if len(offs) > 0 {
-		in.Notes = append(in.Notes, "Remote Access stays off after a restore until you turn it on again from home.")
+		in.Notes = append(in.Notes, i18n.T("Remote Access stays off after a restore until you turn it on again from home."))
 	}
 	if len(addrs) > 0 {
-		in.Dropped = append(in.Dropped, "Settings holding web addresses, since this backup has no password to prove nobody changed them: "+strings.Join(addrs, ", ")+".")
+		in.Dropped = append(in.Dropped, i18n.F("Settings holding web addresses, since this backup has no password to prove nobody changed them: {addrs}.", "addrs", strings.Join(addrs, ", ")))
 	}
 	return nil
 }
@@ -501,7 +502,7 @@ func sanitizeRows(ctx context.Context, d *sql.DB, in *Inspection, f Folders) err
 			why = "it's on another machine, and this backup has no password to prove it's yours. Add it again under Libraries"
 		}
 		if why != "" {
-			in.Dropped = append(in.Dropped, "The library folder "+printableName(x.path)+", because "+why+".")
+			in.Dropped = append(in.Dropped, i18n.F("The library folder {printableName}, because {why}.", "printableName", printableName(x.path), "why", why))
 			if _, err := d.ExecContext(ctx, `DELETE FROM library_paths WHERE id = ?`, x.id); err != nil {
 				return err
 			}
@@ -551,7 +552,7 @@ func sanitizeRows(ctx context.Context, d *sql.DB, in *Inspection, f Folders) err
 			return err
 		}
 		if n, err := res.RowsAffected(); err == nil && n > 0 {
-			in.Dropped = append(in.Dropped, "Libraries that convert new files by themselves, which you turn on again if you want them, since this backup has no password to prove they're yours.")
+			in.Dropped = append(in.Dropped, i18n.T("Libraries that convert new files by themselves, which you turn on again if you want them, since this backup has no password to prove they're yours."))
 		}
 	}
 	return nil
@@ -880,12 +881,12 @@ func describeDatabase(ctx context.Context, d *sql.DB, in *Inspection) error {
 		in.Parts[i].Rows = counts[in.Parts[i].ID]
 	}
 	in.Notes = append(in.Notes,
-		"Every sign-in ends, on every device. Everyone signs in again with the name and password in the backup.",
+		i18n.T("Every sign-in ends, on every device. Everyone signs in again with the name and password in the backup."),
 		"Modules, game cores and BIOS files aren't in a backup. Modules install again from the Modules page, and game PCs need pairing again.")
 	if !in.man.Protected {
-		in.Notes = append(in.Notes, "This backup has no password, so it holds no API keys or two-factor secrets, and share links stop working. Add the keys again in Settings, and set two-factor up again.")
+		in.Notes = append(in.Notes, i18n.T("This backup has no password, so it holds no API keys or two-factor secrets, and share links stop working. Add the keys again in Settings, and set two-factor up again."))
 	} else {
-		in.Notes = append(in.Notes, "API keys, two-factor sign-in and share links come back as they were.")
+		in.Notes = append(in.Notes, i18n.T("API keys, two-factor sign-in and share links come back as they were."))
 	}
 	return nil
 }

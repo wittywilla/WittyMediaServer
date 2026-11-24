@@ -25,6 +25,7 @@ package separator
 
 import (
 	_ "embed"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 
 	"archive/tar"
 	"archive/zip"
@@ -120,12 +121,12 @@ func supportedOn(goos, goarch string, musl bool) (bool, string) {
 		case goos == "freebsd":
 			return false, "PyTorch, which Demucs needs, isn't made for FreeBSD. Install a separator by hand, or use the quick version."
 		case goos == "windows" && goarch == "arm64":
-			return false, "PyTorch isn't made for Windows on ARM for this. Install a separator by hand, or use the quick version."
+			return false, i18n.T("PyTorch isn't made for Windows on ARM for this. Install a separator by hand, or use the quick version.")
 		}
-		return false, fmt.Sprintf("There's no ready-made build for %s on %s. Install a separator by hand, or use the quick version.", goarch, goos)
+		return false, i18n.F("There's no ready-made build for {goarch} on {goos}. Install a separator by hand, or use the quick version.", "goarch", goarch, "goos", goos)
 	}
 	if musl {
-		return false, "This system's C library (musl, as on Alpine) can't run PyTorch's builds. Install a separator by hand, or use the quick version."
+		return false, i18n.T("This system's C library (musl, as on Alpine) can't run PyTorch's builds. Install a separator by hand, or use the quick version.")
 	}
 	return true, ""
 }
@@ -258,7 +259,7 @@ func Install(ctx context.Context, dir, ffmpegDir string, acc Accel, step Step, l
 		logw = io.Discard
 	}
 
-	step("Downloading the installer", 2)
+	step(i18n.T("Downloading the installer"), 2)
 	uvDir := filepath.Join(dir, "uv")
 	uv, err := fetchUV(ctx, asset, uvDir)
 	if err != nil {
@@ -295,7 +296,7 @@ func Install(ctx context.Context, dir, ffmpegDir string, acc Accel, step Step, l
 	if err := run("Getting Python", 8, uv, "python", "install", PythonVersion); err != nil {
 		return err
 	}
-	if err := run("Making a place for Demucs", 15, uv, "venv", "--python", PythonVersion, filepath.Join(dir, "venv")); err != nil {
+	if err := run(i18n.T("Making a place for Demucs"), 15, uv, "venv", "--python", PythonVersion, filepath.Join(dir, "venv")); err != nil {
 		return err
 	}
 	py := venvPython(dir)
@@ -305,10 +306,10 @@ func Install(ctx context.Context, dir, ffmpegDir string, acc Accel, step Step, l
 	}
 	args := append([]string{"pip", "install", "--python", py, "--index-url", acc.Index,
 		"--extra-index-url", "https://pypi.org/simple", "--index-strategy", "unsafe-best-match"}, pkgs...)
-	if err := run(fmt.Sprintf("Getting Demucs and PyTorch for %s (about %.1f GB)", acc.Name, float64(acc.DownloadMB)/1000), 20, uv, args...); err != nil {
+	if err := run(fmt.Sprintf(i18n.T("Getting Demucs and PyTorch for %s (about %.1f GB)"), acc.Name, float64(acc.DownloadMB)/1000), 20, uv, args...); err != nil {
 		return err
 	}
-	if err := run("Getting Demucs's model", 80, py, "-c", "from demucs.pretrained import get_model; get_model('"+Model+"')"); err != nil {
+	if err := run(i18n.T("Getting Demucs's model"), 80, py, "-c", "from demucs.pretrained import get_model; get_model('"+Model+"')"); err != nil {
 		return err
 	}
 	step("Checking it", 85)
@@ -343,7 +344,7 @@ func Install(ctx context.Context, dir, ffmpegDir string, acc Accel, step Step, l
 		acc = cpuAccel
 	}
 	if acc.ID != "cpu" && acc.ID != "dml" {
-		step("Checking the graphics card", 97)
+		step(i18n.T("Checking the graphics card"), 97)
 		probe := "import torch,sys;sys.exit(0 if (torch.backends.mps.is_available() if '" + acc.Device + "'=='mps' else torch.cuda.is_available()) else 1)"
 		if err := exec.CommandContext(ctx, py, "-c", probe).Run(); err != nil {
 			if ctx.Err() != nil {
@@ -382,7 +383,7 @@ func installDirectML(ctx context.Context, dir, uv, py string, env []string, step
 		cmd.WaitDelay = 10 * time.Second
 		return cmd.Run()
 	}
-	step("Getting ONNX Runtime for DirectML", 87)
+	step(i18n.T("Getting ONNX Runtime for DirectML"), 87)
 	wheels := filepath.Join(dir, "cache", "wheels")
 	var paths []string
 	for _, w := range dmlWheels {
@@ -400,14 +401,14 @@ func installDirectML(ctx context.Context, dir, uv, py string, env []string, step
 		return true, false, err
 	}
 	model := filepath.Join(dir, "models", onnxModelFile)
-	step("Converting the model for DirectML", 90)
+	step(i18n.T("Converting the model for DirectML"), 90)
 	// The script compares the converted model with Demucs on the processor and refuses it below
 	// 60 dB (they agree to about 80).
 	if err := run(20*time.Minute, py, script, "export", "--out", model); err != nil {
 		_ = os.Remove(model)
 		return true, false, fmt.Errorf("the model couldn't be converted: %w", err)
 	}
-	step("Checking the graphics card with DirectML", 94)
+	step(i18n.T("Checking the graphics card with DirectML"), 94)
 	if err := run(5*time.Minute, py, script, "probe", "--onnx", model, "--provider", "dml"); err != nil {
 		return true, false, fmt.Errorf("the test run through DirectML failed: %w", err)
 	}
@@ -585,7 +586,7 @@ func Licenses(dir string) []License {
 		return nil
 	}
 	var out []License
-	out = append(out, License{Name: "uv", Version: in.UV, License: "MIT OR Apache-2.0", URL: "https://github.com/astral-sh/uv",
+	out = append(out, License{Name: "uv", Version: in.UV, License: i18n.T("MIT OR Apache-2.0"), URL: "https://github.com/astral-sh/uv",
 		Text: "uv is made by Astral Software Inc. and offered under the MIT license or the Apache License 2.0, at your choice. See https://github.com/astral-sh/uv/blob/main/LICENSE-MIT and LICENSE-APACHE."})
 	if p := pythonLicense(filepath.Join(dir, "python")); p != "" {
 		out = append(out, License{Name: "Python", Version: in.Python, License: "PSF-2.0", URL: "https://www.python.org", Text: p})
@@ -702,7 +703,7 @@ func readDistInfo(di string) (License, bool) {
 		l.License = classifier
 	}
 	if l.License == "" {
-		l.License = "See its license text"
+		l.License = i18n.T("See its license text")
 	}
 	var texts []string
 	_ = filepath.WalkDir(di, func(p string, d fs.DirEntry, err error) error {

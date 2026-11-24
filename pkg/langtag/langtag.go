@@ -10,6 +10,7 @@
 package langtag
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"regexp"
 	"sort"
 	"strings"
@@ -73,7 +74,7 @@ var table = []lang{
 	{"yo", []string{"yor"}, "Yoruba"}, {"za", []string{"zha"}, "Zhuang"}, {"zh", []string{"zho", "chi"}, "Chinese"}, {"zu", []string{"zul"}, "Zulu"},
 	// Three-letter codes with no two-letter one that media often carries.
 	{"ast", nil, "Asturian"}, {"ceb", nil, "Cebuano"}, {"cmn", nil, "Mandarin Chinese"}, {"fil", nil, "Filipino"}, {"gsw", nil, "Swiss German"},
-	{"haw", nil, "Hawaiian"}, {"hmn", nil, "Hmong"}, {"kab", nil, "Kabyle"}, {"mni", nil, "Manipuri"}, {"nan", nil, "Min Nan Chinese"},
+	{"haw", nil, "Hawaiian"}, {"hmn", nil, "Hmong"}, {"kab", nil, "Kabyle"}, {"mni", nil, "Manipuri"}, {"nan", nil, i18n.T("Min Nan Chinese")},
 	{"nds", nil, "Low German"}, {"sco", nil, "Scots"}, {"tlh", nil, "Klingon"}, {"yue", nil, "Cantonese"}, {"wuu", nil, "Wu Chinese"},
 	{"mul", nil, "Multiple languages"}, {"zxx", nil, "No language"}, {"und", nil, "Undetermined"}, {"mis", nil, "Uncoded language"},
 }

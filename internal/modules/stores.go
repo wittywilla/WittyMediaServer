@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -54,11 +55,11 @@ const (
 // StoreWarning is what someone agrees to before adding a store. The server says it, so every
 // client that offers this says the same thing.
 var StoreWarning = []string{
-	"Add a store only if you trust whoever runs it. Nobody at this project has reviewed anything in it.",
-	"A module is someone's code running on your server. It can read what this server's account can read, which may include your media and this server's database. A web module runs in the browser of whoever uses it, with their access, including yours as an admin.",
-	"Whoever runs this store holds its signing key, not this project. A signature only proves a file came from whoever holds that key, not that it's safe. If that key leaks, or its owner turns, this server can't tell.",
-	"This server pins the key below now, and refuses the store if the key ever changes. It won't install anything from the store by itself: you choose each version, and each one replaces a module only after its own warning. " + forkLimits + " Encrypted media stays refused whatever a module says.",
-	"Check the key's fingerprint with the store's owner, somewhere other than the store itself.",
+	i18n.T("Add a store only if you trust whoever runs it. Nobody at this project has reviewed anything in it."),
+	i18n.T("A module is someone's code running on your server. It can read what this server's account can read, which may include your media and this server's database. A web module runs in the browser of whoever uses it, with their access, including yours as an admin."),
+	i18n.T("Whoever runs this store holds its signing key, not this project. A signature only proves a file came from whoever holds that key, not that it's safe. If that key leaks, or its owner turns, this server can't tell."),
+	i18n.F("This server pins the key below now, and refuses the store if the key ever changes. It won't install anything from the store by itself: you choose each version, and each one replaces a module only after its own warning. {forkLimits} Encrypted media stays refused whatever a module says.", "forkLimits", forkLimits),
+	i18n.T("Check the key's fingerprint with the store's owner, somewhere other than the store itself."),
 }
 
 // storeRecord is what is remembered about a store.
@@ -312,7 +313,7 @@ func (s *Stores) kindOf(id string, known map[string]bool) (string, string) {
 		}
 		return KindFork, ""
 	}
-	return KindDev, "New kinds of module are still in development, so this server can't install one yet. It's shown so you can see what the store offers."
+	return KindDev, i18n.T("New kinds of module are still in development, so this server can't install one yet. It's shown so you can see what the store offers.")
 }
 
 func (s *Stores) knownModules() map[string]bool {
@@ -379,7 +380,7 @@ func (s *Stores) Preview(ctx context.Context, raw, key string, private bool) (*S
 type NeedKey struct{}
 
 func (*NeedKey) Error() string {
-	return "This store doesn't offer a key to check it with. Ask its owner for their public key and paste it in."
+	return i18n.T("This store doesn't offer a key to check it with. Ask its owner for their public key and paste it in.")
 }
 
 // fetchCatalogFiles asks for a catalogue and its signature, with the limits in force. Neither
@@ -544,11 +545,11 @@ func (s *Stores) look(ctx context.Context, rec *storeRecord) (*Failure, *wittymo
 	case c.Serial < rec.Serial:
 		return &Failure{Kind: FailSignature, Title: "This store went backwards", Detail: fmt.Sprintf("serial %d, and %d was seen", c.Serial, rec.Serial),
 			Message: "It sent an older list than the one this server already has. That can mean someone is holding back updates, so the older list was ignored.",
-			Try:     []string{"Wait, and check again later.", "If it stays like this, ask the store's owner."}}, nil, nil, nil
+			Try:     []string{"Wait, and check again later.", i18n.T("If it stays like this, ask the store's owner.")}}, nil, nil, nil
 	case c.Serial == rec.Serial && rec.Hash != "" && sum(cat) != rec.Hash:
 		return &Failure{Kind: FailSignature, Title: "This store changed its list without saying so", Detail: fmt.Sprintf("serial %d, with different contents", c.Serial),
 			Message: "It sent a list with the same number as the last one and different contents. A store has to raise that number for every change, so this list was ignored.",
-			Try:     []string{"Ask the store's owner."}}, nil, nil, nil
+			Try:     []string{i18n.T("Ask the store's owner.")}}, nil, nil, nil
 	}
 	return nil, c, cat, sig
 }

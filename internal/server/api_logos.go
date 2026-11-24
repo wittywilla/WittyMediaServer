@@ -5,6 +5,7 @@ package server
 
 import (
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"os"
@@ -28,7 +29,7 @@ func (s *Server) logos() *library.Logos {
 func (s *Server) handleLogoStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	out := map[string]any{
-		"consent": s.Store.LogoConsent(ctx), "source": "Wikidata and Wikimedia Commons",
+		"consent": s.Store.LogoConsent(ctx), "source": i18n.T("Wikidata and Wikimedia Commons"),
 		"sourceUrl": "https://commons.wikimedia.org/wiki/Commons:Licensing",
 	}
 	if userFrom(r).IsAdmin {

@@ -14,6 +14,7 @@ package libtranscode
 import (
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"slices"
 	"strings"
 
@@ -166,15 +167,15 @@ type PresetInfo struct {
 func Presets() []PresetInfo {
 	return []PresetInfo{
 		{
-			ID: PresetCompatible, Name: "Make everything play on any device",
+			ID: PresetCompatible, Name: i18n.T("Make everything play on any device"),
 			Summary: "Files become MP4 with H.264 picture and AAC sound, which every phone, TV, tablet and browser plays without the server converting anything.",
 			Details: []string{
-				"Pictures taller than 1080p are made 1080p. HDR becomes an ordinary picture.",
-				"A stereo AAC track comes first, and a surround track stays beside it where one exists.",
-				"Text subtitles are kept. Subtitles stored as pictures can't go in an MP4: forced ones are burned in, and Blu-ray ones are saved as a file beside the video.",
-				"Files that already fit are left alone.",
+				i18n.T("Pictures taller than 1080p are made 1080p. HDR becomes an ordinary picture."),
+				i18n.T("A stereo AAC track comes first, and a surround track stays beside it where one exists."),
+				i18n.T("Text subtitles are kept. Subtitles stored as pictures can't go in an MP4: forced ones are burned in, and Blu-ray ones are saved as a file beside the video."),
+				i18n.T("Files that already fit are left alone."),
 			},
-			Cost: "Heavy work for the processor. Files may grow if they were very efficient to begin with.",
+			Cost: i18n.T("Heavy work for the processor. Files may grow if they were very efficient to begin with."),
 			Policy: Policy{
 				Preset: PresetCompatible, Container: "mp4",
 				Video:     VideoPolicy{Codec: "h264", Quality: 21, Speed: "balanced", MaxHeight: 1080, HDR: "tonemap", DolbyVision: "base", EightBit: true, Deinterlace: true, ConstantRate: true, ThreeD: Keep, ExtraVideo: Drop},
@@ -186,13 +187,13 @@ func Presets() []PresetInfo {
 			ID: PresetSaveSpace, Name: "Save space",
 			Summary: "Pictures are converted to a much more efficient format, usually taking 30 to 60% less room for a picture that looks the same to most people.",
 			Details: []string{
-				"Uses H.265 (HEVC) when this server's FFmpeg can, otherwise a higher-compression H.264.",
-				"HDR stays HDR. Dolby Vision files are left as they are.",
-				"Lossless sound such as TrueHD or DTS-HD MA becomes Dolby Digital Plus. Other sound is left alone.",
-				"Every track and subtitle stays, and files already in an efficient format are left alone.",
-				"If a new file doesn't come out at least 10% smaller, the old one stays.",
+				i18n.T("Uses H.265 (HEVC) when this server's FFmpeg can, otherwise a higher-compression H.264."),
+				i18n.T("HDR stays HDR. Dolby Vision files are left as they are."),
+				i18n.T("Lossless sound such as TrueHD or DTS-HD MA becomes Dolby Digital Plus. Other sound is left alone."),
+				i18n.T("Every track and subtitle stays, and files already in an efficient format are left alone."),
+				i18n.T("If a new file doesn't come out at least 10% smaller, the old one stays."),
 			},
-			Cost: "The slowest choice for the processor. Older devices may need the server to convert these files while playing.",
+			Cost: i18n.T("The slowest choice for the processor. Older devices may need the server to convert these files while playing."),
 			Policy: Policy{
 				Preset: PresetSaveSpace, Container: "keep",
 				Video:     VideoPolicy{Codec: "hevc", Accept: []string{"hevc", "av1", "vp9"}, Quality: 23, Speed: "balanced", HDR: Keep, DolbyVision: Keep, Deinterlace: true, ThreeD: Keep, ExtraVideo: Keep, MinSavingPercent: 10, SkipBelowKbps: 2000},
@@ -201,14 +202,14 @@ func Presets() []PresetInfo {
 			},
 		},
 		{
-			ID: PresetBest, Name: "Keep the best quality",
+			ID: PresetBest, Name: i18n.T("Keep the best quality"),
 			Summary: "Picture and sound aren't touched at all. Files are tidied into MKV, with the tracks you want in the order you want, and a stereo track added where only surround exists.",
 			Details: []string{
-				"Nothing is re-encoded, so nothing can look or sound worse, and it's quick even on small machines.",
-				"Everything is kept unless you choose languages below.",
-				"A file in a format no device can play still won't play: the server converts that one while it plays.",
+				i18n.T("Nothing is re-encoded, so nothing can look or sound worse, and it's quick even on small machines."),
+				i18n.T("Everything is kept unless you choose languages below."),
+				i18n.T("A file in a format no device can play still won't play: the server converts that one while it plays."),
 			},
-			Cost: "Very little: mostly copying, plus a short conversion for an added stereo track.",
+			Cost: i18n.T("Very little: mostly copying, plus a short conversion for an added stereo track."),
 			Policy: Policy{
 				Preset: PresetBest, Container: "mkv",
 				Video:     VideoPolicy{Codec: Keep, HDR: Keep, DolbyVision: Keep, ThreeD: Keep, ExtraVideo: Keep},

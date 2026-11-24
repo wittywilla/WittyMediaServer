@@ -8,12 +8,12 @@ import { QrCode } from '../components/QrCode'
 import * as Icons from '../icons'
 import { sectionId, withIds } from './model'
 import type { SpecCard, SpecChip, SpecField, SpecPageData, SpecRow, SpecSection } from './types'
-import { t, tn, tx } from '../i18n'
+import { t, tn, tx, bidi } from '../i18n'
 import { setWords } from '../sdui/words'
 import './spec.css'
 
 // The page specs (specs/) also run under node's tests, so they are handed the app's words here.
-setWords(t, tn, tx)
+setWords(t, tn, tx, bidi)
 
 // One page of Design 2 drawn from data (docs/design-2, "Every feature, drawn"): eyebrow, title, lead, then rows,
 // chips, notes and cards, a Dock for the page's own buttons, and a foot line. Colours, shape and type come from

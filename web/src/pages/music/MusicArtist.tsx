@@ -14,7 +14,7 @@ import { ActionBar } from './Header'
 import { artistPhoto, shuffledCopy } from './parts'
 import { useMusic } from './store'
 import { AlbumCard, artistUrl, PageShape, PlayButton, Shelf, TrackTable } from './ui'
-import { list, t, tn } from '../../i18n'
+import { list, t, tn, bidi } from '../../i18n'
 
 // One artist: their picture across the top, fading into the page, their name over it, the
 // play button, the songs played most, then the discography in rows. A biography last, if the
@@ -49,7 +49,7 @@ export default function MusicArtist({ lib }: { lib: Library }) {
         <div className="mus-hero-words">
           <span className="mus-kind">{t('Artist')}</span>
           <h1 className={'mus-title' + (title.length > 30 ? ' long' : '')} title={title}>{title}</h1>
-          <p className="mus-byline">{[tn('{count} album', '{count} albums', info.albums.length), tn('{count} song', '{count} songs', info.tracks.length), fmtRuntime(total), list(info.genres.slice(0, 3))].filter(Boolean).join(' · ')}</p>
+          <p className="mus-byline">{[tn('{count} album', '{count} albums', info.albums.length), tn('{count} song', '{count} songs', info.tracks.length), fmtRuntime(total), list(info.genres.slice(0, 3))].filter(Boolean).map(bidi).join(' · ')}</p>
         </div>
       </header>
       <ActionBar title={title}>
@@ -64,8 +64,8 @@ export default function MusicArtist({ lib }: { lib: Library }) {
           {(info.top.length || info.tracks.length) > 5 && <button type="button" className="mus-text-btn" aria-expanded={more} onClick={() => setMore(!more)}>{more ? t('Show less') : t('See more')}</button>}
         </section>
       )}
-      {full.length > 0 && <Shelf title={t('Albums')}>{full.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={[a.year, t('Album')].filter(Boolean).join(' · ')} />)}</Shelf>}
-      {small.length > 0 && <Shelf title={t('Singles and EPs')}>{small.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={[a.year, a.tracks === 1 ? t('Single') : t('EP')].filter(Boolean).join(' · ')} />)}</Shelf>}
+      {full.length > 0 && <Shelf title={t('Albums')}>{full.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={[a.year, t('Album')].filter(Boolean).map(bidi).join(' · ')} />)}</Shelf>}
+      {small.length > 0 && <Shelf title={t('Singles and EPs')}>{small.map((a) => <AlbumCard key={a.title} libId={lib.id} a={a} sub={[a.year, a.tracks === 1 ? t('Single') : t('EP')].filter(Boolean).map(bidi).join(' · ')} />)}</Shelf>}
       {(info.bio || (!info.online && user?.isAdmin)) && (
         <section className="mus-about-box" aria-labelledby="mus-about">
           <h2 id="mus-about" className="mus-h2">{t('About')}</h2>

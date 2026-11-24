@@ -5,6 +5,7 @@ package remote
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strings"
 	"time"
 )
@@ -83,7 +84,7 @@ func Describe(f Facts) Standing {
 		if f.LocalOnly {
 			s.Summary = "Only this computer can connect, because the server listens on this computer only. Devices away from home can't: you chose home network only."
 		}
-		s.Checked = "The server itself refuses every connection from outside your home network, whatever your router lets through."
+		s.Checked = i18n.T("The server itself refuses every connection from outside your home network, whatever your router lets through.")
 		return s
 	}
 	var ok, problems []Way
@@ -118,7 +119,7 @@ func Describe(f Facts) Standing {
 		if len(where) == 0 {
 			s.Summary = "Devices away from home can connect."
 		} else {
-			s.Summary = "Devices away from home can connect " + strings.Join(where, ", or ") + "."
+			s.Summary = i18n.F("Devices away from home can connect {where}.", "where", strings.Join(where, ", or "))
 		}
 		if len(problems) > 0 {
 			s.Level = "waiting"
@@ -127,7 +128,7 @@ func Describe(f Facts) Standing {
 	case len(problems) > 0:
 		s.Level, s.Subject = "fault", SubjectNo
 		s.Away = "Devices away from home: can't connect, something is in the way"
-		s.Summary = "A phone on mobile data can't connect. " + problems[0].Detail
+		s.Summary = i18n.F("A phone on mobile data can't connect. {detail}", "detail", problems[0].Detail)
 	case waiting == 0:
 		s.Level, s.Subject = "waiting", SubjectNotYet
 		s.Away = "Devices away from home: can't connect yet, there's no way in"
@@ -146,14 +147,14 @@ func Describe(f Facts) Standing {
 	}
 	switch {
 	case !f.Proof.IsZero():
-		s.Checked = "Checked from outside with your phone, " + Ago(f.Proof, f.Now) + "."
+		s.Checked = i18n.F("Checked from outside with your phone, {ago}.", "ago", Ago(f.Proof, f.Now))
 		if last.After(f.Proof) {
 			s.Checked += " Last connection from away: " + Ago(last, f.Now) + "."
 		}
 	case !last.IsZero():
-		s.Checked = "Last connection from away: " + Ago(last, f.Now) + ". Not checked with your phone yet."
+		s.Checked = i18n.F("Last connection from away: {ago}. Not checked with your phone yet.", "ago", Ago(last, f.Now))
 	default:
-		s.Checked = "Not checked from outside yet."
+		s.Checked = i18n.T("Not checked from outside yet.")
 	}
 	return s
 }

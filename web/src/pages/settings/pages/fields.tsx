@@ -7,7 +7,7 @@
 // never heard of gets a plain text box.
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
-import { t, tk, tx } from '../../../i18n'
+import { t, tk, tx, bidi } from '../../../i18n'
 import { IconClose, IconDown, IconPlus, IconUp } from '../../../icons'
 import { sduiIcon } from '../../../sdui/render/icons'
 import { Button, Chip, Chips, Field as Labelled, IconButton, Input, Menu, Select, Switch, Textarea } from '../../../ui'
@@ -61,7 +61,7 @@ function variableLabel(v: string): string {
 function Facts({ field, extra }: { field: Field; extra?: ReactNode }) {
   const facts = [field.limits, field.defaultText, field.only].filter(Boolean)
   if (!field.help && !facts.length && !extra) return null
-  return <>{tx(field.help)}{field.help && facts.length > 0 && ' '}{facts.length > 0 && <span className="pe-facts">{facts.join(' · ')}</span>}{extra}</>
+  return <>{tx(field.help)}{field.help && facts.length > 0 && ' '}{facts.length > 0 && <span className="pe-facts">{facts.map(bidi).join(' · ')}</span>}{extra}</>
 }
 
 // The places in the app a "where it leads" box can suggest: the pages, the libraries and the app's own screens.

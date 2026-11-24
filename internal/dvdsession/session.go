@@ -13,6 +13,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"image"
 	"image/png"
 	"io"
@@ -1481,7 +1482,7 @@ func (s *Session) buildTitle(ctx context.Context, st *dvd.Step, pl *playingTitle
 		}
 		purpose := a.Purpose()
 		if a.Karaoke() {
-			purpose = "Karaoke with vocals"
+			purpose = i18n.T("Karaoke with vocals")
 		}
 		tv.Audio = append(tv.Audio, Track{N: i, Language: a.Language, Codec: a.Codec, Channels: a.Channels, Purpose: purpose})
 		if a.Karaoke() {

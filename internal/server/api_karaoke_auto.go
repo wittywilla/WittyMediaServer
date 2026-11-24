@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"hash/fnv"
 	"log/slog"
 	"net/http"
@@ -296,16 +297,16 @@ type karaokeAnswer struct {
 var karaokeLabels = map[string]string{"vocals": "Vocals", "instrumental": "Music", "drums": "Drums", "bass": "Bass", "other": "Other", "full": "Original"}
 
 var karaokeMessages = map[string]string{
-	"not-a-song":   "Karaoke versions are for songs.",
-	"not-a-file":   "This isn't a file in a library, so there is nothing to make a karaoke version from.",
-	"off":          "Making karaoke versions is turned off on this server.",
-	"admin-only":   "On this server, an administrator makes karaoke versions. Ask them for this song.",
-	"mono":         "This song is mono, so the quick method has nothing to work with. A separator on the server can still do it.",
-	"no-ffmpeg":    "This server has neither FFmpeg nor a separator, so it can't make a karaoke version.",
-	"busy":         "The server is busy just now. Try again in a little while.",
-	"rate-limited": "You've asked for a lot of karaoke versions in the last hour. Try again later.",
-	"failed":       "The karaoke version couldn't be made. The server's Tasks page says why.",
-	"not-made":     "No karaoke version has been made for this song yet.",
+	"not-a-song":   i18n.T("Karaoke versions are for songs."),
+	"not-a-file":   i18n.T("This isn't a file in a library, so there is nothing to make a karaoke version from."),
+	"off":          i18n.T("Making karaoke versions is turned off on this server."),
+	"admin-only":   i18n.T("On this server, an administrator makes karaoke versions. Ask them for this song."),
+	"mono":         i18n.T("This song is mono, so the quick method has nothing to work with. A separator on the server can still do it."),
+	"no-ffmpeg":    i18n.T("This server has neither FFmpeg nor a separator, so it can't make a karaoke version."),
+	"busy":         i18n.T("The server is busy just now. Try again in a little while."),
+	"rate-limited": i18n.T("You've asked for a lot of karaoke versions in the last hour. Try again later."),
+	"failed":       i18n.T("The karaoke version couldn't be made. The server's Tasks page says why."),
+	"not-made":     i18n.T("No karaoke version has been made for this song yet."),
 }
 
 // karaokeFull is the whole song for a blend: the copy made beside the approximate

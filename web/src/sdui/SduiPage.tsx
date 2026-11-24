@@ -29,7 +29,7 @@ import type { Action, Document, Node } from './types'
 import { useDevice } from './useSdui'
 import { ask } from '../ui/Overlay'
 import { setPageRegions } from './regions'
-import { date, t, tn, tx } from '../i18n'
+import { date, t, tn, tx, bidi } from '../i18n'
 import { setWords } from './words'
 import './sdui.css'
 import './play.css'
@@ -41,7 +41,7 @@ const LayerHost = lazy(() => import('./render/LayerHost'))
 const PageTools = lazy(() => import('./extras/PageTools'))
 
 // The layout step (model.ts) is also run by node's tests, so it is handed the app's words here.
-setWords(t, tn, tx)
+setWords(t, tn, tx, bidi)
 
 // ---------------------------------------------------------------- the tree, changed without changing it
 

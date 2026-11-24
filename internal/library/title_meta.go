@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"sort"
 	"strconv"
 	"strings"
@@ -1228,7 +1229,7 @@ func (s *Store) MoveOptions(ctx context.Context, t *Title) MoveInfo {
 	}
 	out.Can = len(out.Options) > 0
 	if !out.Can {
-		out.Why = "There's no other " + libTypeWords(cur.Type) + " library to move it to."
+		out.Why = i18n.F("There's no other {libTypeWords} library to move it to.", "libTypeWords", libTypeWords(cur.Type))
 	}
 	return out
 }

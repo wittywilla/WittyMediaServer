@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net"
 	"net/http"
 	"os"
@@ -111,7 +112,7 @@ func (s *Server) handleSaveEvidence(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 429, "it was saved a moment ago: it's under Crash reports")
 		return
 	}
-	summary := "Saved from Settings by " + userFrom(r).Name + "."
+	summary := i18n.F("Saved from Settings by {name}.", "name", userFrom(r).Name)
 	if note := strings.TrimSpace(in.Note); note != "" {
 		summary += " " + strings.Join(strings.Fields(note), " ")
 	}

@@ -6,6 +6,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"slices"
@@ -227,7 +228,7 @@ func withSetupNotices(page sdui.Page, steps []pendingModuleStep) sdui.Page {
 			to = st.Open
 		}
 		notices = append(notices, sdui.Section{ID: "module-setup-" + st.Module + "-" + st.ID, Component: "Notice",
-			Props: map[string]any{"tone": "info", "title": "Finish setting up " + st.Name, "text": text, "buttonLabel": "Set up", "to": to,
+			Props: map[string]any{"tone": "info", "title": i18n.F("Finish setting up {name}", "name", st.Name), "text": text, "buttonLabel": "Set up", "to": to,
 				"dismissLabel": "Dismiss", "dismissOp": "setup.skip", "dismissParams": map[string]any{"module": st.Module, "step": st.ID}}})
 	}
 	page.Sections = append(notices, page.Sections...)

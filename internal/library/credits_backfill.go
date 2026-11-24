@@ -6,6 +6,7 @@ package library
 import (
 	"context"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"strings"
 
 	"github.com/wittywilla/wittymediaserver/internal/pace"
@@ -129,7 +130,7 @@ func (s *Scanner) creditsTodo(ctx context.Context, lib *Library) ([]creditsTodo,
 		return nil, nil
 	}
 	in := strings.Join(providers, ",")
-	source := `CASE t.provider WHEN 'tmdb-tv' THEN 'tmdb' ELSE t.provider END`
+	source := i18n.T(`CASE t.provider WHEN 'tmdb-tv' THEN 'tmdb' ELSE t.provider END`)
 	rows, err := s.Store.DB.QueryContext(ctx, `SELECT * FROM (
 		SELECT 'item', t.id, t.provider, t.provider_id FROM items t WHERE t.library_id = ?1 AND t.missing = 0 AND t.show_id IS NULL
 		  AND t.provider IN (`+in+`) AND t.provider <> 'tmdb-tv' AND t.provider_id <> ''

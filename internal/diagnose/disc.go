@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"os"
@@ -175,7 +176,7 @@ func barSpans(o DiscOptions) (crawlFrom, crawlTo, damageFrom float64) {
 
 // checkDisc is the whole of a disc check.
 func checkDisc(ctx context.Context, j *Job, path string, o DiscOptions) {
-	j.Step("Looking at what this is", 0.02)
+	j.Step(i18n.T("Looking at what this is"), 0.02)
 	if cd.IsImageName(path) && checkCD(ctx, j, path) {
 		return
 	}
@@ -195,7 +196,7 @@ func checkDisc(ctx context.Context, j *Job, path string, o DiscOptions) {
 	j.SetLabel(src.Label)
 	if !src.HasDVD && !src.HasBD {
 		if looksLikeGameDisc(src) {
-			j.Add(Finding{Severity: SevInfo, Title: "This looks like a game disc", What: fmt.Sprintf("It's readable (%s, %s, %d files), and has what a game console's disc has rather than a video structure, so there are no films or menus here to check.", kindWord(src), bytesText(src.Size), len(src.Files)),
+			j.Add(Finding{Severity: SevInfo, Title: "This looks like a game disc", What: i18n.F("It's readable ({kindWord}, {bytesText}, {len} files), and has what a game console's disc has rather than a video structure, so there are no films or menus here to check.", "kindWord", kindWord(src), "bytesText", bytesText(src.Size), "len", len(src.Files)),
 				Fix: "To play it, put it in a Games library."})
 			return
 		}
@@ -206,7 +207,7 @@ func checkDisc(ctx context.Context, j *Job, path string, o DiscOptions) {
 	}
 	switch {
 	case src.HasDVD && src.HasBD:
-		j.Add(Finding{Severity: SevInfo, Title: "This disc holds both a DVD and a Blu-ray", What: "Both structures are on it. They're checked one after the other."})
+		j.Add(Finding{Severity: SevInfo, Title: "This disc holds both a DVD and a Blu-ray", What: i18n.T("Both structures are on it. They're checked one after the other.")})
 		checkBluray(ctx, j, src, o)
 		if ctx.Err() == nil {
 			checkDVD(ctx, j, src, o)
@@ -241,16 +242,16 @@ func kindWord(s *discSource) string {
 func reportUnreadable(j *Job, path string, err error) {
 	st, serr := os.Stat(path)
 	if serr != nil {
-		j.Add(Finding{Severity: SevProblem, Title: "This can't be opened", What: "The server got this answer: " + plainErr(serr) + ".",
+		j.Add(Finding{Severity: SevProblem, Title: "This can't be opened", What: i18n.F("The server got this answer: {plainErr}.", "plainErr", plainErr(serr)),
 			Fix: "Check that the drive is connected and that the server's account may read it."})
 		return
 	}
 	f := Finding{Severity: SevProblem, Title: "This isn't a disc image the server can read",
-		What:    "It has neither a UDF nor an ISO 9660 file system where a disc image has one.",
+		What:    i18n.T("It has neither a UDF nor an ISO 9660 file system where a disc image has one."),
 		Fix:     "If it's a copy of a disc, make it again as a plain .iso image.",
-		Details: []string{"Size: " + bytesText(st.Size()), "The engine said: " + plainErr(err)}}
+		Details: []string{"Size: " + bytesText(st.Size()), i18n.F("The engine said: {plainErr}", "plainErr", plainErr(err))}}
 	if st.Size() < 64*1024 {
-		f.What = "It's far too small to be a disc image, which suggests the copy didn't finish."
+		f.What = i18n.T("It's far too small to be a disc image, which suggests the copy didn't finish.")
 	} else if h, oerr := os.Open(path); oerr == nil {
 		defer h.Close()
 		if hint := sniffImage(h, st.Size()); hint != "" {
@@ -268,7 +269,7 @@ func sniffImage(h io.ReaderAt, size int64) string {
 		// A raw sector starts with 12 sync bytes, and the volume descriptor's
 		// mark follows the sector's header.
 		if raw[0] == 0 && raw[1] == 0xff && raw[11] == 0 && (string(raw[17:22]) == "CD001" || string(raw[25:30]) == "CD001") {
-			return "It looks like a raw dump with 2352-byte sectors, not a plain image with 2048-byte sectors. The DVD and Blu-ray engines read only plain images. CD games are often kept this way: if it's a game, put it in a Games library."
+			return i18n.T("It looks like a raw dump with 2352-byte sectors, not a plain image with 2048-byte sectors. The DVD and Blu-ray engines read only plain images. CD games are often kept this way: if it's a game, put it in a Games library.")
 		}
 	}
 	head := make([]byte, 64*1024)
@@ -282,10 +283,10 @@ func sniffImage(h io.ReaderAt, size int64) string {
 	}
 	first := make([]byte, 2048)
 	if _, err := h.ReadAt(first, 16*2048); err == nil && zero && !hasVolumeMark(first) {
-		return "The start of the file is all zeros and there is no file system mark where one should be. The copy may have failed at the very beginning."
+		return i18n.T("The start of the file is all zeros and there is no file system mark where one should be. The copy may have failed at the very beginning.")
 	}
 	if size%2048 != 0 {
-		return "Its size isn't a whole number of 2048-byte sectors, so it isn't a plain disc image, or the copy was cut short."
+		return i18n.T("Its size isn't a whole number of 2048-byte sectors, so it isn't a plain disc image, or the copy was cut short.")
 	}
 	return ""
 }

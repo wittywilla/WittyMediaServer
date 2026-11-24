@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"os"
@@ -75,9 +76,9 @@ func approxFailure(err error) string {
 	case err == nil:
 		return ""
 	case errors.Is(err, errNotStereo):
-		return "This song is mono, so there are no two channels to take from each other."
+		return i18n.T("This song is mono, so there are no two channels to take from each other.")
 	}
-	return "It couldn't be made. The server's log says why."
+	return i18n.T("It couldn't be made. The server's log says why.")
 }
 
 const approxNote = "Approximate: made by cancelling what the left and right channels share. The voice is quieter, not gone, and the music is mono."
@@ -351,12 +352,12 @@ func (s *Server) separateStems(ctx context.Context, it *library.Item, words []st
 		// its memory, or its driver. The processor always works, so the song is done again there.
 		if cpu := separator.OnProcessor(words); cpu != nil && ctx.Err() == nil {
 			log.Warn("separating on the graphics card failed; doing it again on the processor", "err", err, "output", said.Last(5))
-			task.Phase("Separating on the processor")
+			task.Phase(i18n.T("Separating on the processor"))
 			return s.separateStems(ctx, it, cpu, task)
 		}
 		return fmt.Errorf("the separator failed: %w: %s", err, said)
 	}
-	task.Phase("Keeping the parts")
+	task.Phase(i18n.T("Keeping the parts"))
 	s.compactStems(ctx, work, 0)
 	dst := filepath.Join(s.extrasRoot(), mediaextras.Key(it.ID, it.Path), "stems")
 	kept, err := mediaextras.CollectStems(work, dst)

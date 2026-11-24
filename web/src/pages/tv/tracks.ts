@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type Hls from 'hls.js'
 import { langName } from '../../api'
 import type { TrackOpt } from '../../player/Controls'
-import { t } from '../../i18n'
+import { t, bidi } from '../../i18n'
 
 // The sound tracks and subtitles a channel's stream carries, for the TV player's menus. A channel
 // is one stream for everyone on it, so choosing here changes only what this player plays: other
@@ -19,7 +19,7 @@ const keep = (k: string, v: string) => { try { localStorage.setItem(k, v) } catc
 
 const isText = (x: TextTrack) => x.kind === 'subtitles' || x.kind === 'captions'
 const textLabel = (x: TextTrack, i: number) =>
-  [x.language ? langName(x.language) : '', x.label && x.label !== x.language ? x.label : '', x.kind === 'captions' ? 'CC' : ''].filter(Boolean).join(' · ') || t('Subtitles {n}', { n: i + 1 })
+  [x.language ? langName(x.language) : '', x.label && x.label !== x.language ? x.label : '', x.kind === 'captions' ? 'CC' : ''].filter(Boolean).map(bidi).join(' · ') || t('Subtitles {n}', { n: i + 1 })
 
 // `ready`: the stream is attached, so hls.js knows what it carries.
 export function useLiveTracks(video: HTMLVideoElement | null, hls: () => Hls | null, ready: boolean) {
@@ -29,7 +29,7 @@ export function useLiveTracks(video: HTMLVideoElement | null, hls: () => Hls | n
   const readAudio = useCallback(() => {
     const h = hls()
     if (!h) { setAudio([]); return }
-    setAudio(h.audioTracks.map((x, i) => ({ id: i, label: [x.lang ? langName(x.lang) : '', x.name && x.name !== x.lang ? x.name : ''].filter(Boolean).join(' · ') || t('Sound {n}', { n: i + 1 }), active: i === h.audioTrack })))
+    setAudio(h.audioTracks.map((x, i) => ({ id: i, label: [x.lang ? langName(x.lang) : '', x.name && x.name !== x.lang ? x.name : ''].filter(Boolean).map(bidi).join(' · ') || t('Sound {n}', { n: i + 1 }), active: i === h.audioTrack })))
   }, [hls])
   const readText = useCallback(() => {
     if (!video) { setSubtitles([]); return }

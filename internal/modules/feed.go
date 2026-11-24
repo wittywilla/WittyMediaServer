@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -579,30 +580,30 @@ func (m *Manager) judgeRest(e *entry, man *wittymodule.Manifest) (refused, warni
 		return sentence(err.Error()), ""
 	}
 	if !e.absent && man.Delivery != e.builtin.Delivery {
-		return fmt.Sprintf("It is delivered as %q, and this server expects %q.", man.Delivery, e.builtin.Delivery), ""
+		return fmt.Sprintf(i18n.T("It is delivered as %q, and this server expects %q."), man.Delivery, e.builtin.Delivery), ""
 	}
 	if r := protocolRefusal(e, man); r != "" {
 		return r, ""
 	}
 	w := e.state.Withdrawn.Find(ver)
 	if w != nil && w.Severity == wittymodule.SeveritySecurity {
-		return "It was withdrawn for security reasons: " + sentence(w.Reason), ""
+		return i18n.F("It was withdrawn for security reasons: {sentence}", "sentence", sentence(w.Reason)), ""
 	}
 	if r := dataRefusal(e.builtin.Name, man, e.state.DataHigh); r != "" {
 		return r, ""
 	}
 	var warn []string
 	if w != nil {
-		warn = append(warn, "It was withdrawn: "+sentence(w.Reason))
+		warn = append(warn, i18n.F("It was withdrawn: {sentence}", "sentence", sentence(w.Reason)))
 	}
 	if b := e.state.Blocked[ver]; b != "" {
-		warn = append(warn, "It was taken out of use before: "+sentence(b))
+		warn = append(warn, i18n.F("It was taken out of use before: {sentence}", "sentence", sentence(b)))
 	}
 	if wittymodule.Compare(ver, e.man.Version) < 0 {
-		warn = append(warn, "It is older than the version in use, so it may lack fixes, including security fixes. It will be pinned, so automatic updates leave it alone until you go back to the latest.")
+		warn = append(warn, i18n.T("It is older than the version in use, so it may lack fixes, including security fixes. It will be pinned, so automatic updates leave it alone until you go back to the latest."))
 	}
 	if wittymodule.Prerelease(ver) && !wittymodule.Prerelease(m.cfg.Server) {
-		warn = append(warn, "It is a pre-release, and this server is not.")
+		warn = append(warn, i18n.T("It is a pre-release, and this server is not."))
 	}
 	return "", strings.Join(warn, " ")
 }

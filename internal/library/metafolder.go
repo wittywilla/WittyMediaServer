@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path"
 	"path/filepath"
@@ -329,12 +330,12 @@ func writeOwned(dir, rel string, body []byte, state metafolder.State, res *Expor
 	fi, err := os.Lstat(abs)
 	switch {
 	case err == nil && !metafolder.PlainFile(fi):
-		res.Problems = append(res.Problems, metafolder.Problem{File: rel, Msg: "This is a link or a special file, so it was left alone", Severity: metafolder.SevWarning})
+		res.Problems = append(res.Problems, metafolder.Problem{File: rel, Msg: i18n.T("This is a link or a special file, so it was left alone"), Severity: metafolder.SevWarning})
 		return
 	case err == nil:
 		cur, err := metafolder.ReadPlain(abs, 8<<20)
 		if err != nil {
-			res.Problems = append(res.Problems, metafolder.Problem{File: rel, Msg: "This file can't be read, so it was left alone", Severity: metafolder.SevWarning})
+			res.Problems = append(res.Problems, metafolder.Problem{File: rel, Msg: i18n.T("This file can't be read, so it was left alone"), Severity: metafolder.SevWarning})
 			return
 		}
 		if string(cur) == string(body) {
@@ -347,11 +348,11 @@ func writeOwned(dir, rel string, body []byte, state metafolder.State, res *Expor
 			return
 		}
 	case !errors.Is(err, os.ErrNotExist):
-		res.Problems = append(res.Problems, metafolder.Problem{File: rel, Msg: "This file can't be read, so it was left alone", Severity: metafolder.SevWarning})
+		res.Problems = append(res.Problems, metafolder.Problem{File: rel, Msg: i18n.T("This file can't be read, so it was left alone"), Severity: metafolder.SevWarning})
 		return
 	}
 	if err := metafolder.WriteAtomic(dir, rel, body); err != nil {
-		res.Problems = append(res.Problems, metafolder.Problem{File: rel, Msg: "This file can't be written: " + err.Error(), Severity: metafolder.SevError})
+		res.Problems = append(res.Problems, metafolder.Problem{File: rel, Msg: i18n.F("This file can't be written: {error}", "error", err.Error()), Severity: metafolder.SevError})
 		return
 	}
 	state[rel] = metafolder.HashOf(body)
@@ -400,7 +401,7 @@ func scanFolder(dir string) *folderScan {
 	for _, e := range pics {
 		b, err := metafolder.ReadPlain(e.Abs, metafolder.MaxPicture)
 		if err != nil {
-			fs.problems = append(fs.problems, metafolder.Problem{File: e.Rel, Msg: "This picture can't be used: " + err.Error(), Severity: metafolder.SevWarning})
+			fs.problems = append(fs.problems, metafolder.Problem{File: e.Rel, Msg: i18n.F("This picture can't be used: {error}", "error", err.Error()), Severity: metafolder.SevWarning})
 			continue
 		}
 		h := metafolder.HashOf(b)
@@ -462,14 +463,14 @@ func (s *Store) planFile(ctx context.Context, e metafolder.Entry, d *metafolder.
 	}
 	t, err := s.LoadTitle(ctx, d.Target, d.ID)
 	if errors.Is(err, ErrNotFound) {
-		fail(d.Lines["id"], "id", fmt.Sprintf("There's no title with the number %d on this server. It may have been removed, or this file may be from another server. Export the folder again to get a fresh file", d.ID))
+		fail(d.Lines["id"], "id", i18n.F("There's no title with the number {iD} on this server. It may have been removed, or this file may be from another server. Export the folder again to get a fresh file", "iD", d.ID))
 		return p, nil
 	}
 	if err != nil {
 		return nil, err
 	}
 	if d.Path != "" && !sameBase(d.Path, t.Path()) {
-		fail(d.Lines["path"], "path", "This file was written for "+shortValue(path.Base(strings.ReplaceAll(d.Path, `\`, "/")))+", but this number is now "+shortValue(path.Base(strings.ReplaceAll(t.Path(), `\`, "/")))+". Export the folder again, or if you're sure, delete the \"path\" line")
+		fail(d.Lines["path"], "path", i18n.F("This file was written for {shortValue}, but this number is now {shortValue2}. Export the folder again, or if you're sure, delete the \"path\" line", "shortValue", shortValue(path.Base(strings.ReplaceAll(d.Path, `\`, "/"))), "shortValue2", shortValue(path.Base(strings.ReplaceAll(t.Path(), `\`, "/")))))
 		return p, nil
 	}
 	p.change = FileChange{File: e.Rel, Target: d.Target, ID: d.ID, Name: t.Name(), Fields: []FolderFieldChange{}}
@@ -493,7 +494,7 @@ func (s *Store) planFile(ctx context.Context, e metafolder.Entry, d *metafolder.
 			v := d.Fields[f]
 			if !t.hasField(f) {
 				if v != "" {
-					warn(d.Lines[f], f, "This kind of title has no "+strings.ToLower(fieldLabel(f))+", so that was left out")
+					warn(d.Lines[f], f, i18n.F("This kind of title has no {toLower}, so that was left out", "toLower", strings.ToLower(fieldLabel(f))))
 				}
 				continue
 			}
@@ -525,7 +526,7 @@ func (s *Store) planFile(ctx context.Context, e metafolder.Entry, d *metafolder.
 			continue
 		}
 		if !t.hasField(f) {
-			warn(d.Lines[f], f, "This kind of title has no "+strings.ToLower(fieldLabel(f))+", so that was left out")
+			warn(d.Lines[f], f, i18n.F("This kind of title has no {toLower}, so that was left out", "toLower", strings.ToLower(fieldLabel(f))))
 			continue
 		}
 		old := t.Field(f)
@@ -613,7 +614,7 @@ func pictureWords(v string) string {
 	case isRemote(v):
 		return v
 	}
-	return "The server's own picture"
+	return i18n.T("The server's own picture")
 }
 
 func sameSet(a, b map[string]bool) bool {
@@ -692,7 +693,7 @@ func (s *Store) readTargets(fs *folderScan) (map[string]*metafolder.Doc, []metaf
 			}
 		}
 		if dup {
-			ps = append(ps, metafolder.Problem{File: e.Rel, Line: d.Lines["id"], Field: "id", Msg: "This file and " + other + " describe the same title. Delete one of them. Neither was used", Severity: metafolder.SevError})
+			ps = append(ps, metafolder.Problem{File: e.Rel, Line: d.Lines["id"], Field: "id", Msg: i18n.F("This file and {other} describe the same title. Delete one of them. Neither was used", "other", other), Severity: metafolder.SevError})
 			delete(docs, other)
 			continue
 		}
@@ -849,7 +850,7 @@ func (s *Store) ApplyMetadataFolder(ctx context.Context, dir string, o FolderApp
 				res.Skipped++
 				continue
 			}
-			if err := s.Remember(ctx, batch, o.User, "Edited in the metadata folder", t, before); err != nil {
+			if err := s.Remember(ctx, batch, o.User, i18n.T("Edited in the metadata folder"), t, before); err != nil {
 				return res, err
 			}
 			if err := t.EditFields(p.changes, true); err != nil {

@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net"
 	"net/http"
@@ -291,11 +292,11 @@ func HealthID(ctx context.Context, base string) (id string, ok bool) {
 func Line(r Running, dir string) string {
 	switch {
 	case r.Answering:
-		return fmt.Sprintf("WittyMediaServer is already running at %s (process %d), using the data folder %s.", r.URL, r.PID, dir)
+		return i18n.F("WittyMediaServer is already running at {uRL} (process {pID}), using the data folder {dir}.", "uRL", r.URL, "pID", r.PID, "dir", dir)
 	case r.PID != 0:
-		return fmt.Sprintf("WittyMediaServer is starting or not answering (process %d), using the data folder %s. Try again in a moment.", r.PID, dir)
+		return i18n.F("WittyMediaServer is starting or not answering (process {pID}), using the data folder {dir}. Try again in a moment.", "pID", r.PID, "dir", dir)
 	}
-	return fmt.Sprintf("Another WittyMediaServer is using the data folder %s and hasn't said where it is yet. Try again in a moment.", dir)
+	return i18n.F("Another WittyMediaServer is using the data folder {dir} and hasn't said where it is yet. Try again in a moment.", "dir", dir)
 }
 
 // FreePort finds the first port from `from` that host can listen on, skipping those in

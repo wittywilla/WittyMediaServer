@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"regexp"
 	"sort"
 	"strconv"
@@ -265,7 +266,7 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 			if st.Titles < 6 {
 				continue
 			}
-			if err := add(fmt.Sprintf("network:%s:%d", n.Name, d), "network", fmt.Sprintf("%s %ds", n.Name, d), fmt.Sprintf("What aired on %s in the %ds", n.Name, d), def); err != nil {
+			if err := add(fmt.Sprintf("network:%s:%d", n.Name, d), "network", fmt.Sprintf("%s %ds", n.Name, d), i18n.F("What aired on {name} in the {d}s", "name", n.Name, "d", d), def); err != nil {
 				return nil, err
 			}
 		}
@@ -278,7 +279,7 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 		}
 		if n.Slots >= 2 {
 			if def, _ := s.BuildNetwork(ctx, n.Name, StyleAsAired, 0, 0); def.Mode == "timetable" {
-				if err := add("network:"+n.Name+":asaired", "network", n.Name+" as it aired", "Each show in the day and time it aired, where the metadata knows it", def); err != nil {
+				if err := add("network:"+n.Name+":asaired", "network", n.Name+" as it aired", i18n.T("Each show in the day and time it aired, where the metadata knows it"), def); err != nil {
 					return nil, err
 				}
 			}
@@ -292,7 +293,7 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 			return nil, err
 		}
 		if st.Titles >= minChannelTitles {
-			if err := add(fmt.Sprintf("era:%d", d), "era", fmt.Sprintf("The %ds", d), fmt.Sprintf("Everything from the %ds", d), def); err != nil {
+			if err := add(fmt.Sprintf("era:%d", d), "era", fmt.Sprintf("The %ds", d), i18n.F("Everything from the {d}s", "d", d), def); err != nil {
 				return nil, err
 			}
 		}
@@ -335,14 +336,14 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 			continue
 		}
 		def := Definition{Mode: "simple", Rules: Rules{Collections: []int64{c.ID}}, Order: Order{Mode: "rotate"}, AlignMin: 30}
-		if err := add(fmt.Sprintf("collection:%d", c.ID), "collection", c.Name, "Everything in the "+c.Name+" collection", def); err != nil {
+		if err := add(fmt.Sprintf("collection:%d", c.ID), "collection", c.Name, i18n.F("Everything in the {name} collection", "name", c.Name), def); err != nil {
 			return nil, err
 		}
 	}
 	// Films, with evening starts on the half hour.
 	films := Definition{Mode: "simple", Rules: Rules{Kinds: []string{"movies", "discs"}}, Order: Order{Mode: "shuffle"}, AlignMin: 30}
 	if st, err := s.Stats(ctx, films.Rules); err == nil && st.Titles >= minChannelTitles {
-		if err := add("classic:movies", "classic", "Movie Channel", "Your films, shuffled, starting on the half hour", films); err != nil {
+		if err := add("classic:movies", "classic", "Movie Channel", i18n.T("Your films, shuffled, starting on the half hour"), films); err != nil {
 			return nil, err
 		}
 	}
@@ -353,7 +354,7 @@ func (s *Store) Suggest(ctx context.Context) ([]Suggestion, error) {
 		def := Definition{Mode: "rules", Rules: cartoon, Order: Order{Mode: "rotate"}, AlignMin: 30, Blocks: []Block{
 			{ID: "saturday-morning", Name: "Saturday morning", Days: []int{6}, Start: "07:00", End: "12:00", Rules: &cartoon},
 		}}
-		if err := add("classic:saturday", "classic", "Saturday Morning", "Cartoons all day, with the big block on Saturday morning", def); err != nil {
+		if err := add("classic:saturday", "classic", "Saturday Morning", i18n.T("Cartoons all day, with the big block on Saturday morning"), def); err != nil {
 			return nil, err
 		}
 	}

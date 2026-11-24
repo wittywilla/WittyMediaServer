@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"net/http"
 	"net/url"
@@ -176,9 +177,9 @@ type RateLimited struct{ Until time.Time }
 
 func (e *RateLimited) Error() string {
 	if e.Until.IsZero() {
-		return "GitHub is limiting requests from this network; try again in an hour"
+		return i18n.T("GitHub is limiting requests from this network; try again in an hour")
 	}
-	return "GitHub is limiting requests from this network; try again after " + e.Until.Local().Format("15:04")
+	return i18n.F("GitHub is limiting requests from this network; try again after {format}", "format", e.Until.Local().Format("15:04"))
 }
 
 // refused turns a 403 or 429 into the right error. GitHub also answers 403 for one

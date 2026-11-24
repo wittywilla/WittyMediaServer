@@ -4,6 +4,7 @@
 package sdui
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"slices"
 	"sort"
 	"strings"
@@ -78,13 +79,13 @@ func (p RegionPlacements) Validate(path string) []Issue {
 			continue
 		}
 		if pl.Position != "" && !slices.Contains(r.Positions, pl.Position) {
-			v.err(path+"/"+id+"/position", "Choose one of "+strings.Join(r.Positions, ", ")+".", "the %s can't be at %q", r.Label, pl.Position)
+			v.err(path+"/"+id+"/position", i18n.F("Choose one of {positions}.", "positions", strings.Join(r.Positions, ", ")), "the %s can't be at %q", r.Label, pl.Position)
 		}
 		if pl.Style != "" && !slices.Contains(r.Styles, pl.Style) {
-			v.err(path+"/"+id+"/style", "Choose one of "+strings.Join(r.Styles, ", ")+".", "the %s has no style %q", r.Label, pl.Style)
+			v.err(path+"/"+id+"/style", i18n.F("Choose one of {styles}.", "styles", strings.Join(r.Styles, ", ")), "the %s has no style %q", r.Label, pl.Style)
 		}
 		if r.Locked && pl.Visible != nil && !*pl.Visible {
-			v.err(path+"/"+id+"/visible", "The way to Settings, to You and out of a screen can't be hidden.", "the %s can't be hidden", r.Label)
+			v.err(path+"/"+id+"/visible", i18n.T("The way to Settings, to You and out of a screen can't be hidden."), "the %s can't be hidden", r.Label)
 		}
 	}
 	return v.issues

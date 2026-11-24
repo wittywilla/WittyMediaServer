@@ -9,6 +9,7 @@
 package playback
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"github.com/wittywilla/wittymediaserver/pkg/langtag"
 	"slices"
 	"strings"
@@ -133,7 +134,7 @@ func Profiles() []Profile {
 			Remux:            true, HLSVideo: []string{"h264", "av1", "vp9"}, HLSAudio: []string{"aac", "mp3"}, FMP4Video: []string{"hevc", "av1", "vp9"},
 		},
 		{
-			ID: "appletv", Name: "Apple TV 4K",
+			ID: "appletv", Name: i18n.T("Apple TV 4K"),
 			Containers: []string{"mp4", "m4v", "mov"}, VideoCodecs: []string{"h264", "hevc"},
 			AudioCodecs: []string{"aac", "ac3", "eac3", "alac", "mp3"},
 			HDR:         []string{"hdr10", "hlg", "dv5"}, TenBit: true, HVC1Only: true, MaxHeight: 2160, SwitchAudio: true, SurroundOutput: true,
@@ -141,7 +142,7 @@ func Profiles() []Profile {
 			Remux:             true, HLSVideo: []string{"h264", "hevc"}, HLSAudio: []string{"aac", "ac3", "eac3"}, FMP4Video: []string{"hevc"}, HLSSubtitles: true,
 		},
 		{
-			ID: "appletv-hd", Name: "Apple TV HD",
+			ID: "appletv-hd", Name: i18n.T("Apple TV HD"),
 			Containers: []string{"mp4", "m4v", "mov"}, VideoCodecs: []string{"h264"},
 			AudioCodecs: []string{"aac", "ac3", "eac3", "alac", "mp3"},
 			HDR:         []string{}, MaxHeight: 1080, SwitchAudio: true, SurroundOutput: true,

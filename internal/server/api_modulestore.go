@@ -6,6 +6,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"log/slog"
 	"net/http"
@@ -94,7 +95,7 @@ func writeStoreErr(w http.ResponseWriter, name string, err error) {
 	}
 	var key *modmgr.NeedKey
 	if errors.As(err, &key) {
-		f := modmgr.Failure{Kind: modmgr.FailSignature, Title: "This store needs a key", Message: err.Error(), Try: []string{"Ask whoever runs the store for their public key, and paste it in."}}
+		f := modmgr.Failure{Kind: modmgr.FailSignature, Title: "This store needs a key", Message: err.Error(), Try: []string{i18n.T("Ask whoever runs the store for their public key, and paste it in.")}}
 		writeJSON(w, 422, map[string]any{"error": err.Error(), "code": "need-key", "failure": f})
 		return
 	}

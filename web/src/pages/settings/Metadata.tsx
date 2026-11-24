@@ -13,7 +13,7 @@ import { Link } from 'react-router-dom'
 import { ListingSettings, LogoSettings } from './MetadataOptional'
 import { ask, Dialog } from '../../ui/Overlay'
 import { keySaved, SavedKey } from '../../components/SavedKey'
-import { t, tk, tx } from '../../i18n'
+import { t, tk, tx, bidi } from '../../i18n'
 
 // Where titles, posters, plots and ratings come from: the built-in agents
 // (some need a free API key), the owner's own custom agents, and what is
@@ -243,7 +243,7 @@ function AgentEditor({ agent, onClose, onSave }: { agent: Agent; onClose: () => 
                 {result.r.poster && <img src={result.r.poster} alt="" referrerPolicy="no-referrer" onError={(e) => ((e.target as HTMLImageElement).style.display = 'none')} />}
                 <div>
                   <b>{result.r.title}{result.r.year ? ` (${result.r.year})` : ''}</b>
-                  {(result.r.genres?.length || result.r.rating) && <span className="muted">{[result.r.genres?.slice(0, 3).join(', '), result.r.rating ? `★ ${result.r.rating}` : ''].filter(Boolean).join(' · ')}</span>}
+                  {(result.r.genres?.length || result.r.rating) && <span className="muted">{[result.r.genres?.slice(0, 3).join(', '), result.r.rating ? `★ ${result.r.rating}` : ''].filter(Boolean).map(bidi).join(' · ')}</span>}
                   {result.r.overview && <p>{result.r.overview.slice(0, 260)}{result.r.overview.length > 260 ? '…' : ''}</p>}
                 </div>
               </div>

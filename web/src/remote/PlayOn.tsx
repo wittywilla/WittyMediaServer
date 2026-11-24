@@ -14,7 +14,7 @@ import { myDeviceId, ownDeviceId, setTargetEnabled, targetEnabled, type RemoteCo
 import DeviceRemote from './DeviceRemote'
 import { positionNow } from './position'
 import { sendCommand, useDevices, type RemoteDevice, type ServerClock } from './useDevices'
-import { t, tx } from '../i18n'
+import { t, tx, bidi } from '../i18n'
 import './remote.css'
 import './playon.css'
 
@@ -71,7 +71,7 @@ function DeviceRow({ d, source, serverNow, onRemote, onPlayed }: { d: RemoteDevi
   const st = d.state
   const words = tx(statusWords(d))
   const what = !d.online || st.status === 'idle' || d.hidden ? words
-    : [d.title || words, c.place === 'time' ? t('{time} of {total}', { time: fmtTime(positionNow(st, d.stateAt, serverNow())), total: fmtTime(st.durationSec || 0) }) : '', st.status !== 'playing' ? words.toLowerCase() : ''].filter(Boolean).join(' · ')
+    : [d.title || words, c.place === 'time' ? t('{time} of {total}', { time: fmtTime(positionNow(st, d.stateAt, serverNow())), total: fmtTime(st.durationSec || 0) }) : '', st.status !== 'playing' ? words.toLowerCase() : ''].filter(Boolean).map(bidi).join(' · ')
   const plays = !!source && canPlayOn(d, kindOf(source))
   return (
     <li className={'rc-device rc-row' + (d.online ? '' : ' off')}>

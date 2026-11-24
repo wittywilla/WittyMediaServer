@@ -3,7 +3,7 @@
 // Thin API client. The server sets an HttpOnly cookie on login; we also keep
 // the token in localStorage for native wrappers / cross-origin use.
 import { reportRequestFailure } from './errorReport'
-import { date, language, t, tk, tx } from './i18n'
+import { date, language, t, tk, tx, bidi } from './i18n'
 
 export type User = { id: number; name: string; displayName?: string; showUsername?: boolean; isAdmin: boolean; createdAt: number; kind: 'adult' | 'kids' | 'guest'; hasPassword: boolean; twoFactor?: boolean; avatar?: string }
 // `name` is the username: unique, and what signing in uses. A profile name is what
@@ -412,7 +412,7 @@ export const insertFxOn = (it: Item) => it.insertEffect !== false
 
 // Track label with the disc's purpose, e.g. "English · Commentary · AC3 2ch".
 export const dvdTrackLabel = (t: DvdTrack) =>
-  [langName(t.language), t.purpose, t.codec?.toUpperCase(), t.channels ? t.channels + 'ch' : ''].filter(Boolean).join(' · ')
+  [langName(t.language), t.purpose, t.codec?.toUpperCase(), t.channels ? t.channels + 'ch' : ''].filter(Boolean).map(bidi).join(' · ')
 
 export function fmtTime(sec: number): string {
   if (!isFinite(sec) || sec < 0) sec = 0

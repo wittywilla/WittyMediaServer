@@ -5,6 +5,7 @@ package modules
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -33,13 +34,13 @@ func confinement(launcher string) SandboxInfo {
 	switch abi := landlockABI(); {
 	case launcher == "":
 		return SandboxInfo{Level: SandboxPartial, Title: "Modules aren't fully confined on this system",
-			Words: "This server can't find its own program to box helpers in with. A module's helper has its network and process limits where the system allows them, and can change what this server's account can change."}
+			Words: i18n.T("This server can't find its own program to box helpers in with. A module's helper has its network and process limits where the system allows them, and can change what this server's account can change.")}
 	case abi == 0:
 		return SandboxInfo{Level: SandboxPartial, Title: "Modules can change files on this system",
-			Words: "This system's kernel has no Landlock, or it's turned off, so a module's helper can change what this server's account can change. Its other limits still hold. Modules from other publishers are refused here. A kernel from 5.13 on, with Landlock on, fixes this."}
+			Words: i18n.T("This system's kernel has no Landlock, or it's turned off, so a module's helper can change what this server's account can change. Its other limits still hold. Modules from other publishers are refused here. A kernel from 5.13 on, with Landlock on, fixes this.")}
 	case abi < landlockForkABI:
 		return SandboxInfo{Level: SandboxPartial, Title: "Modules can empty files on this system",
-			Words: "This system's kernel is older than 6.2, so a module's helper can't change files but could cut them short. Its other limits still hold. Modules from other publishers are refused here."}
+			Words: i18n.T("This system's kernel is older than 6.2, so a module's helper can't change files but could cut them short. Its other limits still hold. Modules from other publishers are refused here.")}
 	}
 	return SandboxInfo{Level: SandboxFull}
 }

@@ -13,7 +13,7 @@ import type { OverrideBody } from './OverrideDialog'
 import { categoryTitle, currentRun, failureOf, installModule, isBusy, mb, PHASE, type Failure, type RunItem, type StoreItem } from './storeApi'
 import { olderOf } from './olderServer'
 import { useOlderAsk } from './OlderServerDialog'
-import { t, tn } from '../../../i18n'
+import { t, tn, bidi } from '../../../i18n'
 
 // One module, with the one thing to do next, wherever it's shown. What can be done comes from
 // what the server says: nothing here decides whether something fits.
@@ -167,7 +167,7 @@ export function ItemCard({ item, onChanged, repairRoute }: { item: StoreItem; on
         <ModuleIcon item={item} />
         <span className="st-card-text">
           <b className="st-card-name">{item.name}</b>
-          <span className="st-card-by">{[item.publisher?.name || t('Part of this server'), categoryTitle(item.group), moduleKindTitle(itemModuleKind(item))].filter(Boolean).join(' · ')}</span>
+          <span className="st-card-by">{[item.publisher?.name || t('Part of this server'), categoryTitle(item.group), moduleKindTitle(itemModuleKind(item))].filter(Boolean).map(bidi).join(' · ')}</span>
           {item.summary && <span className="st-card-sum">{item.summary}</span>}
         </span>
       </Link>

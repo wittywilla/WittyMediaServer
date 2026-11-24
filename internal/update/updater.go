@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"log/slog"
 	"net/http"
@@ -260,44 +261,44 @@ func (u *Updater) Run(ctx context.Context, enabled func() bool) {
 func (u *Updater) cannotApply() string {
 	switch {
 	case u.Restart == nil:
-		return "This server can't restart itself."
+		return i18n.T("This server can't restart itself.")
 	case inContainer():
-		return "This server runs in a container: pull the new image and recreate the container."
+		return i18n.T("This server runs in a container: pull the new image and recreate the container.")
 	case runtime.GOOS == "darwin":
-		return "On a Mac, the new version comes as an installer: download it, then open it. Your library and settings are kept."
+		return i18n.T("On a Mac, the new version comes as an installer: download it, then open it. Your library and settings are kept.")
 	}
 	switch u.Kind() {
 	case layout.KindDeb:
-		return "This copy was installed with a .deb package, which your package manager looks after. Download the new one here, then install it with apt as the computer's administrator. Your library and settings are kept."
+		return i18n.T("This copy was installed with a .deb package, which your package manager looks after. Download the new one here, then install it with apt as the computer's administrator. Your library and settings are kept.")
 	case layout.KindRPM:
-		return "This copy was installed with an .rpm package, which your package manager looks after. Download the new one here, then install it with dnf as the computer's administrator. Your library and settings are kept."
+		return i18n.T("This copy was installed with an .rpm package, which your package manager looks after. Download the new one here, then install it with dnf as the computer's administrator. Your library and settings are kept.")
 	case layout.KindFreeBSD:
-		return "This copy was installed with a FreeBSD package, which pkg looks after. Download the new one here, then install it with pkg add as root. Your library and settings are kept."
+		return i18n.T("This copy was installed with a FreeBSD package, which pkg looks after. Download the new one here, then install it with pkg add as root. Your library and settings are kept.")
 	case layout.KindPkg:
-		return "On a Mac, the new version comes as an installer: download it, then open it. Your library and settings are kept."
+		return i18n.T("On a Mac, the new version comes as an installer: download it, then open it. Your library and settings are kept.")
 	case layout.KindAppImage:
-		return "This copy is an AppImage: one file that can't change itself. Download the new one here, make it executable and run it in place of this one. Your library and settings are kept."
+		return i18n.T("This copy is an AppImage: one file that can't change itself. Download the new one here, make it executable and run it in place of this one. Your library and settings are kept.")
 	case layout.KindFlatpak:
-		return "This copy is a Flatpak, which flatpak looks after. Download the new one here, then install it with flatpak install. Your library and settings are kept."
+		return i18n.T("This copy is a Flatpak, which flatpak looks after. Download the new one here, then install it with flatpak install. Your library and settings are kept.")
 	case layout.KindSnap:
-		return "This copy is a Snap, which snap looks after. Download the new one here, then install it with snap install as the computer's administrator. Your library and settings are kept."
+		return i18n.T("This copy is a Snap, which snap looks after. Download the new one here, then install it with snap install as the computer's administrator. Your library and settings are kept.")
 	case layout.KindMSI, layout.KindArchive:
 	default:
-		return "This copy wasn't installed from a release package, so it can't replace its own files."
+		return i18n.T("This copy wasn't installed from a release package, so it can't replace its own files.")
 	}
 	if !fileExists(filepath.Join(u.Dir, "bin", layout.Exe(layout.ServerCommand))) {
-		return "This copy wasn't installed from a release package, so it can't replace its own files."
+		return i18n.T("This copy wasn't installed from a release package, so it can't replace its own files.")
 	}
 	for _, p := range u.Protect {
 		if within(u.Dir, p) {
-			return "The program folder is also the data folder, so the update can't safely replace files there."
+			return i18n.T("The program folder is also the data folder, so the update can't safely replace files there.")
 		}
 	}
 	if !writable(u.Dir) {
 		if runtime.GOOS == "windows" {
-			return "Windows protects the program folder (" + u.Dir + "), so this copy can't replace its own files. Download the new installer and run it: it updates in place and keeps your library and settings."
+			return i18n.F("Windows protects the program folder ({dir}), so this copy can't replace its own files. Download the new installer and run it: it updates in place and keeps your library and settings.", "dir", u.Dir)
 		}
-		return "WittyMediaServer can't write to its program folder (" + u.Dir + "). Unpack the new package and run its install.sh as root."
+		return i18n.F("WittyMediaServer can't write to its program folder ({dir}). Unpack the new package and run its install.sh as root.", "dir", u.Dir)
 	}
 	return ""
 }
@@ -339,7 +340,7 @@ func (u *Updater) Apply() error {
 	u.busy = true
 	u.st.Phase, u.st.Error, u.st.Done, u.st.Total = PhaseDownloading, "", 0, u.rel.Archive.Size
 	rel := *u.rel
-	u.task = u.Tasks.Start(tasks.Spec{Type: tasks.TypeUpdate, Title: "Updating the server to " + rel.Version, Phase: "Downloading", Unit: "bytes", AdminOnly: true})
+	u.task = u.Tasks.Start(tasks.Spec{Type: tasks.TypeUpdate, Title: i18n.F("Updating the server to {version}", "version", rel.Version), Phase: "Downloading", Unit: "bytes", AdminOnly: true})
 	session := logging.NewID("update")
 	log := u.Log.With("session", session, "version", rel.Version)
 	log.Info("update started", "current", u.Current)
@@ -360,7 +361,7 @@ func (u *Updater) Apply() error {
 		u.busy = false
 		if err != nil {
 			u.st.Phase, u.st.Error = PhaseFailed, err.Error()
-			u.task.Fail("The update didn't install, and nothing changed.", "Try again. Settings, About has the details.", err)
+			u.task.Fail(i18n.T("The update didn't install, and nothing changed."), i18n.T("Try again. Settings, About has the details."), err)
 		} else {
 			u.st.Phase = PhaseRestarting
 			u.task.Result("Installed. The server is restarting.")
@@ -387,7 +388,7 @@ func (u *Updater) phase(p string) {
 }
 
 // phaseWords are the update's steps, for the activity panel.
-var phaseWords = map[string]string{PhaseDownloading: "Downloading", PhaseVerifying: "Checking its signature", PhaseInstalling: "Installing"}
+var phaseWords = map[string]string{PhaseDownloading: "Downloading", PhaseVerifying: i18n.T("Checking its signature"), PhaseInstalling: "Installing"}
 
 func (u *Updater) install(ctx context.Context, rel *Release) error {
 	stage := filepath.Join(u.Dir, StageDir)

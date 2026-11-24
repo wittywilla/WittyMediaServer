@@ -35,8 +35,58 @@ num(1234), date(when, { dateStyle: 'medium' })
 - `node scripts/i18n-check.mjs` (from `web/`) counts what each language has; `node scripts/i18n-check.mjs de` lists
   what German is missing.
 - Changing the language draws the whole app again, so components don't need to do anything to follow it.
-- Text the server sends (error messages, labels of server-driven pages) is translated in the app with `tx()` when it's
-  fixed text the catalogue knows. Text the server builds with names or numbers in it shows in English for now.
+- Text the server sends (error messages, labels of server-driven pages, status lines) is shown with `tx()`: translated
+  when the catalogue knows it, otherwise as it is. Text the server filled in ("Devices away from home can connect
+  through your router.") is matched back to its key with `{names}`, and a `{name}` that is itself one of the server's
+  messages is translated too.
+
+### The server's words
+
+The server sends English, and marks each sentence a person reads with `internal/i18n`, so the web app can find it:
+
+```go
+writeErr(w, 400, i18n.T("That invite has expired."))
+s.Home = i18n.F("Devices at home: {where}", "where", where)   // fill-ins by name, as in t()
+it.Subtitle = i18n.N("{count} album", "{count} albums", n)    // a count: the app picks the language's form
+return i18n.Error("Can't open {name}", "name", file)           // an error whose message reaches people
+```
+
+`writeErr` messages, and fields such as `Label`, `Desc`, `Summary`, `Message`, `Hint` and `Detail`, count as marked
+without `i18n.T`; so does a sentence kept in a `const`.
+
+`go run ./scripts/i18n-server` (from the repository root) finds them all. CI runs it, and it fails when:
+
+- a sentence of English is written somewhere it can't follow (passed to a function, kept in a variable) without
+  `i18n.T`. Wrap it, or, when no person reads it (a log line, a file format), add it to
+  `scripts/i18n-server/allow.txt` with the reason;
+- `web/src/i18n/server-keys.json` (every key) or `server-plurals.json` (each count's English for one) is out of date:
+  `go run ./scripts/i18n-server -write`.
+
+It also lists how many keys each language has no translation for yet: they show in English until the translation
+pass. `go run ./scripts/i18n-server -missing de` lists German's, with where each is said; `-strict` fails on any,
+for that pass. The translations go in `server.json` beside the language's other catalogues.
+
+Shown by the operating system rather than the web app (the tray menu, the "already running" dialog, the uninstaller,
+the command line), the server's words stay English.
+
+### Right to left
+
+In Arabic and Hebrew the page runs right to left, and text that isn't the app's own runs in its own direction inside
+it: a title, file name, artist or "2 hr 10 min" keeps its digits and dashes where they are.
+
+- `web/src/bidi.css` lists the classes that hold such text (titles, names, file names, a title's facts); each takes
+  its direction from its first letter (`unicode-bidi: plaintext`) and stays lined up with the page. A new component
+  that shows titles or names adds its class there, or puts `dir="auto"` on the element, or `<bdi>` around the text.
+- What `t()` fills into a sentence is isolated (U+2068 … U+2069) in right-to-left languages, so `t('Open {name}')`
+  needs nothing more.
+- A line put together from parts: `parts.map(bidi).join(' · ')` (`bidi` from `../i18n`).
+- `npm run test:rtl` (from `web/`, with `WMS_BIN` set to a built server) starts a server of its own with a small
+  library of Latin, Hebrew and mixed names, walks the pages in Arabic and Hebrew, saves a screenshot of each, and
+  fails when any text that starts left to right is shown reordered or cut at its start. CI runs it and keeps the
+  screenshots.
+
+The apps do the same for lines made of parts: `factsLine()` in the Android app (`ui/Bidi.kt`) and in the Apple apps
+(`WittyKit/Bidi.swift`).
 
 ## Modules
 

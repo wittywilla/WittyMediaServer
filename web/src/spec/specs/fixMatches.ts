@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { mk, secF, secN, secP, secR } from '../model.ts'
 import type { SpecPageData, SpecRow, SpecSection } from '../types.ts'
-import { t } from '../../sdui/words.ts'
+import { bidi, t } from '../../sdui/words.ts'
 
 // Fix matches (canvas keys "fixmatches" and "editmatch"): the review's tabs and tools, and the opened title's
 // panel with its suggestions. The list of titles and the keys stay the page's own. Ids: tab:<key>, search, find,
@@ -51,7 +51,7 @@ export function detailSpec(d: DetailIn): SpecPageData {
   if (d.list.length) {
     sections.push(secR(d.results ? t('Results') : t('Suggestions'), d.list.map((c, i): SpecRow => ({
       id: 'cand:' + i, title: i < 6 ? t('{number}. {title}', { number: i + 1, title: c.title }) : c.title, value: t('{percent}% · {source}', { percent: Math.round(c.score), source: c.sourceName }),
-      sub: [c.year, c.kind === 'show' ? t('Show') : t('Film'), c.rating ? t('Rated {rating}', { rating: c.rating.toFixed(1) }) : ''].filter(Boolean).join(' · '),
+      sub: [c.year, c.kind === 'show' ? t('Show') : t('Film'), c.rating ? t('Rated {rating}', { rating: c.rating.toFixed(1) }) : ''].filter(Boolean).map(bidi).join(' · '),
       actions: [{ id: `look:${i}`, title: t('Look'), label: t('Look at {title}', { title: c.title }) }, { id: `accept:${i}`, title: t('Accept'), label: t('Accept {title}', { title: c.title }) }],
     }))))
   } else if (!d.busy && d.state !== 'manual' && d.state !== 'none') {

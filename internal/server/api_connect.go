@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"net/netip"
 	"strings"
@@ -253,9 +254,9 @@ func (s *Server) connectStatus(r *http.Request) connectStatus {
 	cfg := s.loadP2P(r.Context())
 	switch {
 	case node == nil && cfg.Enabled:
-		st.Away, st.Words, st.P2P = "checking", "Connections from away are starting…", true
+		st.Away, st.Words, st.P2P = "checking", i18n.T("Connections from away are starting…"), true
 	case node == nil:
-		st.Away, st.Words = "off", "Only devices on your home network can connect."
+		st.Away, st.Words = "off", i18n.T("Only devices on your home network can connect.")
 	default:
 		st.P2P = true
 		v := verdictP2P(node.Status())
@@ -264,11 +265,11 @@ func (s *Server) connectStatus(r *http.Request) connectStatus {
 		case "ok":
 			st.Away, st.Words = "yes", "Devices away from home can connect."
 		case "warn":
-			st.Away, st.Words = "partly", "Devices away from home can connect from some networks, not all."
+			st.Away, st.Words = "partly", i18n.T("Devices away from home can connect from some networks, not all.")
 		case "fail":
-			st.Away, st.Words = "no", "Devices away from home can't connect right now."
+			st.Away, st.Words = "no", i18n.T("Devices away from home can't connect right now.")
 		default:
-			st.Away, st.Words = "checking", "Devices away from home should be able to connect. This server is still checking."
+			st.Away, st.Words = "checking", i18n.T("Devices away from home should be able to connect. This server is still checking.")
 		}
 	}
 	if st.Other != "" && st.Away != "yes" {

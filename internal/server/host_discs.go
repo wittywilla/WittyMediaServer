@@ -6,7 +6,7 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/http"
 	"strconv"
 	"time"
@@ -277,7 +277,7 @@ func (s *Server) hostDiscRank(w http.ResponseWriter, r *http.Request, module str
 			return
 		}
 		if st := s.secondOpinionState(r.Context()); !st.Available {
-			writeJSON(w, 409, map[string]string{"error": firstNonEmpty(st.Reason, "No libbluray was found on this machine.")})
+			writeJSON(w, 409, map[string]string{"error": firstNonEmpty(st.Reason, i18n.T("No libbluray was found on this machine."))})
 			return
 		}
 	}
@@ -311,7 +311,7 @@ func (s *Server) hostDiscChoose(w http.ResponseWriter, r *http.Request, module s
 		writeJSON(w, 400, map[string]string{"error": "Say which title: ttn, or -1 for the engine's pick."})
 		return
 	case *b.TTN >= 0 && (it.Disc == nil || !it.Disc.HasTitle(*b.TTN)):
-		writeJSON(w, 400, map[string]string{"error": fmt.Sprintf("This disc has no title %d to play.", *b.TTN)})
+		writeJSON(w, 400, map[string]string{"error": i18n.F("This disc has no title {value} to play.", "value", *b.TTN)})
 		return
 	}
 	if err := s.Store.ChooseDiscMain(r.Context(), it, *b.TTN, userFrom(r).ID); err != nil {

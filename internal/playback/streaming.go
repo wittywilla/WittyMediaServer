@@ -5,6 +5,7 @@ package playback
 
 import (
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"slices"
 	"strings"
 )
@@ -171,9 +172,9 @@ func ExplainStreaming(mode, from string, ladder []Rung, measuredKbps int) string
 	if mode != StreamRobust {
 		return ""
 	}
-	who := "Robust streaming, the server's choice for viewers away from home"
+	who := i18n.T("Robust streaming, the server's choice for viewers away from home")
 	if from == StreamFromDevice {
-		who = "Robust streaming, chosen on this device"
+		who = i18n.T("Robust streaming, chosen on this device")
 	}
 	speed := "nobody measured this connection"
 	if measuredKbps > 0 {

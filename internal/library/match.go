@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -105,15 +106,15 @@ func SourceLabel(src string) string {
 	case SourceNFO:
 		return "NFO file"
 	case SourceLocal:
-		return "Beside the file"
+		return i18n.T("Beside the file")
 	case "wittyinfo":
-		return "The title’s .wittyinfo"
+		return i18n.T("The title’s .wittyinfo")
 	case SourceFrame:
-		return "From the video"
+		return i18n.T("From the video")
 	case SourceMade:
-		return "Made from its title"
+		return i18n.T("Made from its title")
 	case SourceProbe:
-		return "The file itself"
+		return i18n.T("The file itself")
 	case SourceSaved:
 		return "Saved earlier"
 	}
@@ -318,31 +319,31 @@ func scoreMatch(wantTitle string, wantYear *int, libType string, title string, y
 	var why []string
 	switch {
 	case alike >= 0.995:
-		why = append(why, "The name is exactly the same")
+		why = append(why, i18n.T("The name is exactly the same"))
 	case alike >= 0.8:
-		why = append(why, "The name is very close")
+		why = append(why, i18n.T("The name is very close"))
 	case alike >= 0.5:
-		why = append(why, "The name is only partly the same")
+		why = append(why, i18n.T("The name is only partly the same"))
 	default:
-		why = append(why, "The name is quite different")
+		why = append(why, i18n.T("The name is quite different"))
 	}
 	switch {
 	case wantYear == nil && year == nil:
 		score += 12
 	case wantYear == nil:
 		score += 15
-		why = append(why, fmt.Sprintf("It came out in %d. The file gives no year to check against", *year))
+		why = append(why, i18n.F("It came out in {value}. The file gives no year to check against", "value", *year))
 	case year == nil:
 		score += 10
-		why = append(why, "This result gives no year to check against")
+		why = append(why, i18n.T("This result gives no year to check against"))
 	case *wantYear == *year:
 		score += 30
-		why = append(why, fmt.Sprintf("Same year (%d)", *year))
+		why = append(why, i18n.F("Same year ({value})", "value", *year))
 	case abs(*wantYear-*year) == 1:
 		score += 20
-		why = append(why, fmt.Sprintf("One year off: the file says %d, this says %d", *wantYear, *year))
+		why = append(why, i18n.F("One year off: the file says {value}, this says {value2}", "value", *wantYear, "value2", *year))
 	default:
-		why = append(why, fmt.Sprintf("Different year: the file says %d, this says %d", *wantYear, *year))
+		why = append(why, i18n.F("Different year: the file says {value}, this says {value2}", "value", *wantYear, "value2", *year))
 	}
 	film := libType == "movies" || libType == "discs"
 	tv := libType == "shows" || libType == "anime"
@@ -353,7 +354,7 @@ func scoreMatch(wantTitle string, wantYear *int, libType string, title string, y
 		if kind == "show" {
 			what, lib = "a show", "film"
 		}
-		why = append(why, fmt.Sprintf("It's %s, and this is a %s library", what, lib))
+		why = append(why, i18n.F("It's {what}, and this is a {lib} library", "what", what, "lib", lib))
 	}
 	return max(0, min(100, int(score+0.5))), why
 }
@@ -374,25 +375,25 @@ func fileNameOf(t *Title) (string, *int) {
 func ConfidenceFor(t *Title, libType string) (int, []string) {
 	switch t.Meta.MatchState {
 	case MatchManual:
-		return 100, []string{"You chose this match"}
+		return 100, []string{i18n.T("You chose this match")}
 	case MatchNone:
-		return 100, []string{"You said this has no match"}
+		return 100, []string{i18n.T("You said this has no match")}
 	}
 	provider, _ := t.Provider()
 	if provider == "" {
 		switch t.Meta.Sources["overview"] {
 		case SourceNFO:
-			return 0, []string{"It has details from an NFO file beside it, but no match to check them against"}
+			return 0, []string{i18n.T("It has details from an NFO file beside it, but no match to check them against")}
 		case SourceSaved:
-			return 0, []string{"It has details saved earlier, but no match to check them against"}
+			return 0, []string{i18n.T("It has details saved earlier, but no match to check them against")}
 		}
 		if t.Field("overview") != "" {
-			return 0, []string{"It has details, but no match to check them against"}
+			return 0, []string{i18n.T("It has details, but no match to check them against")}
 		}
-		return 0, []string{"Nothing was found for this"}
+		return 0, []string{i18n.T("Nothing was found for this")}
 	}
 	if strings.HasPrefix(provider, "agent:") {
-		return 100, []string{"Your own agent answered"}
+		return 100, []string{i18n.T("Your own agent answered")}
 	}
 	name, year := fileNameOf(t)
 	cur := t.Name()
@@ -409,11 +410,11 @@ func ConfidenceFor(t *Title, libType string) (int, []string) {
 	score, why := scoreMatch(name, year, libType, cur, curYear, kind)
 	if t.Meta.Sources["title"] == SourceNFO {
 		score = max(score, 85)
-		why = append(why, "The name comes from an NFO file beside it")
+		why = append(why, i18n.T("The name comes from an NFO file beside it"))
 	}
 	if t.Meta.Sources["title"] == SourceYou {
 		score = max(score, 85)
-		why = append(why, "You set the name yourself")
+		why = append(why, i18n.T("You set the name yourself"))
 	}
 	return score, why
 }
@@ -655,7 +656,7 @@ func (s *Scanner) SearchMatches(ctx context.Context, t *Title, query string, yea
 		c, err := s.resolveRef(ctx, ref, t)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
-				res.Warnings = append(res.Warnings, "Nothing has that id.")
+				res.Warnings = append(res.Warnings, i18n.T("Nothing has that id."))
 				return res, nil
 			}
 			res.Warnings = append(res.Warnings, err.Error())
@@ -663,7 +664,7 @@ func (s *Scanner) SearchMatches(ctx context.Context, t *Title, query string, yea
 		}
 		res.Results = append(res.Results, c...)
 		for i := range res.Results {
-			res.Results[i].Score, res.Results[i].Reasons = 100, []string{"You asked for exactly this"}
+			res.Results[i].Score, res.Results[i].Reasons = 100, []string{i18n.T("You asked for exactly this")}
 		}
 		return res, nil
 	}
@@ -1157,7 +1158,7 @@ func (s *Scanner) persist(ctx context.Context, t *Title) {
 // after its file again. Nothing is looked up for it until someone chooses a match.
 func (s *Scanner) RemoveMatch(ctx context.Context, t *Title, user string) (string, error) {
 	batch := NewBatch()
-	if err := s.Store.Remember(ctx, batch, user, "Removed the match", t, t.snapshot()); err != nil {
+	if err := s.Store.Remember(ctx, batch, user, i18n.T("Removed the match"), t, t.snapshot()); err != nil {
 		return "", err
 	}
 	name, year := fileNameOf(t)

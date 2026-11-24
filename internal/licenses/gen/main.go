@@ -18,6 +18,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,7 +40,7 @@ var overrides = map[string]string{
 	"github.com/multiformats/go-multicodec": "Apache-2.0 or MIT",
 	// Forks of other projects' code, which keep that code's license beside their own.
 	"github.com/libp2p/go-yamux/v5":      "MPL-2.0 and BSD-3-Clause",
-	"github.com/libp2p/go-buffer-pool":   "MIT and BSD-3-Clause",
+	"github.com/libp2p/go-buffer-pool":   i18n.T("MIT and BSD-3-Clause"),
 	"go.opentelemetry.io/otel":           "Apache-2.0 and BSD-3-Clause",
 	"go.opentelemetry.io/otel/log":       "Apache-2.0 and BSD-3-Clause",
 	"go.opentelemetry.io/otel/metric":    "Apache-2.0 and BSD-3-Clause",
@@ -78,7 +79,7 @@ func main() {
 		std, err = os.ReadFile(filepath.Join(strings.TrimSpace(goroot), "..", "LICENSE"))
 	}
 	check(err)
-	add(licenses.GroupServer, "The Go runtime and standard library", "https://go.dev", "BSD-3-Clause", string(std))
+	add(licenses.GroupServer, i18n.T("The Go runtime and standard library"), "https://go.dev", "BSD-3-Clause", string(std))
 
 	mods := goModules("./cmd/wittymediaserver", "./cmd/wittymediaserver-tray", "./cmd/wittymediaserver-uninstall")
 	var paths []string

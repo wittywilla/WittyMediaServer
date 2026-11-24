@@ -6,6 +6,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"math"
@@ -73,7 +74,7 @@ func (s *Server) underLimit(w http.ResponseWriter, r *http.Request, u *auth.User
 		return false
 	}
 	if n >= limit {
-		writeErr(w, 409, fmt.Sprintf("You have %d %s, which is as many as one account can have. Remove some first.", n, what))
+		writeErr(w, 409, i18n.F("You have {n} {what}, which is as many as one account can have. Remove some first.", "n", n, "what", what))
 		return false
 	}
 	return true

@@ -9,7 +9,7 @@
 
 import { cardStyle, UNKNOWN_STYLE } from './cardStyles.ts'
 import { WEB_LAYOUT, type Action, type Document, type Layout, type Node, type Props, type Shell } from './types.ts'
-import { t, tn, tx } from './words.ts'
+import { bidi, t, tn, tx } from './words.ts'
 
 export type View = {
   id: string
@@ -188,7 +188,7 @@ function cardView(e: View, x: Node, parent: Node | undefined) {
     e.role = 'group'
     e.label = join(str(p, 'title'), factsOf(p).join(', '))
     e.text = { title: str(p, 'title') }
-    const f = factsOf(p).join(' · ')
+    const f = factsOf(p).map(bidi).join(' · ')
     if (f) e.text.facts = f
     if (str(p, 'synopsis')) e.text.synopsis = str(p, 'synopsis')
     e.lines = { title: 2, synopsis: 3 }
@@ -302,7 +302,7 @@ function makeView(x: Node, depth: number, parent: Node | undefined, l: Layout, p
       break
     }
     case 'KeyLegend':
-      text('keys', list(p, 'entries').map((en) => tx(str(en as Props, 'label'))).join(' · '))
+      text('keys', list(p, 'entries').map((en) => tx(str(en as Props, 'label'))).map(bidi).join(' · '))
       e.textSize = l.dock?.hintSize
       break
     case 'WidgetGrid': e.role = 'group'; e.label = pageTitle; e.columns = Math.trunc(num(p, 'columns') ?? 4); e.cards = kids; break
@@ -334,7 +334,7 @@ function makeView(x: Node, depth: number, parent: Node | undefined, l: Layout, p
     }
     case 'DetailHeader': {
       e.role = 'region'; e.label = str(p, 'title')
-      text('title', str(p, 'title')); text('tagline', str(p, 'tagline')); text('facts', factsOf(p).join(' · ')); text('overview', str(p, 'overview'))
+      text('title', str(p, 'title')); text('tagline', str(p, 'tagline')); text('facts', factsOf(p).map(bidi).join(' · ')); text('overview', str(p, 'overview'))
       lines('title', 2); lines('overview', 4)
       e.textSize = l.text.pageTitle
       const b = buttonLabels(p)
@@ -360,7 +360,7 @@ function makeView(x: Node, depth: number, parent: Node | undefined, l: Layout, p
       e.role = 'region'; e.label = tx(str(p, 'title')); e.cards = kids
       text('title', tx(str(p, 'title'))); lines('title', 1)
       e.textSize = l.text.heading
-      text('groups', creditGroups(p).map((g) => g.label + ' ' + g.shown + (g.total > g.shown ? ' of ' + g.total : '')).join(' · '))
+      text('groups', creditGroups(p).map((g) => g.label + ' ' + g.shown + (g.total > g.shown ? ' of ' + g.total : '')).map(bidi).join(' · '))
       const c = obj(p, 'card')
       if (c) { e.cardStyle = 'person'; e.cardWidth = Math.trunc(num(c, 'width') || 0); e.cardHeight = Math.trunc(num(c, 'height') || 0) }
       const more = obj(p, 'more')

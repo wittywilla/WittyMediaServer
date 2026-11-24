@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"io"
 	"io/fs"
 	"os"
@@ -303,7 +304,7 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 		}
 	}
 	// What's coming, to check there's room and to say how far along it is.
-	report("Working out what to include")
+	report(i18n.T("Working out what to include"))
 	sizes := Estimate(ctx, o.Folders, o.LiveDB)
 	var estimate int64
 	for _, s := range sizes {
@@ -326,7 +327,7 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 		}
 	}
 	if hasDB {
-		report("Copying the database")
+		report(i18n.T("Copying the database"))
 		if man.Schema, err = copyDatabase(ctx, o, dbFile, want, key != nil); err != nil {
 			return "", nil, err
 		}
@@ -371,7 +372,7 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 		inner = seal
 	}
 	zw := zip.NewWriter(inner)
-	sink := &zipSink{zw: zw, opts: &o, man: man, step: Step{Phase: "Writing the backup", Total: estimate}}
+	sink := &zipSink{zw: zw, opts: &o, man: man, step: Step{Phase: i18n.T("Writing the backup"), Total: estimate}}
 
 	if hasDB {
 		if err = sink.addFile(ctx, "", dbEntry, dbFile); err != nil {

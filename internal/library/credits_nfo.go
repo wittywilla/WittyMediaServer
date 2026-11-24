@@ -4,6 +4,7 @@
 package library
 
 import (
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -76,7 +77,7 @@ func (p *nfoPeople) crewTags() []struct {
 		job  string
 	}{
 		{p.Directors, "Director"}, {p.Credits, "Writer"}, {p.Writers, "Writer"}, {p.Producers, "Producer"},
-		{p.Composers, "Composer"}, {p.Cinematographers, "Director of Photography"}, {p.Editors, "Editor"},
+		{p.Composers, "Composer"}, {p.Cinematographers, i18n.T("Director of Photography")}, {p.Editors, "Editor"},
 		{p.ProductionDesigners, "Production Design"}, {p.ArtDirectors, "Art Direction"}, {p.SetDecorators, "Set Decoration"},
 		{p.CostumeDesigners, "Costume Design"},
 	}

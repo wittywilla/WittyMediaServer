@@ -2370,6 +2370,7 @@ The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a
 | `POST /backup/create` | Start a backup: `{parts, password}`. With no password, secrets are left out. |
 | `POST /backup/cancel` | Stop what's running. An administrator's, or first-time setup. |
 | `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. Keeping fewer than before also takes `{current, code}`: the account's own password, and its two-factor code if it has one. |
+| `PUT /backup/folder` | Choose where backups are kept, such as a second drive: `{folder, current, code}`, with the account's own password and its two-factor code if it has one. The folder must already exist; an empty one means the data folder's own. It gets a marker file, and while that's missing (a drive not plugged in) no backup is made there and `GET /backup` says why in `folderProblem`. Backups made before the change stay listed. |
 | `DELETE /backup/files/{name}` | Delete a backup kept on this server. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
 | `POST /backup/files/{name}/link` | A short-lived address to download a backup. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
 | `GET /backup/download` | Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission. |

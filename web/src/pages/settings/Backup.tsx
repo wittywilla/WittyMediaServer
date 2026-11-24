@@ -18,7 +18,7 @@ import './backup.css'
 // first-time setup offers, so it's a part of its own, with no account to ask for there.
 
 type Part = { id: string; label: string; desc: string; default: boolean; needs?: string[]; files?: number; bytes?: number; rows?: number; hasFiles?: boolean }
-type Info = { name: string; size: number; created: string; auto: boolean; protected: boolean; version?: string }
+type Info = { name: string; size: number; created: string; auto: boolean; protected: boolean; version?: string; elsewhere?: boolean }
 type Schedule = { frequency: 'off' | 'daily' | 'weekly'; hour: number; weekday: number; keep: number; parts: string[]; protected: boolean }
 type Inspection = {
   name: string; size: number; serverVersion: string; created: string; protected: boolean; older: boolean; parts: Part[]
@@ -28,7 +28,7 @@ type Inspection = {
 type Job = { kind?: 'create' | 'inspect' | 'restore'; running: boolean; phase?: string; done: number; total: number; item?: string; error?: string; needsPassword?: boolean; refused?: boolean; file?: string; result?: string; problems?: string[]; inspection?: Inspection; restarting?: boolean }
 type Last = { ok: boolean; mode: string; name?: string; safety?: string; error?: string; notes?: string[]; at: string }
 type View = {
-  parts: Part[]; files: Info[]; folder: string; schedule: Schedule; lastAuto?: number; lastError?: string; job: Job; pending?: { mode: string; at: string; name?: string }
+  parts: Part[]; files: Info[]; folder: string; chosenFolder?: string; defaultFolder?: string; folderProblem?: string; schedule: Schedule; lastAuto?: number; lastError?: string; job: Job; pending?: { mode: string; at: string; name?: string }
   last?: Last; safety: { name: string; at: string }[]; canRestart: boolean; twoFactor: boolean; firstRun: boolean
 }
 
@@ -247,14 +247,16 @@ function FileList({ view, reload, call, onRestore }: { view: View; reload: () =>
     } catch (e) { setErr(message(e)) }
   }
   return (
-    <Section title={tk('Backups on this server')} desc={<>{t('In')} <code>{view.folder}</code>. {t('They stay through a reset that keeps a copy, and stay on the same drive as everything else, so download one to keep it somewhere safer.')}</>}>
+    <Section title={tk('Backups on this server')} desc={view.chosenFolder
+      ? <>{t('New ones go to')} <code>{view.folder}</code>{t(', the folder you chose under Schedule. Ones made before that, in the data folder, are listed too.')}</>
+      : <>{t('In')} <code>{view.folder}</code>. {t('They stay through a reset that keeps a copy, and stay on the same drive as everything else, so download one, or choose a folder on another drive under Schedule.')}</>}>
       {view.files.length === 0 ? <p className="bk-quiet">{t('None yet.')}</p> : (
         <ul className="bk-files">
           {view.files.map((b) => (
             <li key={b.name} className="bk-file">
               <div className="bk-file-text">
                 <b>{fmtDateTime(b.created)}</b>
-                <span className="bk-quiet">{size(b.size)} · {b.protected ? t('Password protected') : t('Secrets left out')}{b.auto ? ' · ' + t('Scheduled') : ''}{b.version ? ' · ' + t('Version {version}', { version: b.version }) : ''}</span>
+                <span className="bk-quiet">{size(b.size)} · {b.protected ? t('Password protected') : t('Secrets left out')}{b.auto ? ' · ' + t('Scheduled') : ''}{view.chosenFolder ? ' · ' + (b.elsewhere ? t('In your folder') : t('In the data folder')) : ''}{b.version ? ' · ' + t('Version {version}', { version: b.version }) : ''}</span>
                 <small className="mono bk-name">{b.name}</small>
               </div>
               <div className="bk-file-actions">
@@ -278,6 +280,46 @@ function FileList({ view, reload, call, onRestore }: { view: View; reload: () =>
           ))}
         </ul>
       )}
+    </Section>
+  )
+}
+
+// ---------------------------------------------------------------- the folder
+
+// FolderForm: where backups are kept, typed as a path (a second drive or a share). The server
+// checks it and leaves a marker file in it, so an unplugged drive is noticed and not written to.
+function FolderForm({ view, reload, call }: { view: View; reload: () => void; call: ReturnType<typeof client> }) {
+  const [folder, setFolder] = useState(view.chosenFolder || '')
+  const [current, setCurrent] = useState('')
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const changed = folder.trim() !== (view.chosenFolder || '')
+  const save = async (to: string) => {
+    setBusy(true); setErr('')
+    try {
+      await call('PUT', '/backup/folder', { folder: to, current, code })
+      setCurrent(''); setCode(''); setFolder(to); toast(to ? t('Backups will go to {folder}', { folder: to }) : t('Backups will go to the data folder')); reload()
+    } catch (e) { setErr(message(e)) } finally { setBusy(false) }
+  }
+  return (
+    <Section title={tk('Where backups go')} desc={t('Keep them on a second drive or a network folder, so they survive if this drive fails. Make the folder first, then type its whole path. Backups made by hand go there too.')}>
+      {view.folderProblem && <div role="alert"><Notice tone="warn" title={t('Backups can’t be made there now')}>{view.folderProblem}</Notice></div>}
+      <form className="bk-folder" onSubmit={(e) => { e.preventDefault(); void save(folder.trim()) }}>
+        <Field label={t('Folder')} hint={t('Empty: the data folder, {folder}', { folder: view.defaultFolder || '' })}>
+          <Input className="mono" value={folder} spellCheck={false} autoComplete="off" placeholder={view.defaultFolder} onChange={(e) => setFolder(e.target.value)} />
+        </Field>
+        {changed && <>
+          <p className="bk-quiet">{t('Backups hold everyone’s account, so choosing where they go asks for your password.')}</p>
+          <Field label={t('Your password')}><Input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>
+          {view.twoFactor && <Field label={t('Code from your authenticator app')}><Input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} /></Field>}
+        </>}
+        {err && <div role="alert"><Notice tone="danger" title={t('The folder wasn’t changed')}>{err}</Notice></div>}
+        <div className="bk-actions">
+          <Button type="submit" variant="primary" disabled={!changed || busy || current === '' || (view.twoFactor && code === '')}>{t('Use this folder')}</Button>
+          {view.chosenFolder && !changed && view.folderProblem && <Button onClick={() => void save(view.chosenFolder || '')} disabled={busy || current === ''}>{t('Check it again')}</Button>}
+        </div>
+      </form>
     </Section>
   )
 }
@@ -569,7 +611,10 @@ export default function BackupSettings() {
             <LastRestore view={view} reload={() => void load()} call={call} />
           </>
         )}
-        {tab === 'schedule' && <ScheduleForm view={view} reload={() => void load()} call={call} />}
+        {tab === 'schedule' && <>
+          <FolderForm view={view} reload={() => void load()} call={call} />
+          <ScheduleForm view={view} reload={() => void load()} call={call} />
+        </>}
       </div>
     </>
   )

@@ -103,3 +103,30 @@ func TestRecomputeAgesAfterTheCountryChanges(t *testing.T) {
 		t.Fatalf("read in New Zealand: %v, want 16", a)
 	}
 }
+
+// A song's parental advisory, however its file writes it, becomes a rating parental controls know.
+func TestSongsAdvisoryIsRead(t *testing.T) {
+	cases := []struct {
+		tags map[string]string
+		path string
+		want string
+	}{
+		{map[string]string{"ITUNESADVISORY": "1"}, "/m/a.flac", "Explicit"},
+		{map[string]string{"iTunesAdvisory": "2"}, "/m/a.mp3", "Clean"},
+		{map[string]string{"rating": "1"}, "/m/a.m4a", "Explicit"},
+		{map[string]string{"rating": "4"}, "/m/a.m4a", "Explicit"},
+		{map[string]string{"rating": "2"}, "/m/a.m4a", "Clean"},
+		{map[string]string{"RATING": "1"}, "/m/a.flac", ""}, // a star rating elsewhere
+		{map[string]string{"rating": "0"}, "/m/a.m4a", ""},
+		{map[string]string{"CONTENTRATING": "Explicit"}, "/m/a.ogg", "Explicit"},
+		{map[string]string{}, "/m/a.mp3", ""},
+	}
+	for _, c := range cases {
+		if got := advisoryTag([]map[string]string{c.tags}, c.path); got != c.want {
+			t.Errorf("%v %s: %q, want %q", c.tags, c.path, got, c.want)
+		}
+	}
+	if a := AgeFor("Explicit"); a == nil || *a != 17 {
+		t.Errorf("Explicit is %v", a)
+	}
+}

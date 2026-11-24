@@ -95,6 +95,8 @@ type credentials struct {
 	SetupCode string `json:"setupCode"`
 	// AcknowledgedLegal: the setup wizard's first-run notice was ticked.
 	AcknowledgedLegal bool `json:"acknowledgedLegal"`
+	// ParentPIN: switching away from a kids' profile kept on its device (parental_pin.go).
+	ParentPIN string `json:"parentPin"`
 }
 
 // maxCredentialBytes caps every request anyone can send without an account (no name,
@@ -230,6 +232,16 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 403, featureRefusal[library.FeatureRemote])
 		return
 	}
+	// Signing in from a device a kids' profile is kept on, to a profile with no password, is
+	// leaving it: the parents' PIN, as switching asks (parental_pin.go).
+	if !u.HasPassword {
+		if kid := s.keptProfileOf(r); kid != nil && kid.ID != u.ID {
+			if s.refuseLeaving(w, r, kid, c.ParentPIN, "", "") {
+				s.Auth.Logout(r.Context(), tok)
+				return
+			}
+		}
+	}
 	s.Log.InfoContext(r.Context(), "signed in", "cat", "auth", "name", u.Name, "from", clientFrom(r).IP.String(), "where", clientFrom(r).Where.String())
 	s.setCookie(w, r, tok)
 	writeJSON(w, 200, map[string]any{"token": tok, "user": u})
@@ -354,6 +366,23 @@ func browserName(ua string) string {
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	// A kids' profile kept on its device is left with a parent's PIN (parental_pin.go). Every
+	// token sent is signed out, so every one is asked about: a second token sent along can't
+	// carry the kids' one out with it.
+	if u := s.keptProfileOf(r); u != nil {
+		var b struct {
+			PIN      string `json:"pin"`
+			Name     string `json:"name"`
+			Password string `json:"password"`
+		}
+		if r.ContentLength != 0 {
+			r.Body = http.MaxBytesReader(w, r.Body, maxCredentialBytes)
+			_ = readJSON(r, &b)
+		}
+		if s.refuseLeaving(w, r, u, b.PIN, b.Name, b.Password) {
+			return
+		}
+	}
 	for _, tok := range auth.Tokens(r) { // a stale token can sit in front of the live one
 		s.Auth.Logout(r.Context(), tok)
 	}
@@ -491,7 +520,7 @@ func (s *Server) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	restr := ""
 	if hasAccess := len(c.Access) > 0 && string(c.Access) != "null"; hasAccess || c.Kind != auth.KindAdult {
-		a := library.DefaultAccess(c.Kind)
+		a := library.NewProfileAccess(c.Kind) // kid-safe for a kids' profile
 		a.ForKind(c.Kind)
 		if hasAccess {
 			// What isn't sent is as a new profile of this kind has it.

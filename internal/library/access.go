@@ -126,6 +126,9 @@ type Access struct {
 	On []string `json:"on,omitempty"`
 	// Time: when the account may play things, and for how long each day.
 	Time *parental.TimeRules `json:"time,omitempty"`
+	// PinToLeave: once the owner has set a parents' PIN, the profile can't be left on its
+	// device (switching to another, signing out) without it.
+	PinToLeave bool `json:"pinToLeave,omitempty"`
 
 	// set are the titles the collections and tags above come to, looked up for
 	// one request (Resolve). Lists made in SQL don't need it.
@@ -187,6 +190,32 @@ func DefaultAccess(kind string) Access {
 		return Access{MaxAge: 13}
 	}
 	return Access{MaxAge: NoAgeLimit, AllowUnrated: true, LiveTV: true, LibraryChannels: true, TunerChannels: true}
+}
+
+// NewProfileAccess is what a profile made now starts with. A kids' profile starts kid-safe:
+// films, shows, games and books for 7 and under with nothing unrated, music without explicit
+// songs (most music has no rating, so unrated songs play), library channels but no broadcast
+// ones, home network only, nothing that records, keeps a copy, shares, comments or plays on
+// other devices, two hours a school day and three at the weekend between 7:00 and bedtime,
+// and the parents' PIN to leave it. Whoever makes it sees all this and can change any of it.
+// DefaultAccess stays as it was: it is what limits saved before a choice existed mean.
+func NewProfileAccess(kind string) Access {
+	a := DefaultAccess(kind)
+	if kind != "kids" {
+		return a
+	}
+	a.Kinds = map[string]KindLimit{
+		parental.KindFilm:  {MaxAge: 7},
+		parental.KindTV:    {MaxAge: 7},
+		parental.KindGame:  {MaxAge: 7},
+		parental.KindBook:  {MaxAge: 7},
+		parental.KindMusic: {MaxAge: 12, AllowUnrated: true},
+	}
+	a.TunerChannels = false
+	a.Off = []string{FeatureRecordings, FeatureDownloads, FeatureSharing, FeatureComments, FeatureSyncplay, FeatureRemoteControl, FeatureRemote}
+	a.Time = &parental.TimeRules{SchoolDayMinutes: 120, WeekendMinutes: 180, From: "07:00", SchoolNightUntil: "19:30", WeekendUntil: "20:30"}
+	a.PinToLeave = true
+	return a
 }
 
 // What an account can be kept from doing, apart from what it may watch.

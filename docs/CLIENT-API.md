@@ -1516,7 +1516,7 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 |---|---|---|
 | `POST /setup` | none | Create the first administrator (409 once there is an account). |
 | `POST /login` | none | Sign in. 429 with Retry-After after repeated failures. Password-free Kids and Guest profiles only sign in where `/profiles` lists them. |
-| `POST /logout` | none | End the session the request carries. |
+| `POST /logout` | none | End the session the request carries. A profile whose `/me/limits` says `pinToLeave` sends `{pin}` (or `{name, password}` of a parent): without it, 403 with `code` `parent-pin`. |
 | `GET /profiles` | none | The "Who's watching?" list where the server offers it: `style` is `profiles` (with `profiles`) or `classic` (ask for name and password). |
 | `POST /pair/invite` | user | Code typed on the device: get 6 digits to type there, for this account or a Kids or Guest profile it manages. Adults only. One open at a time per person; lasts 5 minutes. |
 | `POST /pair/redeem` | none | Code typed on the device: use the 6 digits and get a sign-in. Works once. Failures say why in `reason`: `wrong-code` (400), `expired` or `used` (410), `too-many-tries` (429). |
@@ -1543,8 +1543,9 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `PUT /users/{id}/password` | user | Change a password. Your own needs `current`; other sessions of that account end. |
 | `PUT /users/{id}/profile` | user | Change `displayName`, `username`, `showUsername` or `avatar` (`name:colour` from `/parental/ratings`, or empty). Which name the corner shows is anyone's own choice; the names are for an adult's own account and whoever manages the account. |
 | `GET /profiles/household` | user | The profiles this device can switch to, as `GET /profiles` lists them, with `avatar` and `current`. Empty where the sign-in screen hides profiles, unless an adult asks. |
-| `POST /profiles/switch` | user | Switch this device to another profile: `{name, password, code, device}` as `/login`. Answers a new `token` and `user`, and ends the session it was called with. A wrong password is 403 and the device stays signed in. |
-| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, syncplay, remoteControl, remote, editProfile, editLayout, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now. For hiding what is off. |
+| `POST /profiles/switch` | user | Switch this device to another profile: `{name, password, code, device}` as `/login`, and `parentPin` when leaving a profile whose `/me/limits` says `pinToLeave` (403 with `code` `parent-pin` without it, unless the other profile's own password is given). Answers a new `token` and `user`, and ends the session it was called with. A wrong password is 403 and the device stays signed in. |
+| `GET /me/limits` | user | What this profile may do: `features` (games, recordings, downloads, sharing, comments, writeComments, syncplay, remoteControl, remote, editProfile, editLayout, liveTv), its age limits (`maxAge`, `kinds`), its `time` rules and `screenTime` now, and `pinToLeave`: switching away or signing out takes the parents' PIN. For hiding what is off. |
+| `PUT /me/limits` | user | A parent changes this Kids or Guest profile's limits on its own device: `{pin}` or `{name, password}`, with any of `time` (as in `/users/{id}/access`; empty for none), `maxAge` and `kinds` (`{"film": {"maxAge": 7}}`). Answers as `GET /me/limits`. 403 with `code` `wrong-pin` or `parent-pin`, 429 after too many. |
 | `GET /me/screen-time` | user | How long this profile may still play today: `allowed`, `reason` (allowance, bedtime, early), `remainingSec` (-1 = no limit), `until` and `nextAt` in Unix seconds, and a `message` to show. |
 | `POST /me/screen-time/extra` | user | Ask a parent: `{minutes, pin}` or `{minutes, name, password}` gives this profile more time today. 403 for a wrong PIN or password, 429 after too many. |
 | `POST /users/{id}/screen-time/extra` | user | Give a profile you manage more time today: `{minutes}`. |

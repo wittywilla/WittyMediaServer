@@ -54,6 +54,17 @@ Not released yet.
   link stays under 300.
 - **Each device's Remove button is in its own row** under **Devices that may connect**, not below the list beside the
   next heading.
+**Live TV (#687, #688)**
+
+- **Sound and picture stay together across programme changes.** A library channel joined part way into a programme
+  (tuning in, after every ad break, Start over and rewinding) began each programme with up to a couple of seconds of
+  picture alone: the copied picture started at the keyframe before the place, the sound at the place. Players froze the
+  picture there, then played on with the sound out of step. Both now start at the keyframe. A test in CI plays four
+  programmes across three joins and checks that sound and picture start and end together, with no gaps and no frozen
+  picture.
+- **No skipping ahead on live TV.** The live player has no +30 any more, and its timeline can't be dragged or keyed
+  past where it's playing. Right, Fast forward and Next (outside an ad break) don't move a channel on. Back, Pause,
+  Start over, Skip break and Back to live stay.
 
 **Games in Docker**
 

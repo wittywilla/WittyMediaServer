@@ -20,7 +20,7 @@ import { applyItems, buildPage, sectionGap, type View } from './model'
 import { hasTools, nativeInstead } from './native'
 import { plan, withQuery } from './routes'
 import { changedRows, refreshDelay, sectionRetryDelay } from './refresh'
-import { Ctx, px, type PageCtx } from './render/context'
+import { Ctx, PressContext, px, type PageCtx, type PressCtx } from './render/context'
 import { scopeStyle, Sections } from './render/components'
 import { setPageMove } from '../tv'
 import { useTvMode } from '../tvmode/mode'
@@ -122,6 +122,12 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
     act: h.act, more: h.more, busy: h.busy, failed: h.failed, setQuery: h.setQuery, menu: h.menu,
     columns: (id, n) => { cols.current[id] = n },
   }), [doc, l, device, tv, reducedMotion, pt, inert, h.act, h.more, h.busy, h.failed, h.setQuery, h.menu])
+  // What cards need to be pressed, the same from one page of items to the next (render/context.tsx).
+  const latest = useRef(h)
+  useLayoutEffect(() => { latest.current = h })
+  const press = useMemo<PressCtx>(() => ({
+    act: (a, from) => latest.current.act(a, from), menu: (card, at) => latest.current.menu(card, at), inert, externalLinks: l.externalLinks,
+  }), [inert, l.externalLinks])
 
   // A page whose sections have all taken themselves off (each had nothing to show) says so, instead of a title over a blank page.
   const [blank, setBlank] = useState(false)
@@ -166,6 +172,7 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
   const title = model.root.label || tx(doc.page.title)
   return (
     <Ctx.Provider value={ctx}>
+      <PressContext.Provider value={press}>
       <div ref={box} className={`sdui ff-${l.formFactor} bp-${l.breakpoint} density-${l.density || 'comfortable'} kind-${doc.page.kind}` + (inert ? ' inert' : '')} style={style}
         data-sdui-page={doc.page.id} data-scope={doc.theme?.scope || undefined} data-source={doc.meta?.source === 'draft' ? 'draft' : undefined}>
         {title && <h1 className={tv || ownHeading ? 'sr-only' : 'sdui-page-title'}>{title}</h1>}
@@ -175,6 +182,7 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
         {doc.page.kind === 'detail' && <div className="sdui-page-end" data-sdui-end />}
         {blank && <div className="sdui-nothing"><EmptyState icon={<IconInfo />} title={t('Nothing here yet')} text={t('When there is something for this page, it will appear here. Check back after you add media or turn a module on.')} /></div>}
       </div>
+      </PressContext.Provider>
     </Ctx.Provider>
   )
 }

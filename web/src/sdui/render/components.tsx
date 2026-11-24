@@ -27,7 +27,7 @@ import { buttonsOf, cardGap, creditGroups, factsOf, fieldOf, gridColumns, initia
 import { arrangeTabs, consolesOf, dotFor, focusedOf } from '../playModel'
 import { plan } from '../routes'
 import type { Action, Node, Props } from '../types'
-import { px, usePage } from './context'
+import { px, usePage, usePress } from './context'
 import { kindIcon, sduiIcon } from './icons'
 import { GameArtContext, RowLayoutContext, TabsContext, useGlyph } from './glyphs'
 import { chooseEpisodeView, useEpisodeView } from '../extras/episodeView'
@@ -95,10 +95,10 @@ function Picture({ image, kind, icon, contain, title }: { image: Props | undefin
 // A thing a person can act on: a link when it goes somewhere in the app, so it can be
 // opened in a new tab, and a button otherwise.
 function Pressable({ view, className, children, label, style, first, title }: { view: View; className?: string; children: ReactNode; label?: string; style?: CSSProperties; first?: boolean; title?: string }) {
-  const page = usePage()
+  const page = usePress() // not the page: it changes with every page of items, and every card would draw again
   const route = useContext(CardRouteContext)
   const node = view.node
-  const step = plan(node.action, { externalLinks: page.layout.externalLinks })
+  const step = plan(node.action, { externalLinks: page.externalLinks })
   const common = {
     className, style, title,
     'data-sdui-focus': node.focus ? node.id : undefined,
@@ -421,11 +421,11 @@ function ConsoleBar({ consoles, total, value, onChange, label }: { consoles: { n
 
 // An item's own actions (a room's Start game, Invite and Leave) as buttons under it, with their keys: beside the item, not inside it, so
 // a button is never inside a button. A Shelf with a detail panel shows them there instead.
-function ItemActions({ view }: { view: View }) {
+const ItemActions = memo(function ItemActions({ view }: { view: View }) {
   const buttons = buttonsOf(view.node.props)
   if (!buttons.length) return null
   return <ActionButtons buttons={buttons} view={view} className="sdui-item-actions" />
-}
+})
 
 // The panel under a row whose focused card is bound to it: its title large, its line, and its actions as buttons with their key.
 function ShelfDetail({ view, parent }: { view: View; parent: View }) {

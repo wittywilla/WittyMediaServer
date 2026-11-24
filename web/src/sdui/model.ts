@@ -224,7 +224,26 @@ function cardView(e: View, x: Node, parent: Node | undefined) {
   e.shows = shows.length ? shows : undefined
 }
 
+// A card's view, kept by its node: when more of a grid's items arrive, the section is a new node
+// but the cards already there are the same nodes (applyItems), so they get the same views back and
+// the drawn cards (memo) are left alone. Without this, every card of a big grid drew again each
+// time a page of it arrived: 298,565 component renders to scroll 1,500 films (#643). A card's view
+// depends on its node, its depth, its section's type and showTitles, and (for anything inside it)
+// the layout and the page's title; all are checked.
+type KeptCard = { v: View; depth: number; ptype?: string; titles: boolean; l: Layout; title: string }
+const keptCards = new WeakMap<Node, KeptCard>()
+
 function viewOf(x: Node, depth: number, parent: Node | undefined, l: Layout, pageTitle: string): View {
+  if (x.type !== 'Card') return makeView(x, depth, parent, l, pageTitle)
+  const ptype = parent?.type, titles = parent?.props?.showTitles !== false
+  const had = keptCards.get(x)
+  if (had && had.depth === depth && had.ptype === ptype && had.titles === titles && had.l === l && had.title === pageTitle) return had.v
+  const v = makeView(x, depth, parent, l, pageTitle)
+  keptCards.set(x, { v, depth, ptype, titles, l, title: pageTitle })
+  return v
+}
+
+function makeView(x: Node, depth: number, parent: Node | undefined, l: Layout, pageTitle: string): View {
   const p = x.props || {}
   const e: View = { id: x.id, type: x.type, depth, role: 'none', label: '', state: x.state || undefined, scope: x.scope || undefined, action: describeAction(x.action) || undefined, node: x, children: [] }
   const text = (k: string, v: string) => { if (v) (e.text ||= {})[k] = v }

@@ -104,3 +104,5 @@ html.tv-mode .sa-text-btn, html.tv-mode .sa-card .spec-dock .dock-btn:not(.prima
 html.tv-mode .sa-foot { font-size: var(--tvm-label); }
 /* A Kids or Guest badge sits on the face's lower edge; the name starts below it. */
 html.tv-mode .who-card .who-name { margin-top: calc(var(--tvu) * 36); }
+/* The sign-in form in the card (pages/AuthPage.tsx): the card's width, its parts one under another. */
+.sa-form { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }

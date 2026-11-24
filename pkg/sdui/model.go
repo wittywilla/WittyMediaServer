@@ -153,9 +153,9 @@ type Section struct {
 type Repeat struct {
 	// Over is "libraries", "pinnedViews", "collections", or the series or authors of
 	// the page's books library: "bookSeries", "bookAuthors"; or the parts of a person's work on
-	// their page: "personParts".
+	// their page: "personParts"; or the groups of the search page's results, best first: "searchGroups".
 	Over string `json:"over"`
-	// Kinds keeps only libraries of these kinds (Over "libraries").
+	// Kinds keeps only libraries of these kinds (Over "libraries"), or these groups (Over "searchGroups").
 	Kinds []string `json:"kinds,omitempty"`
 	// Limit is the most copies made; 0 is the device's limit.
 	Limit int `json:"limit,omitempty"`

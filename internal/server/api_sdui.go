@@ -504,6 +504,9 @@ func (s *Server) sduiPrepare(r *http.Request, name string) (*sduiRender, int, er
 	ctx.Flags["librariesEmpty"] = len(libs) == 0
 	ctx.Flags["setupIncomplete"] = u.IsAdmin && s.DB.GetSetting(r.Context(), "setupDone", "") == "0"
 	ctx.Flags["hasQuery"] = len([]rune(vars["query"])) >= 2
+	if pg.Kind == "search" && !ctx.Flags["hasQuery"] {
+		ctx.Flags["hasRecentSearches"] = len(s.recentSearches(r.Context(), u.ID)) > 0
+	}
 	for _, ui := range set.Modules() {
 		ctx.Modules = append(ctx.Modules, ui.Module)
 	}

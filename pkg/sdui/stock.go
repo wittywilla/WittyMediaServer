@@ -168,30 +168,30 @@ func buildStockPages() []Page {
 			repeated(sec("titles", "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "filmography", "person": "$person", "part": "$each"}), "personParts"),
 		}}
 
-	// Search: a scope (Everything, Films, Shows, Music, People, Live TV) as tabs, each holding what that scope
-	// searches; the search box and the hint stay above them.
-	foundIn := func(id string, kinds ...string) Section {
-		return repeated(sec(id, "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "search", "query": "$query", "library": "$each", "filterable": true}), "libraries", kinds...)
-	}
-	peopleRow := func(id string) Section {
-		return sec(id, "Shelf", props{"title": "People", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "people"})
-	}
-	channelRow := func(id string) Section {
-		return when(scoped(sec(id, "Shelf", props{"title": "Channels", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "channels"}), "wittytv"), Condition{Can: "liveTv"})
+	// Search: one search across every library, its results grouped by kind (films, shows, songs,
+	// people...), the group that matches best first. A scope as tabs narrows it to some groups; the
+	// search box and the profile's recent searches stay above them.
+	foundIn := func(id string, groups ...string) Section {
+		return repeated(sec(id, "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "search", "query": "$query", "group": "$each", "filterable": true, "limit": 24}), "searchGroups", groups...)
 	}
 	scopes := with(sec("scope", "Tabs", props{"style": "segments", "default": "all"}, nil),
-		with(sec("all", "Tab", props{"label": "Everything"}, nil), foundIn("found"), peopleRow("people"), channelRow("channels")),
-		with(sec("movies", "Tab", props{"label": "Movies", "icon": "movie"}, nil), foundIn("found-movies", "movies", "discs", "videos")),
-		with(sec("shows", "Tab", props{"label": "Shows", "icon": "show"}, nil), foundIn("found-shows", "shows", "anime")),
-		with(sec("music", "Tab", props{"label": "Music", "icon": "music"}, nil), foundIn("found-music", "music", "audiobooks", "podcasts")),
-		with(sec("people-tab", "Tab", props{"label": "People", "icon": "users"}, nil), peopleRow("people-only")),
-		when(with(sec("tv", "Tab", props{"label": "Live TV", "icon": "live"}, nil), channelRow("channels-only")), Condition{Can: "liveTv"}),
+		with(sec("all", "Tab", props{"label": "Everything"}, nil), foundIn("found")),
+		with(sec("movies", "Tab", props{"label": "Films", "icon": "movie"}, nil), foundIn("found-movies", "films", "videos")),
+		with(sec("shows", "Tab", props{"label": "Shows", "icon": "show"}, nil), foundIn("found-shows", "shows", "episodes")),
+		with(sec("music", "Tab", props{"label": "Music", "icon": "music"}, nil), foundIn("found-music", "artists", "albums", "songs", "karaoke", "audiobooks", "podcasts", "radio")),
+		with(sec("books", "Tab", props{"label": "Books", "icon": "book"}, nil), foundIn("found-books", "books", "comics", "audiobooks")),
+		with(sec("games", "Tab", props{"label": "Games", "icon": "game"}, nil), foundIn("found-games", "games")),
+		with(sec("photos", "Tab", props{"label": "Photos", "icon": "photo"}, nil), foundIn("found-photos", "photos")),
+		with(sec("people-tab", "Tab", props{"label": "People", "icon": "users"}, nil), foundIn("found-people", "people")),
+		when(with(sec("tv", "Tab", props{"label": "Live TV", "icon": "live"}, nil), foundIn("found-channels", "channels")), Condition{Can: "liveTv"}),
 	)
 	search := Page{ID: "search", Kind: "search", Title: "Search", Icon: "search",
 		Sections: []Section{
-			sec("q", "SearchBox", props{"placeholder": "Films, shows, people, music, books, channels", "autofocus": true}, nil),
-			when(sec("idle", "Text", props{"text": "Type at least two letters to search every library you can open.", "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
-			when(sec("narrow", "FilterBar", props{"fields": []string{"year", "minRating"}, "sorts": []string{"title"}, "showCount": false}, nil), Condition{Flag: "hasQuery"}),
+			sec("q", "SearchBox", props{"placeholder": "Films, shows, music, books, games, people, channels", "autofocus": true}, nil),
+			when(sec("recent", "List", props{"title": "Recent searches", "empty": "hide"}, Source{"type": "recentSearches"}), Condition{Not: &Condition{Flag: "hasQuery"}}),
+			when(sec("forget", "Button", props{"label": "Clear recent searches", "icon": "history", "op": "search.forgetRecent", "variant": "ghost"}, nil), Condition{Flag: "hasRecentSearches"}),
+			when(sec("idle", "Text", props{"text": "Type at least two letters to search every library you can open. A letter or two wrong still finds it; year:1999 narrows it to a year.", "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
+			when(sec("narrow", "FilterBar", props{"fields": []string{"year"}, "sorts": []string{}, "showCount": false}, nil), Condition{Flag: "hasQuery"}),
 			when(scopes, Condition{Flag: "hasQuery"}),
 		}}
 

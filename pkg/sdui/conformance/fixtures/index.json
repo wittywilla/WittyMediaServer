@@ -346,6 +346,12 @@
    "formFactor": "desktop"
   },
   {
+   "id": "search-recent",
+   "file": "search-recent.json",
+   "title": "Search before anything is typed, with recent searches",
+   "formFactor": "phone"
+  },
+  {
    "id": "livetv-native-guide",
    "file": "livetv-native-guide.json",
    "title": "Live TV on a client with its own guide",

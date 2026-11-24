@@ -17,12 +17,12 @@ on:
   workflow_dispatch:
     inputs:
       set:
-        description: fast, full, or a filter such as "net=symmetric-relay way=link"
+        description: 'fast, full, or a filter such as "net=symmetric-relay way=link"'
         default: full
       relay_ref:
-        description: WittyRelay tag or branch (empty: main)
+        description: 'WittyRelay tag or branch (empty means main)'
       server_ref:
-        description: Test this WittyMediaServer ref instead (for example v0.8.4-alpha, to see what a release does)
+        description: 'Test this WittyMediaServer ref instead (for example v0.8.4-alpha, to see what a release does)'
 
 permissions:
   contents: read

@@ -1,2 +1,0 @@
-{"t":668,"at":"2026-11-24T18:40:12.593Z","side":"server","step":"network-ready","ok":true,"detail":{"network":"fullcone","uplink":"no","ipv6":"no"}}
-{"t":16493,"at":"2026-11-24T18:40:28.414Z","side":"server","step":"lab-error","ok":false,"detail":"the relay didn't start: env: '/bin/wittyrelay': No such file or directory\nenv: use -[v]S to pass options in shebang lines"}

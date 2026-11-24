@@ -1,3 +1,0 @@
-{"t":565,"at":"2026-11-24T18:36:57.530Z","side":"server","step":"network-ready","ok":true,"detail":{"network":"direct","uplink":"no","ipv6":"no"}}
-{"t":11540,"at":"2026-11-24T18:37:08.507Z","side":"server","step":"server-started","ok":true,"detail":{"pid":1121119}}
-{"t":42564,"at":"2026-11-24T18:37:39.527Z","side":"server","step":"lab-error","ok":false,"detail":"settings refused: "}

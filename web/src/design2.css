@@ -207,7 +207,7 @@ html.tv-mode .sdui-widgets { gap: var(--space-l); }
 .crossbar-preview { display: none; }
 @media (min-width: 701px) {
   .sdui-crossbar [role=tabpanel]:has(.crossbar-preview) { grid-template-columns: minmax(0, 1fr) minmax(10rem, 16rem); }
-  .crossbar-preview { display: grid; gap: var(--space-xs); position: sticky; top: calc(var(--topbar-h) + var(--space-m)); grid-column: 2; grid-row: 1; }
+  .crossbar-preview { display: grid; gap: var(--space-xs); position: sticky; top: calc(var(--bar-space) + var(--space-m)); grid-column: 2; grid-row: 1; }
   .crossbar-preview img { inline-size: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: var(--r-lg); box-shadow: var(--elev-3-shadow); background: var(--bg-3); }
   .crossbar-preview b { font-size: var(--role-title-size); font-weight: var(--weight-heading); }
   .crossbar-preview span { color: var(--fg-2); }

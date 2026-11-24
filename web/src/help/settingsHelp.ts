@@ -32,6 +32,7 @@ export const settingsHelp: Record<string, string> = {
   modules: 'module-store',
   backup: 'backup',
   repair: 'repair',
+  health: 'repair#library-health',
   reset: 'repair#starting-again-the-reset-page',
   about: 'settings#about',
   legal: 'settings#legal',

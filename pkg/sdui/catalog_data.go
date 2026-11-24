@@ -49,14 +49,19 @@ var (
 	// CanFeatures are what a "can" condition may ask about.
 	CanFeatures = []string{"games", "recordings", "downloads", "sharing", "comments", "syncplay", "remoteControl", "remote", "editProfile", "editLayout", "liveTv"}
 	// Flags are what a "flag" condition may ask about.
-	Flags = []string{"setupIncomplete", "scanning", "librariesEmpty", "hasQuery", "screenTimeUp"}
+	Flags = []string{"setupIncomplete", "scanning", "librariesEmpty", "hasQuery", "screenTimeUp", "hasRecentSearches"}
 	// NativeScreens are the screens every app draws itself and SDUI only
 	// links to. Settings is one of them on purpose: it is never an SDUI page.
 	NativeScreens = []string{"settings", "guide", "profiles", "downloads", "remote", "nowPlaying", "pair", "collections", "player", "livePlayer", "reader", "game", "download", "share", "playOn", "watchParty"}
 	// NativeViews are parts of a page an app may draw itself (NativeView).
 	NativeViews = []string{"guide", "photoTimeline", "photoMap", "coverFlow"}
 	// RepeatKinds are what a section can be repeated over.
-	RepeatKinds = []string{"libraries", "pinnedViews", "collections", "bookSeries", "bookAuthors", "personParts"}
+	RepeatKinds = []string{"libraries", "pinnedViews", "collections", "bookSeries", "bookAuthors", "personParts", "searchGroups"}
+	// SearchGroups are the kinds of thing the one search finds, each a group of its
+	// results: what a search page's sections repeat over (searchGroups) and a search
+	// source's group. The server's index has the same list (internal/search).
+	SearchGroups = []string{"films", "shows", "episodes", "artists", "albums", "songs", "audiobooks", "podcasts",
+		"books", "comics", "games", "karaoke", "videos", "photos", "radio", "channels", "people"}
 	// CreditGroups are the parts of a title's credits, in the order a page lists them: the
 	// cast, the guest stars, then each crew department. The keys are the API's
 	// (GET /items/{id}/credits).
@@ -957,11 +962,15 @@ func buildSources() []SourceSpec {
 			Params: []PropSpec{req(pStr("name", "Name", "The param's name.", 40)), pStr("label", "Label", "", 80), pStr("placeholder", "Prompt", "", 80),
 				pBool("multiline", "Several lines", "", false), pInt("maxLength", "Longest", "", 200, 1, 2000)}, Yields: []string{"view"}, Example: example(`{"type":"formField","name":"text","label":"Comment","multiline":true}`)},
 		{Type: "search", Label: "Search results", Icon: "search", Category: "context", Since: 2, CardStyle: "poster", PageKinds: []string{"search"}, Title: "{each}",
-			Description: "What a search finds in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.",
+			Description: "What a search finds: one group of the one search across every library (group, a letter or two wrong still matching), or the older ways, in one library, among the channels, or among the people credited on titles the profile may see. Nothing under two characters.",
 			Params: []PropSpec{req(pOf(PropRef, "query", "Search", "$query on the search page.")), paramLibrary,
 				pEnum("in", "Look in", "", "library", "library|A library", "channels|TV channels", "people|People in the cast and crew"),
+				rev8(pStr("group", "Group", "One group of the one search: films, shows, episodes, artists, albums, songs, audiobooks, podcasts, books, comics, games, karaoke, videos, photos, radio, channels or people. $each in a section repeated over searchGroups.", 20)),
 				rev8(pBool("filterable", "Follows the page's filters", "The page's FilterBar (year, score) narrows what a library search finds.", false)), paramLimit},
-			Yields: []string{"movie", "show", "album", "book", "game", "channel", "person"}, Example: example(`{"type":"search","query":"$query","library":"$each"}`)},
+			Yields: []string{"movie", "show", "album", "book", "game", "channel", "person"}, Example: example(`{"type":"search","query":"$query","group":"$each"}`)},
+		{Type: "recentSearches", Label: "Recent searches", Icon: "history", Category: "personal", Since: 8, CardStyle: "tile", PageKinds: []string{"search"}, Title: "Recent searches",
+			Description: "The profile's last ten searches, newest first, each opening its search again. A search that carries on from the newest one takes its place.",
+			Params:      []PropSpec{paramLimit}, Yields: []string{"view"}, Example: example(`{"type":"recentSearches"}`)},
 	}
 }
 
@@ -981,7 +990,7 @@ func buildConditions() []ConditionSpec {
 		c("hasLibrary", pEnum("", "Has a library of kind", "The profile can open at least one such library.", "", LibraryKinds...)),
 		c("libraryKind", pEnum("", "This library is of kind", "On a library page.", "", LibraryKinds...)),
 		c("capability", pStr("", "Device capability", "Something the client said it has: hdr, touch, pointer, keyboard.", 64)),
-		c("flag", pEnum("", "The server says", "", "", "setupIncomplete|First-time setup isn't finished", "scanning|A library is being scanned", "librariesEmpty|There are no libraries", "hasQuery|Something was searched for", "screenTimeUp|The profile's screen time is over")),
+		c("flag", pEnum("", "The server says", "", "", "setupIncomplete|First-time setup isn't finished", "scanning|A library is being scanned", "librariesEmpty|There are no libraries", "hasQuery|Something was searched for", "hasRecentSearches|The profile has recent searches (the search page only)", "screenTimeUp|The profile's screen time is over")),
 		c("minWidth", pInt("", "Window at least", "Points wide.", 0, 0, 10000)),
 		c("maxWidth", pInt("", "Window at most", "Points wide.", 0, 0, 10000)),
 		c("timeFrom", pStr("", "From time of day", "HH:MM on the server's clock.", 5)),
@@ -1215,6 +1224,7 @@ func commandSpecs() []CommandSpec {
 		{Op: "session.end", Label: "Sign a device out", Description: "Signs out the device params.session.", Method: "DELETE", Path: "/api/sessions/{session}",
 			Params: []CommandParam{{Name: "session", Type: "string", Label: "Device", Required: true}}},
 		{Op: "sessions.endOthers", Label: "Sign out the others", Description: "Signs out every device of the profile but this one.", Method: "DELETE", Path: "/api/sessions"},
+		{Op: "search.forgetRecent", Label: "Clear recent searches", Description: "Forgets the profile's recent searches.", Method: "DELETE", Path: "/api/v1/search/recent"},
 		{Op: "history.clear", Label: "Clear my history", Description: "Forgets what the profile watched and listened to. It cannot be undone.", Method: "DELETE", Path: "/api/me/history"},
 		{Op: "rewind.open", Label: "Rewind", Description: "Client-handled, in the game player: opens the player's rewind panel. No request.", Method: "GET", Path: ""},
 		{Op: "controller.remap", Label: "Remap controls", Description: "Client-handled, in the game player: opens the player's own controller-mapping panel. No request.", Method: "GET", Path: ""},

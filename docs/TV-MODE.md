@@ -148,6 +148,7 @@ friends, WittyPlay options, cores and emulators, console photos.
 | Modules and the module store | `/settings/modules/*` | modules in use |
 | Backup | `/settings/backup` | the automatic backup schedule |
 | Repair, Reset | `/settings/repair`, `/settings/reset` | |
+| Library health | `/settings/health` | what needs a look, counted |
 | Fix matches | `/fix-matches` | |
 | Scenes and skips (markers) | `/markers/:item` | |
 | Canvas | `/canvas/:item` | |

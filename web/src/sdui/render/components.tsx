@@ -14,7 +14,8 @@ import { QrCode } from '../../components/QrCode'
 import { countWords } from '../../libraryNouns'
 import { useApp } from '../../state'
 import { useAudio } from '../../audio/player'
-import { IconCheck, IconDown, IconLeft, IconMore, IconPause, IconPlay, IconRight, IconSearch, IconStar } from '../../icons'
+import { IconCheck, IconDown, IconLeft, IconMic, IconMore, IconPause, IconPlay, IconRight, IconSearch, IconStar } from '../../icons'
+import { listen, voiceSearchAvailable } from '../../voice'
 import { Pop } from '../../audio/controls'
 import { tokenVar } from '../../themeOverrides'
 import { Segmented, Tabs as TabStrip } from '../../ui/Choice'
@@ -1123,11 +1124,42 @@ function SearchBoxView({ view }: { view: View }) {
     if (onSearch) { typed.current = q; page.setQuery({ q }) } else if (q) page.act({ type: 'navigate', to: '/search?q=' + encodeURIComponent(q) })
   }
   const type = (k: string) => setText((t) => t + (t && k !== ' ' ? k.toLowerCase() : k))
+  // Voice, where the browser has speech recognition of its own: what is heard fills the box
+  // as it comes, and searches when it ends.
+  const [voice] = useState(() => !page.inert && voiceSearchAvailable())
+  const [listening, setListening] = useState(false)
+  const stopVoice = useRef<(() => void) | null>(null)
+  useEffect(() => () => stopVoice.current?.(), [])
+  const toggleVoice = () => {
+    if (listening) { stopVoice.current?.(); return }
+    setListening(true)
+    stopVoice.current = listen((heard, final) => {
+      setText(heard)
+      if (final && heard) {
+        if (onSearch) { typed.current = heard; page.setQuery({ q: heard }) } else page.act({ type: 'navigate', to: '/search?q=' + encodeURIComponent(heard) })
+      }
+    }, () => { setListening(false); stopVoice.current = null })
+  }
+  // Down from the box: the first result, past the filters and the scope's tabs.
+  const toResults = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'ArrowDown' || page.tv || !onSearch) return
+    const box = e.currentTarget
+    const main = box.closest('main') || document
+    const first = Array.from(main.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex="0"]')).find((el) =>
+      (box.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) && !el.closest('form, [role="tablist"], .sdui-filters') && el.getAttribute('role') !== 'tab')
+    if (first) { e.preventDefault(); first.focus() }
+  }
   const input = (
     <form className={page.tv ? 'tvm-search-field' : 'search-page-box sdui-search'} role="search" onSubmit={(e) => { e.preventDefault(); submit() }}>
       <IconSearch />
       <input ref={field} className="input" type="search" aria-label={view.label} placeholder={view.text?.placeholder} value={text} disabled={page.inert} autoComplete="off" spellCheck={false}
-        data-sdui-focus={page.tv ? undefined : view.node.focus ? view.id : undefined} onChange={(e) => setText(e.target.value)} />
+        data-sdui-focus={page.tv ? undefined : view.node.focus ? view.id : undefined} onChange={(e) => setText(e.target.value)} onKeyDown={toResults} />
+      {voice && (
+        <button type="button" className={'btn icon sdui-voice' + (listening ? ' on' : '')} onClick={toggleVoice} aria-pressed={listening}
+          aria-label={listening ? t('Stop listening') : t('Search by voice')} title={listening ? t('Listening… press again to stop') : t('Search by voice (your browser turns speech into text)')}>
+          <IconMic />
+        </button>
+      )}
     </form>
   )
   if (!page.tv || !onSearch) return <div data-sdui-section={view.id}>{input}</div>

@@ -116,6 +116,11 @@ func (s *Server) handleTVSummary(w http.ResponseWriter, r *http.Request) {
 		} else {
 			out.Lines = append(out.Lines, fmt.Sprintf(i18n.T("Automatic backups: %s at %02d:00, keeping %d"), sc.Frequency, sc.Hour, sc.Keep))
 		}
+	case "libraryhealth":
+		if !u.IsAdmin {
+			break
+		}
+		out.Lines = append(out.Lines, s.healthSummary(ctx)...)
 	case "transcoding":
 		if !u.IsAdmin {
 			break

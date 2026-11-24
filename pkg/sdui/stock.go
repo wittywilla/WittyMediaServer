@@ -53,11 +53,11 @@ func buildStockPages() []Page {
 			sec("hero", "Hero", props{"title": "Featured"}, Source{"type": "featured"}),
 			when(sec("libraries", "Shelf", props{"title": "Your libraries", "cardStyle": "tile", "seeAll": "never"}, Source{"type": "libraries"}), notTV),
 			sec("jump", "Shelf", props{"title": i18n.T("Jump back in")}, Source{"type": "continueWatching", "media": "all"}),
-			when(scoped(sec("onnow", "Shelf", props{"title": i18n.T("On TV now")}, Source{"type": "liveNow"}), "wittytv"), Condition{Can: "liveTv", Feature: "live-tv"}),
-			sec("foryou", "Shelf", props{"title": i18n.T("Recommended for you"), "subtitle": "{reason}"}, Source{"type": "recommended", "limit": 20}),
+			when(scoped(sec("onnow", "Shelf", props{"title": "On TV now"}, Source{"type": "liveNow"}), "wittytv"), Condition{Can: "liveTv", Feature: "live-tv"}),
+			sec("foryou", "Shelf", props{"title": "Recommended for you", "subtitle": "{reason}"}, Source{"type": "recommended", "limit": 20}),
 			sec("nextup", "Shelf", props{"title": "Next up", "cardStyle": "progress"}, Source{"type": "nextUp"}),
 			repeated(sec("view", "Shelf", props{"title": "{each}"}, Source{"type": "savedView", "view": "$each", "limit": 20}), "pinnedViews"),
-			repeated(sec("recent", "Shelf", props{"title": i18n.T("Recently added in {each}"), "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each", "limit": 20}), "libraries"),
+			repeated(sec("recent", "Shelf", props{"title": "Recently added in {each}", "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each", "limit": 20}), "libraries"),
 			sec("shuffle", "Banner", props{"title": "Can't decide?", "text": "{title}", "buttonLabel": "Play something", "action": "play", "style": "compact", "icon": "shuffle"}, Source{"type": "random", "limit": 1, "reshuffle": "hourly"}),
 		}}
 
@@ -125,7 +125,7 @@ func buildStockPages() []Page {
 		Sections: []Section{
 			sec("header", "DetailHeader", nil, nil),
 			sec("credits", "Credits", nil, Source{"type": "credits", "item": "$item"}),
-			sec("similar", "Shelf", props{"title": i18n.T("More like this")}, Source{"type": "similar", "item": "$item", "limit": 12}),
+			sec("similar", "Shelf", props{"title": "More like this"}, Source{"type": "similar", "item": "$item", "limit": 12}),
 		}}
 	detailShow := Page{ID: "detail-show", Kind: "detail", Title: "{title}", Icon: "show", Match: &Match{MediaKind: "show"},
 		Sections: []Section{
@@ -134,7 +134,7 @@ func buildStockPages() []Page {
 			// season's page), the season's guest stars come too.
 			sec("episodes", "SeasonList", nil, Source{"type": "episodes", "show": "$show"}),
 			sec("credits", "Credits", nil, Source{"type": "credits", "show": "$show", "season": "$season"}),
-			sec("similar", "Shelf", props{"title": i18n.T("More like this")}, Source{"type": "similar", "item": "$show", "limit": 12}),
+			sec("similar", "Shelf", props{"title": "More like this"}, Source{"type": "similar", "item": "$show", "limit": 12}),
 		}}
 	detailEpisode := Page{ID: "detail-episode", Kind: "detail", Title: "{title}", Icon: "show", Match: &Match{MediaKind: "episode"},
 		Sections: []Section{
@@ -169,30 +169,30 @@ func buildStockPages() []Page {
 			repeated(sec("titles", "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "filmography", "person": "$person", "part": "$each"}), "personParts"),
 		}}
 
-	// Search: a scope (Everything, Films, Shows, Music, People, Live TV) as tabs, each holding what that scope
-	// searches; the search box and the hint stay above them.
-	foundIn := func(id string, kinds ...string) Section {
-		return repeated(sec(id, "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "search", "query": "$query", "library": "$each", "filterable": true}), "libraries", kinds...)
-	}
-	peopleRow := func(id string) Section {
-		return sec(id, "Shelf", props{"title": "People", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "people"})
-	}
-	channelRow := func(id string) Section {
-		return when(scoped(sec(id, "Shelf", props{"title": "Channels", "seeAll": "never"}, Source{"type": "search", "query": "$query", "in": "channels"}), "wittytv"), Condition{Can: "liveTv"})
+	// Search: one search across every library, its results grouped by kind (films, shows, songs,
+	// people...), the group that matches best first. A scope as tabs narrows it to some groups; the
+	// search box and the profile's recent searches stay above them.
+	foundIn := func(id string, groups ...string) Section {
+		return repeated(sec(id, "Shelf", props{"title": "{each}", "seeAll": "never"}, Source{"type": "search", "query": "$query", "group": "$each", "filterable": true, "limit": 24}), "searchGroups", groups...)
 	}
 	scopes := with(sec("scope", "Tabs", props{"style": "segments", "default": "all"}, nil),
-		with(sec("all", "Tab", props{"label": "Everything"}, nil), foundIn("found"), peopleRow("people"), channelRow("channels")),
-		with(sec("movies", "Tab", props{"label": "Movies", "icon": "movie"}, nil), foundIn("found-movies", "movies", "discs", "videos")),
-		with(sec("shows", "Tab", props{"label": "Shows", "icon": "show"}, nil), foundIn("found-shows", "shows", "anime")),
-		with(sec("music", "Tab", props{"label": "Music", "icon": "music"}, nil), foundIn("found-music", "music", "audiobooks", "podcasts")),
-		with(sec("people-tab", "Tab", props{"label": "People", "icon": "users"}, nil), peopleRow("people-only")),
-		when(with(sec("tv", "Tab", props{"label": "Live TV", "icon": "live"}, nil), channelRow("channels-only")), Condition{Can: "liveTv"}),
+		with(sec("all", "Tab", props{"label": "Everything"}, nil), foundIn("found")),
+		with(sec("movies", "Tab", props{"label": "Films", "icon": "movie"}, nil), foundIn("found-movies", "films", "videos")),
+		with(sec("shows", "Tab", props{"label": "Shows", "icon": "show"}, nil), foundIn("found-shows", "shows", "episodes")),
+		with(sec("music", "Tab", props{"label": "Music", "icon": "music"}, nil), foundIn("found-music", "artists", "albums", "songs", "karaoke", "audiobooks", "podcasts", "radio")),
+		with(sec("books", "Tab", props{"label": "Books", "icon": "book"}, nil), foundIn("found-books", "books", "comics", "audiobooks")),
+		with(sec("games", "Tab", props{"label": "Games", "icon": "game"}, nil), foundIn("found-games", "games")),
+		with(sec("photos", "Tab", props{"label": "Photos", "icon": "photo"}, nil), foundIn("found-photos", "photos")),
+		with(sec("people-tab", "Tab", props{"label": "People", "icon": "users"}, nil), foundIn("found-people", "people")),
+		when(with(sec("tv", "Tab", props{"label": "Live TV", "icon": "live"}, nil), foundIn("found-channels", "channels")), Condition{Can: "liveTv"}),
 	)
 	search := Page{ID: "search", Kind: "search", Title: "Search", Icon: "search",
 		Sections: []Section{
-			sec("q", "SearchBox", props{"placeholder": "Films, shows, people, music, books, channels", "autofocus": true}, nil),
-			when(sec("idle", "Text", props{"text": i18n.T("Type at least two letters to search every library you can open."), "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
-			when(sec("narrow", "FilterBar", props{"fields": []string{"year", "minRating"}, "sorts": []string{"title"}, "showCount": false}, nil), Condition{Flag: "hasQuery"}),
+			sec("q", "SearchBox", props{"placeholder": "Films, shows, music, books, games, people, channels", "autofocus": true}, nil),
+			when(sec("recent", "List", props{"title": "Recent searches", "empty": "hide"}, Source{"type": "recentSearches"}), Condition{Not: &Condition{Flag: "hasQuery"}}),
+			when(sec("forget", "Button", props{"label": "Clear recent searches", "icon": "history", "op": "search.forgetRecent", "variant": "ghost"}, nil), Condition{Flag: "hasRecentSearches"}),
+			when(sec("idle", "Text", props{"text": i18n.T("Type at least two letters to search every library you can open. A letter or two wrong still finds it; year:1999 narrows it to a year."), "role": "caption"}, nil), Condition{Not: &Condition{Flag: "hasQuery"}}),
+			when(sec("narrow", "FilterBar", props{"fields": []string{"year"}, "sorts": []string{}, "showCount": false}, nil), Condition{Flag: "hasQuery"}),
 			when(scopes, Condition{Flag: "hasQuery"}),
 		}}
 
@@ -207,7 +207,7 @@ func buildStockPages() []Page {
 		Sections: []Section{
 			sec("listening", "Shelf", props{"title": "Continue listening"}, Source{"type": "continueWatching", "media": "listen"}),
 			repeated(sec("played", "Shelf", props{"title": i18n.T("Recently played in {each}")}, Source{"type": "albums", "library": "$each", "sort": "played", "limit": 15}), "libraries", "music"),
-			repeated(sec("added", "Shelf", props{"title": i18n.T("Recently added in {each}"), "seeAll": "always"}, Source{"type": "albums", "library": "$each", "sort": "added", "limit": 30}), "libraries", "music"),
+			repeated(sec("added", "Shelf", props{"title": "Recently added in {each}", "seeAll": "always"}, Source{"type": "albums", "library": "$each", "sort": "added", "limit": 30}), "libraries", "music"),
 			repeated(sec("artists", "Shelf", props{"title": i18n.T("Artists in {each}")}, Source{"type": "artists", "library": "$each"}), "libraries", "music"),
 		}}
 	photos := Page{ID: "photos", Kind: "photos", Title: "Photos", Icon: "photo",
@@ -215,7 +215,7 @@ func buildStockPages() []Page {
 	books := Page{ID: "books", Kind: "books", Title: "Books", Icon: "book",
 		Sections: []Section{
 			sec("reading", "Shelf", props{"title": "Continue reading", "cardStyle": "book"}, Source{"type": "continueWatching", "media": "read"}),
-			repeated(sec("recent", "Shelf", props{"title": i18n.T("New in {each}"), "cardStyle": "book", "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each"}), "libraries", "books", "audiobooks"),
+			repeated(sec("recent", "Shelf", props{"title": "New in {each}", "cardStyle": "book", "seeAll": "always"}, Source{"type": "recentlyAdded", "library": "$each"}), "libraries", "books", "audiobooks"),
 		}}
 	games := Page{ID: "games", Kind: "games", Title: "Games", Icon: "game", Scope: "wittyplay",
 		Sections: []Section{

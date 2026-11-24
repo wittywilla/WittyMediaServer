@@ -483,8 +483,9 @@ func (s *Store) stationsDueForCheck(ctx context.Context) ([]*Item, error) {
 	}
 	defer rows.Close()
 	out := []*Item{}
+	var sc itemScanner
 	for rows.Next() {
-		it, err := scanItem(rows)
+		it, err := sc.scan(rows)
 		if err != nil {
 			return nil, err
 		}

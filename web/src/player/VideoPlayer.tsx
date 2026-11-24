@@ -66,6 +66,9 @@ const subKind = (codec?: string) => {
 
 const legacyRemote = () => { try { return localStorage.getItem('wms.remote.video') === '1' } catch { return false } }
 
+// The height of the control bar along the bottom (with the seek bar above it), for a click while it has faded.
+const BAR_ZONE = 96
+
 export default function VideoPlayer({ item, startAt }: { item: Item; startAt: number | null }) {
   const nav = useNavigate()
   const chrome = usePlayerChrome()
@@ -517,10 +520,18 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   const togglePlay = () => { const v = video.current; if (v && !needClick) v.paused ? v.play().catch(() => {}) : v.pause() }
   // A finger's tap on the picture shows the controls, or hides them if they're up, as on any phone's player: the play
   // button pauses. A mouse click still plays and pauses. A double tap on the left or right third skips back or on.
-  const touch = useRef<{ touch: boolean; hidden: boolean }>({ touch: false, hidden: false })
-  const onPicturePointer = (e: React.PointerEvent) => { touch.current = { touch: e.pointerType === 'touch', hidden: !!root.current?.classList.contains('controls-hidden') } }
+  // A click where the control bar sits, while it has faded, is someone reaching for the seek bar a moment too late:
+  // it brings the controls back instead of pausing (#634).
+  const touch = useRef<{ touch: boolean; hidden: boolean; onBar: boolean }>({ touch: false, hidden: false, onBar: false })
+  const onPicturePointer = (e: React.PointerEvent) => {
+    const r = root.current?.getBoundingClientRect()
+    touch.current = { touch: e.pointerType === 'touch', hidden: !!root.current?.classList.contains('controls-hidden'), onBar: !!r && !mini && r.bottom - e.clientY < BAR_ZONE }
+  }
   const onPicture = () => {
-    if (!touch.current.touch) { togglePlay(); return }
+    if (!touch.current.touch) {
+      if (touch.current.hidden && touch.current.onBar) { root.current?.classList.remove('controls-hidden', 'hide-cursor'); root.current?.dispatchEvent(new MouseEvent('mousemove')); return }
+      togglePlay(); return
+    }
     const v = video.current
     if (!touch.current.hidden && v && !v.paused) root.current?.classList.add('controls-hidden', 'hide-cursor')
   }

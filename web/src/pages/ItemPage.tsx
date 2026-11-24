@@ -2,7 +2,7 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { api, backdropUrl, codecName, fitWidth, sized, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, insertFxOn, isDisc, langName, posterUrl, type Item, discName, isBluray } from '../api'
+import { api, backdropUrl, codecName, fitWidth, sized, dvdStartMode, episodeLabel, fmtRuntime, fmtTime, insertFxOn, isDisc, posterUrl, type Item, discName, isBluray } from '../api'
 import EditDetails, { type EditSection } from '../components/edit/EditDetails'
 import { useModuleItemMenu } from '../moduleRegistry'
 import RefreshDialog from '../components/edit/RefreshDialog'
@@ -25,6 +25,7 @@ import { useApp } from '../state'
 import { fileSizeText } from '../sizeText'
 import LegalNote from '../components/LegalNote'
 import { num, t, tn, tx } from '../i18n'
+import { LangList } from '../components/LangList'
 
 export default function ItemPage() {
   const { id } = useParams()
@@ -197,8 +198,8 @@ export default function ItemPage() {
           {disc && it.disc?.scrambled && <div className="error">{t('This disc is encrypted, so it can’t be played: encrypted media isn’t supported, and nothing here bypasses copy protection.')}</div>}
           <div className="facts">
             {it.width > 0 && <div className="fact"><div className="k">{t('Video')}</div><div className="v">{it.width}×{it.height} {codecName(it.videoCodec)}{disc && main ? ` · ${isBluray(it) ? main.standard : main.standard.toUpperCase()} ${main.wide ? '16:9' : '4:3'}` : ''}</div></div>}
-            {(it.audioLangs || []).length > 0 && <div className="fact"><div className="k">{t('Audio')}</div><div className="v">{[...new Set(it.audioLangs.map(langName))].join(', ')}</div></div>}
-            {(it.subLangs || []).length > 0 && <div className="fact"><div className="k">{t('Subtitles')}</div><div className="v">{[...new Set(it.subLangs.map(langName))].join(', ')}</div></div>}
+            {(it.audioLangs || []).length > 0 && <div className="fact"><div className="k">{t('Audio')}</div><div className="v"><LangList codes={it.audioLangs} /></div></div>}
+            {(it.subLangs || []).length > 0 && <div className="fact wide-list"><div className="k">{t('Subtitles')}</div><div className="v"><LangList codes={it.subLangs} /></div></div>}
             <div className="fact"><div className="k">{t('Source')}</div><div className="v">{disc ? (it.kind.endsWith('-iso') ? t('{disc} image', { disc: discName(it) }) : t('{disc} folder', { disc: discName(it) })) : it.container?.toUpperCase()} {sizeGB && `· ${sizeGB}`}</div></div>
             {disc && it.disc && <div className="fact"><div className="k">{t('Disc')}</div><div className="v">{it.disc.label} · {tn('{count} title', '{count} titles', it.disc.titles.length)}{it.disc.hasMenus ? ' · ' + t('menus') : ''}</div></div>}
             {user?.isAdmin && <div className="fact wide"><div className="k">{t('File')}</div><div className="v">{it.path}</div></div>}

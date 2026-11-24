@@ -75,6 +75,15 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Module settings and Module store sit side by side** under Modules (both were called Modules before, in two
   places), and each page links to the other. **Look** is now **Layout**, beside Edit layout and Theme.
 - **Choose colours has no preview,** only the theme cards, like Choose a layout.
+**Player, detail page and live TV (#634)**
+
+- **A click on the faded control bar brings it back.** A click where the seek bar sits, a moment after the controls
+  have faded, used to pause the film. Now it shows the controls instead.
+- **A title's languages are a short list.** A film with 35 subtitle languages shows six, then "+25 more", which shows
+  the rest. The facts under a title sit in a grid with room between each label and its value.
+- **A break between programmes is named as one.** The guide and Home's On TV now said "We'll be right back" as if it
+  were a programme. A gap is now "Short break" (or "Off air" for an hour or more), and "Next" always names the next
+  programme.
 
 ## 0.8.3-alpha
 

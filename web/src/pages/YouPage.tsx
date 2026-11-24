@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { api, isNativeShell, profileName, serverBase, setServerBase } from '../api'
-import { Avatar } from './AuthPage'
+import { Avatar } from '../ui/Avatar'
 import { Brand, BrandMark } from '../components/common'
 import { IconUsers } from '../icons'
 import { useMedia } from '../shell/useNav'

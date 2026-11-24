@@ -7,7 +7,7 @@ import {
   IconActivity, IconBook, IconCopy, IconDownload, IconEdit, IconFile, IconGamepad, IconGlobe, IconHelp, IconImage, IconInfo, IconLibrary,
   IconLock, IconLogout, IconPalette, IconPlay, IconPlug, IconRefresh, IconRight, IconShield, IconStar, IconTag, IconTune, IconTv, IconUsers, IconWrench,
 } from '../icons'
-import { Avatar } from '../pages/AuthPage'
+import { Avatar } from '../ui/Avatar'
 import { t } from '../i18n'
 import { useApp } from '../state'
 import { featureOff, useMyLimits } from '../myLimits'

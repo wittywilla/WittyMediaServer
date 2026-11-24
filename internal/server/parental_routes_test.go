@@ -199,6 +199,8 @@ var plainRoutes = []string{
 	"GET /api/me/review",
 	"GET /api/me/screen-time",
 	"GET /api/me/ui",
+	"GET /api/me/notifications", "GET /api/me/notifications/count", "POST /api/me/notifications/read", "DELETE /api/me/notifications",
+	"DELETE /api/me/notifications/{id}", "GET /api/me/notifications/choices", "PUT /api/me/notifications/choices",
 	"GET /api/me/streaming",
 	"PUT /api/me/streaming",
 	"GET /api/media-types",

@@ -38,6 +38,7 @@ import (
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/metrics"
 	modmgr "github.com/wittywilla/wittymediaserver/internal/modules"
+	"github.com/wittywilla/wittymediaserver/internal/notify"
 	"github.com/wittywilla/wittymediaserver/internal/portmap"
 	"github.com/wittywilla/wittymediaserver/internal/remote"
 	"github.com/wittywilla/wittymediaserver/internal/tasks"
@@ -66,9 +67,13 @@ type Server struct {
 	// Tasks is every background job; see api_tasks.go. Made in Handler.
 	Tasks *tasks.Registry
 	// LibConvert converts libraries' files ahead of time. Nil without FFmpeg.
-	LibConvert               *libtranscode.Engine
-	taskStore                *tasks.SQLStore
-	taskStreams              taskStreamCounts
+	LibConvert  *libtranscode.Engine
+	taskStore   *tasks.SQLStore
+	taskStreams taskStreamCounts
+	// notes are each profile's notifications, and noteOut sends an administrator's on to
+	// the channels they set up; see api_notify.go. Made in Handler.
+	notes                    *notify.Hub
+	noteOut                  *notify.Sender
 	streamEnd, streamEndInit sync.Once
 	streamEndCh              chan struct{}
 	// Metrics watches the machine; see api_metrics.go. Made in Handler.
@@ -208,6 +213,7 @@ func tokenFrom(r *http.Request) string {
 func (s *Server) StartMetadata() {
 	s.applyTimeZone(context.Background())
 	logging.Go("statistics", func() { s.Metrics.Run(context.Background()) }, "cat", "server")
+	s.startNotifications(context.Background())
 	s.startKaraokeLibrary()
 	s.Scanner.OnScanned = func() {
 		s.logos().Kick()
@@ -221,6 +227,7 @@ func (s *Server) StartMetadata() {
 		}
 		s.kickMusicMatch(id)
 		s.afterModuleScan(id)
+		s.noteNewEpisodes(id)
 	}
 	if s.DB.GetSetting(context.Background(), "music.linksMatched", "") == "" {
 		s.kickMusicMatch(0) // songs and videos scanned before links existed
@@ -538,6 +545,7 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("/api/modules/{id}/{path...}", s.handleModuleRoute)
 	m.Handle("GET /api/module-images/{module}/{name}", s.requireUser(s.handleModuleImage))
 	s.remoteRoutes(m)
+	s.notifyRoutes(m)
 	s.taskRoutes(m)
 	s.streams.init(s)
 	s.libTranscodeRoutes(m)

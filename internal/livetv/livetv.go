@@ -128,6 +128,9 @@ type Manager struct {
 	DB    *db.DB
 	Tools *ffmpeg.Tools
 	Log   *slog.Logger
+	// OnRecorded, if set, hears each recording that has ended, done or failed: the bell of
+	// whoever set it up. It runs on the recording's own goroutine and must not block for long.
+	OnRecorded func(r Recording, status, msg string)
 
 	internet *http.Client // what internetClient gives, for a test
 

@@ -42,3 +42,7 @@ file internal/midi/
 file internal/lyrics/
 # A User-Agent header other servers read.
 "WittyMediaServer guide import"
+# Rating boards' own names (internal/parental/ratings.go), shown as they call themselves.
+"NZ Classification Office"
+"Canadian Home Video Rating"
+"Australian Classification (games)"

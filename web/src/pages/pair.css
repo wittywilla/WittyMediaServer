@@ -32,5 +32,7 @@ html.tv-mode .pair-device .pair-countdown { height: calc(var(--tvu) * 8); }
 @media (max-width: 480px) {
   .pair-device .spec-code-chars { gap: var(--sp-1); flex-wrap: nowrap; }
   .pair-device .spec-code-chars b { min-width: 0; flex: 1 1 0; padding: var(--sp-1) 0; font-size: var(--text-lg); }
-  .pair-device .spec-qr .qr { width: min(100%, 9rem); }
+  .pair-device .spec-qr .qr { width: min(100%, 7rem); }
+  .pair-device.sa-card, .pair-device .spec-page { gap: var(--sp-3); }
+  .pair-device .spec-fields { gap: var(--sp-2); }
 }

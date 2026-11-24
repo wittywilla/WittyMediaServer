@@ -19,6 +19,8 @@ The client apps' repository runs the Android phone and TV, and desktop app, smok
 
 `media.sh` makes everything with FFmpeg except the game: a 20-second film (padded to 6.5 MB, because a film library leaves anything under 5 MiB out as a sample), and three 4-second tracks. The game is **Adjustris** by tbsp (CC0 1.0), downloaded from its own release and checked against its SHA-256. The Game Boy core (Gambatte) comes from the libretro build server once, then from the job's cache.
 
+FFmpeg is the static Linux build `scripts/ffmpeg.lock` names (the one releases bundle), checked against its SHA-256 and cached, by `ffmpeg.sh`; `apt-get`, with a time limit, only if that download fails. A stalled Ubuntu mirror once held the job until its time limit.
+
 ## Running them on your own machine
 
 On Linux or WSL, with Go, Node, FFmpeg and a Chromium-based browser:

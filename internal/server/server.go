@@ -92,6 +92,7 @@ type Server struct {
 	metaFolder metaFolderJob
 	repair     repairState // Settings, Repair
 	backup     backupState // Settings, Backup
+	health     healthState // Settings, Library health
 	// BundleExtras adds files to the support bundle (WittyDiagnoser's reports).
 	BundleExtras func() []logging.BundleFile
 	Update       *update.Updater // nil: this build can't update itself
@@ -131,6 +132,7 @@ type Server struct {
 	mediaJobs   mediaJobs           // stems and canvases being made: one at a time
 	karaoke     karaokeAuto         // the separator found, and who asked for what lately
 	sepInstall  separatorInstall    // Demucs being installed with one press
+	search      searchState         // the one search's index (search.go)
 	kLib        karaokeLibraryState // the whole music library separated in the background, if asked
 	subtitles   subtitleFiles
 	idOnce      sync.Once
@@ -221,7 +223,9 @@ func (s *Server) StartMetadata() {
 		}
 		s.kickMusicMatch(id)
 		s.afterModuleScan(id)
+		s.kickSearch() // the scanned library's part of the search index, rebuilt
 	}
+	s.kickSearch() // the search index, read from every library once
 	if s.DB.GetSetting(context.Background(), "music.linksMatched", "") == "" {
 		s.kickMusicMatch(0) // songs and videos scanned before links existed
 	}
@@ -630,6 +634,7 @@ func (s *Server) Handler() http.Handler {
 	s.repairRoutes(m)
 	s.networkRoutes(m)
 	s.backupRoutes(m)
+	s.healthRoutes(m)
 	s.sduiRoutes(m)
 	s.themeRoutes(m)
 	s.mediaExtrasRoutes(m)

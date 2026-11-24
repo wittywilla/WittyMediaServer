@@ -48,6 +48,10 @@ type sduiResolver struct {
 	noPlay bool
 	// What the device said it is, for the modules' sources.
 	formFactor, platform, locale string
+	// The page's search, worked out once (sdui_search.go).
+	found       *searchFound
+	searchCards map[string][]sdui.Item
+	noted       bool // kept among the profile's recent searches
 }
 
 func (s *Server) newSDUIResolver(r *http.Request, vars map[string]string) *sduiResolver {
@@ -449,6 +453,8 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		lib = l
 	}
 	switch src.Type() {
+	case "recentSearches":
+		return page(rv.recentSearchItems(), req), nil
 	case "continueWatching":
 		cont, err := s.Store.ContinueWatching(rv.ctx, rv.u.ID, 60)
 		if err != nil {
@@ -793,6 +799,19 @@ func (rv *sduiResolver) Items(req sdui.SourceRequest) (sdui.SourceResult, error)
 		if len([]rune(term)) < 2 {
 			return sdui.SourceResult{}, nil
 		}
+		// A group: the one search's index (sdui_search.go), typos and all.
+		group := src.Str("group")
+		if group == "" && lib == nil && (src.Str("in") == "channels" || src.Str("in") == "people") {
+			group = src.Str("in")
+		}
+		if group != "" {
+			if res, ok := rv.searchGroup(searchText(term, req.Filter["year"]), group, req); ok {
+				return res, nil
+			}
+			if src.Str("group") != "" {
+				return sdui.SourceResult{}, nil // the index is still being built
+			}
+		}
 		if src.Str("in") == "channels" {
 			return page(rv.channels(false, term, req.Offset+req.Limit+1, false), req), nil
 		}
@@ -984,6 +1003,8 @@ func (rv *sduiResolver) Each(over string, kinds []string, limit int) ([]sdui.Eac
 				out = append(out, sdui.Each{Key: itoa(c.ID), Label: c.Name})
 			}
 		}
+	case "searchGroups":
+		return rv.searchGroups(kinds), nil
 	case "personParts":
 		list, err := rv.personParts()
 		if err != nil {

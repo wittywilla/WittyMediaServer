@@ -155,6 +155,9 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/people` | Signed-in | limits: only people credited on a title the account may see, counting only those titles |
 | `GET /api/people/{id}` | Signed-in | limits: 404 unless credited on a title the account may see; the filmography names only those |
 | `GET /api/people/{id}/photo` | Signed-in; ticket; address token | limits, as the person. Pictures only, from the cache, the internet or inside a library |
+| `GET /api/search` | Signed-in | limits: only libraries the account may open are searched, and each card is read through the account's limits (ratings, blocked titles); people only with a title it may see |
+| `GET /api/search/recent` | Signed-in | own: the account's own recent searches |
+| `DELETE /api/search/recent` | Signed-in | own: forgets the account's own recent searches |
 | `GET /api/items/{id}/disc/thumb/{ttn}/{n}` | Signed-in; ticket; address token | limits. Item is a disc and not scrambled. Title and chapter exist |
 | `GET /api/items/{id}/scene/{sec}` | Signed-in; ticket; address token | limits. Video file. Time within its length |
 | `GET /api/artwork/preview` | Admin; address token | Web address, cache name, or a picture inside a library |
@@ -546,6 +549,7 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `POST /api/backup/create` | Admin | Known parts, and what each needs. A password of at least 8 characters, if given. One job at a time. The file stays on the server until a download asks for the password |
 | `POST /api/backup/cancel` | An admin, or before any account exists this machine or the setup code | Nothing: stops the job going |
 | `PUT /api/backup/schedule` | Admin | Frequency, hour, weekday, keep of 1 to 365, known parts. A password of at least 8 characters, kept only as a key made from it. Keeping fewer than before takes the account's password, and code with two-factor sign-in |
+| `PUT /api/backup/folder` | Admin | Takes the account's password, and code with two-factor sign-in. An absolute path to a folder that already exists, not a drive's top, not in or holding the data, program, cache, log or library folders. A marker file is written; no backup is made there while it's missing. Never restored from a backup |
 | `DELETE /api/backup/files/{name}` | Admin | Name has the form of one of this folder's backups, and is a plain file there. The account's password, and code with two-factor sign-in, with an attempt limit |
 | `POST /api/backup/files/{name}/link` | Admin | The account's password, and code with two-factor sign-in, with an attempt limit. Name as for deleting. A ticket for that one file, for 10 minutes |
 | `GET /api/backup/download` | Public, with a ticket | The ticket (`?st=`) names one file and lasts 10 minutes. It isn't a sign-in, and opens nothing else |
@@ -584,6 +588,10 @@ Every `/api/...` route is also served as `/api/v1/...`. `HEAD` is served whereve
 | `GET /api/system/metrics/history` | Signed-in | Administrators only, said in the handler. Known range, known series |
 | `GET /api/system/metrics/report` | Signed-in | By the owner's setting. Libraries the account may open, and its own record. The rest for administrators |
 | `GET /api/system/metrics/drives` | Admin | Nothing further |
+| `GET /api/health/library` | Admin | Known sections, a limit of 500 rows. Reads only the database and the last NFO check. Shows file paths, as the rest of Settings does to an administrator |
+| `POST /api/health/library/check` | Admin | One check at a time, with a time and file limit. Reads only files beside titles, in library folders that are there, and only up to the size an NFO may be. Changes nothing |
+| `DELETE /api/health/library/check` | Admin | Nothing further |
+| `POST /api/health/library/fix` | Admin | Known actions. Versions: films in one library, as the item editor allows. Forget: only a title marked gone whose file is still gone and whose library folder is there and not empty, logged with who did it. Probe: a video file of a title that's there, with a time limit. Set aside: a key of at most 2048 characters, at most 5000 kept. No media file is changed |
 | `GET /api/repair` | Admin | Nothing further |
 | `POST /api/repair/check` | Admin | Known checks. One job at a time. Nothing is changed |
 | `POST /api/repair/fix` | Admin | Keys from the last check, and fixes that can be made. Password and code for anything but what can't lose anything. Paths come only from the check |

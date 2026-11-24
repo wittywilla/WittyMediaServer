@@ -779,6 +779,15 @@ func jsonProblem(b []byte) string {
 	return err.Error()
 }
 
+// SidecarProblem says what's wrong with an NFO or metadata file's contents, or "" when a
+// scan can use it. Library health reads files with it too.
+func SidecarProblem(path string, b []byte) string {
+	if strings.HasSuffix(strings.ToLower(path), ".json") {
+		return jsonProblem(b)
+	}
+	return xmlProblem(b)
+}
+
 func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 	d, skip := e.metaDB("NFO files")
 	if d == nil {
@@ -819,13 +828,7 @@ func checkSidecars(ctx context.Context, e *DoctorEnv) []Issue {
 		if err != nil {
 			return
 		}
-		why := ""
-		if strings.HasSuffix(p, ".json") {
-			why = jsonProblem(b)
-		} else {
-			why = xmlProblem(b)
-		}
-		if why != "" {
+		if why := SidecarProblem(p, b); why != "" {
 			bad = append(bad, p+": "+why)
 		}
 	}

@@ -1267,6 +1267,25 @@ department; a title is `{target, id, title, year, character, job, episodes, gues
 (open `/items/{id}`, poster `/items/{id}/poster`) or `show` (`/shows/{id}`, `/shows/{id}/art/poster`).
 `GET /people?search=` finds people by name. A library filtered to one person is `GET /browse?person=<id>`.
 
+## Search
+
+`GET /search?q=` is the one search across every library the account can open, the same as the
+search page: films, shows and episodes, artists, albums and songs, audiobooks, podcasts, books,
+comics, games, karaoke, videos, photos, radio, channels and people. A letter or two wrong still
+matches (one from five letters, two from nine; a four-letter word may have a letter left out), and
+the last word typed matches the start of a word, so a client can search as someone types.
+`year:1999`, `year:1990-1999` or `year:1990s` in the text narrows it. Results come in `groups`,
+the best-matching group first, each with `key`, `label`, `more` and `items` (the search page's
+cards). `groups=films,shows` keeps only those; `limit` is the most items in each.
+
+Send `remember=1` when someone picks a result or presses Enter, so the search is kept among the
+profile's recent searches (`GET /search/recent`, ten, newest first; `DELETE /search/recent`
+forgets them, or with `q` one of them). The search page keeps what is searched on it by itself, a
+search that carries on from the newest one ("inter", then "interstellar") taking its place.
+
+The server answers from an index in memory, rebuilt for a library after each scan and when its
+titles change; a server that has just started answers 503 until it's ready.
+
 Everything follows the profile's limits: a hidden title's credits answer 404, a person's filmography
 names only titles the profile may see, and a person credited on nothing it may see answers 404 and
 isn't found, so an app needs no checks of its own. The first time a person is opened the server may
@@ -1432,6 +1451,10 @@ Paths are relative to `/api/v1`. Full request and response shapes are in `openap
 | `POST /reset/restore` | admin | Bring a kept copy back: `{password, code, copy}`. 202, then the server restarts. What's there now becomes another copy. |
 | `DELETE /reset/request` | admin | Take back a reset waiting for the next start. |
 | `POST /reset/copies/delete` | admin | Delete a kept copy for good: `{password, code, copy}`. |
+| `GET /health/library` | admin | Library health: `{sections, setAside, scanning, check}`. Sections `missing`, `unmatched`, `duplicates`, `names`, `nfo`, `artwork`, `unreadable`, each `{id, count, rows, checked}`; a row is `{key, target, id, libraryId, title, year, path, detail, members, fixes}`, and `fixes` names the buttons it offers (`forget`, `scan`, `match`, `leave`, `versions`, `open`, `rules`, `refresh`, `probe`, `setaside`). `?library=` for one library, `?section=` for one section, `?limit=` rows a section (25, at most 500). Rows set aside aren't listed or counted. |
+| `POST /health/library/check` | admin | Read the NFO and metadata files beside the media in the background (in Activity), as a scan would. 202 with `check`; the `nfo` section comes from the last one. Stops after a few minutes on a huge library and says so. |
+| `DELETE /health/library/check` | admin | Stop it. |
+| `POST /health/library/fix` | admin | `{action: "versions", ids}` keeps the copies as versions of the first; `{action: "forget", target, id}` forgets a title whose file has gone, with its history (409 when the file is there or its library folder is empty or away); `{action: "probe", id}` reads a video file's details again (422 with why when it still can't); `{action: "setaside", key}` and `{action: "bringback", key}` (no key: every one). |
 | `GET /repair` | admin | [Repair](REPAIR.md): what's running, the last report with its issues, what fixes did, and the safety copies kept. |
 | `POST /repair/check` | admin | Look, and change nothing: `{only}`, a list of checks or areas, or nothing for all. 202, then ask `GET /repair`. 409 if one is running. |
 | `POST /repair/fix` | admin | Fix from the last report: `{keys, allSafe, option, password, code}`. A fix that isn't `safe`, or any `option`, needs the password and any second step again. 202, then ask `GET /repair`. |
@@ -1593,6 +1616,9 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /people` | user | People credited on titles the account may see: `search` (two letters or more), `limit`. Each with `titles`, how many of theirs the account may see. |
 | `GET /people/{id}` | user | A `person` (name, dates, birthplace, biography, ids) and their `filmography` here, grouped by what they did. 404 for someone credited only on titles the account may not see. |
 | `GET /people/{id}/photo` | user, `st` | A person's picture; `w` asks for a smaller copy. |
+| `GET /search` | user | The one search, grouped by kind: `q`, `groups`, `year`, `limit`, `remember`. See "Search". |
+| `GET /search/recent` | user | The profile's recent searches, newest first. |
+| `DELETE /search/recent` | user | Forgets the profile's recent searches, or with `q` one of them. |
 | `POST /items/{id}/progress` | user | Save the viewer's position. Past 92% counts as watched. Discs send `discTitle` too. `{id}` `show-<n>` with `{"watched": true}` marks every episode of the show this profile may see watched. |
 | `DELETE /items/{id}/progress` | user | Forget the position (mark as not started). `{id}` `show-<n>`: in every episode of the show. |
 
@@ -2374,6 +2400,7 @@ The page is [Backup and restore](BACKUP.md). An archive is treated as hostile: a
 | `POST /backup/create` | Start a backup: `{parts, password}`. With no password, secrets are left out. |
 | `POST /backup/cancel` | Stop what's running. An administrator's, or first-time setup. |
 | `PUT /backup/schedule` | Set the schedule: `{frequency, hour, weekday, keep, parts, password, clearPassword}`. Keeping fewer than before also takes `{current, code}`: the account's own password, and its two-factor code if it has one. |
+| `PUT /backup/folder` | Choose where backups are kept, such as a second drive: `{folder, current, code}`, with the account's own password and its two-factor code if it has one. The folder must already exist; an empty one means the data folder's own. It gets a marker file, and while that's missing (a drive not plugged in) no backup is made there and `GET /backup` says why in `folderProblem`. Backups made before the change stay listed. |
 | `DELETE /backup/files/{name}` | Delete a backup kept on this server. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
 | `POST /backup/files/{name}/link` | A short-lived address to download a backup. Takes `{password, code}`: the account's own password, and its two-factor code if it has one. |
 | `GET /backup/download` | Download a backup, with the ticket from `/backup/files/{name}/link` as `?st=`. The ticket is the permission. |

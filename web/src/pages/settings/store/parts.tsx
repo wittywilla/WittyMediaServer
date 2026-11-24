@@ -50,7 +50,7 @@ export function useStoreView() {
       setView(v); setError(null)
       // The server looks at most once a minute: when it didn't look this time, say when it last did,
       // never "up to date" for a look it didn't make.
-      if (before && v.checkedAt === before) toast(t('This server already looked at {time}, and looks at most once a minute. Try again in a moment.', { time: date(before, { timeStyle: 'short' }) }))
+      if (v.looked === false || (before && v.checkedAt === before)) toast(t('This server already looked at {time}, and looks at most once a minute. Try again in a moment.', { time: date(v.checkedAt || before || Date.now(), { timeStyle: 'short' }) }))
       else if (v.checkError || v.stores.some((s) => s.problem)) toast(t('The check didn’t all work. What happened is on the page.'))
       else toast(v.updates ? tn('{count} update found', '{count} updates found', v.updates) : t('Every module is up to date'))
     } catch (e) { setCheckFailure(failureOf(e, t('The check'))) } finally { setChecking(false) }

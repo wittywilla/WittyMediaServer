@@ -39,6 +39,8 @@ export type SandboxInfo = { level: 'full' | 'partial' | 'limited' | 'unconfined'
 
 export type StoreView = {
   server: string; api: number; minApi: number; policy: string; minServer: string; platform: string; checkedAt?: number; checkError?: string
+  // From 0.9 (apiRevision 20): whether Check now really looked, or answered from the last look (once a minute at most).
+  looked?: boolean
   stores: StoreInfo[]; items: StoreItem[]; updates: number; run?: Run; repairRoute: string; sandbox?: SandboxInfo
 }
 export type ItemDetail = { item: StoreItem; versions: VersionInfo[]; plan: RunItem[]; permissions: { name: string; words: string }[]; builtOn: { id: string; name: string; installed: boolean }[]; forkWarning?: string; fingerprint?: string; policy: string; server: string }

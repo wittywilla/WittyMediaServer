@@ -33,11 +33,13 @@ a.spec-card, button.spec-card { cursor: pointer; }
 .spec-card-sub { padding: 0 var(--sp-1) var(--sp-1); color: var(--fg-3); font-size: var(--text-sm); }
 .spec-foot { margin: 0; max-width: 62ch; color: var(--fg-3); font-size: var(--text-sm); }
 .spec-dock { margin-inline: calc(var(--gutter) * -1); }
-/* A page of its own: its head and its row of buttons centred in the column, the sections under it as they read best
-   (docs/DESIGN.md, Centring, #609). Inside another page (embedded), the page around it decides. */
-.spec-head { text-align: center; }
-.spec-head .spec-lead { margin-inline: auto; }
-.spec-page:not(.embedded) > .spec-dock { justify-content: center; }
+/* A page inside the app reads from one edge: its head, its sections and its row of buttons all start where the
+   column starts, so a centred title never sits over sections that run along the edge (docs/DESIGN.md, Centring).
+   On a standalone page the card centres its head itself (components/standalone.css); inside another page (embedded),
+   the page around it decides. */
+.spec-head { text-align: start; }
+.sa-card .spec-head .spec-lead { margin-inline: auto; }
+.sa-card .spec-page:not(.embedded) > .spec-dock { justify-content: center; }
 /* A page of its own is a column as wide as what's in it reads well (the width of From away), and its fields fill it,
    so nothing leans to one side of a wide column. */
 .spec-page:not(.embedded, .bare) { max-width: 46rem; }

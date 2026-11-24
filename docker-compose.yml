@@ -20,6 +20,7 @@ services:
     ports:
       - "9797:9797"
       # - "9443:9443"                # only if you use Settings → Remote Access with HTTPS
+      # - "9798:9798/udp"            # games over WebRTC: set this port and the NAS's address in Settings → Consoles & cores (docs/DOCKER.md#games)
     environment:
       - WMS_LOG=info
       - XDG_CACHE_HOME=/config/cache/xdg

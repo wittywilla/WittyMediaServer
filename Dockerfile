@@ -23,6 +23,8 @@ RUN npm run build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS build
 ARG VERSION=dev
+# A test build (updatetest) trusts a throwaway key for modules: only CI sets it (docker-games.sh).
+ARG GOTAGS=""
 ARG TARGETOS TARGETARCH TARGETVARIANT
 WORKDIR /src
 ENV GOWORK=off
@@ -30,7 +32,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist
-RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/wittymediaserver ./cmd/wittymediaserver
+RUN VERSION="${VERSION#v}"  && GOARM="${TARGETVARIANT#v}" CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH"     go build -trimpath -tags "$GOTAGS" -ldflags="-s -w -X main.version=${VERSION}" -o /out/wittymediaserver ./cmd/wittymediaserver
 
 # Debian, as game cores are prebuilt for glibc: on Alpine the game runner can't even
 # start, and a compatibility layer leaves several cores unable to load. libgl1 is

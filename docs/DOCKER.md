@@ -21,6 +21,7 @@ WittyMediaServer in a container, on a NAS, a Linux server or Docker Desktop: the
 - [User and group IDs](#user-and-group-ids)
 - [Locked down](#locked-down)
 - [Hardware transcoding](#hardware-transcoding)
+- [Games](#games)
 - [Behind a reverse proxy](#behind-a-reverse-proxy)
 - [Updating and going back](#updating-and-going-back)
 - [Is it running?](#is-it-running)
@@ -263,6 +264,45 @@ docker run -d --name wittymediaserver -p 9797:9797 \
 ```
 
 That's for Docker running inside WSL. Docker Desktop passes the card with `--gpus all`. For a server on Windows, though, the [Windows installer](INSTALL.md#windows) is simpler and uses every graphics card directly.
+
+## Games
+
+WittyPlay, the games module, runs every game in the container and streams it to the browser or app. It needs nothing extra in Docker: add it in **Settings → Modules**, then the cores in **Settings → Consoles & cores**. The cores are downloaded for the container's processor, amd64 or arm64 (and armv7).
+
+### How the picture gets out
+
+On Docker's usual network the container only knows its own private address, such as `172.17.0.2`, which nothing on your network can reach. So there, games come over the server's own port, 9797, as a WebSocket, with nothing to set up. That works through any NAS, reverse proxy or firewall that lets the web app through.
+
+WebRTC is a little quicker to react, and recovers better from a poor Wi-Fi link. To use it in Docker, either:
+
+- run the container on the host's network (`network_mode: host`, and no `ports:`), or
+- publish one UDP port at the same number inside and out, and tell WittyPlay about it:
+
+  ```yaml
+      ports:
+        - "9797:9797"
+        - "9798:9798/udp"
+  ```
+
+  Then, in **Settings → Consoles & cores → Advanced**, set **UDP port for WebRTC** to `9798` and **Public IP addresses** to the NAS's own address on your network (`192.168.1.20`, say). Both are needed: with only one of them WebRTC still can't get through, and WittyPlay keeps to the WebSocket.
+
+Before WittyPlay 0.7.19 the WebSocket didn't work at all, and in Docker no game showed a picture: the player waited on "Connecting to this device…". Update WittyPlay in **Settings → Modules**.
+
+### Without a graphics card
+
+Most NAS boxes have none that games can use, and most consoles don't need one. Tried in this image with no card, on amd64:
+
+| Plays | Cores |
+|---|---|
+| Yes, on one processor thread or less | NES, SNES, Game Boy, Game Boy Advance, Master System, Mega Drive, PC Engine and the other 8-bit and 16-bit consoles: every core their console offers |
+| Yes, needing a fast processor | Nintendo 64 (Mupen64Plus-Next and ParaLLEl N64 draw with angrylion, on about one core), PlayStation (the software cores, not *Beetle PSX HW* or *SwanStation*), PSP (PPSSPP's software renderer, four or five threads) |
+| No | Nintendo 64 homebrew made with libdragon, which needs a card with Vulkan. Starting one says "This game needs a graphics card with Vulkan on the server to show a picture." GameCube and Wii need a fast processor and play only slowly without a card |
+
+A game that can't run here says why on its start screen, in words, never by hanging.
+
+### Intel and AMD graphics for games
+
+Games use the same device as transcoding. Pass `/dev/dri` in and add its group, as in [Intel and AMD](#intel-and-amd) above: WittyPlay checks for a card when it starts, draws the cores that need one on it, and can encode the stream with it (Quick Sync or VAAPI). An NVIDIA card works as for transcoding, with `NVIDIA_DRIVER_CAPABILITIES=all` in place of the image's own list (`compute,video,utility`), as drawing a game needs the driver's graphics libraries too.
 
 ## Behind a reverse proxy
 

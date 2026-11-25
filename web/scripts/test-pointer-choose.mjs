@@ -31,6 +31,7 @@ const login = await (await fetch(server + '/api/login', { method: 'POST', header
 if (!login.token) { console.log('FAIL: sign-in'); process.exit(1) }
 const browser = await launch({ width: 1600, height: 900, software: true })
 const page = await browser.open()
+await page.send('Emulation.setFocusEmulationEnabled', { enabled: true }) // or a page in the background gets no focus events
 await page.go(server + '/')
 await page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(login.token)})`)
 
@@ -85,7 +86,9 @@ for (const tab of TABS) {
   await page.eval(`(() => { const c = document.querySelectorAll(${JSON.stringify(tab.cards)})[1]; (c.matches('a, button') ? c : c.querySelector('a, button')).focus() })()`)
   await wait(300)
   const focusedChosen = await chosen()
-  await page.key('Enter')
+  // Enter as a keyboard sends it, with its character: a button acts on that (a link already on the key).
+  await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: String.fromCharCode(13) })
+  await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await wait(900)
   if ((await where()) !== tab.path) ok(`${tab.name}: the focus chose card ${focusedChosen}, and Enter opened ${await where()}`)
   else bad(`${tab.name}: Enter on the focused card opened nothing`)

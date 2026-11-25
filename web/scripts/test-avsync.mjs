@@ -118,7 +118,7 @@ try {
     await set(4)
     await wait(FAST_SECONDS * 1000)
     await set(1)
-    await wait(1000) // the change itself, and the player's own lining up (speed.ts, keepInStep)
+    await wait(2500) // the change itself, and the player's own lining up (speed.ts, keepInStep), which waits for a stalled player
     const backSince = await p.eval('performance.now()')
     await wait(BACK_SECONDS * 1000)
     const back = await p.eval(`__avSince(${backSince})`)

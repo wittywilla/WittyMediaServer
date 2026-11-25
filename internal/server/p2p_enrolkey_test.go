@@ -77,11 +77,18 @@ func TestInviteEnrolKeyIsListedWhileOpen(t *testing.T) {
 	if slices.Contains(relayList(), linkID) {
 		t.Fatal("the link stayed on the relay list after the code beside it was used")
 	}
-	// ... and when a new code ends the one before.
+	// ... and when newer codes end it, past the few a person may have open (#683): not at the first new one,
+	// which may be a second tab while a device is using this one.
 	o = makeOffer(t, ts, kate, nil)
 	link, _ = p2p.ParseInvite(o.Link)
 	first, _ := p2p.EnrolID(link.Secret)
 	makeOffer(t, ts, kate, nil)
+	if !slices.Contains(relayList(), first) {
+		t.Fatal("a second code ended the first one's link")
+	}
+	for range connectPerPerson {
+		makeOffer(t, ts, kate, nil)
+	}
 	if slices.Contains(relayList(), first) {
 		t.Fatal("an ended link stayed on the relay list")
 	}

@@ -194,17 +194,27 @@ func TestConnectOfferWhoMay(t *testing.T) {
 	}
 }
 
-// A new code ends the one before; Cancel ends it; and it dies with the sign-in that made it.
+// A new code leaves the one before open (a second tab, or the TV and the phone, while a device may be using
+// it: #683), up to a few, and then the oldest goes; Cancel ends them; and they die with the sign-in that made them.
 func TestConnectOfferEnds(t *testing.T) {
 	ts := newTestServer(t)
 	_, kate := ts.user(t, "kate", "adult", false, "")
 	first := makeOffer(t, ts, kate, nil)
 	second := makeOffer(t, ts, kate, nil)
-	if code, _ := newCodeDevice(t, first.Code).hello(t, ts); code != 404 {
-		t.Fatalf("the code before a new one still answers: %d", code)
+	if code, _ := newCodeDevice(t, first.Code).hello(t, ts); code != 200 {
+		t.Fatalf("a second code ended the first: %d", code)
 	}
 	if code, _ := newCodeDevice(t, second.Code).hello(t, ts); code != 200 {
 		t.Fatalf("the new one: %d", code)
+	}
+	for range connectPerPerson - 1 {
+		makeOffer(t, ts, kate, nil)
+	}
+	if code, _ := newCodeDevice(t, first.Code).hello(t, ts); code != 404 {
+		t.Fatalf("the oldest code still answers with %d open: %d", connectPerPerson+1, code)
+	}
+	if code, _ := newCodeDevice(t, second.Code).hello(t, ts); code != 200 {
+		t.Fatalf("the second code: %d", code)
 	}
 	if w := ts.do(t, "DELETE", "/api/connect/offer", kate, nil); w.Code != 200 {
 		t.Fatal(w.Code)

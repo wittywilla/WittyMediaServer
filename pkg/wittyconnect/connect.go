@@ -370,7 +370,10 @@ func (c *Connector) Enrol(ctx context.Context, secret, name, platform string) (p
 	c.log.Info("peer-to-peer: not connected yet, so the invite is shown through the server's relay")
 	res, err := p2p.EnrolThroughRelay(ctx, c.cc, secret, name, platform)
 	if err == nil && res.OK {
-		c.client.NetworkChanged() // look again now: this device is listed with the relay
+		// Where the server is now, from its answer, and a look at once: this device is listed with the relay
+		// (res.RelayReady), so a try still searching the address book is given up for one that gets through.
+		c.client.AddHints(res.Addrs)
+		c.client.NetworkChanged()
 	}
 	return res, err
 }

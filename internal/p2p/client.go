@@ -182,7 +182,7 @@ func (c *Client) State() State { return c.keeper.get() }
 // NetworkChanged tells the client the device moved to another network, for
 // systems that say so (phones). It checks the connection now and reconnects
 // without waiting.
-func (c *Client) NetworkChanged() { c.keeper.kick() }
+func (c *Client) NetworkChanged() { c.keeper.restart() }
 
 // KnownAddrs are the server's addresses as last learnt, to keep as hints for
 // next time: relay circuits first, then public addresses, then a few private.
@@ -323,7 +323,35 @@ func (c *Client) current() State {
 
 // connect tries what is known first, then asks the address book, then the
 // relays the owner named.
-func (c *Client) connect(ctx context.Context) error {
+// errLookAgain: the network changed (or the server listed this device) while a
+// try was under way; the next starts at once.
+var errLookAgain = errors.New("looking for the server again")
+
+func (c *Client) connect(parent context.Context) error {
+	// NetworkChanged ends this try wherever it is, rather than after a
+	// search of the address book that may take most of a minute.
+	kicked := c.keeper.kickSignal()
+	ctx, stop := context.WithCancel(parent)
+	defer stop()
+	go func() {
+		select {
+		case <-kicked:
+			stop()
+		case <-ctx.Done():
+		}
+	}()
+	err := c.connectStages(ctx)
+	if err != nil && parent.Err() == nil {
+		select {
+		case <-kicked:
+			return errLookAgain
+		default:
+		}
+	}
+	return err
+}
+
+func (c *Client) connectStages(ctx context.Context) error {
 	// libp2p keeps its own list of addresses that failed lately and won't dial
 	// them again for up to five minutes. The keeper has its own, shorter
 	// back-off, so a server that comes back (a restart, a router reboot) would
@@ -645,9 +673,14 @@ func (c *Client) Enrol(ctx context.Context, secret, name, platform string) (Enro
 		return EnrolResponse{}, errors.New("the server didn't answer the invite")
 	}
 	if res.OK {
-		c.host.Peerstore().AddAddrs(c.server, parseAddrs(res.Addrs, c.server), peerstore.PermanentAddrTTL)
+		c.AddHints(res.Addrs)
 	}
 	return res, nil
+}
+
+// AddHints adds addresses for the server, as an invite's answer gives them.
+func (c *Client) AddHints(addrs []string) {
+	c.host.Peerstore().AddAddrs(c.server, parseAddrs(addrs, c.server), peerstore.PermanentAddrTTL)
 }
 
 // Host is the node underneath, for tools that simulate networks.

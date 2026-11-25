@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -89,6 +90,41 @@ func CheckEnrolFor(req EnrolRequest, connID, serverID string) (string, error) {
 		return "", ErrEnrolFor
 	}
 	if ok, err := pub.Verify(enrolBinding(serverID, connID), sig); err != nil || !ok {
+		return "", ErrEnrolFor
+	}
+	return dev.String(), nil
+}
+
+// checkJoinFor is CheckEnrolFor for a code: a hello shown by connID may put
+// hello.Device on the list instead only when connID is the code's own key,
+// with the device's signature over this server and that key. It answers the
+// ID to list.
+func checkJoinFor(hello joinHello, connID, serverID string) (string, error) {
+	if hello.Device == "" {
+		return connID, nil
+	}
+	find, err := hex.DecodeString(hello.Find)
+	if err != nil || joinEnrolID(find) != connID || hello.Device == connID {
+		return "", ErrEnrolFor
+	}
+	return checkSignedFor(hello.Device, hello.DeviceSig, serverID, connID)
+}
+
+// checkSignedFor checks a device's signature over enrolBinding(serverID, enrolID).
+func checkSignedFor(device, deviceSig, serverID, enrolID string) (string, error) {
+	dev, err := peer.Decode(device)
+	if err != nil {
+		return "", ErrEnrolFor
+	}
+	pub, err := dev.ExtractPublicKey()
+	if err != nil || pub.Type() != crypto.Ed25519 {
+		return "", ErrEnrolFor
+	}
+	sig, err := base64.StdEncoding.DecodeString(deviceSig)
+	if err != nil {
+		return "", ErrEnrolFor
+	}
+	if ok, err := pub.Verify(enrolBinding(serverID, enrolID), sig); err != nil || !ok {
 		return "", ErrEnrolFor
 	}
 	return dev.String(), nil

@@ -340,6 +340,48 @@ func (t *Tools) KeyframeNear(ctx context.Context, path string, videoIndex int, s
 	return 0, false
 }
 
+// OpenGOP says whether an H.264 file's keyframes are I-frames that aren't IDR frames (an open-GOP
+// encode, as many Blu-ray encodes are): it reads the keyframe at or before at and looks at what it
+// is. Such a file has an IDR at its very start and nowhere else, so a copy of it joined part way
+// through, or a live stream of it a player joins at any segment, never gives the decoder a frame it
+// may start from. A decoder that insists on one (most graphics chips: browsers, phones and TVs)
+// holds the picture while the sound plays, then shows it late. known is false when it can't tell.
+func (t *Tools) OpenGOP(ctx context.Context, path string, videoIndex int, at float64) (open, known bool) {
+	args := []string{"-hide_banner", "-nostdin", "-ss", strconv.FormatFloat(at, 'f', 3, 64), "-noaccurate_seek"}
+	args = append(args, FileInput(path)...)
+	args = append(args, "-map", "0:v:"+strconv.Itoa(videoIndex), "-frames:v", "1", "-c", "copy", "-bsf:v", "trace_headers", "-f", "null", "-")
+	// The trace is long, and only its verdict is worth logging: read it here rather than through Run.
+	out, err := Command(ctx, t.FFmpeg, args...).CombinedOutput()
+	if err != nil {
+		return false, false
+	}
+	return openGOPFrom(string(out))
+}
+
+// openGOPFrom reads trace_headers' account of one keyframe: IDR slices (NAL type 5) say closed,
+// other slices (type 1) with no IDR say open.
+func openGOPFrom(trace string) (open, known bool) {
+	idr, slice := false, false
+	for _, line := range strings.Split(trace, "\n") {
+		if !strings.Contains(line, "nal_unit_type") {
+			continue
+		}
+		switch strings.TrimSpace(line[strings.LastIndex(line, "=")+1:]) {
+		case "5":
+			idr = true
+		case "1":
+			slice = true
+		}
+	}
+	switch {
+	case idr:
+		return false, true
+	case slice:
+		return true, true
+	}
+	return false, false
+}
+
 // measureTime finds FFmpeg's last report of where it had got to.
 var measureTime = regexp.MustCompile(`time=(\d+):(\d+):(\d+(?:\.\d+)?)`)
 

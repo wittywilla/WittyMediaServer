@@ -1175,7 +1175,12 @@ func (s *Session) startLocked(fromSeg int) (*job, error) {
 	j.lastSeg.Store(int64(fromSeg) - 1)
 	cmd.Stderr = &j.stderr
 	cmdline := ffmpeg.RedactArgs(args)
-	s.log.Info("transcode started", "segment", fromSeg, "encoder", encoder, "height", s.Spec.MaxHeight, "gpuPipeline", hc.onGPU, "gpuToneMap", hc.placebo, "level", hc.level)
+	if why := s.m.whyProcessor(s.Spec, hc); why != "" {
+		// Why not the graphics chip, in words: what an owner with one needs to put right.
+		s.log.Info("transcode started", "segment", fromSeg, "encoder", encoder, "height", s.Spec.MaxHeight, "level", hc.level, "whyNotGPU", why)
+	} else {
+		s.log.Info("transcode started", "segment", fromSeg, "encoder", encoder, "height", s.Spec.MaxHeight, "gpuPipeline", hc.onGPU, "gpuToneMap", hc.placebo, "level", hc.level)
+	}
 	s.log.Debug("ffmpeg command", "args", cmdline)
 	started := time.Now()
 	if err := cmd.Start(); err != nil {

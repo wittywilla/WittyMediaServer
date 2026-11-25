@@ -1261,6 +1261,13 @@ func (s *Server) itemLiveInput(ctx context.Context, p *channels.Programme, off, 
 	} else {
 		return nil, errors.New("no video in the file")
 	}
+	// A copy goes out at the file's own rate. Over a cap (a viewer away, or one whose link is thin: the
+	// player's quality choice, live TV's automatic one included), it is converted down to the cap instead.
+	if in.CopyVideo {
+		if limit := ffmpeg.ParseRate(q.MaxRate); limit > 0 && sourceBitrate(pr) > limit {
+			in.CopyVideo = false
+		}
+	}
 	return in, nil
 }
 
@@ -1288,6 +1295,20 @@ func (s *Server) openGOP(ctx context.Context, path string, seek, duration float6
 		}
 	}
 	return open
+}
+
+// sourceBitrate is a file's picture rate in bits a second, or its whole rate where the picture's isn't
+// recorded (as in most Matroska files); 0 when neither is.
+func sourceBitrate(pr *ffmpeg.Probe) int64 {
+	if v := pr.Video(); v != nil {
+		if b, err := strconv.ParseInt(v.BitRate, 10, 64); err == nil && b > 0 {
+			return b
+		}
+	}
+	if b, err := strconv.ParseInt(pr.Format.BitRate, 10, 64); err == nil && b > 0 {
+		return b
+	}
+	return 0
 }
 
 // canCopy: 8-bit H.264 every browser can play as it is. Anything else is

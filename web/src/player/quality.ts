@@ -143,7 +143,7 @@ export const deviceChoice = () => load()[here()]
 
 // Requests that start a stream, which carry the choice as a header: a disc, a channel, catch-up.
 // /playback carries it in its body.
-const STARTS = /^\/items\/\d+\/dvd$|^\/tv\/[^/]+\/(tune|catchup)(\?|$)/
+const STARTS = /^\/items\/\d+\/dvd$|^\/tv\/[^/]+\/(tune|catchup|startover)(\?|$)/
 export const startsStream = (method: string, path: string) => (method === 'POST' || method === 'GET') && STARTS.test(path)
 
 const subs = new Set<() => void>()

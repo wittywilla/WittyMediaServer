@@ -15,3 +15,63 @@ export function setSpeed(v: HTMLMediaElement, rate: number) {
   v.defaultPlaybackRate = rate
   v.playbackRate = rate
 }
+
+// A change of speed can leave the sound and the picture apart for good: the browser's time stretch
+// keeps its own buffer, and a decoder that fell behind at 4× doesn't catch up by itself when the
+// speed comes down again (the owner's "4× then back to normal, and they're out of step"). A seek to
+// where it is lines them up again: the decoder and the stretch both start afresh at the same place.
+// Done once the speed has stayed put for a moment, so stepping through the menu seeks once, and only
+// for a real change. A seek to the same place costs a frame or two, and only the picture's own
+// buffer, not the network.
+export const REALIGN_AFTER_MS = 400
+export const REALIGN_MIN_CHANGE = 0.5
+// How many times, REALIGN_AFTER_MS apart, it waits for a player that can't seek yet (30 s).
+export const REALIGN_TRIES = 75
+
+// realignNeeded says a change of speed from one rate to another is big enough to line up after.
+export function realignNeeded(from: number, to: number): boolean {
+  return Number.isFinite(from) && Number.isFinite(to) && from > 0 && to > 0 && Math.abs(to - from) >= REALIGN_MIN_CHANGE
+}
+
+const aligning = new WeakSet<HTMLMediaElement>()
+
+// isRealigning: the element's current seek is keepInStep's own, not the viewer's (no "At 1:23").
+export const isRealigning = (v: HTMLMediaElement) => aligning.has(v)
+
+// keepInStep lines the sound and picture of a video up again after each real change of speed.
+export function keepInStep(v: HTMLVideoElement): () => void {
+  let settled = v.playbackRate || 1
+  let timer = 0
+  let tries = 0
+  const attempt = () => {
+    const now = v.playbackRate || 1
+    if (!realignNeeded(settled, now)) return
+    // Only once it can: a player that is seeking, waiting for data (a converting server behind at
+    // 4×) or paused tries again shortly, rather than giving up and leaving them apart.
+    if (v.paused || v.seeking || v.ended || v.readyState < 3) {
+      if (++tries < REALIGN_TRIES) timer = window.setTimeout(attempt, REALIGN_AFTER_MS)
+      return
+    }
+    settled = now
+    aligning.add(v)
+    v.addEventListener('seeked', () => aligning.delete(v), { once: true })
+    v.currentTime = v.currentTime
+  }
+  const changed = () => {
+    clearTimeout(timer)
+    tries = 0
+    timer = window.setTimeout(attempt, REALIGN_AFTER_MS)
+  }
+  v.addEventListener('ratechange', changed)
+  return () => { clearTimeout(timer); v.removeEventListener('ratechange', changed) }
+}
+
+// The fastest speed this video plays at on this server, when its conversion can't keep up with more
+// (pace.ts, sustainableRate): the speed menu offers nothing faster. Kept on the element, so a new film
+// starts without it; a 'wms-speedcap' event tells the menu it changed.
+const caps = new WeakMap<HTMLMediaElement, number>()
+export const speedCap = (v: HTMLMediaElement | null | undefined): number => (v && caps.get(v)) || Infinity
+export function setSpeedCap(v: HTMLMediaElement, cap: number | null) {
+  if (cap == null) caps.delete(v); else caps.set(v, cap)
+  v.dispatchEvent(new Event('wms-speedcap'))
+}

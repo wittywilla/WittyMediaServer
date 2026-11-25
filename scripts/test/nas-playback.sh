@@ -87,9 +87,9 @@ PY
 )
 [ -n "$ids" ] || { echo "FAIL: the sync clips aren't in the library"; exit 1; }
 echo "== A/V sync in the web player"
-# Sound and picture still apart after going back to 1x from 4x (the owner's report, 0.8.6) fails the run.
-# Apart only while fast is reported for now: on a one-processor runner the browser's pitch-keeping time
-# stretch put the sound 25-50 ms behind at 1.5-3x (the drift follow-up); AVSYNC_GATE=1 fails that too.
+# Sound and picture still apart back at 1x after 4x (exit 4: more than 40 ms from a fresh start at the same place)
+# fails the run. Apart while fast (exit 3) is reported for now: on a one-processor runner the browser's
+# pitch-keeping time stretch puts the sound 25-50 ms out (the drift follow-up); AVSYNC_GATE=1 fails that too.
 avsync=0
 WV_BROWSER=$browser WMS_URL=http://127.0.0.1:$PORT WMS_TOKEN=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['token'])" "$NASPLAY_STATE") \
   node web/scripts/test-avsync.mjs $ids || avsync=$?

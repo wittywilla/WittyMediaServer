@@ -31,7 +31,21 @@ test('a conversion that can not keep up: the server tries first, then a smaller 
   assert.equal(p.tooSlow(slow, 5, 1080, false), 'wait') // the server's faster setting first
   assert.equal(p.tooSlow({ ...slow, fastest: true }, 1, 1080, false), 'wait') // one reading
   assert.equal(p.tooSlow({ ...slow, fastest: true }, 2, 1080, false), 'lower')
-  assert.equal(p.tooSlow({ ...slow, fastest: true }, 2, 1080, true), 'tell') // the viewer's own choice
-  assert.equal(p.tooSlow({ ...slow, fastest: true }, 2, 360, false), 'tell')
+  assert.equal(p.tooSlow({ ...slow, fastest: true }, 2, 1080, true), 'slower') // the viewer's own quality is kept: slower instead
+  assert.equal(p.tooSlow({ ...slow, fastest: true, rate: 1 }, 2, 1080, true), 'tell') // at 1× there's nothing slower
+  assert.equal(p.tooSlow({ ...slow, fastest: true }, 2, 360, false), 'slower')
   assert.equal(p.times(0.666), '0.67×')
+})
+
+test('faster than 1×: one step down to 720p, then the speed comes down to what the server keeps up with', () => {
+  const behind = { speed: 1.7, rate: 4, leadSec: 2, keepingUp: false, fastest: true }
+  assert.equal(p.tooSlow(behind, 2, 1080, false), 'lower') // 1080p: once, to 720p
+  assert.equal(p.tooSlow(behind, 2, 720, false), 'slower') // already 720p: slower instead
+  assert.equal(p.tooSlow(behind, 2, 1080, true), 'slower') // the viewer's own quality is kept
+  assert.equal(p.sustainableRate(1.7, 4), 1.5)
+  assert.equal(p.sustainableRate(2.3, 4), 2)
+  assert.equal(p.sustainableRate(0.6, 3), 1) // never below 1×
+  assert.equal(p.tooSlow({ ...behind, rate: 1, speed: 0.6 }, 2, 720, false), 'lower') // at 1× quality goes on stepping down
+  assert.equal(p.tooSlow({ ...behind, rate: 1.25, speed: 1.2 }, 2, 720, false), 'slower')
+  assert.equal(p.tooSlow({ ...behind, rate: 1, speed: 0.6 }, 2, 360, false), 'tell')
 })

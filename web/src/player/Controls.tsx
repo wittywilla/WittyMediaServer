@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { fmtTime, getPrefs } from '../api'
 import { Thumb } from './ChapterThumb'
 import { announce } from '../a11y'
-import { SPEEDS, isRealigning, setSpeed } from './speed'
+import { SPEEDS, isRealigning, setSpeed, speedCap } from './speed'
 import { useMedia } from '../shell/useNav'
 import { IconAngle, IconAudio, IconBolt, IconChapters, IconCheck, IconTune, IconBack, IconClose, IconFull, IconMute, IconInfo, IconMini, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
 import { t, tk, tn, tx } from '../i18n'
@@ -130,7 +130,16 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
   const [maxSpeed, setMaxSpeed] = useState(4)
   const [rate, setRate] = useState(() => video.current?.playbackRate || 1)
   useEffect(() => { getPrefs().then((p) => setMaxSpeed(p.maxSpeed || 4)).catch(() => {}) }, [])
-  const speeds = SPEEDS.filter((s) => s <= maxSpeed)
+  // A server that can't convert this video fast enough for more caps the menu too (speed.ts, speedCap).
+  const [cap, setCap] = useState(() => speedCap(video.current))
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    const changed = () => setCap(speedCap(v))
+    v.addEventListener('wms-speedcap', changed)
+    return () => v.removeEventListener('wms-speedcap', changed)
+  }, [video])
+  const speeds = SPEEDS.filter((s) => s <= maxSpeed && s <= cap)
   // The browser's own picture in picture: the film in a small window of its own over everything else, on a computer or
   // a phone's browser that has it. Not on a TV, and the apps use their system's own (docs/plans/PLAYER-UI-PORTING.md).
   const canPip = !getTvMode() && typeof document !== 'undefined' && !!document.pictureInPictureEnabled

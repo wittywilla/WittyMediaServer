@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { fmtTime, getPrefs } from '../api'
 import { Thumb } from './ChapterThumb'
 import { announce } from '../a11y'
-import { SPEEDS, setSpeed } from './speed'
+import { SPEEDS, isRealigning, setSpeed } from './speed'
 import { useMedia } from '../shell/useNav'
 import { IconAngle, IconAudio, IconBolt, IconChapters, IconCheck, IconTune, IconBack, IconClose, IconFull, IconMute, IconInfo, IconMini, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
 import { t, tk, tn, tx } from '../i18n'
@@ -162,7 +162,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
     let muted = v.muted
     const onPlay = () => announce(t('Playing'))
     const onPause = () => { if (!v.ended) announce(t('Paused')) }
-    const onSeeked = () => { clearTimeout(tSeek); tSeek = setTimeout(() => announce(t('At {time}', { time: fmtTime(v.currentTime + offset) })), 400) }
+    const onSeeked = () => { if (isRealigning(v)) return; clearTimeout(tSeek); tSeek = setTimeout(() => announce(t('At {time}', { time: fmtTime(v.currentTime + offset) })), 400) }
     const onVol = () => {
       clearTimeout(tVol)
       if (v.muted !== muted) { muted = v.muted; announce(v.muted ? t('Muted') : t('Sound on')); return }

@@ -15,3 +15,43 @@ export function setSpeed(v: HTMLMediaElement, rate: number) {
   v.defaultPlaybackRate = rate
   v.playbackRate = rate
 }
+
+// A change of speed can leave the sound and the picture apart for good: the browser's time stretch
+// keeps its own buffer, and a decoder that fell behind at 4× doesn't catch up by itself when the
+// speed comes down again (the owner's "4× then back to normal, and they're out of step"). A seek to
+// where it is lines them up again: the decoder and the stretch both start afresh at the same place.
+// Done once the speed has stayed put for a moment, so stepping through the menu seeks once, and only
+// for a real change. A seek to the same place costs a frame or two, and only the picture's own
+// buffer, not the network.
+export const REALIGN_AFTER_MS = 400
+export const REALIGN_MIN_CHANGE = 0.5
+
+// realignNeeded says a change of speed from one rate to another is big enough to line up after.
+export function realignNeeded(from: number, to: number): boolean {
+  return Number.isFinite(from) && Number.isFinite(to) && from > 0 && to > 0 && Math.abs(to - from) >= REALIGN_MIN_CHANGE
+}
+
+const aligning = new WeakSet<HTMLMediaElement>()
+
+// isRealigning: the element's current seek is keepInStep's own, not the viewer's (no "At 1:23").
+export const isRealigning = (v: HTMLMediaElement) => aligning.has(v)
+
+// keepInStep lines the sound and picture of a video up again after each real change of speed.
+export function keepInStep(v: HTMLVideoElement): () => void {
+  let settled = v.playbackRate || 1
+  let timer = 0
+  const changed = () => {
+    clearTimeout(timer)
+    timer = window.setTimeout(() => {
+      const now = v.playbackRate || 1
+      if (!realignNeeded(settled, now)) return
+      settled = now
+      if (v.paused || v.seeking || v.readyState < 2 || v.ended) return
+      aligning.add(v)
+      v.addEventListener('seeked', () => aligning.delete(v), { once: true })
+      v.currentTime = v.currentTime
+    }, REALIGN_AFTER_MS)
+  }
+  v.addEventListener('ratechange', changed)
+  return () => { clearTimeout(timer); v.removeEventListener('ratechange', changed) }
+}

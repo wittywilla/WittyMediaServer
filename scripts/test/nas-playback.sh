@@ -33,7 +33,7 @@ for clip in "Kilo (2020)|mp4|-c:v libx264 -preset veryfast -g 60 -pix_fmt yuv420
   IFS='|' read -r title ext opts <<<"$clip"
   mkdir -p "$media/Movies/$title" && chmod a+rwx "$media/Movies/$title"
   # shellcheck disable=SC2086
-  docker run --rm --entrypoint ffmpeg -v "$media/Movies/$title":/out "$IMG" -v error -y -f lavfi -i "$sync_v" -f lavfi -i "$sync_a" -t 60 $opts "/out/$title.$ext" || { echo "FAIL: could not make $title"; exit 1; }
+  docker run --rm --entrypoint ffmpeg -v "$media/Movies/$title":/out "$IMG" -v error -y -f lavfi -i "$sync_v" -f lavfi -i "$sync_a" -t 180 $opts "/out/$title.$ext" || { echo "FAIL: could not make $title"; exit 1; }
 done
 
 docker run -d --name "$name" --cpus "$CPUS" --memory "$MEM" --memory-swap "$MEM" \
@@ -72,11 +72,14 @@ PY
 )
 [ -n "$ids" ] || { echo "FAIL: the sync clips aren't in the library"; exit 1; }
 echo "== A/V sync in the web player"
-# Reported, not yet a failure: on a one-processor runner the browser's pitch-keeping time stretch put
-# the sound 25-50 ms behind the picture at 1.5-3x, played as it is as well as converted (the drift
-# follow-up). AVSYNC_GATE=1 makes it fail.
-if ! WV_BROWSER=$browser WMS_URL=http://127.0.0.1:$PORT WMS_TOKEN=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['token'])" "$NASPLAY_STATE") \
-  node web/scripts/test-avsync.mjs $ids; then
-  if [ "${AVSYNC_GATE:-0}" = 1 ]; then exit 1; fi
-  echo "::warning title=A/V sync::sound more than 40 ms from the picture at some speeds (reported, not failing; see the drift follow-up)"
+# Sound and picture still apart after going back to 1x from 4x (the owner's report, 0.8.6) fails the run.
+# Apart only while fast is reported for now: on a one-processor runner the browser's pitch-keeping time
+# stretch put the sound 25-50 ms behind at 1.5-3x (the drift follow-up); AVSYNC_GATE=1 fails that too.
+avsync=0
+WV_BROWSER=$browser WMS_URL=http://127.0.0.1:$PORT WMS_TOKEN=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['token'])" "$NASPLAY_STATE") \
+  node web/scripts/test-avsync.mjs $ids || avsync=$?
+if [ "$avsync" = 3 ] && [ "${AVSYNC_GATE:-0}" != 1 ]; then
+  echo "::warning title=A/V sync::sound more than 40 ms from the picture while fast (reported, not failing; see the drift follow-up)"
+elif [ "$avsync" != 0 ]; then
+  exit 1
 fi

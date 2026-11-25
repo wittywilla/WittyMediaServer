@@ -162,6 +162,64 @@ code=$(ns sm-cli curl -s -o /dev/null -w '%{http_code}' -m 30 -H "X-Witty-Connec
 code=$(ns sm-cli curl -s -o /dev/null -w '%{http_code}' -m 30 -H 'Accept: text/html' --cookie "wittyconnect=$LSECRET" "$L/")
 [ "$code" = 200 ] || fail "the web app's page through the connector with its cookie: $code"
 
+step "Away: live TV fits a 5 Mbit/s home upload"
+# The owner watches live TV peer to peer from away, and a home upload is 5 to 20 Mbit/s. A channel's stream
+# faster than that stalls every few seconds. The player's Auto quality asks, over peer to peer, for 720p at
+# 3 Mbit/s (web/src/pages/tv/liveAuto.ts); here the server's upload is held to 5 Mbit/s and the channel is
+# an 8 Mbit/s H.264 file, which a copy would send as it is. Each segment must come faster than it plays.
+mkdir -p "$SMOKE_OUT/tv"
+ffmpeg -hide_banner -loglevel error -y -f lavfi -i testsrc2=size=1920x1080:rate=25 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 150 \
+  -c:v libx264 -preset ultrafast -b:v 8M -minrate 8M -maxrate 8M -bufsize 4M -pix_fmt yuv420p -g 50 -c:a aac -shortest "$SMOKE_OUT/tv/Smoke clip (2026).mp4" \
+  || fail "making the channel's clip"
+chown -R "$RUNAS" "$SMOKE_OUT/tv"
+lib=$(sapi POST /api/libraries "{\"name\":\"Smoke TV\",\"type\":\"movies\",\"paths\":[\"$SMOKE_OUT/tv\"]}" | json "d['id']") || fail "the TV library"
+scanned() { sapi GET "/api/items?library=$lib&limit=5" | grep -q '"id"'; }
+until_ok 90 "the clip is in the library" scanned || exit 1
+item=$(sapi GET "/api/items?library=$lib&limit=5" | json "(d.get('items') if isinstance(d, dict) else d)[0]['id']")
+ch=$(sapi POST /api/channels "{\"name\":\"Smoke TV\",\"number\":\"9\",\"definition\":{\"mode\":\"simple\",\"rules\":{\"items\":[$item]},\"alignMin\":0,\"filler\":{}}}" | json "d['id']") \
+  || fail "the channel"
+ns sm-srv tc qdisc add dev eth0 root netem rate 5mbit delay 25ms limit 10000 || fail "holding the server's upload to 5 Mbit/s"
+tune=$(ns sm-cli curl -sS -m 90 -H "X-Witty-Connect: $LSECRET" -H "Authorization: Bearer $tok" -H 'X-WMS-Quality: h720-b3000' "$L/api/tv/lib-$ch/tune?viewer=smoke")
+echo "$tune" >"$SMOKE_OUT/tv-tune.json"
+via=$(echo "$tune" | json "d['quality']['via']") || fail "the tune answer: $tune"
+case "$via" in p2p*) ;; *) fail "the tune answer says the device comes by '$via', not peer to peer" ;; esac
+url=$(echo "$tune" | json "d['url']")
+ns sm-cli env L="$L" SEC="$LSECRET" TOK="$tok" URL="$url" python3 - >"$SMOKE_OUT/tv-segments.txt" 2>&1 <<'EOF'
+import os, re, time, urllib.parse, urllib.request
+H = {'X-Witty-Connect': os.environ['SEC'], 'Authorization': 'Bearer ' + os.environ['TOK']}
+base = urllib.parse.urljoin(os.environ['L'] + '/', os.environ['URL'].lstrip('/'))
+def get(u):
+    t = time.time(); b = urllib.request.urlopen(urllib.request.Request(u, headers=H), timeout=60).read(); return b, time.time() - t
+seen, got, end = set(), [], time.time() + 120
+while len(got) < 10 and time.time() < end:
+    text = get(base)[0].decode()
+    for d, u in re.findall(r'#EXTINF:([\d.]+),\s*\n(\S+)', text):
+        if u in seen:
+            continue
+        seen.add(u)
+        b, dt = get(urllib.parse.urljoin(base, u))
+        got.append((float(d), len(b), dt))
+        print(f'segment {len(got):2}: {float(d):.2f} s of picture, {len(b) // 1024} KB, came in {dt:.2f} s')
+        if len(got) >= 10:
+            break
+    time.sleep(0.5)
+sec = sum(g[0] for g in got); bits = sum(g[1] for g in got) * 8
+print(f'stream {bits / max(sec, 0.01) / 1000:.0f} kbit/s over {len(got)} segments')
+# The link keeps up when the segments, past the first two (made ahead), come in less time than they play.
+# One may be slower (a cap allows a short burst, and the player's buffer takes it), but not twice as slow.
+rest = got[2:]
+took, plays = sum(g[2] for g in rest), sum(g[0] for g in rest)
+print(f'segments 3 on: {took:.1f} s to come for {plays:.1f} s of picture')
+if len(got) < 10: print('FAIL: too few segments')
+elif bits / sec > 3600_000: print('FAIL: the stream is over its 3 Mbit/s cap')
+elif took > 0.9 * plays: print('FAIL: the link does not keep up with the stream')
+elif any(g[2] > 2 * g[0] for g in rest): print('FAIL: a segment came more than twice as slow as it plays')
+else: print('OK')
+EOF
+ns sm-srv tc qdisc del dev eth0 root 2>/dev/null
+cat "$SMOKE_OUT/tv-segments.txt" >>"$LOG"
+tail -1 "$SMOKE_OUT/tv-segments.txt" | grep -q '^OK' || fail "live TV over a 5 Mbit/s upload: $(tail -2 "$SMOKE_OUT/tv-segments.txt" | tr '\n' ' ')"
+
 step "A device taken off the list is shut out"
 dev=$(sapi GET /api/p2p/devices | json "[x['id'] for x in (d if isinstance(d, list) else d.get('devices', [])) if 'Smoke' in (x.get('name') or '')][0]") || fail "the device isn't on the list"
 sapi DELETE "/api/p2p/devices/$dev" >>"$LOG"

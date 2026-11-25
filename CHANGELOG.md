@@ -8,6 +8,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Live TV: +30 is back, up to live.** At the owner's request, the jump forward returns to the live player (#688 had
   removed it). +30, the timeline, Right, Fast forward and Next (outside an ad break) go ahead no further than the live
   edge, and +30 is greyed out there. Back to live stays.
+- **WittyTV: no frozen picture at tune-in on open-GOP H.264 (#760).** Some H.264 encodes, many Blu-ray ones among
+  them, mark I-frames that aren't IDR frames as keyframes, with one IDR at the very start. A channel copied them as
+  they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.
+  Graphics-chip decoders, as most browsers, phones and TVs use, held the picture while the sound played, then showed it
+  late. The server now looks at one keyframe of each such file and converts its picture when the keyframe isn't an IDR.
 
 ## 0.8.5-alpha
 

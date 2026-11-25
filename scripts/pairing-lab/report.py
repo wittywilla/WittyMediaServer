@@ -71,10 +71,17 @@ def case(folder, rc):
         # the lab no hole punch can succeed; on real networks one often does). Pairing can't finish; what is
         # checked is that the phone is told why, in the connector's own words (X-Witty-Connect-Error and its
         # body), never a bare timeout, and in a container that the server names the port to publish.
-        told = [s for s in phone if s["step"] in ("identity", "reopen-identity") and s["detail"].get("connectorError")
-                and "relay" in str(s["detail"].get("body", ""))]
-        bare = [s for s in phone if s["step"] in ("identity", "reopen-identity") and s.get("ok") is False
-                and not s["detail"].get("connectorError")]
+        # Every failed identity check (the first try, and a retry within 30 s) must carry the connector's named
+        # reason, public-relay-only, and its words; any failed check without them is a failure of this case.
+        failed_ids = [s for s in phone if s["step"] in ("identity", "reopen-identity") and s.get("ok") is False]
+        named = [s for s in failed_ids if s["detail"].get("connectorError")
+                 and "public-relay-only" in str(s["detail"].get("body", ""))
+                 and "only through a public relay" in str(s["detail"].get("body", ""))]
+        told = named if failed_ids and len(named) == len(failed_ids) else []
+        bare = [s for s in failed_ids if s not in named]
+        r["explainedTries"] = len(failed_ids)
+        if way == "retry" and len(failed_ids) < 2:
+            told = []  # a retry case must show the reason on both tries
         hint = net != "docker-unpub" or any(
             "isn't published from Docker" in str((s.get("detail") or {}).get("hint", ""))
             for s in ss if s.get("step") == "connect-status")

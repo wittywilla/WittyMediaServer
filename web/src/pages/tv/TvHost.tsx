@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { api } from '../../api'
 import { useSource } from '../../player/hooks'
-import { clockOffset, syncStep, type ClockSample } from '../../player/sync'
+import { clockOffset, liveStep, type ClockSample } from '../../player/sync'
 import { freshGuard, guardStep, type Sample } from '../../player/stallGuard'
 import { lendHls, liveNow, liveVideo, liveViewer, setLive, setLiveCatchUp, useLiveState } from './live'
 import { preflight, type TuneInfo } from './tvApi'
@@ -19,6 +19,7 @@ export default function TvHost() {
   const { key, info, url, ready } = useLiveState()
   const video = useRef<HTMLVideoElement | null>(liveVideo())
   const hls = useSource(video, url, {
+    live: true,
     onReady: () => setLive({ ready: true }),
     onError: (m) => setLive({ err: m }),
   })
@@ -135,7 +136,13 @@ export default function TvHost() {
     // A programme from its start is the viewer's own stream: nobody to keep up with.
     if (!url || !ready || parseCatchupKey(key)) return
     const v = liveVideo()
-    let on = true, nudging = false, pausedAt = 0
+    let on = true, nudging = false, pausedAt = 0, stalledAt = 0, afterStall = false
+    // A real stall: waiting for data for over a second while meant to be playing. Only that may
+    // let the clock jump (liveStep), once, at the next check after it plays again.
+    const onWaiting = () => { if (!v.paused && !v.seeking) stalledAt = Date.now() }
+    const onPlaying = () => { if (stalledAt && Date.now() - stalledAt > 1000) afterStall = true; stalledAt = 0 }
+    v.addEventListener('waiting', onWaiting)
+    v.addEventListener('playing', onPlaying)
     // A silent video paused while the page is hidden was paused by the browser, not the viewer:
     // it starts again when the page is shown (live.ts). With sound, only the viewer pauses it.
     const onPause = () => { if (document.hidden && v.muted) return; pausedAt = Date.now(); setLive({ away: true }) }
@@ -167,7 +174,11 @@ export default function TvHost() {
         return
       }
       const start = v.seekable.length ? v.seekable.start(0) : v.currentTime
-      const step = behind > 0 && v.currentTime >= nearest - 0.5 ? { rate: 1 } : syncStep(behind, nudging)
+      // Faster only with more than a segment in hand: catching up mustn't run the buffer dry.
+      const ahead = v.buffered.length ? v.buffered.end(v.buffered.length - 1) - v.currentTime : 0
+      const short = behind > 0 && (v.currentTime >= nearest - 0.5 || ahead < (details?.targetduration || 4))
+      const step = short ? { rate: 1 } : liveStep(behind, nudging, afterStall)
+      afterStall = false
       if ('seekBy' in step) {
         v.playbackRate = 1
         nudging = false
@@ -182,6 +193,8 @@ export default function TvHost() {
       clearInterval(t)
       v.removeEventListener('pause', onPause)
       v.removeEventListener('play', onPlay)
+      v.removeEventListener('waiting', onWaiting)
+      v.removeEventListener('playing', onPlaying)
       v.playbackRate = 1
       delete v.dataset.behind
       setLiveCatchUp(null)

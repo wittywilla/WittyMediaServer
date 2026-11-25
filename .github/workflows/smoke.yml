@@ -132,6 +132,48 @@ jobs:
             ${{ runner.temp }}/smoke-out/data/logs
           retention-days: 14
 
+  # Ten minutes of a live channel on a small NAS (2 CPUs, 2 GB) behind a 5 Mbit/s, 50 ms upload, in the web app:
+  # no jumps of its clock and no freezes (0.8.6 froze for a second every few seconds there).
+  livewatch:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: smoke-build
+          path: ${{ runner.temp }}/smoke-build
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/smoke-ffmpeg
+          key: smoke-ffmpeg-${{ hashFiles('scripts/ffmpeg.lock') }}
+      - name: FFmpeg
+        timeout-minutes: 8
+        run: bash scripts/smoke/ffmpeg.sh "$RUNNER_TEMP/smoke-ffmpeg"
+      - name: Ten minutes of live TV at 5 Mbit/s
+        env:
+          SMOKE_OUT: ${{ runner.temp }}/smoke-out
+          WV_BROWSER: /usr/bin/google-chrome
+        run: |
+          chmod +x "$RUNNER_TEMP"/smoke-build/bin/*
+          sudo env "PATH=$PATH" "SMOKE_OUT=$SMOKE_OUT" "WV_BROWSER=$WV_BROWSER" bash scripts/smoke/livewatch.sh "$RUNNER_TEMP/smoke-build" 600
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: smoke-livewatch
+          path: |
+            ${{ runner.temp }}/smoke-out/*.log
+            ${{ runner.temp }}/smoke-out/*.txt
+            ${{ runner.temp }}/smoke-out/livewatch
+            ${{ runner.temp }}/smoke-out/lw-data/logs
+          retention-days: 14
+
   remote:
     needs: build
     runs-on: ubuntu-latest

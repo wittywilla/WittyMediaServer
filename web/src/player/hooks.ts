@@ -39,14 +39,16 @@ const CLIMB_AFTER_MS = 60000 // smooth this long after stepping down: let the pl
 // for a new stream at that place when this one can't go on), and says what it did (onNote).
 export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: string | null,
   opts: { onReady?: () => void; onError?: (msg: string) => void; startAt?: () => number | null | undefined; logSession?: string | null; growing?: boolean
-    robust?: StreamingHints | null; measuredKbps?: number; startHeight?: number; onNote?: (n: NetNote) => void; onReopen?: (at: number) => void } = {}) {
+    robust?: StreamingHints | null; measuredKbps?: number; startHeight?: number; onNote?: (n: NetNote) => void; onReopen?: (at: number) => void
+    live?: boolean } = {}) {
   const hlsRef = useRef<Hls | null>(null)
   const optsRef = useRef(opts)
   optsRef.current = opts
   // What goes wrong is reported to the server's log, under this stream's session.
   useEffect(() => (video.current && url ? watchPlayback(video.current, url, optsRef.current.logSession) : undefined), [url, video])
-  // Sound and picture lined up again after each real change of speed (speed.ts).
-  useEffect(() => (video.current && url ? keepInStep(video.current) : undefined), [url, video])
+  // Sound and picture lined up again after each real change of speed (speed.ts). Not on live TV:
+  // its speed only ever changes by a few per cent (TvHost), and a seek there costs a segment.
+  useEffect(() => (video.current && url && !optsRef.current.live ? keepInStep(video.current) : undefined), [url, video])
   useEffect(() => {
     const v = video.current
     if (!v || !url) return

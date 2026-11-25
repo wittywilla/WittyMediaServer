@@ -12,7 +12,7 @@ const server = process.env.WMS_SERVER
 const media = process.env.WMS_MEDIA || '/srv/media'
 const advanced = process.env.MODE === 'advanced'
 const [out = 'shots'] = process.argv.slice(2)
-const s = await open(server, out, { width: 1440, height: 1000 })
+const s = await open(server, out, { width: 1440, height: 1000, checks: true })
 const { page, press, shot, card, until, typeIn, maskAddresses } = s
 const CARD = 'main.oobe-card'
 const DIALOG = '.ui-dialog'

@@ -10,7 +10,7 @@ import { open, wait } from './shots-lib.mjs'
 const server = process.env.WMS_SERVER
 const [out = 'shots'] = process.argv.slice(2)
 const only = process.env.WMS_ONLY ? process.env.WMS_ONLY.split(',') : null
-const s = await open(server, out, { path: '/help' })
+const s = await open(server, out, { path: '/help', checks: true })
 const { page, press, shot, call, go, until, size, maskAddresses } = s
 const login = await call('POST', '/login', { name: process.env.WMS_USER || 'owner', password: process.env.WMS_PASSWORD })
 await page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(login.token)})`)
@@ -414,7 +414,7 @@ const scenes = {
       console.log('profile', name, JSON.stringify(await call('POST', '/users', body)).slice(0, 80))
     }
     await call('DELETE', '/sessions')
-    for (const path of ['libraries', 'pages', 'metadata', 'playback', 'channels', 'couch', 'transcoding', 'library-transcoding', 'network', 'data-folder', 'remote', 'users', 'security', 'quality', 'games', 'activity', 'appearance', 'notifications', 'sharing', 'wittyrigs', 'module-settings', 'logs', 'diagnoser', 'modules', 'backup', 'health', 'repair', 'reset', 'about', 'legal']) {
+    for (const path of ['libraries', 'pages', 'metadata', 'playback', 'channels', 'couch', 'transcoding', 'library-transcoding', 'network', 'data-folder', 'remote', 'users', 'security', 'quality', 'games', 'activity', 'appearance', 'notifications', 'sharing', 'wittyrigs', 'module-settings', 'diagnoser', 'modules', 'backup', 'health', 'repair', 'reset', 'about', 'legal']) {
       await go(`/settings/${path}`, 3500)
       // A module's settings page (Couch, WittyRigs) loads after the page around it: wait for it, and for the
       // page to finish coming in, before the picture.
@@ -425,6 +425,7 @@ const scenes = {
       await maskPaths()
       await shot(`settings-${path}`)
     }
+    // The logs page isn't in the loop above: it's taken here, on each of its two tabs.
     await go('/settings/logs', 3000)
     await shot('settings-logs-viewer')
     await press(/^\s*What to log/); await wait(1500)

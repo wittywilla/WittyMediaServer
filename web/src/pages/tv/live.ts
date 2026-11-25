@@ -5,6 +5,7 @@ import type Hls from 'hls.js'
 import { BACKGROUND_KEY, STILL_HERE_MS, keepsPlaying, letGo, readChoice, resumeOnShow, sayStillHere, type Choice } from './backgroundPlay'
 import { leaveChannel, makeViewer, preflight, tune, type TuneInfo } from './tvApi'
 import { deviceChoice } from '../../player/quality'
+import { autoChoice, noteVia, saveStep, savedStep, startStep } from './liveAuto'
 
 // One player for the whole TV section: one <video>, one stream, for as long as someone stays
 // on a channel. The guide's preview and the watch view are only places to draw it (slots), so
@@ -203,7 +204,7 @@ let tunedQuality = ''
 
 function start(key: string) {
   if (live.key) leaveChannel(live.key, viewer, tunedQuality)
-  tunedQuality = deviceChoice()
+  tunedQuality = deviceChoice() || autoChoice()
   ac?.abort()
   const a = (ac = new AbortController())
   setLive({ ...IDLE, key })
@@ -211,6 +212,15 @@ function start(key: string) {
     .then(async (i) => {
       if (a.signal.aborted) return
       noteBackgroundDefault(i.backgroundPlay)
+      // Auto, on a device that hasn't learned a step yet: reached peer to peer, it starts lower. The first
+      // tune couldn't know that before the server said, so it asks again once, at that step.
+      const via = i.quality?.via || ''
+      noteVia(via)
+      if (!deviceChoice() && savedStep() == null && startStep(null, via) !== 0 && !tunedQuality) {
+        saveStep(startStep(null, via))
+        start(key)
+        return
+      }
       setLive({ info: i })
       const u = i.url + (i.url.includes('?') ? '&' : '?') + 'viewer=' + viewer
       await preflight(u, a.signal)

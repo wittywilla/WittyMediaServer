@@ -22,7 +22,10 @@ import Slate from './Slate'
 import { useLiveTracks } from './tracks'
 import { liveCatchUp, liveHls, liveVideo, retune, setLive, setLiveCatchUp, useLive } from './live'
 import QualityMenu, { StreamInfo } from '../../player/QualityMenu'
-import { describe, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from '../../player/quality'
+import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from '../../player/quality'
+import { formatReport } from './playbackReport'
+import { autoChanges, frags as recentFrags, stalls as recentStalls } from './liveStats'
+import { autoChoice, LADDER, lastVia, savedStep, startStep } from './liveAuto'
 import { fmtClock, fmtSpan, getLineup, type Alternative, type GuideChannel, type GuidePage, type TuneInfo } from './tvApi'
 import { catchupKey } from './guideLogic'
 import { breakAt, isLibraryKey, knownEndAfter, LIVE_EDGE_SEC, liveNowFrom, planSeek, resumePlan, startOverPath, type Timeline } from './timeshift'
@@ -106,6 +109,33 @@ export default function TvPlayer() {
   const [statsOn, setStatsOn] = useState(showStreamInfo)
   // What converts the channel (GPU or CPU), asked again every few seconds while it shows.
   const [work, setWork] = useState<StreamWork | null>(null)
+  // The playback report (playbackReport.ts): what this player saw, to paste into a message or an issue.
+  const copyReport = async () => {
+    const v = video.current
+    const version = await api.get<{ version?: string }>('/capabilities').then((c) => c.version || '').catch(() => '')
+    const chosen = deviceChoice()
+    const step = chosen ? null : startStep(savedStep(), lastVia())
+    const ranges: [number, number][] = []
+    if (v) for (let i = 0; i < v.buffered.length; i++) ranges.push([v.buffered.start(i), v.buffered.end(i)])
+    const q = v?.getVideoPlaybackQuality?.()
+    const ua = navigator.userAgent.match(/(Edg|Firefox|Chrome|Version)\/[\d.]+/)?.[0]?.replace('Version', 'Safari') || 'browser'
+    const s = step != null ? LADDER[step] : null
+    const text = formatReport({
+      when: new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC', version, channel: info ? `${info.number} ${info.name}` : key,
+      via: info?.quality?.via || lastVia(), away: !!info?.quality?.away, choice: chosen || autoChoice(), autoStep: step,
+      autoStepText: s ? (s.height ? `${s.height}p ${s.kbps} kbit/s` : 'no cap') : '',
+      encoder: work?.encoder || '', gpu: work ? [work.gpuDecode && 'decodes on the graphics chip', work.gpuEncode && 'encodes on the graphics chip'].filter(Boolean).join(', ') : '',
+      clock: v?.currentTime || 0, buffered: ranges, paused: !!v?.paused, readyState: v?.readyState || 0,
+      frames: { total: q?.totalVideoFrames || 0, dropped: q?.droppedVideoFrames || 0 }, size: v?.videoWidth ? `${v.videoWidth}x${v.videoHeight}` : '',
+      browser: ua, frags: [...recentFrags], stalls: [...recentStalls], autoChanges: [...autoChanges],
+    })
+    try { await navigator.clipboard.writeText(text) } catch {
+      const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select()
+      try { document.execCommand('copy') } catch { /* nothing more to try */ }
+      ta.remove()
+    }
+    announce(t('Playback report copied: paste it into your message.'))
+  }
   useEffect(() => {
     setWork(null)
     if (!statsOn || !live.url) return
@@ -450,7 +480,7 @@ export default function TvPlayer() {
       {settingsOpen && <Dialog title={t('Player settings')} onClose={() => setSettingsOpen(false)}><BackgroundPlayChoice /></Dialog>}
       {statsOn && <StreamInfo lines={streamLines('live', { width: video.current?.videoWidth, height: video.current?.videoHeight, work: work || undefined }, { width: video.current?.videoWidth || 0, height: video.current?.videoHeight || 0, kbps: (() => { const h = liveHls(); const l = h && h.currentLevel >= 0 ? h.levels[h.currentLevel] : null; return l?.bitrate ? Math.round(l.bitrate / 1000) : 0 })() })} />}
       {qualityOpen && info?.quality && (
-        <QualityMenu view={info.quality} decision="live" live where={here()} showInfo={statsOn} onShowInfo={(on) => { setStatsOn(on); setShowStreamInfo(on) }} onClose={() => setQualityOpen(false)}
+        <QualityMenu view={info.quality} decision="live" live where={here()} showInfo={statsOn} onShowInfo={(on) => { setStatsOn(on); setShowStreamInfo(on) }} onClose={() => setQualityOpen(false)} onCopyReport={() => { void copyReport() }}
           onChoose={(c) => { setQualityOpen(false); setDeviceDefault(here(), c); announce(t('Quality: {quality}', { quality: describe(c, info.quality?.presets || []) })); if (c !== info.quality?.asked) retune() }} />
       )}
       <Controls video={video} duration={prog ? prog.end - prog.start : windowLen} offset={prog && win.sched != null ? win.sched - prog.start - (video.current?.currentTime ?? 0) : -win.start}

@@ -32,9 +32,12 @@ export type QualityMenuProps = {
   where: 'home' | 'away'
   // Live channels: the picture's own size isn't known, and Original means "as the channel sends it".
   live?: boolean
+  // Copies a playback report (pages/tv/playbackReport.ts) for the owner to send when a channel won't play
+  // well, on every device: it's on the first page, not behind Advanced.
+  onCopyReport?: () => void
 }
 
-export default function QualityMenu({ view, decision, presets: given, showInfo, onShowInfo, onChoose, onClose, where, live }: QualityMenuProps) {
+export default function QualityMenu({ view, decision, presets: given, showInfo, onShowInfo, onChoose, onClose, where, live, onCopyReport }: QualityMenuProps) {
   const [page, setPage] = useState<'easy' | 'advanced'>('easy')
   const [walled, setWalled] = useState(false) // Advanced asked for on a phone or TV (ui/advanced.tsx)
   const root = useRef<HTMLDivElement | null>(null)
@@ -101,6 +104,7 @@ export default function QualityMenu({ view, decision, presets: given, showInfo, 
           {limited && <p className="qm-small">{(() => { const limit = list([cap.height ? sizeName(cap.height) : '', cap.kbps ? rate(cap.kbps) : ''].filter(Boolean)); return view.away ? t('Up to {limit} away from home, as the server allows.', { limit }) : t('Up to {limit} on this profile, as the server allows.', { limit }) })()}</p>}
           <button type="button" className="qm-more" onClick={() => (advancedHere() ? setPage('advanced') : setWalled(true))}>{t('Advanced…')}</button>
           {walled && <UseAComputer what="Advanced quality settings" onClose={() => setWalled(false)} />}
+          {onCopyReport && <button type="button" className="qm-more" onClick={onCopyReport}>{t('Copy playback report')}</button>}
           <p className="qm-small">{where === 'away' ? t('Remembered on this device away from home.') : t('Remembered on this device at home.')}</p>
         </>
       ) : (

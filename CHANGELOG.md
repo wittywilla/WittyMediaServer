@@ -5,6 +5,78 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **WittyTV plays over a home connection's upload.** Live TV reached peer to peer from away (as the apps do) came at
+  the channel's full rate, 6 to 7 Mbit/s for a 1080p channel on a small server, above a 5 Mbit/s home upload: on the
+  owner's path it stalled 11 s a minute and the player abandoned segments half loaded. Live TV's Auto quality now
+  starts a device reached peer to peer at 720p and 3 Mbit/s, steps down when the stream needs more than the link gives
+  or keeps stalling, up again once there's room, and remembers the step on the device. A copied channel over the cap
+  is converted to it. Measured at 5 Mbit/s and 50 ms through the connector: no stalls in 76 s (was 11 s in 60 s).
+  The remote smoke test checks it through a 5 Mbit/s upload and WittyRelay.
+- **Copy playback report**, in the live player's quality menu: the last segments (when each was asked for, how long
+  it took, its size), the buffers, stalls, how the device reaches the server, the quality step, the server's version
+  and the encoder, as plain text to paste into a message. Nothing that signs in or finds the server is in it.
+
+## 0.8.6-alpha
+
+Released 2026-11-25.
+
+A fix release for 0.8.5, mostly for a NAS or other small server in Docker: HDR films start again, regular playback no
+longer opens on black with the sound behind, WittyTV tunes in without a frozen picture, and Settings keeps its menu.
+Use client 0.6.4 with it. Docker users: as in 0.8.5, publish port **9796** (TCP and UDP) and pass `/dev/dri` for an
+Intel or AMD graphics chip; **Settings → Live transcoding → Graphics** says what the server can use.
+
+- **WittyTV: no sound before the picture at tune-in.** A channel's sound now starts with its first picture, and
+  "Tuning…" stays until there is one, rather than giving way to a frame standing still while the sound plays. The
+  sound comes back after a few seconds at most whatever happens, and a page playing in the background isn't held.
+
+- **HDR films start again on a NAS without a graphics chip.** 0.8.5's image carries a Vulkan driver that runs on the
+  processor (for games), and HDR films were tone-mapped through it: several times slower, and in a 2 GB container
+  FFmpeg ran out of memory on the first segment, so the picture stayed black and the film never started. That driver
+  isn't taken for a graphics chip any more: HDR is tone-mapped on the processor as in 0.8.4, and on a real Intel,
+  AMD or NVIDIA chip as before. CI now starts open-GOP, HEVC 10-bit, late-sound and HDR10 test films from the start,
+  part way and after a skip, and fails on a black or frozen picture or the sound out of step.
+- **Sound and picture closer together after a change of speed.** Watching at 4× and going back to normal could leave
+  the sound out of step with the picture until the next seek. After each real change of speed (half a step or more)
+  the player now lines them up by itself, in the browser, the desktop app, and the Android and Apple apps (client
+  0.6.4). Played straight from the file it's back within 20 ms. A video the server converts on a slow machine can
+  still end up to about 60 ms apart after 4×; that part follows in the next release, and CI reports it meanwhile.
+- **A NAS that can't keep up at a speed plays at the fastest speed it can, and says so** (web and Android), instead of
+  stalling: it steps down to a smaller picture once, then caps the speed menu for that video.
+**Settings keeps its menu, and every page reads from one edge (#763)**
+
+- **Every Settings choice opens inside Settings, with the menu beside it.** Sign in a TV, Connect a device, Your year,
+  Collections and playlists, Fix matches, Controllers, Help and Legal used to open as pages of their own with no menu.
+  They now open beside the menu, under Settings' own title. Libraries opens Settings' own Libraries page. Opened any
+  other way, each is the page it always was.
+- **The menu no longer disappears on a laptop or a tablet.** At 1280 pixels wide and narrower, Settings showed the page
+  alone, without its menu. The menu now stays beside the page down to a tablet's width. On a phone, Settings is the
+  menu, then the page, with Back to the menu.
+- **A module's settings stay in Settings.** Games & emulators threw you into WittyPlay's console. It is now a Settings
+  page with a button that opens the console. A module's own page that the menu opens is drawn inside Settings.
+- **Settings pages no longer shift sideways.** Each page's title and content started 5 pixels to one side or the other,
+  depending on whether the page was long enough to scroll. Every Settings page now starts at the same place.
+- **Module settings for WittyPlay opens again.** A group of settings without a title stopped the page with "This page
+  ran into a problem".
+
+Developer notes:
+
+- `pages/settings/open.ts`: `inSettings()` gives a menu row's address inside Settings (`/settings/open/<address>`, or
+  the web's own Settings page for it). `App.tsx` `PageRoutes` draws `/settings/open/*`, and a module's app route under
+  `/settings/`, inside `SettingsPage`'s frame (its new `page` prop). `InSettings` tells a page it is there: `SpecPage`
+  and Connect a device use `PageHead`.
+- `test-layout.mjs`:
+  - It takes its pages from the links the menu draws, not the raw paths in settingsmenu.json.
+  - A new kind, `no-menu`, fails a settings page without the menu beside it (Back to it on a phone), or one that opens
+    outside Settings. Before, a page that left Settings was skipped.
+  - `align` covers titles a module draws itself and fails a centred title. It also fails a settings page whose title
+    starts somewhere other than the others at the same size.
+- **WittyTV: a quicker tune-in on a small server.** On a machine with up to four processors or 4 GB (a NAS, a
+  container held to 2 CPUs), a live picture the processor converts now uses the fastest encoder setting, at most 1080
+  lines, in 2-second segments, and a stream is ready after its first one. At 2 CPUs a 1080p HEVC 10-bit channel was
+  converted slower than it plays, so the picture stood still at every tune-in; it now keeps up at 1.7 times, and the
+  server has a stream ready in 2.3 to 3.5 s for an HDR10 channel (was 6 to 11 s), 1.6 to 2.1 s for HEVC 10-bit and 1.4
+  to 1.9 s for H.264. Larger machines and graphics chips are as before.
+
 - **The processor's graphics drivers are called what they are.** Since 0.8.5 the image has Mesa's software drivers
   (llvmpipe for OpenGL, lavapipe for Vulkan), which WittyPlay uses to draw GameCube and Wii with no graphics card. The
   Graphics status (Settings → Live transcoding, `wittymediaserver hardware`, the log) now says "Software (no graphics

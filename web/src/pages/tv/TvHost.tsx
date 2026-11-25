@@ -8,6 +8,10 @@ import { freshGuard, guardStep, type Sample } from '../../player/stallGuard'
 import { lendHls, liveNow, liveVideo, liveViewer, setLive, setLiveCatchUp, useLiveState } from './live'
 import { preflight, type TuneInfo } from './tvApi'
 import { parseCatchupKey } from './guideLogic'
+import { autoStep, LADDER, saveStep, savedStep, startStep, lastVia } from './liveAuto'
+import { clearStats, frags, noteAuto, noteFrag, noteStall, stalls } from './liveStats'
+import { deviceChoice } from '../../player/quality'
+import { retune } from './live'
 
 // The TV section's one stream (see live.ts). It's mounted beside the pages rather than in one,
 // so the guide, the watch view and full screen all play the same one without starting again.
@@ -78,6 +82,50 @@ export default function TvHost() {
     }, 250)
     return () => { clearInterval(t); if (st.silenced) v.muted = mutedBefore }
   }, [url, ready])
+
+  // Auto quality (liveAuto.ts): the fragments as they come and the stalls, and a step down when the stream
+  // needs more than the link gives or keeps stalling; up a step once the link has had room for a while.
+  // Only when the viewer hasn't chosen a quality.
+  useEffect(() => {
+    const h = hls.current
+    if (!h || !url || !ready) return
+    const v = liveVideo()
+    clearStats()
+    const t0 = performance.now()
+    const Events = (h.constructor as typeof import('hls.js').default).Events
+    type Loaded = { frag: { sn: number | string; cc: number; duration: number; stats: { total: number; loaded: number; loading: { start: number; first: number; end: number } } } }
+    const onFrag = (_e: unknown, d: Loaded) => {
+      const st = d.frag.stats, l = st.loading
+      noteFrag({ at: Math.round(l.start - t0), sn: Number(d.frag.sn), cc: d.frag.cc, bytes: st.total || st.loaded, durationSec: d.frag.duration, loadMs: Math.max(1, l.end - l.start), firstByteMs: Math.max(0, l.first - l.start) })
+    }
+    let played = false
+    const onPlaying = () => { played = true }
+    const onWaiting = () => { if (played && !v.seeking) noteStall(Math.round(performance.now() - t0)) }
+    h.on(Events.FRAG_LOADED, onFrag as never)
+    v.addEventListener('playing', onPlaying)
+    v.addEventListener('waiting', onWaiting)
+    let changed = performance.now()
+    const t = setInterval(() => {
+      if (deviceChoice()) return // the viewer's own choice
+      const now = performance.now()
+      const step = startStep(savedStep(), lastVia())
+      const recent = frags.filter((f) => f.at >= changed - t0).slice(-4)
+      const look = { frags: recent, stalls: stalls.filter((x) => x.at > now - t0 - 30000).length, sinceChangeSec: (now - changed) / 1000 }
+      const say = autoStep(step, look)
+      if (say === 'keep') return
+      const to = say === 'down' ? Math.min(LADDER.length - 1, step + 1) : Math.max(0, step - 1)
+      noteAuto({ at: Math.round(now - t0), from: step, to, why: say === 'down' ? (look.stalls >= 2 ? 'stalls' : 'the link') : 'room' })
+      saveStep(to)
+      changed = now
+      retune()
+    }, 3000)
+    return () => {
+      clearInterval(t)
+      h.off(Events.FRAG_LOADED, onFrag as never)
+      v.removeEventListener('playing', onPlaying)
+      v.removeEventListener('waiting', onWaiting)
+    }
+  }, [url, ready, hls])
 
   // Live sync: everyone on a channel at the same moment, "the server's time now, less the
   // hold-back", by the program date-times on its segments. Checked every 2 seconds from what's in

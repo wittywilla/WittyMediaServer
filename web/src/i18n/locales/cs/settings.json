@@ -2355,5 +2355,8 @@
     "few": "Vypnuty {count} věci",
     "many": "Vypnuto {count} věcí",
     "other": "Vypnuto {count} věcí"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Všechna nastavení a API klíče, Vzdálený přístup, TV tunery, kanály a naplánovaná nahrávání.",
+  "Remote access": "Vzdálený přístup",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Přihlášení vyžaduje také 6místný kód z aplikace v telefonu, takže ukradené heslo nestačí. Je to nepovinné a vyplatí se, pokud používáte Vzdálený přístup. Funguje jakákoli ověřovací aplikace."
 }

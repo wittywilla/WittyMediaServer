@@ -1187,5 +1187,7 @@
   },
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "other": "“{name}” không thể đăng nhập từ bên ngoài nhà bạn cho đến {time}, sau {count} lần thử sai. Ở nhà vẫn dùng được."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Ở nhà, đó là địa chỉ hiển thị trong cài đặt máy chủ, ví dụ http://192.168.1.10:9797. Khi ra ngoài, đó là địa chỉ trong Cài đặt, Truy cập từ xa.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Rằng WittyMediaServer đang chạy, và thiết bị này kết nối được tới nó: trong cùng mạng, hoặc qua Truy cập từ xa. Những gì bạn đã làm không bị mất."
 }

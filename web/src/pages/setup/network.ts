@@ -8,7 +8,7 @@ export type HttpsStatus = { mode: string; running?: boolean; port?: number; erro
 // What the server says about encrypted connections, for someone who has not set anything up.
 export function httpsWords(h: HttpsStatus | null, { t, tn }: Words = ENGLISH): string {
   if (!h) return t('Not read yet.')
-  if (h.mode === 'off' || !h.mode) return t('Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote Access if you want to reach the server from away.')
+  if (h.mode === 'off' || !h.mode) return t('Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.')
   if (h.error) return t('Set up, but not working: {error}.', { error: h.error })
   if (!h.running) return t('Set up, and starting.')
   const days = h.cert?.daysLeft

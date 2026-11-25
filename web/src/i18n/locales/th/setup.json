@@ -456,5 +456,6 @@
   },
   "{count} more tries before the sign-in ends.": {
     "other": "ลองได้อีก {count} ครั้งก่อนการลงชื่อเข้าใช้จะสิ้นสุด"
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "ปิด ในบ้านไม่เป็นไร: ใบรับรองต้องใช้ชื่อโดเมน จึงตั้งค่าใน การเข้าถึงระยะไกล ถ้าคุณอยากเข้าเซิร์ฟเวอร์จากนอกบ้าน"
 }

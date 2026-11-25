@@ -456,5 +456,6 @@
   },
   "{count} more tries before the sign-in ends.": {
     "other": "还可以再试 {count} 次，之后此次登录将结束。"
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "关闭。在家使用没有问题：证书需要域名，所以如果你想在外面访问服务器，请在“远程访问”中设置。"
 }

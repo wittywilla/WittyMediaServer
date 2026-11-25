@@ -456,5 +456,6 @@
   },
   "{count} more tries before the sign-in ends.": {
     "other": "サインインが終了するまで、あと {count} 回試せます。"
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "オフ。自宅ではこれで問題ありません。証明書にはドメイン名が必要なので、外出先からサーバーにアクセスしたい場合は「リモートアクセス」で設定します。"
 }

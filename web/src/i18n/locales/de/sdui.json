@@ -1212,5 +1212,7 @@
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "one": "„{name}“ kann sich nach {count} falschen Versuch erst um {time} wieder von außerhalb anmelden. Zu Hause funktioniert es weiter.",
     "other": "„{name}“ kann sich nach {count} falschen Versuchen erst um {time} wieder von außerhalb anmelden. Zu Hause funktioniert es weiter."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Zu Hause ist das die Adresse aus den Einstellungen des Servers, etwa http://192.168.1.10:9797. Unterwegs ist es die Adresse aus Einstellungen, Fernzugriff.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Dass WittyMediaServer läuft und dieses Gerät ihn erreichen kann: im selben Netz oder über Fernzugriff. Nichts von dem, was du getan hast, ist verloren."
 }

@@ -461,5 +461,6 @@
   "{count} more tries before the sign-in ends.": {
     "one": "{count} forsøk igjen før innloggingen avsluttes.",
     "other": "{count} forsøk igjen før innloggingen avsluttes."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Av. Hjemme er det helt greit: et sertifikat trenger et domenenavn, så det settes opp under Fjerntilgang hvis du vil nå serveren utenfra."
 }

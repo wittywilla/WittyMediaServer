@@ -15,7 +15,7 @@ export function connectSpec(s: ConnectState): SpecPageData {
   sections.push(secF('', [{
     id: 'address', kind: 'text', label: t('Server address'), value: s.address, placeholder: 'https://media.example.com', autoComplete: 'url', autoFocus: true, required: true, disabled: s.busy,
     error: s.error || undefined,
-    hint: t('At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote Access.'),
+    hint: t('At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.'),
   }]))
   sections.push(secP('', [{ ...Cc(t('Where to find it')), to: '/help/apps' }]))
   const actions: SpecAction[] = [{ ...A1(s.busy ? t('Connecting…') : t('Connect')), id: 'connect', disabled: s.busy || !s.address.trim() }]

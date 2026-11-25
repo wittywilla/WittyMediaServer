@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "{folder} に空き容量が足りません：データには {need} 必要ですが、空きは {free} です",
   "the copy didn't match, so nothing was changed: {reason}": "コピーが一致しなかったため、何も変更していません：{reason}",
   "the choice couldn't be saved: {reason}": "選択を保存できませんでした：{reason}",
-  "the new place couldn't be saved in {file}: {reason}": "新しい場所を {file} に保存できませんでした：{reason}"
+  "the new place couldn't be saved in {file}: {reason}": "新しい場所を {file} に保存できませんでした：{reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "サーバーに接続できません。WittyMediaServer が起動していること、またこのデバイスからサーバーに届くこと（同じネットワーク内、またはリモートアクセス経由）を確認してください。"
 }

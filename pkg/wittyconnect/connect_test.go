@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -264,4 +265,22 @@ func TestTheLocalPortCanBeAskedFor(t *testing.T) {
 		t.Fatalf("with the port free: got %d, want %d, %v", c.Port(), port, err)
 	}
 	c.Close()
+}
+
+// Found only through an ordinary public relay, which carries an invite but no requests (#683): the app gets that
+// named reason and what to do, not a bare failure, so it can show the step that failed.
+func TestProxyErrorPublicRelayOnly(t *testing.T) {
+	c := &Connector{}
+	w := httptest.NewRecorder()
+	c.proxyError(w, httptest.NewRequest("POST", "/api/v1/identity", nil), p2p.ErrNoDirectPath)
+	body := w.Body.String()
+	if w.Code != http.StatusBadGateway || w.Header().Get("X-Witty-Connect-Error") == "" ||
+		!strings.Contains(body, `"reason":"public-relay-only"`) || !strings.Contains(body, "only through a public relay") || !strings.Contains(body, "WittyRelay") {
+		t.Fatalf("%d %s", w.Code, body)
+	}
+	w = httptest.NewRecorder()
+	c.proxyError(w, httptest.NewRequest("GET", "/api/v1/status", nil), fmt.Errorf("dial tcp: no route"))
+	if strings.Contains(w.Body.String(), "reason") {
+		t.Fatalf("another failure is given the public relay's reason: %s", w.Body)
+	}
 }

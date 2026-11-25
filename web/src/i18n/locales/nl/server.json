@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "er is niet genoeg ruimte in {folder}: de gegevens hebben {need} nodig, en er is {free} vrij",
   "the copy didn't match, so nothing was changed: {reason}": "de kopie kwam niet overeen, dus er is niets gewijzigd: {reason}",
   "the choice couldn't be saved: {reason}": "de keuze kon niet worden opgeslagen: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "de nieuwe plek kon niet worden opgeslagen in {file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "de nieuwe plek kon niet worden opgeslagen in {file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "Je server is niet bereikbaar. Controleer of WittyMediaServer draait en of dit apparaat de server kan bereiken: op hetzelfde netwerk of via Toegang op afstand."
 }

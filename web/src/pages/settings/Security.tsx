@@ -95,7 +95,7 @@ function TwoFactor() {
   }
   const field = (id: string, v: string | number | boolean | File) => { if (id === 'password') setPassword(String(v)); else if (id === 'code') setCode(String(v)) }
   return (
-    <Section title={tk('Two-factor sign-in')} desc={t("Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote Access. Any authenticator app works.")}>
+    <Section title={tk('Two-factor sign-in')} desc={t("Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.")}>
       <form onSubmit={(e) => { e.preventDefault(); const id = primary[st.mode]; if (id && !page.actions.find((a) => a.id === id)?.disabled) act(id) }}>
         <SpecPage embedded page={page} handled={handled} onAction={act} onField={field} />
         <button type="submit" hidden tabIndex={-1} aria-hidden="true" />

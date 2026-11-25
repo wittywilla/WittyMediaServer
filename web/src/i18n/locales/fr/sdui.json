@@ -1237,5 +1237,7 @@
     "one": "« {name} » ne peut pas se connecter depuis l’extérieur avant {time}, après {count} tentative échouée. Ça fonctionne toujours à la maison.",
     "many": "« {name} » ne peut pas se connecter depuis l’extérieur avant {time}, après {count} tentatives échouées. Ça fonctionne toujours à la maison.",
     "other": "« {name} » ne peut pas se connecter depuis l’extérieur avant {time}, après {count} tentatives échouées. Ça fonctionne toujours à la maison."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "À la maison, c’est l’adresse affichée dans les paramètres du serveur, par exemple http://192.168.1.10:9797. Hors de chez vous, c’est l’adresse de Paramètres, Accès à distance.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Que WittyMediaServer est en marche et que cet appareil peut le joindre : sur le même réseau, ou via l’Accès à distance. Rien de ce que vous avez fait n’est perdu."
 }

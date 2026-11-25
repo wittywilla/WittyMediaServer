@@ -162,7 +162,8 @@ export const settingsPages: Record<string, string> = {
   'Library transcoding': 'library-transcoding',
   Network: 'network',
   'Data folder': 'data-folder',
-  'Remote Access': 'remote',
+  'Remote access': 'remote',
+  'Remote Access': 'remote', // its name before 0.8.5
   Profiles: 'users',
   'Sign-in & security': 'security',
   'My game settings': 'games',

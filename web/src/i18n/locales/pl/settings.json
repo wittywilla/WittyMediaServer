@@ -2355,5 +2355,8 @@
     "few": "Wyłączono {count} rzeczy",
     "many": "Wyłączono {count} rzeczy",
     "other": "Wyłączono {count} rzeczy"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Wszystkie ustawienia i klucze API, Dostęp zdalny, tunery TV, kanały i zaplanowane nagrania.",
+  "Remote access": "Dostęp zdalny",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Logowanie wymaga też 6-cyfrowego kodu z aplikacji na telefonie, więc skradzione hasło nie wystarczy. Jest to opcjonalne i warto to mieć, jeśli używasz Dostępu zdalnego. Działa każda aplikacja uwierzytelniająca."
 }

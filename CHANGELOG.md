@@ -5,6 +5,25 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+**Layout (#678)**
+
+- **Every Settings page reads from one edge, with WittyPlay installed too.** A page's title, lead and buttons start
+  where its sections start, and Connect a device on Remote access does too. With WittyPlay installed, an old copy of
+  the server's settings stylesheet in its bundle pushed every page's title off to one side and the menu under the top
+  bar; WittyPlay 0.7.19 drops it (wittywilla/WittyPlay#121). "Remote Access" is "Remote access", as the menu says.
+- **Nothing sits under the top bar, whatever the layout.** Settings' sticky parts (the menu, the strip of links, You's
+  picture and name, the pages editor's toolbar) stop below the bar's measured height (`--bar-space`), so a floating
+  glass bar, a cable box's bar or a taller one no longer covers them. At the end of a short page the menu isn't pushed
+  under the bar: the version line it already shows isn't repeated under the page, and the menu ends above whatever is
+  docked at the foot.
+- **A link to part of a settings page lands below the bar and the strip of links**, whether the strip is drawn yet or
+  not, and stays there while a slow page finishes arriving. The menu's Password row lands on Your account.
+- **From away** says Connect a device once, not as the page's title and again on the card under it.
+- **A layout check** (`npm run test:layout`, in the smoke tests, which install WittyPlay and WittyTuner) opens You,
+  every page the settings menu opens, every other settings page and the ones modules add, at computer, laptop, tablet,
+  phone and TV sizes, in any layout (`LAYOUT_LOOKS`). It fails on anything under the top bar (as a page opens, after
+  scrolling, and after a link to a section), a Settings title out of line with its content, centred words in an
+  off-centre box, a Title Case title, and a heading said twice.
 **Layout outside Settings (#679)**
 
 - **Nothing slides under the top bar, whatever its style.** Every part that stays put as a page scrolls (a library's
@@ -32,6 +51,39 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 ## 0.8.5-alpha
 
 Not released yet.
+
+**Connecting a phone to a server in Docker (#683)**
+
+- **A phone at home connects to a server in Docker by its QR code.** In a container the server only knows the
+  container's own addresses, which nothing else at home can reach, and apps can't find it on the network. **Connect a
+  device** now uses the address its page was opened at: as the address at home, and in the QR code with the code, so
+  an app at home that scans it signs in straight away, with no peer-to-peer connection needed.
+- **Peer to peer works from a container.** The image listens for peer-to-peer connections on a fixed port, **9796**
+  (UDP and TCP), and the compose files and NAS guides publish it. Containers made before need the two `9796` lines added
+  to `ports:` ([Docker](docs/DOCKER.md#devices-away-from-home)). Without them a phone could be added to **Devices that
+  may connect** and get no further. Outside a container, set the port with `WMS_P2P_PORT` or `-p2p-port`.
+- **Connect a device says which port to publish** when the server runs in a container and devices away from home
+  can't connect yet.
+- **A device isn't shown as connected until it is.** Showing an invite puts a device on **Devices that may connect**,
+  but 0.8.4 then called it "Connected through a relay" though nothing had got through. Until its first request does,
+  it says **Invited — hasn't connected yet**, and when the server knows why not (it reached the server only through a
+  public relay, which carries an invite and nothing more) it says that and what to do.
+- **The QR code carries the owner's own WittyRelay** when there is one, first, ahead of the server's name if they
+  don't both fit: away from home it's often the only way in. QR codes now go up to 412 bytes (version 15); a pairing
+  link stays under 330.
+- **Each device's Remove button is in its own row** under **Devices that may connect**, not below the list beside the
+  next heading.
+**Live TV (#687, #688)**
+
+- **Sound and picture stay together across programme changes.** A library channel joined part way into a programme
+  (tuning in, after every ad break, Start over and rewinding) began each programme with up to a couple of seconds of
+  picture alone: the copied picture started at the keyframe before the place, the sound at the place. Players froze the
+  picture there, then played on with the sound out of step. Both now start at the keyframe. A test in CI plays four
+  programmes across three joins and checks that sound and picture start and end together, with no gaps and no frozen
+  picture.
+- **No skipping ahead on live TV.** The live player has no +30 any more, and its timeline can't be dragged or keyed
+  past where it's playing. Right, Fast forward and Next (outside an ad break) don't move a channel on. Back, Pause,
+  Start over, Skip break and Back to live stay.
 
 **Games in Docker**
 

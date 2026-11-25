@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "{folder} içinde yer yok: veriler {need} gerektiriyor ve {free} boş",
   "the copy didn't match, so nothing was changed: {reason}": "kopya eşleşmedi, bu yüzden hiçbir şey değiştirilmedi: {reason}",
   "the choice couldn't be saved: {reason}": "seçim kaydedilemedi: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "yeni konum {file} içine kaydedilemedi: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "yeni konum {file} içine kaydedilemedi: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "Sunucunuza ulaşılamıyor. WittyMediaServer'ın çalıştığından ve bu cihazın ona ulaşabildiğinden emin olun: aynı ağda ya da Uzaktan Erişim üzerinden."
 }

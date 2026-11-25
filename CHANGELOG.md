@@ -5,6 +5,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **HDR films start again on a NAS without a graphics chip.** 0.8.5's image carries a Vulkan driver that runs on the
+  processor (for games), and HDR films were tone-mapped through it: several times slower, and in a 2 GB container
+  FFmpeg ran out of memory on the first segment, so the picture stayed black and the film never started. That driver
+  isn't taken for a graphics chip any more: HDR is tone-mapped on the processor as in 0.8.4, and on a real Intel,
+  AMD or NVIDIA chip as before. CI now starts open-GOP, HEVC 10-bit, late-sound and HDR10 test films from the start,
+  part way and after a skip, and fails on a black or frozen picture or the sound out of step.
 - **Sound and picture together again after a change of speed.** Watching at 4× and going back to normal could leave
   the sound out of step with the picture until the next seek. After each real change of speed (half a step or more)
   the player now lines them up by itself, in the browser, the desktop app, and the Android and Apple apps (client

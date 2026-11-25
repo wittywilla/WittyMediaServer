@@ -18,12 +18,11 @@ const token = process.env.WMS_TOKEN
 const items = process.argv.slice(2)
 if (!url || !token || !items.length) { console.error('usage: WMS_URL=… WMS_TOKEN=… node scripts/test-avstart.mjs <item id>...'); process.exit(2) }
 const BLACK_LIMIT_MS = 200
-// Sound against the same clip's first start: at most 60 ms later or 40 ms earlier (EBU R37's lip-sync
-// tolerance). The flash is seen on whole frames, so one frame (42 ms at 24 fps) is the measurement's own step:
-// the open-GOP clip read exactly +42 now and then on CI, which a flat 40 ms failed. The 0.8.5 regression this
-// is for was hundreds of milliseconds, or no sound at all.
-const AV_LATE_MS = 60
-const AV_EARLY_MS = 40
+// Sound within 40 ms of the same clip's first start, either way (the owner's bar). EBU R37's lip-sync
+// tolerance (60 ms late, 40 ms early) is printed too, for information.
+const AV_LIMIT_MS = 40
+const R37_LATE_MS = 60
+const R37_EARLY_MS = 40
 const MEASURE_SECONDS = Number(process.env.AVSTART_SECONDS || 15)
 const STARTS = (process.env.AVSTART_STARTS || '0,37.3,seek:80').split(',')
 
@@ -85,7 +84,16 @@ const METER = `(() => {
   return true
 })()`
 
-const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : NaN }
+// The sound's place for a start: the mean of its flashes' offsets without the highest and lowest fifth. The flash
+// is seen on whole frames, so each offset is a frame (42 ms at 24 fps) one way or the other; a median of offsets
+// split between two frames reads a whole frame out (the open-GOP clip read exactly +42 ms on CI), where a mean
+// reads between them. Dropping the ends keeps a stray beep from moving it.
+const trimmedMean = (a) => {
+  const s = [...a].sort((x, y) => x - y)
+  const cut = Math.floor(s.length / 5)
+  const kept = s.slice(cut, s.length - cut)
+  return kept.length ? kept.reduce((x, y) => x + y, 0) / kept.length : NaN
+}
 const wait = (ms) => new Promise((d) => setTimeout(d, ms))
 const browser = await launch({ software: true, args: ['--autoplay-policy=no-user-gesture-required'] })
 const p = await browser.open('about:blank')
@@ -116,13 +124,14 @@ async function measure(id) {
       await wait(MEASURE_SECONDS * 1000)
       if (process.env.AVSTART_TRACE) console.log('  trace:', JSON.stringify(await p.eval(`__av.flashes.map((f, i) => [Math.round((f - __av.armedAt) / 1000), __avOffsets()[i] == null ? null : Math.round(__avOffsets()[i])])`)))
       const r = await p.eval(`(() => { const v = document.querySelector('video'); return { offs: __avOffsets(), black: Math.round(__av.black), held: Math.round(__av.held), first: __av.firstFrame == null ? null : Math.round(__av.firstFrame - __av.armedAt), t: v.currentTime } })()`)
-      const m = median(r.offs)
+      const m = trimmedMean(r.offs)
       if (Number.isNaN(base)) base = m
       const off = m - base
       const okPicture = r.black <= BLACK_LIMIT_MS && r.held <= BLACK_LIMIT_MS && r.first != null
-      const okSound = r.offs.length >= 3 && off <= AV_LATE_MS && off >= -AV_EARLY_MS
+      const okSound = r.offs.length >= 3 && Math.abs(off) <= AV_LIMIT_MS
+      const r37 = off <= R37_LATE_MS && off >= -R37_EARLY_MS ? 'within R37' : 'outside R37'
       if (!okPicture || !okSound) fails++
-      lines.push(`${seekTo != null ? 'skip +' + seekTo + ' s' : start === '0' ? 'from the start' : 'resume at ' + start}: picture after ${r.first} ms, black ${r.black} ms, held ${r.held} ms${okPicture ? '' : ' FAIL'}; sound median ${Math.round(m)} ms (${off >= 0 ? '+' : ''}${Math.round(off)} against the start)${okSound ? '' : ' FAIL'}; at ${r.t.toFixed(1)} s`)
+      lines.push(`${seekTo != null ? 'skip +' + seekTo + ' s' : start === '0' ? 'from the start' : 'resume at ' + start}: picture after ${r.first} ms, black ${r.black} ms, held ${r.held} ms${okPicture ? '' : ' FAIL'}; sound ${Math.round(m)} ms (${off >= 0 ? '+' : ''}${Math.round(off)} against the start, ${r37})${okSound ? '' : ' FAIL'}; at ${r.t.toFixed(1)} s`)
       } catch (e) { fails++; lines.push(`${start}: FAIL, ${String(e.message || e).slice(0, 120)}`) }
     }
     return { fails, lines }
@@ -141,5 +150,5 @@ try {
 } finally {
   await browser.close()
 }
-if (fails) { console.log(`FAIL: ${fails} starts with black or held picture over ${BLACK_LIMIT_MS} ms, or sound more than ${AV_LATE_MS} ms later or ${AV_EARLY_MS} ms earlier than at the start`); process.exit(1) }
+if (fails) { console.log(`FAIL: ${fails} starts with black or held picture over ${BLACK_LIMIT_MS} ms, or sound more than ${AV_LIMIT_MS} ms from where it was at the start`); process.exit(1) }
 console.log('ok: every start has its picture at once and its sound in step')

@@ -5,6 +5,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **WittyTV: no frozen picture at tune-in on open-GOP H.264 (#760).** Some H.264 encodes, many Blu-ray ones among
+  them, mark I-frames that aren't IDR frames as keyframes, with one IDR at the very start. A channel copied them as
+  they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.
+  Graphics-chip decoders, as most browsers, phones and TVs use, held the picture while the sound played, then showed it
+  late. The server now looks at one keyframe of each such file and converts its picture when the keyframe isn't an IDR.
 **Live TV in the phone app (#765)**
 
 - **Nothing behind the app's bars.** "Customise this page" under Live TV sat behind the floating bar, in the app and

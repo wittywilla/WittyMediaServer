@@ -451,8 +451,9 @@ html.tv-mode .ctv-skip-break { right: var(--space-xl); bottom: 200px; padding: v
 /* A phone (upright, or on its side) gives Live TV the whole width: the page's side margins and the space round its
    panel were a frame of empty space round every part of it on a 412-wide screen (the owner's "padding round all the
    WittyTV elements"). Upright, the preview is the screen's width, not the size chosen with a mouse; on its side it
-   keeps its place beside the programme. A TV keeps its overscan margin (--ctv-edge in ten-foot). (#765) */
-@media (max-width: 720px), (max-height: 500px) {
+   keeps its place beside the programme. A tablet, either way up, gets the whole width too: the page's margins left 23
+   px at each side of an iPad's guide (0.8.7). A TV keeps its overscan margin (--ctv-edge in ten-foot). (#765) */
+@media (max-width: 1180px), (max-height: 500px), (pointer: coarse) and (max-width: 1366px) {
   html:not(.ten-foot, .tv-mode) .content:has(.ctv-page) { padding-inline: 0; padding-top: 0; }
   html:not(.ten-foot, .tv-mode) .ctv-page { --ctv-top: var(--sp-3); --ctv-edge: var(--sp-3); }
 }

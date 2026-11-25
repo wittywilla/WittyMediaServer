@@ -16,6 +16,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Music visualizer on a server without WittyVisualizer.** An effect chosen earlier (or on another server) drew
   nothing at all there; the player's own Bars now stand in. `npm run test:visualizer` checks every way into the full
   player (mini player first, straight away, Next, pause and play, Bars then an effect, no module).
+- **Music visualizer: no empty screen while an effect loads the first time.** Opened with an effect chosen, the full
+  player showed nothing for the seconds the effect took to arrive from a new server; Bars now swell gently under it
+  until it fades in.
 
 ## 0.8.5-alpha
 

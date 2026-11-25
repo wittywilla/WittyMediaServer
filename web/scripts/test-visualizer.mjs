@@ -7,6 +7,8 @@
 // draw at once while it loads. On a server without the module, a chosen effect falls back to Bars: the player's own
 // styles never need it.
 //
+// WMS_SOFTWARE=1 draws without a graphics chip (a machine or WSL with none).
+//
 // A real browser's autoplay rules, not the headless default of no rules, and real clicks, so a sound engine
 // that waits for a press is caught. No window opens. Needs a music library with at least two songs.
 //
@@ -46,7 +48,7 @@ const HOOKS = `
 const AUDIO = `[...document.querySelectorAll('audio')].find((a) => a.src && !a.paused)`
 // The browser's own default (a press first), not the test launcher's "anything may play".
 // A browser of its own for each run through, so one page can't change what the next one reads (settings, storage).
-const browser = () => launch({ width: 1400, height: 900, args: ['--autoplay-policy=document-user-activation-required'] })
+const browser = () => launch({ software: process.env.WMS_SOFTWARE === '1', width: 1400, height: 900, args: ['--autoplay-policy=document-user-activation-required'] })
 const results = []
 let failed = 0
 
@@ -62,9 +64,9 @@ const check = async (p, style, label) => {
   let got = null
   const end = Date.now() + 9000
   while (Date.now() < end) {
-    await p.eval(`window.__heard = { freq: 0, wave: 0, reads: 0 }; window.__draws = 0`)
+    await p.eval(`window.__heard = { freq: 0, wave: 0, reads: 0 }; window.__draws = 0; window.__t0 = ([...document.querySelectorAll('audio')].find((a) => a.src && !a.paused) || {}).currentTime || 0`)
     await wait(1500)
-    got = await p.eval(`({ heard: window.__heard, draws: window.__draws, playing: !!${AUDIO},
+    got = await p.eval(`({ heard: window.__heard, draws: window.__draws, playing: !!${AUDIO}, moved: +((${AUDIO}?.currentTime || 0) - window.__t0).toFixed(2),
       fps: +(document.querySelector('.np-shader .wv-stage')?.dataset.fps || 0), tap: document.querySelector('.np-shader .wv-stage')?.dataset.tap || '',
       shown: !!document.querySelector('.np-shader.shown'), canvas: !!document.querySelector('.np-canvas') })`)
     got.ok = got.playing && (shader ? got.shown && got.fps > 0 && got.tap === 'live' && got.heard.wave > 0.01 : got.canvas && got.draws > 10 && got.heard.freq > 0)

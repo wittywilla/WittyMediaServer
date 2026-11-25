@@ -149,6 +149,10 @@ export default function GuidePage() {
   const [focus, setFocus] = useState<Focus>(() => ({ row: 0, at: Date.now() / 1000 }))
   // Back from a channel, by any way out of it: that channel is highlighted once the rows come.
   const [back, setBack] = useState(justWatched)
+  // The channel just left, still the little TV's until the highlight has reached its row: in between, the
+  // highlight is on the first row, and a preview of that would drop the channel playing and tune it again
+  // a moment later, somewhere else in it.
+  const [holding, setHolding] = useState(justWatched)
   // A row to go to once the rows of what's shown have come (after changing what's shown).
   const [goRow, setGoRow] = useState<{ row: number; at?: number; centre?: boolean } | null>(null)
   const [moreInfo, setMoreInfo] = useState<{ key: string; at: number } | null>(null)
@@ -398,10 +402,14 @@ export default function GuidePage() {
     setBack('')
     forgetJustWatched()
     const fk = filterKeyRef.current
-    locate(back).then((i) => { if (filterKeyRef.current === fk && i >= 0) setGoRow({ row: i, at: Date.now() / 1000, centre: true }) }).catch(() => {})
+    locate(back).then((i) => {
+      if (filterKeyRef.current === fk && i >= 0) setGoRow({ row: i, at: Date.now() / 1000, centre: true })
+      else setHolding('')
+    }).catch(() => setHolding(''))
   }, [back, total, locate])
 
   const cur = rowsRef.current.get(focus.row)
+  useEffect(() => { if (holding && cur?.key === holding) setHolding('') }, [holding, cur?.key])
   const cells = useMemo(() => cellsFor(cur, from, to, pxPerSec), [cur, from, to, pxPerSec])
   const curCell = cells.find((c) => c.start <= focus.at && c.end > focus.at) || cells[0]
   // What the top of the page is about: the highlighted programme, and what follows it.
@@ -606,7 +614,7 @@ export default function GuidePage() {
   const totalRows = total ?? 0
   // What the little TV shows: settled on by the preview itself. Until the rows come, it keeps
   // what was already playing, or the channel just left, so coming back doesn't stop it.
-  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : back || (cur ? (cur.encrypted ? '' : cur.key) : channelOf(liveNow().key))
+  const previewKey = look.preview === 'off' ? '' : look.preview === 'last' ? (lastChannel() || (cur && !cur.encrypted ? cur.key : '')) : back || holding || (cur ? (cur.encrypted ? '' : cur.key) : channelOf(liveNow().key))
   const previewName = useMemo(() => {
     if (!previewKey) return ''
     const c = cur?.key === previewKey ? cur : lineup.find((x) => x.key === previewKey)

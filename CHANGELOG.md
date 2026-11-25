@@ -5,6 +5,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **WittyTV: leaving full screen keeps the channel where it was.** Back in the guide, the first row was highlighted for
+  a moment before the channel just left; the little TV took that, dropped the channel playing and tuned it again a
+  second later, at another point in it (and anyone who had paused or gone back lost their place). The guide now keeps
+  the channel just left until the highlight reaches its row. `npm run test:tv-handover` checks the round trip.
+
 ## 0.8.5-alpha
 
 Released 2026-11-25.

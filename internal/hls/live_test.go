@@ -25,7 +25,10 @@ func liveTestManager(t *testing.T) *Manager {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := &Manager{tools: &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}, root: root, log: slog.Default(), session: map[string]*Session{}, max: 2}
+	// A machine of a set size, whatever runs the tests: a small one changes how live streams are cut
+	// (TestLiveOnASmallMachine says so itself).
+	m := &Manager{tools: &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}, root: root, log: slog.Default(), session: map[string]*Session{}, max: 2,
+		smallMachine: func() bool { return false }}
 	t.Cleanup(func() {
 		m.StopAllLive()
 		time.AfterFunc(time.Second, func() { _ = os.RemoveAll(root) })

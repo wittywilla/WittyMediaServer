@@ -166,7 +166,7 @@ func (t *Tools) probePaths(ctx context.Context, log *slog.Logger) {
 			// processor alone: HDR films were then mapped through Vulkan in software, several times
 			// slower than the processor's own tone mapping, and a 2 GB NAS container was killed for
 			// memory on the first segment, so the film never started.
-			st.Reason = "Vulkan here is only the processor's (" + t.softwareVulkan(ctx) + "), not a graphics chip."
+			st.Reason = i18n.F("Vulkan here is only the processor's ({device}), not a graphics chip.", "device", t.softwareVulkan(ctx))
 		case p.Kind == "pipeline":
 			if sample == "" {
 				if sample, err = t.probeSample(ctx, dir); err != nil {

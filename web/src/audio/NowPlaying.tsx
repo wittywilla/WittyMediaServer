@@ -485,6 +485,9 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
 // whatever effect it last had (or its first), and blends from there to the one chosen: seen, that was Bars or another
 // style first, then the chosen one (#524). So a shader is drawn unseen until the chosen effect is all that's on it, the
 // style that was showing carries on under it until then, and it fades in.
+// For Bars standing in while an effect loads: nothing to listen to, so they swell gently (backdrop.ts).
+const noSound = () => null
+
 function NpBackground({ style, slow, rgb, playing, media, trackMedia, onDecline }: { style: string; slow: boolean; rgb: string; playing: boolean; media: () => HTMLAudioElement | null; trackMedia: () => HTMLMediaElement | null; onDecline: () => void }) {
   const native = isNative(style)
   // The player's own style last shown, kept drawing under a shader that isn't ready yet.
@@ -492,9 +495,13 @@ function NpBackground({ style, slow, rgb, playing, media, trackMedia, onDecline 
   const [ready, setReady] = useState(false)
   useEffect(() => { if (native) { setUnder(style); setReady(false) } }, [native, style])
   if (native) return <NativeBackground style={style} slow={slow} rgb={rgb} playing={playing} media={media} />
+  // Opened with an effect already chosen, nothing was showing before it: the first time, the effect is fetched from the
+  // server and can take seconds to appear. Bars stand in meanwhile with their gentle swell, not listening: the effect's
+  // stage is already listening to the same element, and a second copy of a song just switched to left the effect
+  // silent in Chrome.
   return (
     <>
-      {!ready && under && <NativeBackground style={under} slow={slow} rgb={rgb} playing={playing} media={media} />}
+      {!ready && <NativeBackground style={under || 'bars'} slow={slow} rgb={rgb} playing={playing} media={under ? media : noSound} />}
       <ShaderBackground id={style} slow={slow} media={trackMedia} onDecline={onDecline} onReady={() => { setReady(true); setUnder('') }} />
     </>
   )

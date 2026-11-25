@@ -8513,6 +8513,9 @@
                   "sourceWidth": {
                     "type": "integer"
                   },
+                  "via": {
+                    "type": "string"
+                  },
                   "videoCodecs": {
                     "items": {
                       "type": "string"
@@ -8530,6 +8533,7 @@
                   "choice",
                   "limits",
                   "presets",
+                  "via",
                   "videoCodecs"
                 ],
                 "type": "object"
@@ -15683,6 +15687,9 @@
                   "sourceWidth": {
                     "type": "integer"
                   },
+                  "via": {
+                    "type": "string"
+                  },
                   "videoCodecs": {
                     "items": {
                       "type": "string"
@@ -15700,6 +15707,7 @@
                   "choice",
                   "limits",
                   "presets",
+                  "via",
                   "videoCodecs"
                 ],
                 "type": "object"

@@ -461,5 +461,6 @@
   "{count} more tries before the sign-in ends.": {
     "one": "Noch ein Versuch, bevor die Anmeldung endet.",
     "other": "Noch {count} Versuche, bevor die Anmeldung endet."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Aus. Zu Hause ist das kein Problem: Ein Zertifikat braucht einen Domainnamen, deshalb wird es unter Fernzugriff eingerichtet, wenn du den Server von unterwegs erreichen willst."
 }

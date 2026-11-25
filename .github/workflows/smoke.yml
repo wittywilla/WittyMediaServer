@@ -54,7 +54,7 @@ jobs:
   web:
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -99,6 +99,14 @@ jobs:
           # Connect a device: its code and QR code, More options, a code really signing a device in (web/scripts/test-connect.mjs).
           WMS_SERVER="$WMS_URL" WMS_USER="$WMS_NAME" WMS_PASSWORD="$WMS_PASS" node web/scripts/test-connect.mjs "$SMOKE_OUT/connect" 2>&1 | tee "$SMOKE_OUT/30-connect-a-device.log"
           [ "${PIPESTATUS[0]}" = 0 ] || { code=1; echo "::error title=Smoke: Connect a device::see 30-connect-a-device.log and connect/*.png"; }
+          # Layout: nothing under the top bar, Settings pages read from one edge, no title said twice (web/scripts/test-layout.mjs).
+          WMS_SERVER="$WMS_URL" WMS_USER="$WMS_NAME" WMS_PASSWORD="$WMS_PASS" node web/scripts/test-layout.mjs "$SMOKE_OUT/layout" 2>&1 | tee "$SMOKE_OUT/31-layout.log"
+          [ "${PIPESTATUS[0]}" = 0 ] || { code=1; echo "::error title=Smoke: Layout::see 31-layout.log, layout/layout-findings.json and layout/*.png"; }
+          # Page layout outside Settings: nothing under the top bar (on load, sticky parts, jumps to a section, under the
+          # floating glass bar too), no sideways scroll, one alignment per page, no heading twice, focus rings, and TV
+          # targets of 48 or more (web/scripts/test-layout-pages.mjs).
+          WMS_SERVER="$WMS_URL" WMS_USER="$WMS_NAME" WMS_PASSWORD="$WMS_PASS" LAYOUT_SIZES=wide,desktop,phone,tv LAYOUT_NAV=floatingGlassBar node web/scripts/test-layout-pages.mjs "$SMOKE_OUT/layout-pages" 2>&1 | tee "$SMOKE_OUT/32-layout-pages.log"
+          [ "${PIPESTATUS[0]}" = 0 ] || { code=1; echo "::error title=Smoke: Page layout::see 32-layout-pages.log, layout-pages/layout-pages-findings.json and layout-pages/*.png"; }
           exit $code
       - name: Stop the server
         if: always()
@@ -113,6 +121,8 @@ jobs:
             ${{ runner.temp }}/smoke-out/*.log
             ${{ runner.temp }}/smoke-out/*.png
             ${{ runner.temp }}/smoke-out/connect
+            ${{ runner.temp }}/smoke-out/layout
+            ${{ runner.temp }}/smoke-out/layout-pages
             ${{ runner.temp }}/smoke-out/*.txt
             ${{ runner.temp }}/smoke-out/data/logs
           retention-days: 14

@@ -217,7 +217,7 @@ html[data-density="spacious"] { --density-space: var(--density-spacious-space); 
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 /* A focused thing is never hidden under the bars (WCAG 2.4.11). */
-html { scroll-padding-block: calc(var(--bar-space) + var(--sp-4)) calc(var(--sp-16) + var(--dock-space) + var(--tabbar-space)); -webkit-text-size-adjust: 100%; }
+html { scroll-padding-block: calc(var(--bar-space) + var(--sub-bar, 0px) + var(--sp-4)) calc(var(--sp-16) + var(--dock-space) + var(--tabbar-space)); -webkit-text-size-adjust: 100%; }
 /* Ten feet from the screen: a controller in use, or a device with no pointer at
    all (a TV browser with a D-pad). Everything in rem grows with the base size,
    the margin clears TV overscan, and focus is what shows you where you are.
@@ -365,16 +365,17 @@ input[type=range] { accent-color: var(--accent); }
    anything else starts below it, whatever the bar's height. Only a picture that opens the page runs up
    under it, by the room the bar really takes (--bar-space, which the bar measures: TopBar.tsx). Nothing
    runs under it while something else sits between the bar and the page (the legal notice, a status bar)
-   or the page is being arranged. */
+   or the page is being arranged. A title with no backdrop (.detail-hero.bare: a book, a photo, a home video) has no
+   picture to run under it, so it starts below the bar like any other page (#679). */
 :root { --bar-space: var(--topbar-h); }
 @supports (animation-timeline: scroll()) {
   .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) :is(
-    .content > :first-child > :is(.hero, .detail-hero):first-child,
-    .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero),
-    .content > :first-child > .sr-only:first-child + * > .detail-hero:first-child) { margin-top: calc(-1 * (var(--page-top) + var(--bar-space))); }
+    .content > :first-child > :is(.hero, .detail-hero:not(.bare)):first-child,
+    .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero:not(.bare)),
+    .content > :first-child > .sr-only:first-child + * > .detail-hero:not(.bare):first-child) { margin-top: calc(-1 * (var(--page-top) + var(--bar-space))); }
   /* A title's page wraps its picture (.sdui-detail); the wrapper's own top padding would leave a band of page colour
      above the picture, so it has none while the picture opens the page. */
-  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) .content > :first-child > .sr-only:first-child + :has(> .detail-hero:first-child) { padding-top: 0; }
+  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) .content > :first-child > .sr-only:first-child + :has(> .detail-hero:not(.bare):first-child) { padding-top: 0; }
 }
 
 @media (max-width: 900px) {
@@ -840,6 +841,9 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 /* A page's foot is centred, like the version line under it (docs/DESIGN.md, Centring). */
 .legal-foot { margin: var(--section-gap) auto 0; text-align: center; }
 .content:has(.legal-note:not(.legal-foot)) .legal-foot, .content:has(.set-shell) .legal-foot { display: none; }
+/* Wide, the settings menu has the version at its foot: the page's own would say it twice, and push the menu up under
+   the top bar at the end of a short page. */
+@media (min-width: 1281px) { .content:has(.set-shell) > .page-foot { display: none; } }
 /* A bar under the top bar runs the window's width, and what's on it (the words and their button) is centred as a
    group, the same in every bar (docs/DESIGN.md, Centring, #609). */
 .legal-ack-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border-bottom: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); }

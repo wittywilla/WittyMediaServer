@@ -1262,5 +1262,7 @@
     "few": "«{name}» не може ввійти поза домом до {time} після {count} невдалих спроб. Удома вхід і далі працює.",
     "many": "«{name}» не може ввійти поза домом до {time} після {count} невдалих спроб. Удома вхід і далі працює.",
     "other": "«{name}» не може ввійти поза домом до {time} після {count} невдалої спроби. Удома вхід і далі працює."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Удома це адреса з налаштувань сервера, наприклад http://192.168.1.10:9797. Поза домом — адреса з розділу «Налаштування», «Віддалений доступ».",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Що WittyMediaServer запущено й цей пристрій може до нього дістатися: у тій самій мережі або через віддалений доступ. Нічого з того, що ви зробили, не втрачено."
 }

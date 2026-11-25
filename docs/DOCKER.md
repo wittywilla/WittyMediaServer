@@ -23,6 +23,7 @@ WittyMediaServer in a container, on a NAS, a Linux server or Docker Desktop: the
 - [Hardware transcoding](#hardware-transcoding)
 - [Games](#games)
 - [Behind a reverse proxy](#behind-a-reverse-proxy)
+- [Devices away from home](#devices-away-from-home)
 - [Updating and going back](#updating-and-going-back)
 - [Is it running?](#is-it-running)
 - [When something's wrong](#when-somethings-wrong)
@@ -33,14 +34,14 @@ WittyMediaServer in a container, on a NAS, a Linux server or Docker Desktop: the
 
 ```sh
 docker run -d --name wittymediaserver --restart unless-stopped \
-  -p 9797:9797 \
+  -p 9797:9797 -p 9796:9796/tcp -p 9796:9796/udp \
   -v wms-config:/config \
   -v /path/to/media:/media:ro \
   ghcr.io/wittywilla/wittymediaserver:alpha
 docker logs wittymediaserver 2>&1 | grep -i "setup code"
 ```
 
-Open `http://<this machine>:9797/`. From another device, setup asks for the code the second line shows. Then add your folders from `/media` as libraries.
+Open `http://<this machine>:9797/`. From another device, setup asks for the code the second line shows. Then add your folders from `/media` as libraries. Port 9796 is for [devices away from home](#devices-away-from-home).
 
 With Compose, the files in [`deploy/docker`](https://github.com/wittywilla/WittyMediaServer/tree/master/deploy/docker) are ready to copy:
 
@@ -101,13 +102,14 @@ A volume Docker looks after (`wms-config:/config`) needs nothing: it's made with
 
 ## Settings
 
-Most settings are in the app. These are the ones a container sets with `environment:`. The image sets the first five itself; the [config file](CONFIG.md) has the rest.
+Most settings are in the app. These are the ones a container sets with `environment:`. The image sets those with a value in the middle column itself; the [config file](CONFIG.md) has the rest.
 
 | Variable | The image sets | What it does |
 |---|---|---|
 | `WMS_DATA_DIR` | `/config` | The server's own folder |
 | `WMS_TRANSCODE_DIR` | `/config/transcode` | Video while it's being converted |
 | `WMS_LISTEN` | `:9797` | The address and port inside the container. Change the left side of `ports:` instead, as **Settings → Network** says too |
+| `WMS_P2P_PORT` | `9796` | The peer-to-peer port inside the container, UDP and TCP, for [devices away from home](#devices-away-from-home). Publish it with the same number on both sides |
 | `WMS_DOCKER` | `1` | Says it's a container: the server doesn't replace its own files, and its messages talk about compose files |
 | `XDG_CACHE_HOME` | `/config/cache/xdg` | Where graphics drivers keep their caches. Somewhere writable, for any user and a read-only root |
 | `NVIDIA_DRIVER_CAPABILITIES` | `compute,video,utility` | Asks the NVIDIA Container Toolkit for the video encoder as well as the card |
@@ -296,13 +298,24 @@ Most NAS boxes have none that games can use, and most consoles don't need one. T
 |---|---|
 | Yes, on one processor thread or less | NES, SNES, Game Boy, Game Boy Advance, Master System, Mega Drive, PC Engine and the other 8-bit and 16-bit consoles: every core their console offers |
 | Yes, needing a fast processor | Nintendo 64 (Mupen64Plus-Next and ParaLLEl N64 draw with angrylion, on about one core), PlayStation (the software cores, not *Beetle PSX HW* or *SwanStation*), PSP (PPSSPP's software renderer, four or five threads) |
-| No | Nintendo 64 homebrew made with libdragon, which needs a card with Vulkan. Starting one says "This game needs a graphics card with Vulkan on the server to show a picture." GameCube and Wii need a fast processor and play only slowly without a card |
+| No | Nintendo 64 homebrew made with libdragon, which needs a card with Vulkan. Starting one says "This game needs a graphics card with Vulkan on the server to show a picture." GameCube and Wii play without a card on Mesa's llvmpipe, but need a fast processor; Dreamcast needs a card |
 
 A game that can't run here says why on its start screen, in words, never by hanging.
 
 ### Intel and AMD graphics for games
 
-Games use the same device as transcoding. Pass `/dev/dri` in and add its group, as in [Intel and AMD](#intel-and-amd) above: WittyPlay checks for a card when it starts, draws the cores that need one on it, and can encode the stream with it (Quick Sync or VAAPI). An NVIDIA card works as for transcoding, with `NVIDIA_DRIVER_CAPABILITIES=all` in place of the image's own list (`compute,video,utility`), as drawing a game needs the driver's graphics libraries too.
+Games use the same device as transcoding. Pass `/dev/dri` in and add its group, as in [Intel and AMD](#intel-and-amd) above, and nothing else: the image has Mesa's OpenGL and Vulkan drivers (iris and anv for Intel, radeonsi and radv for AMD, and llvmpipe and lavapipe on the processor). WittyPlay checks for a card when it starts, draws the cores that need one on it, and can encode the stream with it (Quick Sync or VAAPI). **Settings → Consoles & cores** names the card it found. A game that can't use it says why, in words you can act on:
+
+| It says | Do this |
+|---|---|
+| *no graphics device was passed into the container* | Add `- /dev/dri:/dev/dri` under `devices:` |
+| *this server's user can't open /dev/dri/renderD128, which belongs to group 105* | Add that number under `group_add:`. A container that runs as a user (not root), with no capabilities, can't join a group once it has started, so it has to be given the group |
+| *which only root may use* | [Only root may open the render node](#only-root-may-open-the-render-node) |
+| *this server's Docker image has no OpenGL library (libEGL)* | An image from before 0.8.5-alpha: pull a newer one. Before it, games found no card even with `/dev/dri` passed in |
+
+[`compose.intel-amd.yml`](https://github.com/wittywilla/WittyMediaServer/blob/master/deploy/docker/compose.intel-amd.yml) has the lines for transcoding and games alike. An NVIDIA card works as for transcoding: the image asks the NVIDIA Container Toolkit for the driver's graphics libraries too (`NVIDIA_DRIVER_CAPABILITIES` includes `graphics`).
+
+**Tried:** Mesa's OpenGL and Vulkan on the processor (llvmpipe and lavapipe) in the image, with no card, in CI on amd64 and arm64. **Not yet:** a real Intel or AMD chip passed into a container. On a UGREEN NAS, [its guide](DOCKER-UGREEN.md#5-games-on-the-graphics-chip) says what to check.
 
 ## Behind a reverse proxy
 
@@ -311,6 +324,18 @@ Games use the same device as transcoding. Pass `/dev/dri` in and add its group, 
 Read [Remote access](REMOTE.md) first: this puts your sign-in page on the internet. With another proxy, the same two settings matter, `WMS_PUBLIC_URL` and `WMS_TRUSTED_PROXIES`, and [A reverse proxy you already run](REMOTE.md#a-reverse-proxy-you-already-run) has nginx's lines.
 
 > **Trust only the proxy's own address,** never Docker's whole network: anything trusted can claim to be at home.
+
+## Devices away from home
+
+**Settings → Remote Access → Connect a device** shows a code and a QR code. At home, scanning the QR code is enough: it holds the address your browser opened the page at, so the app goes straight there. That's the only way an app at home finds a server on Docker's own network, which apps can't discover (below).
+
+Away from home, apps connect peer to peer, through port **9796**, UDP and TCP. The image sets it (`WMS_P2P_PORT`), and the compose files publish it. In a container the server can't ask your router to forward it, so for apps away from home either:
+
+- forward port 9796, UDP and TCP, on your router to this machine, or
+- use [your own WittyRelay](P2P.md), or
+- run the container with `network_mode: host`, where the server can ask the router itself (then `ports:` isn't needed).
+
+Publish it with the same number on both sides (`"9796:9796/udp"`): the server tells apps the number it listens on. Containers made before 0.8.5 publish only 9797: add the two `9796` lines to `ports:`. Without them a phone may get as far as being added to **Devices that may connect** and no further.
 
 ## Updating and going back
 
@@ -337,7 +362,8 @@ The image has a health check: every 30 seconds it asks the server itself, with `
 | `exec format error` | The wrong architecture was pulled, such as on an old 32-bit ARM board. Remove the image and pull again |
 | The page doesn't load from another device | The NAS's firewall, or another program on port 9797. Change the left side of `ports:` |
 | Hardware encoders all say they can't be used | [Hardware transcoding](#hardware-transcoding); `docker exec wittymediaserver wittymediaserver hardware` says which step |
-| Apps don't list the server under **On your network** | Finding servers uses multicast, which doesn't cross Docker's own network. Type the server's address in the app, or run the container with `network_mode: host` (then `ports:` isn't needed) |
+| Apps don't list the server under **On your network** | Finding servers uses multicast, which doesn't cross Docker's own network. Scan the QR code from **Connect a device**, type the server's address in the app, or run the container with `network_mode: host` (then `ports:` isn't needed) |
+| A phone is in **Devices that may connect**, "last connected never", and the app says it couldn't reach the server | Port 9796 isn't published, or isn't reachable from where the phone is: [Devices away from home](#devices-away-from-home) |
 | Media folders are empty in the app | The folder isn't mounted, or the user in `user:` can't read it: see [User and group IDs](#user-and-group-ids). `docker exec wittymediaserver ls -ln /media` shows what the server sees |
 | *read-only file system* in the log | Something wants to write outside `/config` and `/tmp`. With `read_only: true`, `/tmp` must be a `tmpfs`. Anything else is a bug: please report it |
 

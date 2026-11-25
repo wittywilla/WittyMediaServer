@@ -1187,5 +1187,7 @@
   },
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "other": "“{name}” ลงชื่อเข้าใช้จากนอกบ้านไม่ได้จนถึง {time} หลังจากลองผิด {count} ครั้ง ที่บ้านยังใช้ได้ตามปกติ"
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "เมื่ออยู่บ้าน คือที่อยู่ที่แสดงในการตั้งค่าของเซิร์ฟเวอร์ เช่น http://192.168.1.10:9797 เมื่ออยู่นอกบ้าน คือที่อยู่จาก การตั้งค่า, การเข้าถึงระยะไกล",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "ตรวจดูว่า WittyMediaServer ทำงานอยู่ และอุปกรณ์นี้เข้าถึงได้ ไม่ว่าจะอยู่ในเครือข่ายเดียวกันหรือผ่านการเข้าถึงระยะไกล สิ่งที่คุณทำไว้ไม่ได้หายไป"
 }

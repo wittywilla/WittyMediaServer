@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "nincs elég hely a(z) {folder} mappában: az adatoknak {need} kell, és {free} szabad",
   "the copy didn't match, so nothing was changed: {reason}": "a másolat nem egyezett, ezért semmi sem változott: {reason}",
   "the choice couldn't be saved: {reason}": "a választást nem sikerült menteni: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "az új helyet nem sikerült menteni a(z) {file} fájlba: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "az új helyet nem sikerült menteni a(z) {file} fájlba: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "A szerver nem érhető el. Ellenőrizd, hogy a WittyMediaServer fut-e, és hogy ez az eszköz eléri-e: ugyanazon a hálózaton vagy a távoli hozzáférésen keresztül."
 }

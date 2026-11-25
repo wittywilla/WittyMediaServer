@@ -3,19 +3,23 @@
 
 // A QR code, made here in the page: the pairing code it carries never goes to
 // anyone else's server to be drawn. Byte mode, error correction level M,
-// versions 1 to 10 (up to 213 bytes), which is all a pairing link needs.
+// versions 1 to 15 (up to 412 bytes): a pairing link with the address at home,
+// the code and a relay's address needs about 300.
 // ISO/IEC 18004; the layout follows the standard's own order of steps.
 
-// For versions 1 to 10 at level M: error correction codewords per block, then
+// For versions 1 to 15 at level M: error correction codewords per block, then
 // how many blocks of how many data codewords, in two groups.
 const BLOCKS: number[][] = [
   [10, 1, 16, 0, 0], [16, 1, 28, 0, 0], [26, 1, 44, 0, 0], [18, 2, 32, 0, 0], [24, 2, 43, 0, 0],
   [16, 4, 27, 0, 0], [18, 4, 31, 0, 0], [22, 2, 38, 2, 39], [22, 3, 36, 2, 37], [26, 4, 43, 1, 44],
+  [30, 1, 50, 4, 51], [22, 6, 36, 2, 37], [22, 8, 37, 1, 38], [24, 4, 40, 5, 41], [24, 5, 41, 5, 42],
 ]
 // Where the alignment patterns' centres are, along each axis.
-const ALIGN: number[][] = [[], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50]]
+const ALIGN: number[][] = [[], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50],
+  [6, 30, 54], [6, 32, 58], [6, 34, 62], [6, 26, 46, 66], [6, 26, 48, 70]]
 
-export const QR_MAX_BYTES = 213
+const MAX_VERSION = BLOCKS.length
+export const QR_MAX_BYTES = 412
 
 const dataCodewords = (v: number) => { const b = BLOCKS[v - 1]; return b[1] * b[2] + b[3] * b[4] }
 // Byte mode spends 4 bits on the mode and 8 (16 from version 10) on the length.
@@ -116,8 +120,8 @@ function penalty(m: boolean[][]): number {
 export function qrMatrix(text: string): boolean[][] {
   const bytes = new TextEncoder().encode(text)
   let v = 1
-  while (v <= 10 && capacity(v) < bytes.length) v++
-  if (v > 10) throw new Error('too long for a QR code here')
+  while (v <= MAX_VERSION && capacity(v) < bytes.length) v++
+  if (v > MAX_VERSION) throw new Error('too long for a QR code here')
   const n = 17 + 4 * v
   const mod: boolean[][] = Array.from({ length: n }, () => new Array<boolean>(n).fill(false))
   const fn: boolean[][] = Array.from({ length: n }, () => new Array<boolean>(n).fill(false))

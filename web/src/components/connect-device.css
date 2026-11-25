@@ -32,7 +32,15 @@
 .cd-link { display: block; max-height: 6.5em; overflow: auto; }
 .cd-parties { padding-left: 1.2em; display: grid; gap: var(--sp-2); line-height: 1.45; }
 .cd-parties span { color: var(--fg-2); }
+/* On a Settings page (Remote access) the card reads from the same edge as the page's title and the sections under it
+   (docs/DESIGN.md, Centring). From away keeps it centred: there it is the page. */
+.set-main .set-card.cd { text-align: start; }
+.set-main .cd-who { justify-items: start; }
+.set-main .cd-start p, .set-main .cd-opt p { margin-inline: 0; }
+.set-main .cd-offer { justify-content: start; }
+.set-main .cd-actions, .set-main .cd-line { justify-content: flex-start; }
 @media (max-width: 640px) {
   .cd-offer { grid-template-columns: minmax(0, 1fr); }
   .cd-qr { justify-self: center; }
+  .set-main .cd-qr { justify-self: start; }
 }

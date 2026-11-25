@@ -3,12 +3,99 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
+**Layout (#678)**
+
+- **Every Settings page reads from one edge, with WittyPlay installed too.** A page's title, lead and buttons start
+  where its sections start, and Connect a device on Remote access does too. With WittyPlay installed, an old copy of
+  the server's settings stylesheet in its bundle pushed every page's title off to one side and the menu under the top
+  bar; WittyPlay 0.7.19 drops it (wittywilla/WittyPlay#121). "Remote Access" is "Remote access", as the menu says.
+- **Nothing sits under the top bar, whatever the layout.** Settings' sticky parts (the menu, the strip of links, You's
+  picture and name, the pages editor's toolbar) stop below the bar's measured height (`--bar-space`), so a floating
+  glass bar, a cable box's bar or a taller one no longer covers them. At the end of a short page the menu isn't pushed
+  under the bar: the version line it already shows isn't repeated under the page, and the menu ends above whatever is
+  docked at the foot.
+- **A link to part of a settings page lands below the bar and the strip of links**, whether the strip is drawn yet or
+  not, and stays there while a slow page finishes arriving. The menu's Password row lands on Your account.
+- **From away** says Connect a device once, not as the page's title and again on the card under it.
+- **A layout check** (`npm run test:layout`, in the smoke tests, which install WittyPlay and WittyTuner) opens You,
+  every page the settings menu opens, every other settings page and the ones modules add, at computer, laptop, tablet,
+  phone and TV sizes, in any layout (`LAYOUT_LOOKS`). It fails on anything under the top bar (as a page opens, after
+  scrolling, and after a link to a section), a Settings title out of line with its content, centred words in an
+  off-centre box, a Title Case title, and a heading said twice.
+**Layout outside Settings (#679)**
+
+- **Nothing slides under the top bar, whatever its style.** Every part that stays put as a page scrolls (a library's
+  sort bar, the music bars, Help's list of guides, the design page, the theme preview) sticks where the bar really
+  ends, as the bar measures it, not at a fixed 64 pixels, so the floating glass bar and the taller bars no longer cover
+  them. Jumping to a month on the photo timeline or to Albums on an artist lands below the page's own sticky bar too,
+  and so does a control reached with Tab.
+- **A book, a photo or a home video with no backdrop starts below the bar.** Its cover and title were pulled up under
+  the bar, as if a picture ran behind it, on a laptop's 1280 by 720.
+- **Live TV no longer slides under the bar when you press Tab.** The page fills the window again (the guide had
+  stopped doing so when Live TV moved into the server-drawn page), and a box that hides what overflows it can't be
+  scrolled by focus any more: Tab to the guide's buttons moved the whole page up under the bar, with no way back.
+- **A page reads from one edge.** Help's title and lead start where its sections start, instead of a centred title
+  over left-aligned guides, and its search box and guides line up. Only a standalone page (signing in, Who's watching,
+  an error) centres its card's title. On a phone a library's ⋯ and search line up with its title, and setup's
+  Customize is as wide as the buttons under it.
+- **Photos says "Photos" once.** A page whose first row has the page's name shows that row's heading only.
+- **TV mode: everything a remote lands on is at least 48 by 48.** Page tabs, sort menus, the links under a sign-in
+  card, the player's corner buttons and episode links grow to it.
+- **A layout check for every page outside Settings** (`npm run test:layout-pages`, in the smoke tests) opens home, the
+  libraries and a title of each, search, music, games, Live TV, Help, the review pages and the signed-out pages at a
+  computer's sizes, a phone and in TV mode, and under the floating glass bar. It fails on anything under the bar,
+  sideways scroll, a title and its sections in different alignments, centred words in an off-centre box, a heading
+  said twice, a control with no focus ring, Tab scrolling a box that hides its overflow, and a TV target under 48.
 ## 0.8.5-alpha
 
 Not released yet.
 
+**Connecting a phone to a server in Docker (#683)**
+
+- **A phone at home connects to a server in Docker by its QR code.** In a container the server only knows the
+  container's own addresses, which nothing else at home can reach, and apps can't find it on the network. **Connect a
+  device** now uses the address its page was opened at: as the address at home, and in the QR code with the code, so
+  an app at home that scans it signs in straight away, with no peer-to-peer connection needed.
+- **Peer to peer works from a container.** The image listens for peer-to-peer connections on a fixed port, **9796**
+  (UDP and TCP), and the compose files and NAS guides publish it. Containers made before need the two `9796` lines added
+  to `ports:` ([Docker](docs/DOCKER.md#devices-away-from-home)). Without them a phone could be added to **Devices that
+  may connect** and get no further. Outside a container, set the port with `WMS_P2P_PORT` or `-p2p-port`.
+- **Connect a device says which port to publish** when the server runs in a container and devices away from home
+  can't connect yet.
+- **A device isn't shown as connected until it is.** Showing an invite puts a device on **Devices that may connect**,
+  but 0.8.4 then called it "Connected through a relay" though nothing had got through. Until its first request does,
+  it says **Invited — hasn't connected yet**, and when the server knows why not (it reached the server only through a
+  public relay, which carries an invite and nothing more) it says that and what to do.
+- **The QR code carries the owner's own WittyRelay** when there is one, first, ahead of the server's name if they
+  don't both fit: away from home it's often the only way in. QR codes now go up to 412 bytes (version 15); a pairing
+  link stays under 330.
+- **Each device's Remove button is in its own row** under **Devices that may connect**, not below the list beside the
+  next heading.
+**Live TV (#687, #688)**
+
+- **Sound and picture stay together across programme changes.** A library channel joined part way into a programme
+  (tuning in, after every ad break, Start over and rewinding) began each programme with up to a couple of seconds of
+  picture alone: the copied picture started at the keyframe before the place, the sound at the place. Players froze the
+  picture there, then played on with the sound out of step. Both now start at the keyframe. A test in CI plays four
+  programmes across three joins and checks that sound and picture start and end together, with no gaps and no frozen
+  picture.
+- **No skipping ahead on live TV.** The live player has no +30 any more, and its timeline can't be dragged or keyed
+  past where it's playing. Right, Fast forward and Next (outside an ad break) don't move a channel on. Back, Pause,
+  Start over, Skip break and Back to live stay.
+
 **Games in Docker**
 
+- **Games can use an Intel or AMD graphics chip in Docker.** The image had no OpenGL library (libEGL) and no Vulkan
+  drivers, so WittyPlay found "no graphics card" on every NAS, even with `/dev/dri` passed in. It now has Mesa's EGL,
+  OpenGL and Vulkan drivers on every architecture (iris and anv for Intel, radeonsi and radv for AMD, and llvmpipe and
+  lavapipe on the processor), about 21 MB more. With no card, GameCube and Wii can now draw on the processor too. An
+  NVIDIA card gets its graphics libraries for games (`NVIDIA_DRIVER_CAPABILITIES` includes `graphics`). With WittyPlay
+  0.7.21, a chip that can't be used says why: no `/dev/dri` passed in, or the group to add under `group_add:`.
+  [docs/DOCKER.md](docs/DOCKER.md#intel-and-amd-graphics-for-games) and the
+  [UGREEN guide](docs/DOCKER-UGREEN.md#5-games-on-the-graphics-chip) say how to set it up and check it. CI checks
+  the image's OpenGL and Vulkan on the processor, with no card, on amd64 and arm64.
 - **Games play in Docker, with WittyPlay 0.7.19.** On a NAS with Docker's usual network, games started but no picture
   ever arrived: WebRTC could only offer the container's private address, and the WebSocket the player should have
   fallen back to was refused. The fix is all in WittyPlay, which updates from Settings, Modules on any 0.8 server.

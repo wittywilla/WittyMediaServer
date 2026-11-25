@@ -60,6 +60,9 @@ type LiveInput struct {
 	// Refusal says why. It ends the session for good; nil for an input that can't.
 	Refused <-chan struct{}
 	Refusal func() error
+
+	// fromKeyframe: Seek is a keyframe of the file's, which a copied picture starts at (#687).
+	fromKeyframe bool
 }
 
 // LiveFeed says what to play at a moment. An error ends the session unless
@@ -465,6 +468,7 @@ func (s *LiveSession) loop() {
 			s.air = at
 		}
 		s.mu.Unlock()
+		s.copyFromKeyframe(in)
 		start := time.Now()
 		runner := s.runner
 		if runner == nil {
@@ -512,6 +516,43 @@ func (s *LiveSession) loop() {
 		}
 	}
 }
+
+// copyFromKeyframe starts a copied picture that joins a file part way through at the keyframe at
+// or before the place, and plays on that much longer, so the programme still ends where it should.
+// A copy can only start at a keyframe: from anywhere else the picture starts at the one before the
+// place while the sound starts at the place itself, the run's first second or two is picture
+// alone, and players that line runs up across the discontinuity freeze the picture there or play
+// on out of step (#687). From the keyframe exactly, both start, and end, together.
+func (s *LiveSession) copyFromKeyframe(in *LiveInput) {
+	if !in.CopyVideo || in.Seek <= 0 || in.Stdin != nil || s.m.tools == nil || s.m.tools.FFprobe == "" {
+		return
+	}
+	path := ""
+	for i, a := range in.InputArgs {
+		if a == "-i" && i+1 < len(in.InputArgs) {
+			path = in.InputArgs[i+1]
+		}
+	}
+	if path == "" || strings.Contains(path, "://") || strings.HasPrefix(path, "pipe:") {
+		return
+	}
+	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+	defer cancel()
+	k, ok := s.m.tools.KeyframeNear(ctx, path, 0, in.Seek)
+	if !ok || k > in.Seek+0.001 || in.Seek-k > 30 {
+		return
+	}
+	if in.Duration > 0 {
+		in.Duration += in.Seek - k
+	}
+	in.Seek = k
+	in.fromKeyframe = true
+}
+
+// keyframeLead is how far past the keyframe a run that starts at one asks FFmpeg to seek: its
+// command line seeks 3/23 s before what it's asked for, for files whose picture has B-frames, and
+// would otherwise land on the keyframe before.
+const keyframeLead = 0.15
 
 // release closes what a run was fed and frees what it held.
 func (in *LiveInput) release() {
@@ -614,7 +655,12 @@ func (s *LiveSession) liveArgsHW(in *LiveInput, run int, burst bool) ([]string, 
 			args = append(args, "-re")
 		}
 	}
-	if in.Seek > 0 {
+	switch {
+	case in.fromKeyframe:
+		// From the keyframe copyFromKeyframe found, sound and picture alike: not cut back to
+		// the place, as an exact seek would cut the sound, after the picture's keyframe (#687).
+		args = append(args, "-ss", strconv.FormatFloat(in.Seek+keyframeLead, 'f', 3, 64), "-noaccurate_seek")
+	case in.Seek > 0:
 		args = append(args, "-ss", strconv.FormatFloat(in.Seek, 'f', 3, 64))
 	}
 	args = append(args, in.InputArgs...)
@@ -671,9 +717,19 @@ func (s *LiveSession) liveArgsHW(in *LiveInput, run int, burst bool) ([]string, 
 	// a video's stream: a disc on a channel is read across its cells, and a
 	// tuner's stream drops what arrives damaged, so a lost sound frame would
 	// otherwise be stretched back slowly, out of step with the picture.
-	args = append(args, "-c:a", "aac", "-ac", "2", "-ar", "48000", "-b:a", firstNonEmpty(sp.AudioRate, sp.Quality.AudioRate, "160k"), "-af", "aresample=async=1:min_hard_comp=0.01:first_pts=0")
+	af := "aresample=async=1:min_hard_comp=0.01:first_pts=0"
+	if in.fromKeyframe {
+		af = "aresample=async=1:min_hard_comp=0.01" // the sound from the keyframe, as the picture
+	}
+	args = append(args, "-c:a", "aac", "-ac", "2", "-ar", "48000", "-b:a", firstNonEmpty(sp.AudioRate, sp.Quality.AudioRate, "160k"), "-af", af)
 	if in.Duration > 0 {
 		args = append(args, "-t", strconv.FormatFloat(in.Duration, 'f', 3, 64))
+		if in.fromKeyframe && !silence {
+			// -t cuts the converted sound by its own length, and the copied picture by its
+			// times, which here start a little before the seek: the picture would run on
+			// past the sound. Both end with the shorter.
+			args = append(args, "-shortest")
+		}
 	}
 	args = append(args, sp.Quality.OutputArgs...)
 	args = append(args,

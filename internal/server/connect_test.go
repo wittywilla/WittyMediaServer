@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -317,18 +318,20 @@ func TestConnectStatusWords(t *testing.T) {
 }
 
 // The link a QR code holds fits it, keeps the server and the secret, and keeps the addresses most worth
-// trying: public first, then this server's own at home, never a relay's or this machine's.
+// trying: a circuit through the owner's own relay first, then public, then this server's own at home; never a
+// public relay's circuit or this machine's. (Checked at 210 bytes, where they have to compete, and at the real 300.)
 func TestQRInviteFits(t *testing.T) {
+	const tight = 210
 	id := "12D3KooWQSZd5NLcWyVkrniKq1MggbNPVhYfcqs6cQP8AXLRVsdW"
 	inv := p2p.Invite{ServerID: id, Secret: "abcdefghijklmnopqrstuv", Name: "The family's media server, downstairs",
 		Addrs: []string{"/ip4/172.17.0.1/tcp/19893", "/ip4/10.255.255.254/udp/19893/quic-v1", "/ip4/192.168.1.20/udp/19893/quic-v1",
 			"/ip4/81.2.69.160/udp/19893/quic-v1", "/ip4/127.0.0.1/tcp/19893", "/ip4/1.2.3.4/tcp/4001/p2p/" + id + "/p2p-circuit"}}
-	if len(inv.String()) <= connectQRMax {
+	if len(inv.String()) <= tight {
 		t.Fatalf("the test needs a link too long for a QR code: %d", len(inv.String()))
 	}
-	link := qrInvite(inv, []string{"http://192.168.1.20:9797"}, connectQRMax)
+	link := qrInvite(inv, []string{"http://192.168.1.20:9797"}, nil, tight)
 	got, err := p2p.ParseInvite(link)
-	if err != nil || len(link) > connectQRMax || got.ServerID != id || got.Secret != inv.Secret {
+	if err != nil || len(link) > tight || got.ServerID != id || got.Secret != inv.Secret {
 		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
 	}
 	if len(got.Addrs) == 0 || got.Addrs[0] != "/ip4/81.2.69.160/udp/19893/quic-v1" {
@@ -337,9 +340,121 @@ func TestQRInviteFits(t *testing.T) {
 	if len(got.Addrs) > 1 && got.Addrs[1] != "/ip4/192.168.1.20/udp/19893/quic-v1" {
 		t.Fatalf("then the one at home: %v", got.Addrs)
 	}
+	for _, a := range got.Addrs {
+		if strings.Contains(a, "p2p-circuit") {
+			t.Fatalf("a public relay's circuit in the QR code: %v", got.Addrs)
+		}
+	}
 	// A short one is left as it is.
 	small := p2p.Invite{ServerID: id, Secret: "abcdefghijklmnopqrstuv", Addrs: []string{"/ip4/192.168.1.20/tcp/19893"}}
-	if qrInvite(small, nil, connectQRMax) != small.String() {
+	if qrInvite(small, nil, nil, connectQRMax) != small.String() {
 		t.Fatal("a link that fits was changed")
+	}
+	// The web address at home and the code stay, addresses going first; a name too long for even that loses them.
+	inv.Home, inv.Code = "http://192.168.1.20:9797", "K7QM2XHD"
+	link = qrInvite(inv, []string{"http://192.168.1.20:9797"}, nil, tight)
+	if got, err := p2p.ParseInvite(link); err != nil || len(link) > tight || got.Home != inv.Home || got.Code != inv.Code {
+		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
+	}
+	long := inv
+	long.Home = "http://" + strings.Repeat("n", 180) + ".local"
+	link = qrInvite(long, nil, nil, tight)
+	if got, err := p2p.ParseInvite(link); err != nil || len(link) > tight || got.Home != "" || got.Code != "" {
+		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
+	}
+	// The owner's own WittyRelay (#683): its circuit comes first and fits beside the address at home and the code, in
+	// the QR code's real budget; a phone away from home then has the one way in that works.
+	relay := "12D3KooWD8PWB8C8WmfLx4KZELLzAQbUpRQxbVJVHt94e8zKt8qj"
+	ownCircuit := "/ip4/80.0.0.10/udp/4001/quic-v1/p2p/" + relay + "/p2p-circuit"
+	inv.Addrs = append(inv.Addrs, ownCircuit)
+	link = qrInvite(inv, []string{"http://192.168.1.20:9797"}, map[string]bool{relay: true}, connectQRMax)
+	got, err = p2p.ParseInvite(link)
+	if err != nil || len(link) > connectQRMax || len(got.Addrs) == 0 || got.Addrs[0] != ownCircuit || got.Home != inv.Home || got.Code != inv.Code {
+		t.Fatalf("%d bytes: %v %+v", len(link), err, got)
+	}
+	// The owner's relay is never what goes: with a long name the name goes first, and when even the address at home
+	// and the code can't fit beside it, they go and the relay stays (it works at home too; they don't away).
+	named := inv
+	named.Name = strings.Repeat("Long name ", 30)
+	link = qrInvite(named, []string{"http://192.168.1.20:9797"}, map[string]bool{relay: true}, connectQRMax)
+	got, _ = p2p.ParseInvite(link)
+	if len(link) > connectQRMax || len(got.Addrs) == 0 || got.Addrs[0] != ownCircuit || got.Home == "" {
+		t.Fatalf("a long name: %d bytes %+v", len(link), got)
+	}
+	far := inv
+	far.Home = "http://" + strings.Repeat("n", 120) + ".local"
+	link = qrInvite(far, []string{"http://192.168.1.20:9797"}, map[string]bool{relay: true}, connectQRMax)
+	got, _ = p2p.ParseInvite(link)
+	if len(link) > connectQRMax || len(got.Addrs) == 0 || got.Addrs[0] != ownCircuit || got.Home != "" {
+		t.Fatalf("the relay before the address at home: %d bytes %+v", len(link), got)
+	}
+	if circuitRelay(ownCircuit) != relay || circuitRelay("/ip4/1.2.3.4/tcp/1") != "" {
+		t.Fatal("circuitRelay")
+	}
+}
+
+// The owner's homelab (0.8.4): the server in a container on Docker's bridge network, the page opened at the
+// host's address. Devices at home are pointed at that address, never the container's own, which nothing else
+// reaches; the QR code holds it and the code for an app at home; the peer-to-peer port is tried at the host.
+// A page opened at this computer's own name, or from the internet, gives no address at home.
+func TestConnectOfferOnADockerHost(t *testing.T) {
+	ts, admin := p2pServer(t, nil)
+	_, kate := ts.user(t, "kate", "adult", false, "")
+	const host = "192.168.213.50" // no computer running the tests has it, as no container has its host's
+
+	// In a container, with nothing answering at the host's peer-to-peer port: Connect a device says plainly that the
+	// port isn't published from Docker, and which lines to add (the owner's 0.8.4 setup).
+	t.Setenv("WMS_DOCKER", "1")
+	var st connectStatus
+	_ = json.Unmarshal(ts.do(t, "GET", "/api/connect", admin, nil, "RemoteAddr", "192.168.213.20:5000", "Host", host+":9797").Body.Bytes(), &st)
+	// (The tests' node listens on a random port for each of UDP and TCP, so the number isn't checked here; a real one
+	// has one port for both.)
+	if !strings.Contains(st.Hint, " isn't published from Docker") || !strings.Contains(st.Hint, "/udp\" to ports:") || st.Away == "yes" {
+		t.Fatalf("the status in a container whose port isn't published: %+v", st)
+	}
+	w := ts.do(t, "POST", "/api/connect/offer", kate, map[string]any{}, "RemoteAddr", "192.168.213.20:5000", "Host", host+":9797")
+	if w.Code != 200 {
+		t.Fatalf("%d %s", w.Code, w.Body)
+	}
+	var o offerMade
+	_ = json.Unmarshal(w.Body.Bytes(), &o)
+	if len(o.HomeAddresses) != 1 || o.HomeAddresses[0] != "http://"+host+":9797" {
+		t.Fatalf("the address at home: %v", o.HomeAddresses)
+	}
+	inv, err := p2p.ParseInvite(o.Link)
+	if err != nil || len(inv.Addrs) < 2 || !strings.HasPrefix(inv.Addrs[0], "/ip4/"+host+"/udp/") || !strings.HasSuffix(inv.Addrs[0], "/quic-v1") ||
+		!strings.HasPrefix(inv.Addrs[1], "/ip4/"+host+"/tcp/") {
+		t.Fatalf("the peer-to-peer port on the host first: %v %v", inv.Addrs, err)
+	}
+	if inv.Home != "" || inv.Code != "" {
+		t.Fatal("the link, which may be sent anywhere, carries the code")
+	}
+	qr, err := p2p.ParseInvite(o.QRLink)
+	clean, _ := p2p.CleanJoinCode(o.Code)
+	if err != nil || len(o.QRLink) > connectQRMax || qr.Home != "http://"+host+":9797" || qr.Code != clean || qr.Secret != inv.Secret {
+		t.Fatalf("the QR code: %d bytes %+v %v", len(o.QRLink), qr, err)
+	}
+	_ = ts.do(t, "DELETE", "/api/connect/offer", kate, nil)
+
+	for what, hdr := range map[string][]string{
+		"this computer's own name": {"RemoteAddr", "127.0.0.1:5000", "Host", "localhost:9797"},
+		"from the internet":        {"RemoteAddr", "203.0.113.9:5000", "Host", "203.0.113.4:9797"},
+		"a public name":            {"RemoteAddr", "192.168.213.20:5000", "Host", "media.example.com"},
+	} {
+		w := ts.do(t, "POST", "/api/connect/offer", kate, map[string]any{}, hdr...)
+		var o offerMade
+		_ = json.Unmarshal(w.Body.Bytes(), &o)
+		if w.Code != 200 {
+			continue // refused outright is fine too
+		}
+		if qr, _ := p2p.ParseInvite(o.QRLink); qr.Home != "" || qr.Code != "" {
+			t.Errorf("%s: the QR code holds %q", what, qr.Home)
+		}
+		for _, a := range o.HomeAddresses {
+			if strings.Contains(a, "localhost") || strings.Contains(a, "example.com") || strings.Contains(a, "203.0.113") {
+				t.Errorf("%s: %q given as the address at home", what, a)
+			}
+		}
+		_ = ts.do(t, "DELETE", "/api/connect/offer", kate, nil, hdr...)
 	}
 }

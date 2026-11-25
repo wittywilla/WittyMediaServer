@@ -2257,5 +2257,8 @@
   "{count} things turned off": {
     "one": "{count} asia poistettu käytöstä",
     "other": "{count} asiaa poistettu käytöstä"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Kaikki asetukset ja API-avaimet, etäkäyttö, TV-virittimet, kanavat ja ajastetut tallennukset.",
+  "Remote access": "Etäkäyttö",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Kirjautuminen kysyy myös 6-numeroista koodia puhelimesi sovelluksesta, joten varastettu salasana ei riitä. Se on valinnainen ja kannattaa, jos käytät etäkäyttöä. Mikä tahansa todennussovellus toimii."
 }

@@ -1262,5 +1262,7 @@
     "few": "„{name}“ se nemůže přihlásit mimo domov až do {time} po {count} chybných pokusech. Doma to stále funguje.",
     "many": "„{name}“ se nemůže přihlásit mimo domov až do {time} po {count} chybného pokusu. Doma to stále funguje.",
     "other": "„{name}“ se nemůže přihlásit mimo domov až do {time} po {count} chybných pokusech. Doma to stále funguje."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Doma je to adresa uvedená v nastavení serveru, například http://192.168.1.10:9797. Mimo domov je to adresa z Nastavení, Vzdálený přístup.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Že WittyMediaServer běží a toto zařízení se k němu dostane: ve stejné síti nebo přes Vzdálený přístup. Nic z toho, co jste udělali, se neztratilo."
 }

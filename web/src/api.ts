@@ -209,7 +209,7 @@ export class ApiError extends Error {
   constructor(public status: number, message: string, public data?: any) { super(inLanguage(message)); this.english = sentence(message) }
 }
 
-const NO_SERVER = tk("Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote Access.")
+const NO_SERVER = tk("Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.")
 
 // The module a request has just found missing. A page that then can't load says that, rather than
 // that something went wrong.

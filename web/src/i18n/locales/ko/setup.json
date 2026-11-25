@@ -456,5 +456,6 @@
   },
   "{count} more tries before the sign-in ends.": {
     "other": "로그인이 종료되기 전에 {count}번 더 시도할 수 있습니다."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "꺼짐. 집에서는 괜찮습니다. 인증서에는 도메인 이름이 필요하므로, 밖에서 서버에 접속하려면 원격 액세스에서 설정합니다."
 }

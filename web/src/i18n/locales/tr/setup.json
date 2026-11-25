@@ -461,5 +461,6 @@
   "{count} more tries before the sign-in ends.": {
     "one": "Oturum açma sona ermeden önce {count} deneme hakkınız kaldı.",
     "other": "Oturum açma sona ermeden önce {count} deneme hakkınız kaldı."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Kapalı. Evde bu sorun değil: sertifika bir alan adı gerektirir, bu yüzden sunucuya dışarıdan ulaşmak isterseniz Uzaktan Erişim bölümünde ayarlanır."
 }

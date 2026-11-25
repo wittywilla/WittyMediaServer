@@ -1212,5 +1212,7 @@
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "one": "“{name}” {count} hatalı denemeden sonra {time} zamanına kadar evinizin dışından oturum açamaz. Evde hâlâ çalışır.",
     "other": "“{name}” {count} hatalı denemeden sonra {time} zamanına kadar evinizin dışından oturum açamaz. Evde hâlâ çalışır."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Evde bu, sunucu ayarlarında gösterilen adrestir; örneğin http://192.168.1.10:9797. Evden uzaktayken Ayarlar, Uzaktan Erişim'deki adrestir.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "WittyMediaServer'ın çalıştığını ve bu cihazın ona ulaşabildiğini: aynı ağda veya Uzaktan Erişim üzerinden. Yaptığınız hiçbir şey kaybolmadı."
 }

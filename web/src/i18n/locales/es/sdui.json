@@ -1219,5 +1219,7 @@
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "one": "“{name}” no puede iniciar sesión desde fuera de casa hasta {time}, tras {count} intento fallido. En casa sigue funcionando.",
     "other": "“{name}” no puede iniciar sesión desde fuera de casa hasta {time}, tras {count} intentos fallidos. En casa sigue funcionando."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "En casa, es la dirección que aparece en los ajustes del servidor, como http://192.168.1.10:9797. Fuera de casa, es la dirección de Ajustes, Acceso remoto.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Que WittyMediaServer está en marcha y que este dispositivo puede llegar a él: en la misma red o mediante Acceso remoto. No se ha perdido nada de lo que hiciste."
 }

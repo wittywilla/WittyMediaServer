@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "brakuje miejsca w {folder}: dane potrzebują {need}, a wolne jest {free}",
   "the copy didn't match, so nothing was changed: {reason}": "kopia się nie zgadzała, więc niczego nie zmieniono: {reason}",
   "the choice couldn't be saved: {reason}": "nie udało się zapisać wyboru: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "nie udało się zapisać nowego miejsca w {file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "nie udało się zapisać nowego miejsca w {file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "Nie można połączyć się z serwerem. Sprawdź, czy WittyMediaServer działa i czy to urządzenie ma do niego dostęp: w tej samej sieci albo przez Dostęp zdalny."
 }

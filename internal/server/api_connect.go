@@ -4,22 +4,28 @@
 package server
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"github.com/wittywilla/wittymediaserver/internal/i18n"
+	"fmt"
+	"net"
 	"net/http"
 	"net/netip"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/wittywilla/wittymediaserver/internal/ffmpeg"
+	"github.com/wittywilla/wittymediaserver/internal/i18n"
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
 	"github.com/wittywilla/wittymediaserver/internal/p2p"
+	"github.com/wittywilla/wittymediaserver/internal/remote"
 )
 
 // Connecting another device (Settings, Remote Access; the From away page): one
@@ -39,6 +45,12 @@ import (
 //     the way in from away. (A code from away would need the public address
 //     book to find this server by, which proved too slow and unreliable to
 //     offer: see #605.)
+//   - The QR code holds the link, and for a device at home the address the
+//     page was opened at and the code as well (connectHome): scanned at home,
+//     the device asks there with the code, as if it had been typed, and needs
+//     no peer-to-peer path. In a container on Docker's bridge network that is
+//     the only way a device at home finds the server at all: the server's own
+//     addresses are the container's, and it can't be discovered.
 //
 // What the way in is worth is what an invite is worth: once, for fifteen
 // minutes, only while whoever made it stays signed in, and as an administrator
@@ -164,19 +176,145 @@ func (co *connectOffers) ask(find string) (*connectOffer, []byte) {
 
 const p2pJoinNonceLen = 16
 
-// connectQRMax is what the pages' QR codes hold (versions 1 to 10 at level M:
-// web/src/ui/qr.ts), less a little.
-const connectQRMax = 210
+// connectQRMax is how long a link the QR code holds: all of version 13 at level
+// M (331 bytes; web/src/ui/qr.ts goes to 15), still easy to read at the page's
+// size. It fits the address at home, the code and one relay of the owner's
+// (#683); when they don't all fit, the relay stays (qrInvite).
+const connectQRMax = 330
+
+// connectHome is where another device at home can reach this server's web
+// port: the address the page making the code was opened at, when it is one
+// only the home network uses (a private IPv4 address, or a name such as
+// nas.local) and the browser reached the server directly. bridged says that
+// address is none of this computer's own: the server runs in a container on
+// Docker's bridge network, whose own addresses nothing else at home can reach,
+// and the browser's bar names the host and its published port.
+func connectHome(r *http.Request) (home string, ip netip.Addr, bridged bool) {
+	c := clientFrom(r)
+	if !c.Direct() || (c.Where != remote.Home && c.Where != remote.Machine) {
+		return "", netip.Addr{}, false
+	}
+	host, port, err := net.SplitHostPort(r.Host)
+	if err != nil {
+		host, port = r.Host, ""
+	}
+	name := strings.ToLower(strings.TrimSuffix(host, "."))
+	if a, err := netip.ParseAddr(host); err == nil {
+		if a = a.Unmap(); !a.Is4() || !a.IsPrivate() {
+			return "", netip.Addr{}, false // this computer itself, or an address another device at home can't be sure of
+		}
+		ip = a
+	} else if name == "localhost" || strings.HasSuffix(name, ".localhost") || !remote.LocalName(name) {
+		return "", netip.Addr{}, false
+	}
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	at := host
+	if port != "" {
+		at = net.JoinHostPort(host, port)
+	}
+	if home = p2p.InviteHome(scheme + "://" + at); home == "" {
+		return "", netip.Addr{}, false
+	}
+	if ip.IsValid() {
+		bridged = true
+		for _, i := range remote.Interfaces() {
+			if i.Addr.Addr() == ip {
+				bridged = false
+				break
+			}
+		}
+	}
+	return home, ip, bridged
+}
+
+// hostHints are where this server's peer-to-peer port is on the container's
+// host, for a device at home: Docker forwards it there when it is published
+// with the same number (deploy/docker), and the invite's other addresses are
+// the container's own.
+func hostHints(ip netip.Addr, port int) []string {
+	if !ip.IsValid() || port <= 0 {
+		return nil
+	}
+	return []string{fmt.Sprintf("/ip4/%s/udp/%d/quic-v1", ip, port), fmt.Sprintf("/ip4/%s/tcp/%d", ip, port)}
+}
 
 // qrInvite is the same invite, short enough for a QR code: the same server and
 // secret, with the addresses most worth trying first, as many as fit (an app
-// that has none can still look the server up by its ID). Public addresses come
-// first, then the ones this server has on the home network, never a relay's,
-// whose addresses are long. The name is cut last, if even that doesn't fit.
-func qrInvite(inv p2p.Invite, home []string, max int) string {
+// that has none can still look the server up by its ID). A circuit through one
+// of the owner's own relays comes first: from away it is often the only way in,
+// and the public address book is no help to a server behind a router (#683).
+// Then public addresses, then another relay's circuit, then the ones this server
+// has on the home network, which a device at home doesn't need when the QR code
+// holds the web address. The name is cut before the first relayed address goes;
+// the home address and code, which a device at home needs most, go only when
+// nothing else would make it fit (a very long name for the computer).
+func qrInvite(inv p2p.Invite, home []string, own map[string]bool, max int) string {
+	noHome := inv
+	noHome.Home, noHome.Code = "", ""
+	// Everything that matters: the address at home and the code, and the first relayed address.
+	if link, ok := qrFit(inv, home, own, max, true); ok {
+		return link
+	}
+	// Then the relayed address before the address at home: it works at home too, and the home address doesn't
+	// away from it (the pairing lab's relay-only cases).
+	if inv.Home != "" {
+		if link, ok := qrFit(noHome, home, own, max, true); ok {
+			return link
+		}
+	}
+	if link, ok := qrFit(inv, home, own, max, false); ok {
+		return link
+	}
+	link, _ := qrFit(noHome, home, own, max, false)
+	return link
+}
+
+// circuitRelay is the relay a /p2p-circuit address goes through, by its ID; "" for any other address.
+func circuitRelay(a string) string {
+	before, _, ok := strings.Cut(a, "/p2p-circuit")
+	if !ok {
+		return ""
+	}
+	if i := strings.LastIndex(before, "/p2p/"); i >= 0 {
+		return before[i+len("/p2p/"):]
+	}
+	return ""
+}
+
+// ownRelayIDs are the relays the owner named (their WittyRelays, and relays of their own), by ID.
+func (s *Server) ownRelayIDs(ctx context.Context) map[string]bool {
+	cfg := s.loadP2P(ctx)
+	own := map[string]bool{}
+	addrs := append([]string{}, cfg.StaticRelays...)
+	for _, r := range cfg.OwnRelays {
+		addrs = append(addrs, r.Addr)
+	}
+	for _, a := range addrs {
+		if ai, err := p2p.ParseRelayAddr(a); err == nil {
+			own[ai.ID.String()] = true
+		}
+	}
+	return own
+}
+
+// qrFit cuts addresses from the end, then the name, until the link fits; with keepRelay it never cuts the first
+// relayed address (nor what ranks before it), and says false when that can't fit.
+func qrFit(inv p2p.Invite, home []string, own map[string]bool, max int, keepRelay bool) (string, bool) {
+	// 0 the owner's relays' circuits, 1 public addresses, 2 any other relay's circuit (an ordinary public relay,
+	// which carries the invite and lets the two ends try for a direct connection), 3 this server's addresses at home,
+	// 4 other private ones. Away from home the first three are what work; at home the QR code's web address does.
 	rank := func(a string) int {
 		parts := strings.Split(a, "/")
-		if len(parts) < 3 || strings.Contains(a, "/p2p-circuit") {
+		if r := circuitRelay(a); r != "" {
+			if own[r] {
+				return 0
+			}
+			return 2
+		}
+		if len(parts) < 3 {
 			return -1
 		}
 		ip, err := netip.ParseAddr(parts[2])
@@ -184,37 +322,55 @@ func qrInvite(inv p2p.Invite, home []string, max int) string {
 			return -1
 		}
 		if !ip.IsPrivate() {
-			return 0
+			return 1
 		}
 		for _, h := range home {
 			if strings.Contains(h, "//"+ip.String()+":") {
-				return 1
+				return 3
 			}
 		}
-		return 2
+		return 4
 	}
 	var addrs []string
-	for want := 0; want <= 2; want++ {
+	ownCount := 0 // how many addresses, from the start, are kept before the name is cut: up to the first relayed one
+	for want := 0; want <= 4; want++ {
 		for _, a := range inv.Addrs {
 			if rank(a) == want {
 				addrs = append(addrs, a)
+				if (want == 0 || want == 2) && ownCount == 0 {
+					ownCount = len(addrs)
+				}
 			}
 		}
 	}
+	// Other addresses go first, then the name (only shown), and the owner's relay circuits last: from away they
+	// may be the only way in.
 	short := inv
-	for n := len(addrs); n >= 0; n-- {
-		short.Addrs = addrs[:n]
-		if link := short.String(); len(link) <= max {
-			return link
+	fit := func(keep int) (string, bool) {
+		for n := len(addrs); n >= keep; n-- {
+			short.Addrs = addrs[:n]
+			if link := short.String(); len(link) <= max {
+				return link, true
+			}
 		}
-	}
-	for r := []rune(short.Name); len(r) > 0; r = r[:len(r)-1] {
-		short.Name = string(r[:len(r)-1])
-		if link := short.String(); len(link) <= max {
-			return link
+		for r := []rune(short.Name); len(r) > 0; r = r[:len(r)-1] {
+			short.Name = string(r[:len(r)-1])
+			if link := short.String(); len(link) <= max {
+				return link, true
+			}
 		}
+		return "", false
 	}
-	return short.String()
+	if !keepRelay {
+		ownCount = 0
+	}
+	if link, ok := fit(ownCount); ok {
+		return link, true
+	}
+	if keepRelay {
+		return "", false
+	}
+	return short.String(), false
 }
 
 // answer checks a device's proof for a challenge it was given, once. On a good
@@ -257,6 +413,8 @@ type connectStatus struct {
 	P2P       bool   `json:"p2p"`             // peer to peer is on
 	CanTurnOn bool   `json:"canTurnOn"`       // this person may turn it on
 	Other     string `json:"other,omitempty"` // a way in set up by hand: a private network or the internet
+	// Hint is what to do about it, when this server can tell: in a container, the port to publish.
+	Hint string `json:"hint,omitempty"`
 }
 
 func (s *Server) connectStatus(r *http.Request) connectStatus {
@@ -291,7 +449,39 @@ func (s *Server) connectStatus(r *http.Request) connectStatus {
 	if st.Other != "" && st.Away != "yes" {
 		st.Away, st.Words = "yes", "Devices away from home can connect."
 	}
+	// In a container, the peer-to-peer port is reached only if it was published as well as the web port (the
+	// stock compose file published only the web port before 0.8.5), and forwarded on the router or helped by a
+	// WittyRelay: from inside, the server can't ask the router itself.
+	if node != nil && ffmpeg.InContainer() {
+		port := node.Port()
+		if _, ip, bridged := connectHome(r); bridged && !hostPortOpen(ip, port) {
+			// On Docker's bridge network, with the page opened at the host's address: that address's port answers
+			// only if Docker publishes it. Nothing answering there is the owner's 0.8.4 setup exactly.
+			st.Hint = i18n.F("Port {port} isn't published from Docker, so devices away from home can't connect peer to peer. Add \"{port}:{port}/tcp\" and \"{port}:{port}/udp\" to ports: in your compose file and recreate the container, then forward the port on your router or use your own WittyRelay. Devices at home can scan the QR code.",
+				"port", fmt.Sprint(port))
+			if st.Away != "yes" {
+				st.Away, st.Words = "no", i18n.T("Devices away from home can't connect right now.")
+			}
+		} else if st.Away != "yes" {
+			st.Hint = i18n.F("This server runs in a container. For devices away from home, its peer-to-peer port {port} (UDP and TCP) has to be published as well as the web port, and forwarded on your router, or use your own WittyRelay. Devices at home can scan the QR code.",
+				"port", fmt.Sprint(port))
+		}
+	}
 	return st
+}
+
+// hostPortOpen says whether the container's host answers on a TCP port: Docker publishes it to this container (it
+// answers here, through the host) or nothing does. Quick: refused at once, or a short wait on a network that drops.
+func hostPortOpen(ip netip.Addr, port int) bool {
+	if !ip.IsValid() || port <= 0 {
+		return false
+	}
+	c, err := net.DialTimeout("tcp", netip.AddrPortFrom(ip, uint16(port)).String(), 700*time.Millisecond)
+	if err != nil {
+		return false
+	}
+	_ = c.Close()
+	return true
 }
 
 // GET /api/connect: whether devices can connect from away, in words.
@@ -355,7 +545,17 @@ func (s *Server) handleConnectOffer(w http.ResponseWriter, r *http.Request) {
 	if clean, err := p2p.CleanJoinCode(code); err == nil {
 		logging.AddSecret(clean)
 	}
-	out := map[string]any{"code": code, "expiresInSec": int(connectTTL.Seconds()), "user": target, "homeAddresses": s.homeURLs()}
+	// Where devices at home find this server: the address this page was opened at first. In a container on
+	// Docker's bridge network the server's own addresses are the container's, which nothing else reaches.
+	home, homeIP, bridged := connectHome(r)
+	homes := s.homeURLs()
+	if bridged {
+		homes = []string{}
+	}
+	if home != "" && !slices.Contains(homes, home) {
+		homes = append([]string{home}, homes...)
+	}
+	out := map[string]any{"code": code, "expiresInSec": int(connectTTL.Seconds()), "user": target, "homeAddresses": homes}
 	// From away as well: the link. A profile kept at home has no use for it.
 	away := false
 	if node := s.p2pNode(); node != nil && accessFor(target).Can(library.FeatureRemote) {
@@ -363,9 +563,19 @@ func (s *Server) handleConnectOffer(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			s.p2pInviteOpened()
 			logging.AddSecret(secret)
-			inv := p2p.Invite{ServerID: node.ID(), Secret: secret, Name: s.ServerName(r.Context()), Addrs: inviteAddrs(node.Addrs())}
+			addrs := node.Addrs()
+			if bridged {
+				addrs = append(hostHints(homeIP, node.Port()), addrs...)
+			}
+			own := s.ownRelayIDs(r.Context())
+			inv := p2p.Invite{ServerID: node.ID(), Secret: secret, Name: s.ServerName(r.Context()), Addrs: inviteAddrs(addrs, own)}
 			out["link"] = inv.String()
-			out["qrLink"] = qrInvite(inv, s.homeURLs(), connectQRMax)
+			// The QR code is scanned by a device in the same room, so it holds the code shown beside it too.
+			qr := inv
+			if clean, err := p2p.CleanJoinCode(code); err == nil && home != "" {
+				qr.Home, qr.Code = home, clean
+			}
+			out["qrLink"] = qrInvite(qr, homes, own, connectQRMax)
 			away = true
 		} else {
 			s.Log.WarnContext(r.Context(), "a code was made for connecting a device, but no link to go with it", "cat", "p2p", "err", err)

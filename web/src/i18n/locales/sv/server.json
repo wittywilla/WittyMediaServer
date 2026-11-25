@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "det finns inte plats i {folder}: data behöver {need}, och {free} är ledigt",
   "the copy didn't match, so nothing was changed: {reason}": "kopian stämde inte, så inget ändrades: {reason}",
   "the choice couldn't be saved: {reason}": "valet kunde inte sparas: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "den nya platsen kunde inte sparas i {file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "den nya platsen kunde inte sparas i {file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "Det går inte att nå din server. Kontrollera att WittyMediaServer körs och att den här enheten når den: i samma nätverk eller via fjärråtkomst."
 }

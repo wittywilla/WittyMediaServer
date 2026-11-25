@@ -117,8 +117,10 @@ await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900
 
 // 6. The From away page is the same screen.
 await page.go(server + '/away')
-await page.until(`document.querySelector('.cd h2')`, 15000, 'Connect a device on the From away page')
+// The page's title says Connect a device, so the card under it doesn't say it again (#678).
+await page.until(`document.querySelector('.cd .cd-who')`, 15000, 'Connect a device on the From away page')
 expect('From away is the same screen', (await text()).includes('Show a code'))
+expect('From away says Connect a device once', (await page.eval(`document.querySelector('main').innerText`)).split('Connect a device').length - 1 === 1, await page.eval(`document.querySelector('main').innerText`))
 await shot('9-away-page')
 await api('DELETE', '/connect/offer')
 

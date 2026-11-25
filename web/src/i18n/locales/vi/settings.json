@@ -2208,5 +2208,8 @@
   },
   "{count} things turned off": {
     "other": "Đã tắt {count} mục"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Mọi cài đặt và khóa API, Truy cập từ xa, bộ thu TV, kênh và lịch ghi hình.",
+  "Remote access": "Truy cập từ xa",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Đăng nhập sẽ yêu cầu thêm mã 6 chữ số từ một ứng dụng trên điện thoại, nên mật khẩu bị đánh cắp là không đủ. Đây là tùy chọn, và đáng dùng nếu bạn dùng Truy cập từ xa. Ứng dụng xác thực nào cũng được."
 }

@@ -466,5 +466,6 @@
     "one": "נשאר עוד {count} ניסיון לפני שהכניסה מסתיימת.",
     "two": "נשארו עוד {count} ניסיונות לפני שהכניסה מסתיימת.",
     "other": "נשארו עוד {count} ניסיונות לפני שהכניסה מסתיימת."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "כבוי. בבית זה בסדר: תעודה צריכה שם דומיין, ולכן היא מוגדרת בגישה מרחוק אם רוצים להגיע לשרת מבחוץ."
 }

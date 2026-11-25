@@ -210,6 +210,11 @@ func (s *LiveSession) logID() string {
 func (m *Manager) newLive(spec LiveSpec) *LiveSession {
 	if spec.SegmentSec <= 0 {
 		spec.SegmentSec = 4
+		if m.small() {
+			// A small machine: the stream is ready after two segments, so shorter ones are a quicker
+			// tune-in (smallLiveSegmentSec).
+			spec.SegmentSec = smallLiveSegmentSec
+		}
 	}
 	if spec.WindowSec <= 0 {
 		spec.WindowSec = 300
@@ -517,6 +522,17 @@ func (s *LiveSession) loop() {
 	}
 }
 
+// On a small machine (Manager.small: up to four processors or 4 GB), a live picture the processor
+// converts uses smallLivePreset unless a preset was asked for, at most softwareMaxHeight lines, and
+// streams are cut in smallLiveSegmentSec segments. A live stream has no store ahead to fall back on: at
+// 2 processors, 1080p HEVC 10-bit converted with veryfast came at about 0.9 times real time, and the
+// picture stood still at every tune-in; ultrafast makes it at 1.7 times. Shorter segments make the
+// two a stream needs before it is ready come sooner.
+const (
+	smallLivePreset     = "ultrafast"
+	smallLiveSegmentSec = 2
+)
+
 // copyFromKeyframe starts a copied picture that joins a file part way through at the keyframe at
 // or before the place, and plays on that much longer, so the programme still ends where it should.
 // A copy can only start at a keyframe: from anywhere else the picture starts at the one before the
@@ -618,12 +634,21 @@ func (s *LiveSession) liveArgs(in *LiveInput, run int, burst bool) []string {
 func (s *LiveSession) liveArgsHW(in *LiveInput, run int, burst bool) ([]string, hwChoice) {
 	sp := s.Spec
 	args := []string{"-hide_banner", "-loglevel", "warning", "-nostdin", "-y", "-max_error_rate", "1"}
-	hc := s.m.chooseHW(sp.Quality, sp.Preset, s.fallback.Load(), hwSource{codec: in.VideoCodec, pixFmt: in.PixFmt, videoFilter: in.VideoFilter,
+	preset := sp.Preset
+	small := s.m.small()
+	if small && preset == "" {
+		preset = smallLivePreset // only libx264 takes it (chooseHW)
+	}
+	hc := s.m.chooseHW(sp.Quality, preset, s.fallback.Load(), hwSource{codec: in.VideoCodec, pixFmt: in.PixFmt, videoFilter: in.VideoFilter,
 		cpuOnly: in.CopyVideo || in.Slate || len(sp.Quality.VideoArgs) > 0})
 	plan := hc.plan
+	maxHeight := sp.MaxHeight
+	if small && !hc.onGPU && !hardware(plan.Name) && !in.CopyVideo && (maxHeight == 0 || maxHeight > softwareMaxHeight) && in.Height > softwareMaxHeight+8 {
+		maxHeight = softwareMaxHeight // as a film's conversion on a small machine (CapForMachine)
+	}
 	outHeight := in.Height
-	if sp.MaxHeight > 0 && (outHeight == 0 || sp.MaxHeight < outHeight) {
-		outHeight = sp.MaxHeight
+	if maxHeight > 0 && (outHeight == 0 || maxHeight < outHeight) {
+		outHeight = maxHeight
 	}
 	decThreads, encThreads := ffmpeg.StreamThreads(outHeight)
 	if ownThreads(sp.Quality) {
@@ -684,15 +709,15 @@ func (s *LiveSession) liveArgsHW(in *LiveInput, run int, burst bool) ([]string, 
 			if in.VideoFilter != "" {
 				vf = append(vf, hc.pipe.Deinterlace(in.VideoFilter))
 			}
-			scale, _ := hc.pipe.Scale(sp.MaxHeight, "nv12")
+			scale, _ := hc.pipe.Scale(maxHeight, "nv12")
 			vf = append(vf, scale, "setsar=1")
 		} else {
 			if in.VideoFilter != "" {
 				vf = append(vf, in.VideoFilter)
 			}
 			vf = append(vf, "scale=trunc(iw*sar/2)*2:ih") // H.264 refuses an odd width, and widescreen NTSC comes to 853
-			if sp.MaxHeight > 0 {
-				vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", sp.MaxHeight))
+			if maxHeight > 0 {
+				vf = append(vf, fmt.Sprintf("scale=-2:'min(ih,%d)'", maxHeight))
 			}
 			vf = append(vf, "setsar=1", "format="+plan.PixFmt)
 			if plan.Upload != "" {
@@ -907,7 +932,13 @@ func (s *LiveSession) addSegment(file string, dur float64) {
 		}
 	}
 	s.segs = s.segs[drop:]
-	if !s.isRdy && len(s.segs) >= 2 {
+	// Ready once there are two segments, or one of a small machine's short ones: the first run is made
+	// ahead of real time (its start-up burst), so the next comes well before a player needs it.
+	need := 2
+	if s.Spec.SegmentSec <= smallLiveSegmentSec {
+		need = 1
+	}
+	if !s.isRdy && len(s.segs) >= need {
 		s.isRdy = true
 		close(s.ready)
 	}

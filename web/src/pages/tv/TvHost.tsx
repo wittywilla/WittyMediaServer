@@ -62,6 +62,14 @@ export default function TvHost() {
     if (!url || !ready) return
     const v = liveVideo()
     let st = freshGuard(), prev: Sample | null = null, mutedBefore = v.muted
+    // A new stream is heard from its first picture: the sound waits (the guard's restore gives it back),
+    // and comes back after a few seconds whatever happens. A hidden page plays sound alone, so it doesn't wait.
+    let holding: ReturnType<typeof setTimeout> | undefined
+    if (!v.muted && !document.hidden) {
+      v.muted = true
+      st = { ...st, silenced: true }
+      holding = setTimeout(() => { if (st.silenced) { v.muted = mutedBefore; st = { ...st, silenced: false } } }, 4000)
+    }
     const t = setInterval(() => {
       // A hidden page, or a video parked out of it, shows no pictures on purpose (a channel kept playing in the
       // background is sound alone): that's not a stall.
@@ -76,7 +84,7 @@ export default function TvHost() {
         case 'restore': v.muted = mutedBefore; break
       }
     }, 250)
-    return () => { clearInterval(t); if (st.silenced) v.muted = mutedBefore }
+    return () => { clearInterval(t); clearTimeout(holding); if (st.silenced) v.muted = mutedBefore }
   }, [url, ready])
 
   // Live sync: everyone on a channel at the same moment, "the server's time now, less the

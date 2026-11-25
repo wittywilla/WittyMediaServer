@@ -5,6 +5,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Apps can say what connecting is doing.** Each step in `pkg/connectsteps/steps.json` gains `doing`, the words an
+  app shows while on it ("Looking for a way to reach your server…"), and the file gains `slow`, a hint shown after ten
+  seconds ("This can take up to a minute the first time from away."), for WittyMediaClient's connecting screen
+  (wittywilla/WittyMediaClient#173).
 - **Recent can be clicked into again (WittyPlay).** Moving the mouse across Recent's games kept changing which one was
   chosen, and the chosen one grows, so the game under the pointer moved and a click landed on another, or opened it at
   once. The fix for this (#547, for every row with a details panel or a growing card) was undone by a later merge (#558).

@@ -12,6 +12,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   server has a stream ready in 2.3 to 3.5 s for an HDR10 channel (was 6 to 11 s), 1.6 to 2.1 s for HEVC 10-bit and 1.4
   to 1.9 s for H.264. Larger machines and graphics chips are as before.
 
+- **The processor's graphics drivers are called what they are.** Since 0.8.5 the image has Mesa's software drivers
+  (llvmpipe for OpenGL, lavapipe for Vulkan), which WittyPlay uses to draw GameCube and Wii with no graphics card. The
+  Graphics status (Settings → Live transcoding, `wittymediaserver hardware`, the log) now says "Software (no graphics
+  chip)" for them, never a yes, including on a chip of another make that only they could serve. Nothing in transcoding
+  uses Vulkan but HDR tone mapping, which refuses a software device; a test keeps it so (no Vulkan encoder, decode
+  pipeline or named decoder; FFmpeg's automatic decoder choice only alongside NVENC). The no-card CI run checks both.
 - **Recent can be clicked into again (WittyPlay).** Moving the mouse across Recent's games kept changing which one was
   chosen, and the chosen one grows, so the game under the pointer moved and a click landed on another, or opened it at
   once. The fix for this (#547, for every row with a details panel or a growing card) was undone by a later merge (#558).

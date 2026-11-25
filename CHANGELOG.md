@@ -17,6 +17,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   a moment before the channel just left; the little TV took that, dropped the channel playing and tuned it again a
   second later, at another point in it (and anyone who had paused or gone back lost their place). The guide now keeps
   the channel just left until the highlight reaches its row. `npm run test:tv-handover` checks the round trip.
+- **WittyTV: a picture that stands still while the sound plays on is put right.** The web player (and the apps that
+  show it) watches the pictures it presents. When the clock runs on for a second with no new one, as when a
+  decoder can't start at a tune-in or a programme join, the sound is silenced and the player seeks to where it is,
+  which starts sound and picture again together; the sound comes back with the picture. A few tries a stream at most,
+  and never for a hidden page playing sound alone.
 
 ## 0.8.5-alpha
 

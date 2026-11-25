@@ -40,6 +40,9 @@ p.add_argument('--home', default='')
 p.add_argument('--user', default='owner')
 p.add_argument('--password', default='')
 p.add_argument('--wait', type=int, default=150, help='seconds the app is given to finish pairing')
+p.add_argument('--watch-connecting', action='store_true', help='check the connecting screen (WittyMediaClient #173) from the link until signed in')
+p.add_argument('--slow', action='store_true', help="slow the emulator's own network (GPRS delay, EDGE speed) once the link is typed")
+p.add_argument('--expect', default='pass', help='pass, or public-relay-only: the app has to end naming that reason')
 A = p.parse_args()
 T0 = A.t0 or int(time.time() * 1000)
 shot_n = 0
@@ -313,6 +316,81 @@ def join_screen():
         tap('Join with a link or code')
 
 
+BACK = r'^(Choose a server|On your network|Used before|Join with a link or code|Invite link)$'
+STEPS = ('Code or link read', 'Server found', 'Encrypted connection made', 'Signed in')
+
+
+def connecting(since):
+    """WittyMediaClient #173: from the link until signed in, the app stays on its connecting screen: the title the
+    whole time, its four steps each Done, In progress or Didn't work (or nothing yet), the Done count rising, and
+    never the list of servers or the screen the link was typed on. With --expect public-relay-only, it has to end
+    on the connection check naming that reason (in the connector's words) on the secure step."""
+    end = time.time() + A.wait
+    return _connecting(since, end)
+
+
+def _connecting(since, end):
+    seen, dones, gaps, last_words, slow_note, foot = 0, [], 0, '', False, ''
+    last = []
+    while time.time() < end:
+        ns = nodes()
+        if not ns or dismiss(ns):
+            continue
+        t = texts(ns)
+        last = t
+        if 'Connecting to your server' in t:
+            seen += 1
+            done = sum(1 for x in t if x == 'Done')
+            failed = [x for x in t if x == "Didn't work"]
+            words = next((x for x in t if x.endswith('…') and x not in STEPS), '')
+            slow_note = slow_note or any('up to a minute' in x for x in t)
+            foot = next((x for x in t if x.endswith('so far')), foot)
+            if not dones or done != dones[-1] or words != last_words:
+                step('connecting-screen', True, {'done': done, 'didntWork': len(failed), 'words': words, 'foot': foot,
+                                                 'steps': [x for x in t if x in STEPS], 'afterMs': int((time.time() - since) * 1000)})
+            dones.append(done)
+            last_words = words
+            if failed and A.expect == 'public-relay-only' and any('only through a public relay' in x or 'public-relay-only' in x for x in t):
+                step('connecting-screen', True, {'done': done, 'didntWork': len(failed), 'words': words, 'screen': t[:25]})
+                return True, {'afterMs': int((time.time() - since) * 1000), 'connectingSeen': seen, 'endedOn': 'the connecting screen',
+                              'secureStepFailed': "Didn't work" in t[t.index('Encrypted connection made'):t.index('Encrypted connection made') + 3] if 'Encrypted connection made' in t else None}
+            if failed and A.expect == 'pass':
+                return False, {'shown': 'a step that didn\'t work: ' + ' / '.join(t[:25]), 'afterMs': int((time.time() - since) * 1000)}
+        elif seen:
+            if A.expect == 'public-relay-only' and any('only through a public relay' in x or 'public-relay-only' in x for x in t):
+                secure = t.index('Encrypted connection made') if 'Encrypted connection made' in t else -1
+                return True, {'afterMs': int((time.time() - since) * 1000), 'connectingSeen': seen, 'doneCounts': sorted(set(dones)),
+                              'endedOn': next((x for x in t if 'connect from away' in x), t[:2]),
+                              'secureStepDidntWork': secure >= 0 and "Didn't work" in t[secure:secure + 4],
+                              'reasonNamed': 'public-relay-only' in t}
+            # The connection check names the step that didn't work, with a "Choose a server" button at its foot:
+            # only the list itself, or the screen the link was typed on, counts as going back.
+            back = [x for x in t if re.search(BACK, x)] if not any('connect from away' in x for x in t) else []
+            if back:
+                return False, {'shown': f'left the connecting screen for {back} before signing in', 'screen': t[:25],
+                               'afterMs': int((time.time() - since) * 1000)}
+            if A.expect == 'pass' and signed_in_home(ns):
+                rose = len(set(dones)) >= 2 and max(dones) > dones[0]
+                d = {'afterMs': int((time.time() - since) * 1000), 'connectingSeen': seen, 'doneCounts': sorted(set(dones)),
+                     'slowNote': slow_note, 'lastFoot': foot}
+                if not rose:
+                    d['shown'] = f'the steps did not tick off on screen: {sorted(set(dones))}'
+                return rose, d
+            if A.expect == 'public-relay-only':
+                named = any('only through a public relay' in x or 'public-relay-only' in x for x in t)
+                if named:
+                    return True, {'afterMs': int((time.time() - since) * 1000), 'connectingSeen': seen, 'screen': t[:25],
+                                  'didntWork': any(x == "Didn't work" for x in t)}
+            gaps += 1
+        elif time.time() - since > 15 and find('^(Join|Connect)$', ns):
+            press(find('^(Join|Connect)$', ns))
+        time.sleep(0.5)
+    if A.expect == 'public-relay-only' and any('only through a public relay' in x for x in last):
+        return True, {'afterMs': int((time.time() - since) * 1000), 'connectingSeen': seen, 'screen': last[:25]}
+    return False, {'shown': 'nothing settled' if seen else 'the connecting screen never showed', 'connectingSeen': seen,
+                   'doneCounts': sorted(set(dones)), 'screen': last[:25], 'afterMs': int((time.time() - since) * 1000)}
+
+
 def outcome(since):
     """Waits for what the app ends on, and says how soon after `since` it got there."""
     end = time.time() + A.wait
@@ -385,6 +463,11 @@ def main():
         # parser takes as they are.
         type_into('Invite link|link', link.replace('%2F', '/').replace('%2f', '/').replace('%3A', ':').replace('%3a', ':'))
         step('link-entered', True, {'ms': int((time.time() - t) * 1000)})
+        if A.slow:
+            # A phone far away, through a relay: the connecting screen is seen for a while.
+            adb('emu', 'network', 'delay', 'gprs', check=False)
+            adb('emu', 'network', 'speed', 'edge', check=False)
+            step('network-slowed', True, {'delay': 'gprs', 'speed': 'edge'})
         sh('input keyevent KEYCODE_ENTER', check=False)
         if find('^(Join|Connect)$'):
             tap('^(Join|Connect)$')
@@ -400,7 +483,7 @@ def main():
             f.write(code)
         os.rename(A.codefile + '.tmp', A.codefile)
         since = time.time()
-    ok, d = outcome(since)
+    ok, d = connecting(since) if A.watch_connecting else outcome(since)
     shot('outcome')
     save_logs('end')
     step('app-outcome', ok, d)

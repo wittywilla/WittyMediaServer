@@ -78,6 +78,12 @@ UPLINK=
 if ! lab_net "$NET" "$UPLINK" >"$OUT/net.log" 2>&1; then
   die "the networks could not be made: $(tail -3 "$OUT/net.log")"
 fi
+# PL_NETEM: the phone's network slowed at its router (tc netem arguments, such as "delay 400ms 100ms loss 1%"):
+# a phone far away, so that what the app shows between steps lasts long enough to be seen.
+if [ -n "${PL_NETEM:-}" ]; then
+  # shellcheck disable=SC2086
+  nsx pl-rc tc qdisc add dev wan root netem $PL_NETEM || die "netem $PL_NETEM refused"
+fi
 sstep network-ready true "{\"network\":\"$NET\",\"uplink\":\"${UPLINK:-no}\",\"ipv6\":\"$PL_V6\"}"
 
 RELAY=
@@ -281,9 +287,14 @@ EMUPID=
 if [ -n "$EMU" ]; then
   # The app is opened now (and, for an upgrade, used at home first); the link reaches it later, by file.
   chown "$RUNAS" "$OUT"
-  emu python3 "$HERE/emuphone.py" --serial "$EMU" --apk "${PL_APK:-}" --old-apk "${PL_OLD_APK:-}" --mode "$WAY" \
+  emode=link; [ "$WAY" = code ] && emode=code
+  # PL_EMU_ARGS: more for the emulator's phone, such as "--watch-connecting --slow" (the connecting screen,
+  # WittyMediaClient #173). Where no way through can exist, it has to end naming public-relay-only.
+  read -r -a extra <<<"${PL_EMU_ARGS:-}"
+  case "$NET" in public-cone | public-sym | docker-unpub) extra+=(--expect public-relay-only) ;; esac
+  emu python3 "$HERE/emuphone.py" --serial "$EMU" --apk "${PL_APK:-}" --old-apk "${PL_OLD_APK:-}" --mode "$emode" \
     --linkfile "$PHONE/link.txt" --codefile "$PHONE/code.txt" --state "$CSTATE" --steps "$STEPS" --t0 "$T0" --out "$OUT" \
-    --home "http://192.168.3.1:$PL_HTTP" --user owner --password "$PW" >"$OUT/phone.log" 2>&1 &
+    --home "http://192.168.3.1:$PL_HTTP" --user owner --password "$PW" --wait "${PL_EMU_WAIT:-240}" "${extra[@]}" >"$OUT/phone.log" 2>&1 &
   EMUPID=$!
   if [ "$CSTATE" = upgrade ]; then
     for _ in $(seq 1 300); do [ -f "$OUT/at-home.done" ] || ! kill -0 "$EMUPID" 2>/dev/null && break; sleep 1; done

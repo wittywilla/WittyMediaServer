@@ -65,3 +65,13 @@ export function keepInStep(v: HTMLVideoElement): () => void {
   v.addEventListener('ratechange', changed)
   return () => { clearTimeout(timer); v.removeEventListener('ratechange', changed) }
 }
+
+// The fastest speed this video plays at on this server, when its conversion can't keep up with more
+// (pace.ts, sustainableRate): the speed menu offers nothing faster. Kept on the element, so a new film
+// starts without it; a 'wms-speedcap' event tells the menu it changed.
+const caps = new WeakMap<HTMLMediaElement, number>()
+export const speedCap = (v: HTMLMediaElement | null | undefined): number => (v && caps.get(v)) || Infinity
+export function setSpeedCap(v: HTMLMediaElement, cap: number | null) {
+  if (cap == null) caps.delete(v); else caps.set(v, cap)
+  v.dispatchEvent(new Event('wms-speedcap'))
+}

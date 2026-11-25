@@ -16,6 +16,8 @@ import { t, tk, tx } from '../i18n'
 type HW = { name: string; label: string; vendor: string; compiled: boolean; tested: boolean; working: boolean; error?: string; reason?: string; device?: string }
 // A graphics device the server found, and why it can't use one (Linux and FreeBSD).
 type GPU = { path: string; vendor?: string; driver?: string; group: number; mode?: string; usable: boolean; problem?: string; fix?: string }
+type Check = { ok: boolean; detail?: string }
+type Graphics = { vaapi: Check; egl: Check; vulkan: Check; container: boolean }
 type Mode = 'easy' | 'advanced' | 'expert'
 // Other work the graphics chip can take from the processor, each tested with a tiny real job.
 type GPUPath = { id: string; label: string; kind: string; encoder?: string; tested: boolean; working: boolean; off: boolean; device?: string; reason?: string; error?: string }
@@ -27,13 +29,15 @@ export default function TranscodeSettings() {
   const [hw, setHw] = useState<HW[]>([])
   const [hwDone, setHwDone] = useState(false)
   const [gpus, setGpus] = useState<GPU[]>([])
+  const [graphics, setGraphics] = useState<Graphics | null>(null)
   const [paths, setPaths] = useState<GPUPath[]>([])
   const [inUse, setInUse] = useState<InUse | null>(null)
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
-    const load = () => api.get<{ hardware?: HW[]; hwTested?: boolean; gpus?: GPU[]; gpuPaths?: GPUPath[]; gpuInUse?: InUse }>('/system').then((r) => {
+    const load = () => api.get<{ hardware?: HW[]; hwTested?: boolean; gpus?: GPU[]; gpuPaths?: GPUPath[]; gpuInUse?: InUse; graphics?: Graphics }>('/system').then((r) => {
       setHw(r.hardware || [])
       setGpus(r.gpus || [])
+      setGraphics(r.graphics || null)
       setPaths(r.gpuPaths || [])
       setInUse(r.gpuInUse || null)
       setHwDone(!!r.hwTested)
@@ -115,6 +119,20 @@ export default function TranscodeSettings() {
                 })()} {t('A file the chip can’t decode, or a job that fails on it, goes on with the processor instead, without stopping.')}
               </p>
             )}
+          </div>
+        )}
+        {graphics && (
+          <div className="hw-devices hw-graphics">
+            <h4>{t('Graphics')}</h4>
+            <ul>
+              {([[t('Video encoding (VA-API, Quick Sync, NVENC)'), graphics.vaapi], [t('Games: OpenGL (EGL)'), graphics.egl], [t('Games: Vulkan'), graphics.vulkan]] as [string, Check][]).map(([name, c]) => (
+                <li key={name}>
+                  {name}
+                  <div className={'hw-status' + (c.ok ? ' ok' : ' bad')}>{c.ok ? t('Yes: {what}', { what: c.detail || '' }) : tx(c.detail || t('No'))}</div>
+                </li>
+              ))}
+            </ul>
+            {graphics.container && <p className="muted">{t('In Docker, the graphics chip is passed in with /dev/dri and its group: see the Games and Hardware transcoding parts of the Docker guide.')}</p>}
           </div>
         )}
         {gpus.length > 0 && (

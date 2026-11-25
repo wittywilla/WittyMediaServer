@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -51,6 +52,7 @@ func TestBreaksInAProgramme(t *testing.T) {
 
 func TestStartOverRoutes(t *testing.T) {
 	h, admin, kid, s := tvServer(t)
+	s.Channels.Loc = zoneAt(startOverClock())
 	_, video, _ := tvWorld(t, s)
 	for _, p := range []string{"/api/tv/lib-1/startover", "/api/tv/lib-1/timeline", "/api/tv/lib-1/shift/v/playlist.m3u8", "/api/tv/lib-1/shift/v/seg/x.ts"} {
 		if w := tvCall(h, "GET", p, "", ""); w.Code != 401 {
@@ -145,6 +147,7 @@ func TestStartOverRoutes(t *testing.T) {
 // plays is no longer allowed (parental_live.go, asked at the stream's moment of the schedule).
 func TestStartOverKeepsTheProfilesLimits(t *testing.T) {
 	h, admin, _, s := tvServer(t)
+	s.Channels.Loc = zoneAt(startOverClock())
 	_, video, _ := tvWorld(t, s)
 	ctx := context.Background()
 	rate := func(r string) {
@@ -187,4 +190,30 @@ func TestStartOverKeepsTheProfilesLimits(t *testing.T) {
 	if w := tvCall(h, "GET", "/api/tv/"+key+"/startover?viewer=tv1&from="+from, admin, ""); w.Code != 200 {
 		t.Errorf("start over, no limits: %d %s", w.Code, w.Body)
 	}
+}
+
+// zoneAt is a time zone where it is hh:mm now. A channel made in a test starts at midnight of the
+// day it is made in the server's zone, so a test that starts over ten minutes back would find
+// nothing on just after midnight (CI's runs at 00:0x UTC). In a zone where it is midday, the day
+// started hours ago, whenever the test runs.
+func zoneAt(hh, mm int) *time.Location {
+	now := time.Now().UTC()
+	off := (hh*3600 + mm*60) - (now.Hour()*3600 + now.Minute()*60 + now.Second())
+	for off < -12*3600 {
+		off += 24 * 3600
+	}
+	for off > 14*3600 {
+		off -= 24 * 3600
+	}
+	return time.FixedZone("test", off)
+}
+
+// startOverClock is the local time the start-over tests run at: midday, or WMS_TEST_CLOCK=hh:mm
+// to try another (00:05 shows what midnight did to them).
+func startOverClock() (int, int) {
+	var hh, mm int
+	if _, err := fmt.Sscanf(os.Getenv("WMS_TEST_CLOCK"), "%d:%d", &hh, &mm); err == nil {
+		return hh, mm
+	}
+	return 12, 0
 }

@@ -12,6 +12,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   and a second click, a double-click or Enter opens; arrows, a remote and a pad move the choice as before. The chosen card
   is marked `aria-current`. A unit test fails if a row chooses on hover again, and `npm run test:pointer` checks Recent,
   Consoles and All games in a real browser (mouse across, click, click again, focus and Enter).
+- **Live TV: +30 is back, up to live.** At the owner's request, the jump forward returns to the live player (#688 had
+  removed it). +30, the timeline, Right, Fast forward and Next (outside an ad break) go ahead no further than the live
+  edge, and +30 is greyed out there. Back to live stays.
 - **WittyTV: no frozen picture at tune-in on open-GOP H.264 (#760).** Some H.264 encodes, many Blu-ray ones among
   them, mark I-frames that aren't IDR frames as keyframes, with one IDR at the very start. A channel copied them as
   they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.

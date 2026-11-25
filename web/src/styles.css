@@ -843,7 +843,7 @@ h3.section-title { font-size: var(--text-lg); margin-top: var(--sp-6); }
 .content:has(.legal-note:not(.legal-foot)) .legal-foot, .content:has(.set-shell) .legal-foot { display: none; }
 /* Wide, the settings menu has the version at its foot: the page's own would say it twice, and push the menu up under
    the top bar at the end of a short page. */
-@media (min-width: 1281px) { .content:has(.set-shell) > .page-foot { display: none; } }
+@media (min-width: 761px) { .content:has(.set-shell) > .page-foot { display: none; } }
 /* A bar under the top bar runs the window's width, and what's on it (the words and their button) is centred as a
    group, the same in every bar (docs/DESIGN.md, Centring, #609). */
 .legal-ack-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-2) var(--sp-4); background: var(--bg-2); border-bottom: 1px solid var(--border); color: var(--fg-2); font-size: var(--text-sm); }

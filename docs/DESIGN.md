@@ -256,11 +256,18 @@ A page has one `h1`, which the announcer reads aloud on every page change: `.too
 One rule for every page, here and in the apps (WittyMediaClient's docs/APP-DESIGN.md says the same, #609):
 
 - **The page's column is centred in the window.** Nothing leaves an empty band on one side only. Settings centres its
-  menu and page together, and the page alone where the menu is a page of its own.
+  menu and page together, and the page alone on a phone, where the menu is a page of its own.
 - **Headings, lead text, single buttons, notices and footers are centred**: a setup step's title and lead, From away,
   the general legal note at a page's foot.
 - **A Settings page reads from one edge**: its title, lead and buttons (`PageHead`) start where its sections start, and
-  so does what's in its cards (Connect a device on Remote access). Titles are in sentence case, as the menu is.
+  so does what's in its cards (Connect a device on Remote access). Titles are in sentence case, as the menu is. Every
+  Settings page's title starts at the same place, so moving between them nothing jumps (the page keeps the scroll
+  bar's room whether it scrolls or not). A module's section is held to the same.
+- **Every Settings page has the menu** (#763): beside it on a computer, a laptop and a tablet (wider than 760px), and on
+  a phone the page alone with Back to the menu. A row whose page has an address elsewhere (Sign in a TV, Connect a
+  device, Your year, Collections, a module's own page) opens inside Settings at `/settings/open/<its address>`
+  (`pages/settings/open.ts`), with Settings' head in place of its own. A module's section that opens a screen of its
+  own over the whole window (WittyPlay's console) is a Settings page saying so, with a button that opens it.
   `npm run test:layout` fails a page that doesn't.
 - **A page inside the app reads from one edge too** (Help, Collections, a library, Games…): a spec page's head is
   centred only on a standalone page (`StandaloneCard`) or a page that is one centred card; otherwise it starts where its

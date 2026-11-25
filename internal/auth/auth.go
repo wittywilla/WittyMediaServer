@@ -579,24 +579,6 @@ func (s *Service) Resolve(ctx context.Context, token string) (*User, error) {
 	return s.resolveStored(ctx, storedToken(token))
 }
 
-// StoredToken is what the database keeps of a session token (its hash), for
-// what must remember a sign-in without keeping a working copy of it: an invite
-// that lasts only while whoever made it stays signed in.
-func StoredToken(tok string) string {
-	if strings.HasPrefix(tok, hashedPrefix) {
-		return tok
-	}
-	return storedToken(tok)
-}
-
-// ResolveStored is Resolve for a token kept as StoredToken made it.
-func (s *Service) ResolveStored(ctx context.Context, stored string) (*User, error) {
-	if !strings.HasPrefix(stored, hashedPrefix) {
-		return nil, ErrInvalid
-	}
-	return s.resolveStored(ctx, stored)
-}
-
 func (s *Service) resolveStored(ctx context.Context, stored string) (*User, error) {
 	var userID, expires int64
 	var homeOnly bool

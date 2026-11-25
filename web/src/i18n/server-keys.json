@@ -1675,7 +1675,6 @@
   "This check crashed",
   "This check only reads. Nothing was changed.",
   "This check stopped unexpectedly: {title}",
-  "This code expired because the server restarted. Show a new code on the server.",
   "This computer couldn't reach {base}. Many routers don't allow that from inside the house, so this doesn't mean it fails from outside: run the test with your phone.",
   "This computer doesn't let the server use port {port}. Windows keeps some ranges for itself; choose another.",
   "This computer doesn't let the server use port {port}: ports below 1024 need extra rights. Choose one from 1024 up.",

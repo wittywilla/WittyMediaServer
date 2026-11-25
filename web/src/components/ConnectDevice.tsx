@@ -53,26 +53,6 @@ export default function ConnectDevice({ titled = true }: { titled?: boolean } = 
   }, [offer])
   // A code that ran out is gone: the screen goes back to its button.
   useEffect(() => { if (offer && now >= offer.until) setOffer(null) }, [offer, now])
-  // Codes don't outlive a restart of the server (its links do): one that a restart ended is replaced by a new
-  // one at once, rather than left on the screen for a device to be told it has expired.
-  const offerShown = !!offer
-  useEffect(() => {
-    if (!offerShown) return
-    let busyAsking = false
-    const timer = setInterval(async () => {
-      if (document.hidden || busyAsking) return
-      busyAsking = true
-      try {
-        const st = await api.get<{ open: boolean; restarted: boolean }>('/connect/offer')
-        if (!st.open && st.restarted) {
-          toast(t('The server restarted, which ended that code. Here is a new one.'))
-          setOffer(null)
-          await make()
-        }
-      } catch { /* the server is restarting: asked again in a moment */ } finally { busyAsking = false }
-    }, 5000)
-    return () => clearInterval(timer)
-  }, [offerShown]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const got = (o: Omit<Offer, 'until'>) => { setNow(Date.now()); setOffer({ ...o, until: Date.now() + o.expiresInSec * 1000 }) }
   const make = async () => {

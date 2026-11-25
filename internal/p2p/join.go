@@ -229,41 +229,16 @@ type joins struct {
 // invite is worth, and whatever ends the invite ends the code. It returns as
 // soon as the code is waiting; telling the address book goes on behind.
 func (n *Node) OfferJoin(code, secret string) error {
-	find, proof, err := JoinKeysOf(code)
+	clean, err := CleanJoinCode(code)
 	if err != nil {
 		return err
 	}
-	return n.OfferJoinKeys(find, proof, secret, time.Now().Add(JoinTTL))
-}
-
-// JoinKeysOf is what a code typed into the server is kept as: its lookup key
-// (hex) and the key its proofs are made with. The code itself isn't needed
-// again, and isn't kept.
-func JoinKeysOf(code string) (find string, proof []byte, err error) {
-	clean, err := CleanJoinCode(code)
-	if err != nil {
-		return "", nil, err
-	}
-	keys := deriveJoin(clean)
-	return hex.EncodeToString(keys.find), keys.proof, nil
-}
-
-// OfferJoinKeys is OfferJoin for a code already turned into its keys, waiting
-// until expires: how a code typed in before a restart is offered again.
-func (n *Node) OfferJoinKeys(find string, proof []byte, secret string, expires time.Time) error {
 	if n.host.DHT == nil {
 		return ErrJoinNeedsDHT
 	}
-	findBytes, err := hex.DecodeString(find)
-	if err != nil || len(findBytes) == 0 || len(proof) == 0 {
-		return errors.New("not a code's keys")
-	}
-	keys := joinKeys{find: findBytes, proof: proof}
-	name := find
+	keys := deriveJoin(clean)
+	name := hex.EncodeToString(keys.find)
 	now := time.Now()
-	if !now.Before(expires) {
-		return nil
-	}
 	n.joins.mu.Lock()
 	if n.joins.open == nil {
 		n.joins.open = map[string]*pendingJoin{}
@@ -277,7 +252,7 @@ func (n *Node) OfferJoinKeys(find string, proof []byte, secret string, expires t
 		n.joins.mu.Unlock()
 		return ErrJoinBusy
 	}
-	n.joins.open[name] = &pendingJoin{proof: keys.proof, secret: secret, expires: expires}
+	n.joins.open[name] = &pendingJoin{proof: keys.proof, secret: secret, expires: now.Add(JoinTTL)}
 	n.joins.mu.Unlock()
 
 	n.wg.Add(1)
@@ -310,10 +285,6 @@ func (n *Node) OfferJoinKeys(find string, proof []byte, secret string, expires t
 // TakesCodes says a device showing a code could find this server: the address
 // book is on.
 func (n *Node) TakesCodes() bool { return n.host.DHT != nil }
-
-// JoinWaiting says a code (by its lookup key, as JoinKeysOf gives it) is still
-// waiting for its device here: not taken, not given up after wrong guesses.
-func (n *Node) JoinWaiting(find string) bool { return n.joinWaiting(find) }
 
 func (n *Node) joinWaiting(name string) bool {
 	n.joins.mu.Lock()
@@ -399,7 +370,7 @@ func (n *Node) handleJoin(s network.Stream) {
 	}
 	ctx, cancel := context.WithTimeout(n.ctx, 10*time.Second)
 	defer cancel()
-	res := n.cfg.Enrol(ctx, device.String(), EnrolRequest{V: 1, Secret: secret, Name: hello.Name, Platform: hello.Platform, FromJoin: true}, addr.IP)
+	res := n.cfg.Enrol(ctx, device.String(), EnrolRequest{V: 1, Secret: secret, Name: hello.Name, Platform: hello.Platform}, addr.IP)
 	if res.OK {
 		res.Addrs = n.Addrs()
 	}

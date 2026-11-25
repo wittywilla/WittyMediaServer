@@ -114,10 +114,6 @@ type keeper struct {
 	mu    sync.Mutex
 	state State
 	waits []chan struct{} // closed when the state next changes
-	// kickSig is closed by the next restart: a try under way (a search of the
-	// address book can take most of a minute) gives up and starts again, so
-	// what changed (the server now lists this device) is acted on at once.
-	kickSig chan struct{}
 }
 
 func newKeeper(l link, clock Clock, onState func(State)) *keeper {
@@ -125,7 +121,7 @@ func newKeeper(l link, clock Clock, onState func(State)) *keeper {
 		clock = realClock{}
 	}
 	return &keeper{link: l, clock: clock, onState: onState, changed: make(chan struct{}, 1), kicked: make(chan struct{}, 1),
-		state: State{Path: PathConnecting}, kickSig: make(chan struct{})}
+		state: State{Path: PathConnecting}}
 }
 
 func poke(ch chan struct{}) {
@@ -141,25 +137,6 @@ func (k *keeper) noteChanged() { poke(k.changed) }
 // kick tells the keeper the network changed (Wi-Fi to mobile data, waking
 // from sleep): whatever it was waiting for, it looks again now.
 func (k *keeper) kick() { poke(k.kicked) }
-
-// restart is kick, and ends a try under way as well: for what the app says
-// changed (another network, or the server has just listed this device), not
-// for this node learning an address of its own, which happens several times
-// while a try is getting somewhere.
-func (k *keeper) restart() {
-	k.kick()
-	k.mu.Lock()
-	close(k.kickSig)
-	k.kickSig = make(chan struct{})
-	k.mu.Unlock()
-}
-
-// kickSignal is closed by the next restart.
-func (k *keeper) kickSignal() <-chan struct{} {
-	k.mu.Lock()
-	defer k.mu.Unlock()
-	return k.kickSig
-}
 
 func (k *keeper) get() State {
 	k.mu.Lock()

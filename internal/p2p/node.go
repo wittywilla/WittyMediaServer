@@ -134,17 +134,10 @@ type Node struct {
 	ownRelays      []OwnRelayStatus
 	ownCircuits    map[int][]ma.Multiaddr // this server's addresses through each WittyRelay it holds a place on
 	devicesChanged chan struct{}
-	registered     chan struct{}  // closed once each WittyRelay has been tried once
-	sentDevices    map[int]string // the list of devices each WittyRelay last took, as devicesKey made it
-
-	// RegisterNow's waiters, and the rounds of registration begun so far (wittyrelay.go).
-	regMu       sync.Mutex
-	regStarted  uint64
-	regWaiters  []regWaiter
-	regAsked    chan struct{}
-	refused     int
-	refusedNote time.Time
-	tries       *attempts // devices' tries at connecting, for the owner: attempts.go
+	registered     chan struct{} // closed once each WittyRelay has been tried once
+	refused        int
+	refusedNote    time.Time
+	tries          *attempts // devices' tries at connecting, for the owner: attempts.go
 }
 
 // StartNode starts the server's node. The feature is on from here on: it
@@ -161,7 +154,7 @@ func StartNode(cfg NodeConfig) (*Node, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	n := &Node{cfg: cfg, log: lg, ctx: ctx, cancel: cancel, started: time.Now(),
 		streams: map[peer.ID]int{}, buckets: map[network.Conn]*bucket{}, temp: map[peer.ID]time.Time{}, paths: map[peer.ID]string{},
-		devicesChanged: make(chan struct{}, 1), registered: make(chan struct{}), regAsked: make(chan struct{}, 1), tries: newAttempts(),
+		devicesChanged: make(chan struct{}, 1), registered: make(chan struct{}), tries: newAttempts(),
 		// An invite's secret is 128 bits, so these are not what keeps guessing
 		// out; they keep strangers from keeping the server busy.
 		enrolAll:  newWindow(60, time.Minute, 1),

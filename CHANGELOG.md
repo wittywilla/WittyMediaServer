@@ -105,6 +105,12 @@ Developer notes:
   "We'll be right back" card. They were drawn over the message and its buttons.
 - **The layout check runs as the phone app shows a page** (`LAYOUT_APP=1`, upright and on its side, Live TV's full-screen
   player and a channel's message included), in the smoke tests. It fails when Live TV doesn't reach a phone's sides.
+- **Music visualizer: an effect hears the music after Bars.** In Chrome, Edge and the desktop app, choosing a
+  WittyVisualizer effect while Bars was showing gave an effect that moved but heard only silence, and it stayed silent
+  for the next songs: Bars, handing over, switched off the copy of the sound the effect was listening to as well.
+- **Music visualizer on a server without WittyVisualizer.** An effect chosen earlier (or on another server) drew
+  nothing at all there; the player's own Bars now stand in. `npm run test:visualizer` checks every way into the full
+  player (mini player first, straight away, Next, pause and play, Bars then an effect, no module).
 
 ## 0.8.5-alpha
 

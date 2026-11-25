@@ -36,8 +36,13 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   sound, full screen and close; the resize corner and its − and + are for a mouse.
 - **The channel's banner clears the player's buttons on a phone on its side**: one low band with the number, the
   programme and how far through it is, instead of a box drawn beneath −10 and play.
+- **Live TV fills a phone's screen.** The page's side margins and the space round Live TV's panel were a frame of
+  empty space round every part of it on a 412-wide phone. Upright, the preview is the screen's width. A TV keeps its
+  overscan margin.
+- **The player's −10 and play step aside** while it shows a message (a channel that can't be watched) or a break's
+  "We'll be right back" card. They were drawn over the message and its buttons.
 - **The layout check runs as the phone app shows a page** (`LAYOUT_APP=1`, upright and on its side, Live TV's full-screen
-  player included), in the smoke tests.
+  player and a channel's message included), in the smoke tests. It fails when Live TV doesn't reach a phone's sides.
 
 ## 0.8.5-alpha
 

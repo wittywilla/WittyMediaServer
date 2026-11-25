@@ -447,3 +447,18 @@ html.tv-mode .ctv-skip-break { right: var(--space-xl); bottom: 200px; padding: v
   .ctv-banner-main:has(.ctv-banner-progress) :is(.ctv-banner-sub, .ctv-banner-next) { display: none; }
   .ctv-banner :is(.ctv-banner-legal, .ctv-banner-clock, .ctv-banner-more) { display: none; }
 }
+
+/* A phone (upright, or on its side) gives Live TV the whole width: the page's side margins and the space round its
+   panel were a frame of empty space round every part of it on a 412-wide screen (the owner's "padding round all the
+   WittyTV elements"). Upright, the preview is the screen's width, not the size chosen with a mouse; on its side it
+   keeps its place beside the programme. A TV keeps its overscan margin (--ctv-edge in ten-foot). (#765) */
+@media (max-width: 720px), (max-height: 500px) {
+  html:not(.ten-foot, .tv-mode) .content:has(.ctv-page) { padding-inline: 0; padding-top: 0; }
+  html:not(.ten-foot, .tv-mode) .ctv-page { --ctv-top: var(--sp-3); --ctv-edge: var(--sp-3); }
+}
+@media (max-width: 720px) {
+  html:not(.ten-foot, .tv-mode) .ctv-page.narrow .ctv-preview { width: 100% !important; justify-self: stretch; }
+}
+/* While the player says something in the middle (a channel that can't be watched, or the "We'll be right back" card
+   of a break), its -10 and play step aside: they were drawn over the message and its buttons on a phone (#765). */
+.player.ctv-player:has(.overlay-msg, .ctv-slate) .ctl .ctl-mid { display: none; }

@@ -17,8 +17,9 @@
 //   focus-scrolled  Tab scrolled a box that has overflow hidden, moving what it holds out of place
 //   tv-target     in TV mode, something to press smaller than 48 by 48
 //   touch-target  on a phone's Live TV, something to press smaller than 48 by 48
+//   unfilled      on a phone, Live TV doesn't reach the sides, or its preview isn't the page's width
 //   off-screen    a control of Live TV's full-screen player outside the window
-//   overlap       the player's controls drawn over the words of the channel's banner
+//   overlap       the player's controls drawn over the channel's banner, a message, or a break's card
 // Pictures of each page go to the out folder (<page>--<size>.png) for before-and-after comparisons.
 //
 //   WMS_SERVER=http://pages.localhost:19731 WMS_TOKEN_FILE=token.txt node scripts/test-layout-pages.mjs out-folder
@@ -146,6 +147,17 @@ const DETECT = (phase, tv) => `(() => {
         if (!vis(e) || e.disabled || e.closest('.ctv-cell, .ctv-ch, .ctv-prog')) continue
         const r = e.getBoundingClientRect()
         if (r.width < 47.5 || r.height < 47.5) { add('touch-target', e, Math.round(r.width) + ' x ' + Math.round(r.height)); if (++n >= 5) break }
+      }
+    }
+    // On a phone, Live TV fills the screen: its page reaches both sides (only the system's insets, which the app keeps
+    // outside its web view, may be left), and upright its preview is the page's width (#765).
+    if (window.__layoutTouch) {
+      const page = document.querySelector('.ctv-page')
+      if (page && vis(page)) {
+        const r = page.getBoundingClientRect()
+        if (r.left > 1 || vw - r.right > 1) add('unfilled', page, 'Live TV leaves ' + Math.round(r.left) + ' and ' + Math.round(vw - r.right) + ' empty at its sides')
+        const pv = page.querySelector('.ctv-page.narrow .ctv-preview')
+        if (pv && vis(pv) && pv.getBoundingClientRect().width < r.width - 2 * 16 - 2) add('unfilled', pv, 'the preview is ' + Math.round(pv.getBoundingClientRect().width) + ' of ' + Math.round(r.width) + ' wide')
       }
     }
     // In TV mode: everything a remote can land on is at least 48 by 48.
@@ -286,21 +298,26 @@ async function check(s, route, sizeName, size, signedOut) {
   }
   // Live TV's Watch full screen: the player is a page of its own, and its controls must be on screen, not under a bar.
   if (route === '/tv' && !signedOut && size.mobile) {
-    const went = await s.page.eval(`(() => { const b = document.querySelector('.ctv-hero-actions .ctv-btn.on, [data-tv-first]'); if (!b) return false; b.click(); return true })()`)
+    for (const which of ['first', 'message']) {
+    const went = which === 'message' ? await s.go('/tv/watch/no-such-channel', 1200).then(() => true) : await s.page.eval(`(() => { const b = document.querySelector('.ctv-hero-actions .ctv-btn.on, [data-tv-first]'); if (!b) return false; b.click(); return true })()`)
     if (went) {
       await wait(2500)
+      if (APP) await s.page.eval(`document.documentElement.dataset.app = 'wittymediaclient'`)
+      // The controls show, as when a person touches the picture: they fade after a few seconds.
+      for (const x of [0.3, 0.5]) { await s.page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: Math.round(size.width * x), y: Math.round(size.height * 0.5) }); await wait(150) }
       const watch = await s.page.eval(`location.pathname`)
       const more = await s.page.eval(DETECT('open', size.tv))
       // Every control of the player is inside the window.
-      const off = await s.page.eval(`[...document.querySelectorAll('main button, main [role=slider], main input[type=range]')].filter((e) => { const r = e.getBoundingClientRect(); const st = getComputedStyle(e); return r.width > 1 && r.height > 1 && st.visibility !== 'hidden' && (r.bottom > innerHeight + 1 || r.right > innerWidth + 1 || r.top < -1) }).slice(0, 4).map((e) => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 40))`)
+      const off = await s.page.eval(`[...document.querySelectorAll('main button, main [role=slider], main input[type=range], .player button, .player [role=slider], .player input[type=range]')].filter((e) => { const r = e.getBoundingClientRect(); const st = getComputedStyle(e); return r.width > 1 && r.height > 1 && st.visibility !== 'hidden' && (r.bottom > innerHeight + 1 || r.right > innerWidth + 1 || r.top < -1) }).slice(0, 4).map((e) => (e.getAttribute('aria-label') || e.textContent || e.tagName).trim().slice(0, 40))`)
       for (const w of off) more.push({ kind: 'off-screen', where: 'player', text: w, detail: 'a control of the player is outside the window' })
       // Nothing drawn over the banner's words: the player's buttons in the middle sat on its title on a phone on its side.
-      const covered = await s.page.eval(`(() => { const shown = (e) => { const r = e.getBoundingClientRect(); const st = getComputedStyle(e); return r.width > 2 && r.height > 2 && st.visibility !== 'hidden' && +st.opacity > 0.05 }; const controls = [...document.querySelectorAll('main button, main [role=button]')].filter((b) => shown(b) && !b.closest('.ctv-banner')).map((b) => b.getBoundingClientRect()); return [...document.querySelectorAll('.ctv-banner :is(.ctv-banner-title, .ctv-banner-progress, .ctv-banner-ch b, button)')].filter((e) => { if (!shown(e)) return false; const r = e.getBoundingClientRect(); return controls.some((c) => Math.min(r.right, c.right) - Math.max(r.left, c.left) > 2 && Math.min(r.bottom, c.bottom) - Math.max(r.top, c.top) > 2) }).slice(0, 3).map((e) => (e.textContent || '').trim().slice(0, 40)) })()`)
-      for (const w of covered) more.push({ kind: 'overlap', where: 'banner', text: w, detail: "the player's controls are drawn over the channel's banner" })
-      if (!noShots) await s.shot(`${tag}-watch--${sizeName}`)
+      const covered = await s.page.eval(`(() => { const shown = (e) => { const r = e.getBoundingClientRect(); const st = getComputedStyle(e); return r.width > 2 && r.height > 2 && st.visibility !== 'hidden' && +st.opacity > 0.05 }; const controls = [...document.querySelectorAll('main button, main [role=button], .player button, .player [role=button]')].filter((b) => shown(b) && !b.closest('.ctv-banner, .overlay-msg, .ctv-slate')).map((b) => b.getBoundingClientRect()); return [...document.querySelectorAll('.ctv-banner :is(.ctv-banner-title, .ctv-banner-progress, .ctv-banner-ch b, button), .overlay-msg :is(b, button), .ctv-slate-card')].filter((e) => { if (!shown(e)) return false; const r = e.getBoundingClientRect(); return controls.some((c) => Math.min(r.right, c.right) - Math.max(r.left, c.left) > 2 && Math.min(r.bottom, c.bottom) - Math.max(r.top, c.top) > 2) }).slice(0, 3).map((e) => (e.textContent || '').trim().slice(0, 40)) })()`)
+      for (const w of covered) more.push({ kind: 'overlap', where: 'over the picture', text: w, detail: "the player's controls are drawn over the banner, a message or a break's card" })
+      if (!noShots) await s.shot(`${tag}-watch-${which}--${sizeName}`)
       for (const f of more) found.push({ ...f, where: watch + ' ' + (f.where || '') })
       await s.go(path, 1200)
       if (APP) await s.page.eval(`document.documentElement.dataset.app = 'wittymediaclient'`)
+    }
     }
   }
   for (const f of found) findings.push({ route: (signedOut ? '(signed out) ' : '') + route, size: sizeName, ...f })

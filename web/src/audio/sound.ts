@@ -276,7 +276,9 @@ export class SoundListener {
   private dropCopy() {
     this.source?.disconnect()
     this.source = null
-    this.stream?.getTracks().forEach((t) => t.stop())
+    // Let go of, never stopped: in Chrome a copy of an element's sound shares its source with every other copy of that
+    // element, and stopping this one silenced the visualizer effect listening to the same song (Bars handing over to an
+    // effect, in 0.8.5). An unused copy costs nothing and goes with the element's next song.
     this.stream = null
     this.watched = null
     this.trackId = ''

@@ -85,8 +85,11 @@ const wait = (ms) => new Promise((d) => setTimeout(d, ms))
 const browser = await launch({ software: true, args: ['--autoplay-policy=no-user-gesture-required'] })
 const p = await browser.open('about:blank')
 let fails = 0
-try {
-  for (const id of items) {
+// A clip's three starts, each sound against the first start's. One start on a busy one-processor runner can be
+// 50 ms off by itself (seen on the HDR clip, tone-mapped in software), so a clip that fails is measured once
+// more and fails the run only if it fails again. A real fault fails both times.
+async function measure(id) {
+    let fails = 0
     const lines = []
     let base = NaN
     for (const start of STARTS) {
@@ -117,7 +120,18 @@ try {
       lines.push(`${seekTo != null ? 'skip +' + seekTo + ' s' : start === '0' ? 'from the start' : 'resume at ' + start}: picture after ${r.first} ms, black ${r.black} ms, held ${r.held} ms${okPicture ? '' : ' FAIL'}; sound median ${Math.round(m)} ms (${off >= 0 ? '+' : ''}${Math.round(off)} against the start)${okSound ? '' : ' FAIL'}; at ${r.t.toFixed(1)} s`)
       } catch (e) { fails++; lines.push(`${start}: FAIL, ${String(e.message || e).slice(0, 120)}`) }
     }
-    console.log(`item ${id}:\n  ${lines.join('\n  ')}`)
+    return { fails, lines }
+}
+
+try {
+  for (const id of items) {
+    let r = await measure(id)
+    if (r.fails) {
+      console.log(`item ${id}, first try (measured again):\n  ${r.lines.join('\n  ')}`)
+      r = await measure(id)
+    }
+    fails += r.fails
+    console.log(`item ${id}:\n  ${r.lines.join('\n  ')}`)
   }
 } finally {
   await browser.close()

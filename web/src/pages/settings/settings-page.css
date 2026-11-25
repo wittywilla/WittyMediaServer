@@ -276,3 +276,10 @@ a.mod-row:hover { background: var(--hover); }
 .set-result small { display: block; color: var(--fg-3); font-size: var(--text-xs); font-weight: 400; }
 .set-results-none { margin: 0; padding: 0 var(--sp-3); color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; }
 .set-results-none a { color: var(--accent-text); text-decoration: underline; }
+
+/* A page the settings menu opens that has an address elsewhere (pages/settings/open.ts), drawn beside the menu (#763):
+   it is a column of the Settings page, not a page with a frame of its own. Help keeps its search and guides, and the
+   settings menu is its menu here; a page drawn from the server's pages starts its tools at the edge, as Settings does. */
+.set-opened .help { display: block; max-width: none; margin: 0; }
+.set-opened .help-side { display: none; }
+.set-opened .sdui-foot { justify-content: flex-start; }

@@ -2,10 +2,12 @@
 // Copyright (C) 2026 WittyWilla and contributors
 import type Hls from 'hls.js'
 import { useEffect, useRef } from 'react'
-import { getToken, mediaUrl, serverBase, type StreamingHints } from '../api'
+import { api, getToken, mediaUrl, serverBase, type StreamingHints } from '../api'
 import { reportClient, reportHlsError, watchPlayback } from '../errorReport'
 import { mediaSourceWorks } from './mse'
 import { settleSeeks } from './seekSettle'
+import { keepInStep } from './speed'
+import { bufferFor } from './pace'
 import { rememberSpeed } from './streaming'
 import { t, tk } from '../i18n'
 
@@ -43,6 +45,8 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
   optsRef.current = opts
   // What goes wrong is reported to the server's log, under this stream's session.
   useEffect(() => (video.current && url ? watchPlayback(video.current, url, optsRef.current.logSession) : undefined), [url, video])
+  // Sound and picture lined up again after each real change of speed (speed.ts).
+  useEffect(() => (video.current && url ? keepInStep(video.current) : undefined), [url, video])
   useEffect(() => {
     const v = video.current
     if (!v || !url) return
@@ -58,14 +62,22 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
         const startPos = optsRef.current.growing ? 0 : (start != null && start > 0.5 ? start : -1)
         const retry = robust && { maxNumRetry: robust.retries, retryDelayMs: robust.firstRetryMs, maxRetryDelayMs: robust.maxRetryMs, backoff: 'exponential' as const }
         const policy = (ttfb: number) => (retry ? { default: { maxTimeToFirstByteMs: ttfb, maxLoadTimeMs: ttfb * 2, timeoutRetry: retry, errorRetry: retry } } : undefined)
+        // The buffer is counted in the film's seconds, which go twice as fast at 2×: it grows
+        // with the rate (pace.ts), and the server hears the rate so it converts as far ahead.
+        const base = robust && retry ? [robust.bufferSec, robust.maxBufferSec] : [30, 90]
+        const sameSite = !serverBase()
         const hls = new Hls({
-          xhrSetup: (xhr) => { const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase() },
-          maxBufferLength: 30, maxMaxBufferLength: 90, backBufferLength: 30,
+          xhrSetup: (xhr) => {
+            const t = getToken(); if (t) xhr.setRequestHeader('Authorization', 'Bearer ' + t); xhr.withCredentials = !serverBase()
+            // Same site only: a server of another version might not allow the header across sites (PUT /rate says it there).
+            if (sameSite && v.playbackRate && v.playbackRate !== 1) xhr.setRequestHeader('X-WMS-Playback-Rate', String(v.playbackRate))
+          },
+          backBufferLength: 30,
           fragLoadingTimeOut: 60000, manifestLoadingTimeOut: 20000, fragLoadingMaxRetry: 6, levelLoadingMaxRetry: 6,
           startPosition: startPos, lowLatencyMode: false,
+          ...bufferFor(v.playbackRate, base[0], base[1]),
           ...(robust && retry ? {
             autoStartLoad: false, // until the start rung is set (below)
-            maxBufferLength: robust.bufferSec, maxMaxBufferLength: robust.maxBufferSec,
             fragLoadPolicy: policy(robust.segmentTimeoutMs), playlistLoadPolicy: policy(20000), manifestLoadPolicy: policy(20000),
             // It starts at the rung the server listed first, chosen from the measured speed,
             // and is slow to climb: every climb starts a conversion on the server.
@@ -110,6 +122,14 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
           if (mediaErrors && !v.seeking && d > 0 && d < 1 && (playedSinceError += d) > 10) { mediaErrors = 0; playedSinceError = 0 }
         }
         v.addEventListener('timeupdate', played)
+        const stream = /\/api\/hls\/([^/?]+)\//.exec(abs)?.[1]
+        const sayRate = () => { if (stream) api.put(`/hls/${stream}/rate`, { rate: v.playbackRate || 1 }).catch(() => {}) }
+        const rateChanged = () => {
+          Object.assign(hls.config, bufferFor(v.playbackRate, base[0], base[1]))
+          sayRate()
+        }
+        v.addEventListener('ratechange', rateChanged)
+        if (v.playbackRate !== 1) sayRate() // kept from the stream before (defaultPlaybackRate)
         const watch = robust ? robustWatch(Hls, hls, v, optsRef) : null
         hls.on(Hls.Events.ERROR, (_e, data) => {
           if (!data.fatal) return
@@ -129,6 +149,7 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
         return () => {
           unsettle()
           v.removeEventListener('timeupdate', played)
+          v.removeEventListener('ratechange', rateChanged)
           watch?.stop()
           if (watch && hls.bandwidthEstimate > 0) rememberSpeed(hls.bandwidthEstimate / 1000)
           hls.destroy(); hlsRef.current = null

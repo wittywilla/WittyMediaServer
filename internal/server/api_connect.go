@@ -91,8 +91,13 @@ func (co *connectOffers) sweepLocked(now time.Time) {
 	}
 }
 
-// add keeps an offer, ending any other the same person has open: one at a time
-// each, so a forgotten one doesn't linger beside a new one.
+// connectPerPerson is how many offers one person may have open. A new one
+// doesn't end the one before (#683): the person may have the screen open in a
+// second tab, or on the TV and the phone, and a device may be using the first
+// one right now. Past this many, the oldest goes.
+const connectPerPerson = 3
+
+// add keeps an offer, ending the oldest of the same person's past connectPerPerson.
 func (co *connectOffers) add(o *connectOffer) ([]*connectOffer, error) {
 	co.mu.Lock()
 	defer co.mu.Unlock()
@@ -102,12 +107,23 @@ func (co *connectOffers) add(o *connectOffer) ([]*connectOffer, error) {
 	now := time.Now()
 	co.sweepLocked(now)
 	var ended []*connectOffer
-	for k, x := range co.open {
-		if x.by == o.by {
-			x.spent.Store(true)
-			ended = append(ended, x)
-			delete(co.open, k)
+	for {
+		var oldest *connectOffer
+		mine := 0
+		for _, x := range co.open {
+			if x.by == o.by {
+				mine++
+				if oldest == nil || x.expires.Before(oldest.expires) {
+					oldest = x
+				}
+			}
 		}
+		if mine < connectPerPerson {
+			break
+		}
+		oldest.spent.Store(true)
+		ended = append(ended, oldest)
+		delete(co.open, oldest.find)
 	}
 	if len(co.open) >= connectMaxOpen {
 		return ended, errPairBusy
@@ -515,6 +531,7 @@ func (s *Server) handleConnectOffer(w http.ResponseWriter, r *http.Request) {
 	}
 	o := &connectOffer{code: code, find: hex.EncodeToString(find), proof: proof, by: me.ID, session: tokenFrom(r), userID: target.ID,
 		expires: time.Now().Add(connectTTL), asks: map[string]time.Time{}, spent: &atomic.Bool{}}
+	defer s.p2pSavePending() // kept for a restart: p2p_pending.go
 	ended, err := s.connect.add(o)
 	if len(ended) > 0 {
 		s.p2pDevicesChanged() // the links beside the codes it ended are spent: their enrol keys go from the relay
@@ -573,6 +590,7 @@ func (s *Server) handleConnectOffer(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleConnectCancel(w http.ResponseWriter, r *http.Request) {
 	if len(s.connect.cancel(userFrom(r).ID)) > 0 {
 		s.p2pDevicesChanged()
+		s.p2pSavePending()
 	}
 	writeJSON(w, 200, map[string]any{"ok": true})
 }
@@ -603,6 +621,11 @@ func (s *Server) handleConnectHello(w http.ResponseWriter, r *http.Request) {
 	o, nonce := s.connect.ask(b.Find)
 	if o == nil {
 		// Another server on the same network may have made it: that is not a guess, so it costs nothing here.
+		// Codes don't outlive a restart (p2p_pending.go): one shown just before it is told so.
+		if s.p2pCodeEndedByRestart(0) {
+			writeJSON(w, 404, map[string]any{"error": p2pCodeRestartedWords, "reason": "restarted"})
+			return
+		}
 		writeJSON(w, 404, map[string]any{"error": "This server didn't make that code.", "reason": "not-here"})
 		return
 	}
@@ -653,6 +676,7 @@ func (s *Server) handleConnectAnswer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	o, reason := s.connect.answer(b.Find, deviceNonce, serverNonce, proof, id.PublicKey())
+	defer s.p2pSavePending() // used, or one wrong guess nearer being given up
 	if reason != "" {
 		if reason == redeemWrong {
 			s.logins.fail(k)

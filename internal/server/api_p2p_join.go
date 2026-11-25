@@ -6,6 +6,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/library"
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -78,7 +79,16 @@ func (s *Server) handleP2PJoin(w http.ResponseWriter, r *http.Request) {
 		// The invite behind the code never leaves the server, and still has no place in a log.
 		logging.AddSecret(secret)
 		logging.AddSecret(code) // a way in until the device takes it
-		err = node.OfferJoin(code, secret)
+		// The node knows the invite by its hash (p2pEnrol, FromJoin), which is what is kept for a restart.
+		ticket := p2pSecretHash(secret)
+		find, proof, kerr := p2p.JoinKeysOf(code)
+		expires := time.Now().Add(p2p.JoinTTL)
+		if err = kerr; err == nil {
+			err = node.OfferJoinKeys(find, proof, ticket, expires)
+		}
+		if err == nil {
+			s.p2pRememberJoin(node, find, proof, ticket, expires)
+		}
 	}
 	switch {
 	case errors.Is(err, errPairBusy), errors.Is(err, p2p.ErrJoinBusy):

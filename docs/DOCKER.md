@@ -254,6 +254,29 @@ Either is undone at the next restart of the NAS, so run it from a task that runs
 
 GeForce cards allow a limited number of encodes at once (the driver decides how many). When they're in use, the next one falls back to software.
 
+### A small NAS: playback that keeps up
+
+A NAS processor without a graphics chip the container can use converts slowly: on two cores, HEVC
+or 10-bit HEVC to H.264 can be slower than the film itself, and then playback stops to catch up
+every few seconds. What helps, in order:
+
+1. **Pass the graphics chip in** if the NAS has one (most Intel Celeron, Pentium and N-series NAS
+   boxes do): the steps under [Intel and AMD](#intel-and-amd). Quick Sync or VA-API converts 1080p
+   many times faster than the processor, and 4K at all. Check it worked with
+   `docker exec wittymediaserver vainfo --display drm --device /dev/dri/renderD128` and
+   **Settings → Live transcoding → Hardware encoders**.
+2. **Let devices play the file as it is.** The apps play most files directly, and the server sends a
+   file whole or rewraps it (no conversion) whenever the device can take it. Keep **Allow direct play** on
+   in **Settings → Live transcoding**.
+3. **Don't hold the container to less than the NAS has** (a CPU limit in Container Manager or
+   Container Station) unless you need to. The server counts a limit and starts that many threads.
+
+The server keeps converting ahead of the player in the player's own time: at 2× it keeps twice as
+far ahead, as the players say their speed. When the processor can't keep up, it goes on with a
+faster encoder setting by itself; if that still isn't enough, the web app asks for a smaller picture
+and says why, and the Android app tells the viewer that a lower speed or quality plays smoothly.
+**Settings → WittyLog** shows *the conversion is slower than the player* with the speed it measured.
+
 ### Docker Desktop and WSL on Windows
 
 NVIDIA cards work through Windows' own graphics device, `/dev/dxg`, with NVIDIA's libraries from Windows:

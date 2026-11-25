@@ -133,6 +133,8 @@ func (t *Tools) ProbeHardware(ctx context.Context) {
 	hw.mu.Lock()
 	hw.done = true
 	hw.mu.Unlock()
+	// One line to say, at a glance, which uses of the chip are ready and why the others aren't.
+	log.Info("graphics: " + t.GraphicsStatus().Line())
 }
 
 // missingDevice says why an encoder has no device to work with here, "" when it
@@ -352,6 +354,12 @@ type Plan struct {
 func StreamThreads(height int) (decode, encode int) {
 	n := numCPU()
 	if n <= streamThreads {
+		if n < hostCPU() {
+			// A container held to fewer processors than the machine has (docker --cpus, a NAS's
+			// limit): FFmpeg counts the machine's, and 20 threads sharing two processors' time
+			// go slower than two, each holding pictures in a small memory limit.
+			return n, n
+		}
 		return 0, 0
 	}
 	encode = streamThreads
@@ -369,7 +377,13 @@ const streamThreads = 8
 // The server and the FFmpeg it uses are built for the same chip. A variable, for the tests.
 var VideoToolboxQuality = runtime.GOARCH == "arm64"
 
-var numCPU = runtime.NumCPU // tests pretend to be other machines
+// numCPU is how many processors this process may use: Go counts a container's limit (the cgroup's
+// CPU quota) in GOMAXPROCS, which NumCPU, the machine's count, doesn't. hostCPU is what FFmpeg
+// counts by itself. Variables: tests pretend to be other machines.
+var (
+	numCPU  = func() int { return min(runtime.NumCPU(), runtime.GOMAXPROCS(0)) }
+	hostCPU = runtime.NumCPU
+)
 
 // Plan picks the encoder for a quality profile.
 func (t *Tools) Plan(q Quality) Plan {

@@ -374,6 +374,7 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request) {
 		"gpuPaths":    s.Tools.GPUPaths(),
 		"gpuInUse":    s.gpuInUse(r),
 		"gpus":        ffmpeg.GPUs(),
+		"graphics":    s.Tools.GraphicsStatus(),
 		"container":   ffmpeg.InContainer(),
 		"dvdSessions": s.DVD.Count(),
 		"blurays":     s.BD.Count(),

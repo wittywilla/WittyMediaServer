@@ -133,3 +133,22 @@ func PretendWorking(names ...string) (restore func()) {
 		hw.mu.Unlock()
 	}
 }
+
+// PretendTested sets the encoders' test results as given, and marks the testing finished, for tests
+// in other packages that look at what is said about them. The returned function puts things back.
+func PretendTested(list ...HWStatus) (restore func()) {
+	hw.mu.Lock()
+	old, oldDone := hw.status, hw.done
+	hw.status, hw.done = map[string]*HWStatus{}, true
+	for i := range list {
+		st := list[i]
+		st.Tested = true
+		hw.status[st.Name] = &st
+	}
+	hw.mu.Unlock()
+	return func() {
+		hw.mu.Lock()
+		hw.status, hw.done = old, oldDone
+		hw.mu.Unlock()
+	}
+}

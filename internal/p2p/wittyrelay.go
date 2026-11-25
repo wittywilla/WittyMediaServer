@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -157,39 +158,137 @@ func (h *Host) Register(ctx context.Context, relay peer.AddrInfo, req RegisterRe
 	return res, nil
 }
 
+// registerSettle is how long a change to the list of devices waits for more
+// before the relays are told: making an invite, using it and adding the device
+// come within a second of each other, and a relay allows only so many
+// registrations a minute from one address. Someone waiting on the answer
+// (RegisterNow) doesn't wait for it.
+const registerSettle = 1500 * time.Millisecond
+
+// regWaiter is a RegisterNow waiting for a round of registrations that began
+// after it asked.
+type regWaiter struct {
+	after uint64
+	done  chan bool
+}
+
 // keepRegistered registers with each of the owner's WittyRelays now and
-// every few minutes, and at once when the list of devices changes.
+// every few minutes, and soon after the list of devices changes.
 func (n *Node) keepRegistered() {
 	defer n.wg.Done()
 	if len(n.cfg.OwnRelays) == 0 {
 		close(n.registered)
 		return
 	}
-	first := true
+	first, renew := true, true
 	for {
 		wait := registerEvery
+		n.regMu.Lock()
+		n.regStarted++
+		round := n.regStarted
+		n.regMu.Unlock()
+		select { // an ask this round answers: not one for the next settle to cut short
+		case <-n.regAsked:
+		default:
+		}
+		ok := true
 		for i, r := range n.cfg.OwnRelays {
-			if !n.registerOnce(i, r) {
+			if !n.registerOnce(i, r, renew) {
 				// A relay that said "busy" (too many registrations from this network in a minute) keeps
 				// the list it had: an invite opened just now isn't on it. Try again soon, not in minutes.
-				wait = registerRetry
+				wait, ok = registerRetry, false
 			}
 		}
+		n.finishRound(round, ok && n.ctx.Err() == nil)
 		if first {
 			first = false
 			close(n.registered)
 		}
 		select {
 		case <-n.ctx.Done():
+			n.finishRound(^uint64(0), false)
 			return
 		case <-time.After(wait):
+			renew = true
 		case <-n.devicesChanged:
+			renew = false
+			if !n.regWanted() {
+				select {
+				case <-n.ctx.Done():
+					n.finishRound(^uint64(0), false)
+					return
+				case <-time.After(registerSettle):
+				case <-n.regAsked:
+				}
+			}
 		}
 	}
 }
 
+// regWanted says someone is waiting on RegisterNow.
+func (n *Node) regWanted() bool {
+	n.regMu.Lock()
+	defer n.regMu.Unlock()
+	return len(n.regWaiters) > 0
+}
+
+// finishRound answers every RegisterNow that this round, begun after it asked,
+// covers: ok says every relay took the list.
+func (n *Node) finishRound(round uint64, ok bool) {
+	n.regMu.Lock()
+	defer n.regMu.Unlock()
+	keep := n.regWaiters[:0]
+	for _, w := range n.regWaiters {
+		if round > w.after {
+			w.done <- ok
+			continue
+		}
+		keep = append(keep, w)
+	}
+	n.regWaiters = keep
+}
+
+// RegisterNow tells the owner's WittyRelays the list of devices as it is now,
+// and waits until they have heard it or ctx ends. It says whether every one of
+// them took it; with none, there is nothing to wait for and it says yes. An
+// invite that was just used asks this before it answers the device, which
+// then comes through the relay with its own key at once (#683).
+func (n *Node) RegisterNow(ctx context.Context) bool {
+	if len(n.cfg.OwnRelays) == 0 {
+		return true
+	}
+	w := regWaiter{done: make(chan bool, 1)}
+	n.regMu.Lock()
+	w.after = n.regStarted
+	n.regWaiters = append(n.regWaiters, w)
+	n.regMu.Unlock()
+	poke(n.devicesChanged)
+	poke(n.regAsked)
+	select {
+	case ok := <-w.done:
+		return ok
+	case <-ctx.Done():
+		n.regMu.Lock()
+		for i, x := range n.regWaiters {
+			if x.done == w.done {
+				n.regWaiters = append(n.regWaiters[:i], n.regWaiters[i+1:]...)
+				break
+			}
+		}
+		n.regMu.Unlock()
+		return false
+	}
+}
+
+// devicesKey is a list of devices as one string, to tell whether it changed.
+func devicesKey(ids []string) string {
+	s := append([]string(nil), ids...)
+	sort.Strings(s)
+	return strings.Join(s, ",")
+}
+
 // registerOnce registers with one relay, and says whether it took.
-func (n *Node) registerOnce(i int, r OwnRelay) bool {
+func (n *Node) registerOnce(i int, r OwnRelay, renew bool) bool {
 	st := OwnRelayStatus{Addr: r.Addr, State: "unreachable"}
 	ai, err := ParseRelayAddr(r.Addr)
 	if err != nil {
@@ -201,6 +300,18 @@ func (n *Node) registerOnce(i int, r OwnRelay) bool {
 	var devices []string
 	if n.cfg.DeviceIDs != nil {
 		devices = n.cfg.DeviceIDs()
+	}
+	// And the codes waiting here: a device away from home shows one through the relay (join.go).
+	devices = append(devices, n.joinEnrolIDs()...)
+	key := devicesKey(devices)
+	if !renew && n.ownRelay(i).State == "ok" {
+		n.mu.Lock()
+		same := n.sentDevices[i] == key
+		n.mu.Unlock()
+		if same {
+			// The relay has this very list already: a registration would only use up its patience.
+			return true
+		}
 	}
 	res, err := n.host.Register(n.ctx, ai, RegisterRequest{Key: r.Key, Name: n.cfg.Name, Devices: devices})
 	if n.ctx.Err() != nil {
@@ -220,6 +331,12 @@ func (n *Node) registerOnce(i int, r OwnRelay) bool {
 		}
 	default:
 		st.State, st.Renewed = "ok", time.Now().Unix()
+		n.mu.Lock()
+		if n.sentDevices == nil {
+			n.sentDevices = map[int]string{}
+		}
+		n.sentDevices[i] = key
+		n.mu.Unlock()
 		o := res.Offer
 		st.Offer, st.Allows = &o, o.Words()
 		// A place on it, asked for here rather than left to libp2p's search

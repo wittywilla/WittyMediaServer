@@ -109,6 +109,14 @@ type pairings struct {
 
 // newInvite makes a 6-digit code; a person has one open at a time.
 func (ps *pairings) newInvite(by, userID int64, session string) (*invite, error) {
+	return ps.newInviteFor(by, userID, session, false)
+}
+
+// newInviteFor is newInvite. keepOthers leaves this person's other open codes
+// be: the code each device gets for an invite it showed is that device's own,
+// and a second device joining by another invite must not end the first one's
+// before it has been redeemed.
+func (ps *pairings) newInviteFor(by, userID int64, session string, keepOthers bool) (*invite, error) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 	now := time.Now()
@@ -120,7 +128,7 @@ func (ps *pairings) newInvite(by, userID int64, session string) (*invite, error)
 		switch {
 		case now.After(in.expires.Add(inviteKeep)):
 			delete(ps.invites, c)
-		case !in.used && now.Before(in.expires) && in.by == by:
+		case !keepOthers && !in.used && now.Before(in.expires) && in.by == by:
 			delete(ps.invites, c)
 		case !in.used && now.Before(in.expires):
 			open++
@@ -197,7 +205,9 @@ func (ps *pairings) redeem(code string, away bool) (*invite, string) {
 // this, someone with a stolen session could keep one open, and be back in after the owner changed
 // the password or signed everything out.
 func (s *Server) stillSignedIn(ctx context.Context, session string, who int64) bool {
-	u, err := s.Auth.Resolve(ctx, session)
+	// Kept as its hash (auth.StoredToken) wherever it outlives the request, so
+	// that what is saved for a restart holds no working sign-in.
+	u, err := s.Auth.ResolveStored(ctx, auth.StoredToken(session))
 	return err == nil && u.ID == who
 }
 

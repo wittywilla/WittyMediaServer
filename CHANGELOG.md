@@ -5,6 +5,150 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Recent can be clicked into again (WittyPlay).** Moving the mouse across Recent's games kept changing which one was
+  chosen, and the chosen one grows, so the game under the pointer moved and a click landed on another, or opened it at
+  once. The fix for this (#547, for every row with a details panel or a growing card) was undone by a later merge (#558).
+  It's back, as one rule in `web/src/ui/pointerChoose.ts` that every such row uses: a pointer only points, a click chooses,
+  and a second click, a double-click or Enter opens; arrows, a remote and a pad move the choice as before. The chosen card
+  is marked `aria-current`. A unit test fails if a row chooses on hover again, and `npm run test:pointer` checks Recent,
+  Consoles and All games in a real browser (mouse across, click, click again, focus and Enter).
+- **WittyTV: no frozen picture at tune-in on open-GOP H.264 (#760).** Some H.264 encodes, many Blu-ray ones among
+  them, mark I-frames that aren't IDR frames as keyframes, with one IDR at the very start. A channel copied them as
+  they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.
+  Graphics-chip decoders, as most browsers, phones and TVs use, held the picture while the sound played, then showed it
+  late. The server now looks at one keyframe of each such file and converts its picture when the keyframe isn't an IDR.
+- **Live TV: +30 is back, up to live.** At the owner's request, the jump forward returns to the live player (#688 had
+  removed it). +30, the timeline, Right, Fast forward and Next (outside an ad break) go ahead no further than the live
+  edge, and +30 is greyed out there. Back to live stays.
+- **WittyTV: leaving full screen keeps the channel where it was.** Back in the guide, the first row was highlighted for
+  a moment before the channel just left; the little TV took that, dropped the channel playing and tuned it again a
+  second later, at another point in it (and anyone who had paused or gone back lost their place). The guide now keeps
+  the channel just left until the highlight reaches its row. `npm run test:tv-handover` checks the round trip.
+- **WittyTV: a picture that stands still while the sound plays on is put right.** The web player (and the apps that
+  show it) watches the pictures it presents. When the clock runs on for a second with no new one, as when a
+  decoder can't start at a tune-in or a programme join, the sound is silenced and the player seeks to where it is,
+  which starts sound and picture again together; the sound comes back with the picture. A few tries a stream at most,
+  and never for a hidden page playing sound alone.
+
+**Live TV in the phone app (#765)**
+
+- **Nothing behind the app's bars.** "Customise this page" under Live TV sat behind the floating bar, in the app and
+  on the website on a phone, since 0.8.5. It now sits above the bar.
+- **A phone on its side shows one top bar.** Inside the app the website hid its own bars only on a phone held upright,
+  so on its side the website's top bar appeared under the app's, with no room kept for the app's floating bar. It now
+  steps aside at any phone size.
+- **Every button for the programme can be seen.** On a phone they were a row that scrolled sideways, with half a
+  button at the edge and Channel up, More about this programme and Day out of sight. They now wrap onto a second line.
+- **48 by 48 for a finger** on Live TV's buttons and the preview's own. On a touch screen the preview's bar keeps
+  sound, full screen and close; the resize corner and its − and + are for a mouse.
+- **The channel's banner clears the player's buttons on a phone on its side**: one low band with the number, the
+  programme and how far through it is, instead of a box drawn beneath −10 and play.
+- **Live TV fills a phone's screen.** The page's side margins and the space round Live TV's panel were a frame of
+  empty space round every part of it on a 412-wide phone. Upright, the preview is the screen's width. A TV keeps its
+  overscan margin.
+- **The player's −10 and play step aside** while it shows a message (a channel that can't be watched) or a break's
+  "We'll be right back" card. They were drawn over the message and its buttons.
+- **The layout check runs as the phone app shows a page** (`LAYOUT_APP=1`, upright and on its side, Live TV's full-screen
+  player and a channel's message included), in the smoke tests. It fails when Live TV doesn't reach a phone's sides.
+
+## 0.8.5-alpha
+
+Released 2026-11-25.
+
+A release for NAS and Docker: games, playback and pairing now work in a container on a small machine with no
+graphics card, and the module store opens again.
+
+**If you run the server in Docker:** publish port **9796** for TCP and UDP beside 9797, so devices away from home can
+connect peer to peer, and pass `/dev/dri` (with its group under `group_add:`) to give games and conversion an Intel or
+AMD graphics chip. [docs/DOCKER.md](docs/DOCKER.md) has both, and **Settings → Live transcoding → Graphics** says what
+the server found.
+
+**Playback on a NAS (#752)**
+
+- **Smoother playback on a NAS or other small server.** It converts video ahead at the speed you're actually watching,
+  and switches to a faster setting by itself when it falls behind, instead of pausing every few seconds.
+- **The Android app no longer gives up** with "Lost contact with your server" while a slow server is still converting;
+  it waits and keeps going. The server answers "not ready yet, try again" (503 with Retry-After) instead of an error.
+- **4K films no longer stop straight away** on a small NAS without a graphics chip: they're converted to 1080p. Passing
+  the NAS's Intel graphics in (above) is the real fix for 4K.
+- **Conversion keeps to a container's processor limit**, not every processor of the machine it runs on.
+
+**Module store (#694)**
+
+- **The module store opens again.** On 0.8.4 it covered the whole app and couldn't be scrolled: a style from the
+  screen-time page also matched the store's pages. Fixed by #695.
+
+**Pairing (#683, #692)**
+
+- **Invite links outlive a restart.** Codes on screen end with a restart, and say so ("restarted"). An invite is
+  used up only by a device the server actually takes, the owner's WittyRelay hears about a new device before the
+  device is answered, and a new code no longer cancels one that's still on screen.
+- **A TV code typed in from away reaches a server behind its router.**
+
+**Connecting a phone to a server in Docker (#683)**
+
+- **A phone at home connects to a server in Docker by its QR code.** In a container the server only knows the
+  container's own addresses, which nothing else at home can reach, and apps can't find it on the network. **Connect a
+  device** now uses the address its page was opened at: as the address at home, and in the QR code with the code, so
+  an app at home that scans it signs in straight away, with no peer-to-peer connection needed.
+- **Peer to peer works from a container.** The image listens for peer-to-peer connections on a fixed port, **9796**
+  (UDP and TCP), and the compose files and NAS guides publish it. Containers made before need the two `9796` lines added
+  to `ports:` ([Docker](docs/DOCKER.md#devices-away-from-home)). Without them a phone could be added to **Devices that
+  may connect** and get no further. Outside a container, set the port with `WMS_P2P_PORT` or `-p2p-port`.
+- **Connect a device says which port to publish** when the server runs in a container and devices away from home
+  can't connect yet.
+- **A device isn't shown as connected until it is.** Showing an invite puts a device on **Devices that may connect**,
+  but 0.8.4 then called it "Connected through a relay" though nothing had got through. Until its first request does,
+  it says **Invited — hasn't connected yet**, and when the server knows why not (it reached the server only through a
+  public relay, which carries an invite and nothing more) it says that and what to do.
+- **The QR code carries the owner's own WittyRelay** when there is one, first, ahead of the server's name if they
+  don't both fit: away from home it's often the only way in. QR codes now go up to 412 bytes (version 15); a pairing
+  link stays under 330.
+- **Each device's Remove button is in its own row** under **Devices that may connect**, not below the list beside the
+  next heading.
+- **An app keeps the way in through the owner's WittyRelay.** The addresses an app keeps for next time were capped at
+  twelve, direct ones first, so a server with many addresses (Docker bridges, VPNs, several networks) pushed the relay
+  circuit from the invite out of the list, and the app couldn't reconnect from away. Now relay circuits come first (up
+  to four, the invite's ahead of the rest), then public addresses, then at most two private ones, a home network's
+  ahead of a container's. This is in the library the desktop and Apple apps use; Android already kept circuits.
+
+**Live TV (#687, #688)**
+
+- **Sound and picture stay together across programme changes.** A library channel joined part way into a programme
+  (tuning in, after every ad break, Start over and rewinding) began each programme with up to a couple of seconds of
+  picture alone: the copied picture started at the keyframe before the place, the sound at the place. Players froze the
+  picture there, then played on with the sound out of step. Both now start at the keyframe. A test in CI plays four
+  programmes across three joins and checks that sound and picture start and end together, with no gaps and no frozen
+  picture.
+- **No skipping ahead on live TV.** The live player has no +30 any more, and its timeline can't be dragged or keyed
+  past where it's playing. Right, Fast forward and Next (outside an ad break) don't move a channel on. Back, Pause,
+  Start over, Skip break and Back to live stay.
+
+**Games in Docker**
+
+- **Games can use an Intel or AMD graphics chip in Docker.** The image had no OpenGL library (libEGL) and no Vulkan
+  drivers, so WittyPlay found "no graphics card" on every NAS, even with `/dev/dri` passed in. It now has Mesa's EGL,
+  OpenGL and Vulkan drivers on every architecture (iris and anv for Intel, radeonsi and radv for AMD, and llvmpipe and
+  lavapipe on the processor), about 21 MB more. With no card, GameCube and Wii can now draw on the processor too. An
+  NVIDIA card gets its graphics libraries for games (`NVIDIA_DRIVER_CAPABILITIES` includes `graphics`). With WittyPlay
+  0.7.21, a chip that can't be used says why: no `/dev/dri` passed in, or the group to add under `group_add:`.
+  [docs/DOCKER.md](docs/DOCKER.md#intel-and-amd-graphics-for-games) and the
+  [UGREEN guide](docs/DOCKER-UGREEN.md#5-games-on-the-graphics-chip) say how to set it up and check it. CI checks
+  the image's OpenGL and Vulkan on the processor, with no card, on amd64 and arm64.
+- **The server says what the graphics chip is used for, and why not.** A *Graphics* block in Settings → Live
+  transcoding, the end of `wittymediaserver hardware`, and one `graphics:` line in the log at start say, for video
+  encoding, games' OpenGL (EGL) and games' Vulkan, yes with the driver or no with the reason: no `/dev/dri` passed in,
+  the group to add, an image with no libEGL, or only the processor's (llvmpipe, lavapipe).
+- **Games play in Docker, with WittyPlay 0.7.19.** On a NAS with Docker's usual network, games started but no picture
+  ever arrived: WebRTC could only offer the container's private address, and the WebSocket the player should have
+  fallen back to was refused. The fix is all in WittyPlay, which updates from Settings, Modules on any 0.8 server.
+  [docs/DOCKER.md](docs/DOCKER.md#games) now says which consoles play without a graphics card, how to give games an
+  Intel or AMD card through `/dev/dri`, and how to have WebRTC in Docker (one published UDP port, or the host's
+  network). docker-compose.yml has the UDP port as a commented line.
+- **CI plays games in the image.** `scripts/test/docker-games.sh` runs it locked down with no card, installs WittyPlay
+  from a test catalogue, downloads two real cores and checks both send pictures over the server's port, on amd64 and
+  arm64. The Dockerfile takes `GOTAGS` for that test build.
+
 **Layout (#678)**
 
 - **Every Settings page reads from one edge, with WittyPlay installed too.** A page's title, lead and buttons start
@@ -48,63 +192,6 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   computer's sizes, a phone and in TV mode, and under the floating glass bar. It fails on anything under the bar,
   sideways scroll, a title and its sections in different alignments, centred words in an off-centre box, a heading
   said twice, a control with no focus ring, Tab scrolling a box that hides its overflow, and a TV target under 48.
-## 0.8.5-alpha
-
-Not released yet.
-
-**Connecting a phone to a server in Docker (#683)**
-
-- **A phone at home connects to a server in Docker by its QR code.** In a container the server only knows the
-  container's own addresses, which nothing else at home can reach, and apps can't find it on the network. **Connect a
-  device** now uses the address its page was opened at: as the address at home, and in the QR code with the code, so
-  an app at home that scans it signs in straight away, with no peer-to-peer connection needed.
-- **Peer to peer works from a container.** The image listens for peer-to-peer connections on a fixed port, **9796**
-  (UDP and TCP), and the compose files and NAS guides publish it. Containers made before need the two `9796` lines added
-  to `ports:` ([Docker](docs/DOCKER.md#devices-away-from-home)). Without them a phone could be added to **Devices that
-  may connect** and get no further. Outside a container, set the port with `WMS_P2P_PORT` or `-p2p-port`.
-- **Connect a device says which port to publish** when the server runs in a container and devices away from home
-  can't connect yet.
-- **A device isn't shown as connected until it is.** Showing an invite puts a device on **Devices that may connect**,
-  but 0.8.4 then called it "Connected through a relay" though nothing had got through. Until its first request does,
-  it says **Invited — hasn't connected yet**, and when the server knows why not (it reached the server only through a
-  public relay, which carries an invite and nothing more) it says that and what to do.
-- **The QR code carries the owner's own WittyRelay** when there is one, first, ahead of the server's name if they
-  don't both fit: away from home it's often the only way in. QR codes now go up to 412 bytes (version 15); a pairing
-  link stays under 330.
-- **Each device's Remove button is in its own row** under **Devices that may connect**, not below the list beside the
-  next heading.
-**Live TV (#687, #688)**
-
-- **Sound and picture stay together across programme changes.** A library channel joined part way into a programme
-  (tuning in, after every ad break, Start over and rewinding) began each programme with up to a couple of seconds of
-  picture alone: the copied picture started at the keyframe before the place, the sound at the place. Players froze the
-  picture there, then played on with the sound out of step. Both now start at the keyframe. A test in CI plays four
-  programmes across three joins and checks that sound and picture start and end together, with no gaps and no frozen
-  picture.
-- **No skipping ahead on live TV.** The live player has no +30 any more, and its timeline can't be dragged or keyed
-  past where it's playing. Right, Fast forward and Next (outside an ad break) don't move a channel on. Back, Pause,
-  Start over, Skip break and Back to live stay.
-
-**Games in Docker**
-
-- **Games can use an Intel or AMD graphics chip in Docker.** The image had no OpenGL library (libEGL) and no Vulkan
-  drivers, so WittyPlay found "no graphics card" on every NAS, even with `/dev/dri` passed in. It now has Mesa's EGL,
-  OpenGL and Vulkan drivers on every architecture (iris and anv for Intel, radeonsi and radv for AMD, and llvmpipe and
-  lavapipe on the processor), about 21 MB more. With no card, GameCube and Wii can now draw on the processor too. An
-  NVIDIA card gets its graphics libraries for games (`NVIDIA_DRIVER_CAPABILITIES` includes `graphics`). With WittyPlay
-  0.7.21, a chip that can't be used says why: no `/dev/dri` passed in, or the group to add under `group_add:`.
-  [docs/DOCKER.md](docs/DOCKER.md#intel-and-amd-graphics-for-games) and the
-  [UGREEN guide](docs/DOCKER-UGREEN.md#5-games-on-the-graphics-chip) say how to set it up and check it. CI checks
-  the image's OpenGL and Vulkan on the processor, with no card, on amd64 and arm64.
-- **Games play in Docker, with WittyPlay 0.7.19.** On a NAS with Docker's usual network, games started but no picture
-  ever arrived: WebRTC could only offer the container's private address, and the WebSocket the player should have
-  fallen back to was refused. The fix is all in WittyPlay, which updates from Settings, Modules on any 0.8 server.
-  [docs/DOCKER.md](docs/DOCKER.md#games) now says which consoles play without a graphics card, how to give games an
-  Intel or AMD card through `/dev/dri`, and how to have WebRTC in Docker (one published UDP port, or the host's
-  network). docker-compose.yml has the UDP port as a commented line.
-- **CI plays games in the image.** `scripts/test/docker-games.sh` runs it locked down with no card, installs WittyPlay
-  from a test catalogue, downloads two real cores and checks both send pictures over the server's port, on amd64 and
-  arm64. The Dockerfile takes `GOTAGS` for that test build.
 
 ## 0.8.4-alpha
 

@@ -284,6 +284,7 @@ func (s *Server) handlePlayInfo(w http.ResponseWriter, r *http.Request) {
 		spec.Height = min(v.Width, v.Height)
 		spec.VideoCodec, spec.PixFmt = v.CodecName, v.PixFmt // whether the graphics chip can decode it
 	}
+	s.HLS.CapForMachine(&spec) // 4K on a small machine's processor: 1080p
 	s.HLS.Ensure(spec)
 	info.Type = "hls"
 	info.URL = "/api/hls/" + hid + "/playlist.m3u8"
@@ -408,6 +409,7 @@ func (s *Server) handleHLSPlaylist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess.See(auth.TokenFrom(r))
+	noteRate(r, sess)
 	// A stream token doesn't carry over to relative addresses by itself. A player
 	// that had to put its sign-in in the playlist's address can't send one with
 	// the segments either, so their addresses carry one too: a stream token,
@@ -451,6 +453,7 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess.See(auth.TokenFrom(r))
+	noteRate(r, sess)
 	name := r.PathValue("n")
 	var p string
 	var err error
@@ -466,6 +469,13 @@ func (s *Server) handleHLSSegment(w http.ResponseWriter, r *http.Request) {
 	}
 	if errors.Is(err, hls.ErrBusy) {
 		w.Header().Set("Retry-After", "5")
+		writeErr(w, 503, err.Error())
+		return
+	}
+	if errors.Is(err, hls.ErrStillMaking) {
+		// A slow machine, still converting: the player asks again and the segment is there sooner.
+		s.Log.InfoContext(r.Context(), "a segment is slow to convert: the player will ask again", "cat", "transcode", "session", sess.LogSession(), "stream", id, "segment", name, "pace", sess.Pace())
+		w.Header().Set("Retry-After", "1")
 		writeErr(w, 503, err.Error())
 		return
 	}

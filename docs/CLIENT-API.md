@@ -522,6 +522,24 @@ file's own, or the cap it's converted to), `audioKbps`, `audioChannels`, `encode
 (as `GET /hls/{id}/work`, which says what a running stream really uses, after any step down to the processor). To change the
 choice mid-stream, call `/playback` again with the new `quality` and `startSec` at the position.
 
+### Playback speed
+
+A converted stream is made ahead of the player, and a player at 2× uses that up twice as fast. Say the
+speed, and the server keeps the same lead in the viewer's time: `rate` in the `/playback` body (2 for
+2×; left out, 1), then, when it changes, `PUT /hls/{id}/rate` with `{"rate": 2}`. A player that can put
+a header on its segment requests may send `X-WMS-Playback-Rate: 2` with each instead (hls.js does, on
+the server's own site). Keep your own buffer in step: players count it in the film's seconds, so 30
+seconds ahead at 1× should be 60 at 2×. A remux reads the file at twice the speed, at least four times
+real time.
+
+`GET /hls/{id}/work` has `pace`: `speed` (seconds of the film the conversion makes per second, 0 until
+measured), `rate`, `leadSec` (how far ahead of your newest request it is), `keepingUp`, and `fastest`.
+A conversion slower than the player, with the player close behind, goes on with a faster encoder
+setting by itself; once `fastest` is true and `keepingUp` false, only a lower `quality` (or a lower
+speed) plays smoothly: ask again with one, at the position, or tell the viewer. A segment still being
+made after 50 seconds is answered `503` with `Retry-After`: ask again, it's coming. Wait at least a
+minute for a segment before counting a timeout.
+
 ### Robust streaming
 
 Every video answer has `streaming`, which says how it is sent and what the player should do for that:
@@ -1743,7 +1761,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /hls/{id}/playlist.m3u8` | user, `st` | HLS media playlist. |
 | `GET /hls/{id}/seg/{n}` | user, `st` | One HLS segment (`{n}.ts`, `{n}.m4s`) or the fMP4 header (`init.mp4`). |
 | `GET /hls/{id}/subs/{file}` | user, `st` | One subtitle rendition: `{n}.m3u8` and its `{n}.vtt`. |
-| `GET /hls/{id}/work` | user | What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). For stream information. |
+| `GET /hls/{id}/work` | user | What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). `pace`: how the conversion keeps up with the player ([Playback speed](#playback-speed)). For stream information. |
+| `PUT /hls/{id}/rate` | user | `{"rate": 2}`: the player's playback speed changed ([Playback speed](#playback-speed)). Answers `pace`. |
 | `DELETE /hls/{id}` | user | Stop a stream when finished, freeing the transcoder. Streams nobody asks for also stop by themselves. |
 
 ### Discs
@@ -2297,11 +2316,12 @@ Favourites use `PUT /items/{id}/reaction` with `{"value": 1}`, as for anything e
 | `POST /p2p/devices` | user | Put this device's key on the list, under your account: `{id, name, platform}`. An app does this once, while it reaches the server some other way. |
 | `DELETE /p2p/devices/{id}` | user | Take a device off the list. Its open connections close at once. |
 | `GET /connect` | user | whether devices can connect from away, in words: `away` (off, checking, yes, partly, no), `words`, `p2p`, `canTurnOn`, and `hint`, what to do about it when the server can tell (in a container: the peer-to-peer port to publish). |
-| `POST /connect/offer` | user | Connect a device: `{userId, password, otp}` gives a `code` (`K7QM-2XHD`) for a device on the same network, and with peer to peer on a `link` and a shorter `qrLink` for one away from home (opened at an address of the home network, the `qrLink` also holds that address and the code, `h` and `c`, so a device at home that scans it needs no peer-to-peer path), for this account or a Kids or Guest profile it manages. One way in: whichever is used first ends the other. Adults only; an administrator's takes the password again (403 `password-required`). Works once, for 15 minutes; a new one ends the one before. |
-| `DELETE /connect/offer` | user | Ends the code and link this person has open. |
-| `POST /connect/hello` | none | A code from Connect a device, typed on a device: `{v: 1, find, nonce}` (scrypt lookup key, 16 random bytes). The server that made it answers `{nonce, publicKey, proof}`, proving it knows the code; 404 `not-here` from any other. The code itself is never sent. |
+| `POST /connect/offer` | user | Connect a device: `{userId, password, otp}` gives a `code` (`K7QM-2XHD`) for a device on the same network, and with peer to peer on a `link` and a shorter `qrLink` for one away from home (opened at an address of the home network, the `qrLink` also holds that address and the code, `h` and `c`, so a device at home that scans it needs no peer-to-peer path), for this account or a Kids or Guest profile it manages. One way in: whichever is used first ends the other. Adults only; an administrator's takes the password again (403 `password-required`). Works once, for 15 minutes. A person may have 3 open (a second tab, the TV and the phone); a fourth ends the oldest. The link outlives a restart of the server; the code doesn't (see `GET /connect/offer`). |
+| `GET /connect/offer` | user | `{open, restarted}`: whether a code this person showed is still open, and if not whether a restart of the server ended it, for the Connect a device screen to show a new one by itself. |
+| `DELETE /connect/offer` | user | Ends the codes and links this person has open. |
+| `POST /connect/hello` | none | A code from Connect a device, typed on a device: `{v: 1, find, nonce}` (scrypt lookup key, 16 random bytes). The server that made it answers `{nonce, publicKey, proof}`, proving it knows the code; 404 `not-here` from any other, or 404 `restarted` ("This code expired because the server restarted. Show a new code on the server.") from a server that restarted while a code it showed was still good: codes are never written down, so none outlives a restart. The code itself is never sent. |
 | `POST /connect/answer` | none | `{v: 1, find, nonce, serverNonce, proof, device, platform}`: the device's proof. A right one signs it in: `{status: approved, token, user, serverName}`. Three wrong proofs end the code. Failures say why in `reason`, as `/pair/redeem`. |
-| `POST /p2p/invite` | user | `{userId, password, otp}`: an invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only; an invite that signs a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it), as `/pair/approve` and `/p2p/join` do. Works once, for 15 minutes. |
+| `POST /p2p/invite` | user | `{userId, password, otp}`: an invite link (`wittymedia://p2p/...`) that puts one device on the list and signs it in, for this account or a Kids or Guest profile it manages. Adults only; an invite that signs a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it), as `/pair/approve` and `/p2p/join` do. Works once, for 15 minutes, across a restart of the server too (kept by its hash). The device it put on the list may show it again up to 3 times (its answer was lost) and is answered again; any other gets `used`. The enrol answer's `relayReady` says the server's own WittyRelays were told about the device before it was answered. |
 | `POST /p2p/join` | user | `{code, userId, password, otp}`: the code a device away from home is showing, typed in by someone signed in. The device finds the server by it, is put on the list and signed in. Adults only; signing a device in as an administrator takes the administrator's password again (403 with `reason: "password-required"` without it). Works once, for 15 minutes. 409 when peer-to-peer connections or their address book are off. Feature `p2p-join`. |
 | `GET /p2p/settings` | admin | The owner's choices, how every layer is doing in plain words (`steps`), who is contacted (`thirdParties`) and every device. |
 | `PUT /p2p/settings` | admin | Change them. Turning the feature on needs `accept: true`. |

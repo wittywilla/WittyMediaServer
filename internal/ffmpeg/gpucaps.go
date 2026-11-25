@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/logging"
@@ -136,9 +137,10 @@ func placeboChain(rng string, maxHeight int) string {
 		"hwdownload,format=nv12,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709"
 }
 
-// vulkanSelected finds the device FFmpeg chose in its verbose output; cpu says it is a software
+// vulkanSelected finds the device FFmpeg chose in its verbose output; cpu or software (FFmpeg 7.1 says
+// "(software)" for Mesa's llvmpipe) says it is a software
 // one (llvmpipe), which would do the work on the processor after all.
-var vulkanSelected = regexp.MustCompile(`Device \d+ selected: ([^\n]+?) \((integrated|discrete|virtual|cpu|other)\)`)
+var vulkanSelected = regexp.MustCompile(`Device \d+ selected: ([^\n]+?) \((integrated|discrete|virtual|cpu|software|other)\)`)
 
 // probePaths tests every path whose encoder (if it has one) works. A pipeline is given a tiny
 // file to decode, resize and encode; the tone map a few frames of HDR test picture.
@@ -159,6 +161,12 @@ func (t *Tools) probePaths(ctx context.Context, log *slog.Logger) {
 			st.Reason = "This FFmpeg has no scale_" + strings.TrimPrefix(p.ID, "pipeline:") + " filter."
 		case p.Kind == "tonemap" && !t.HasFilter("libplacebo"):
 			st.Reason = "This FFmpeg has no libplacebo filter."
+		case p.Kind == "tonemap" && t.softwareVulkan(ctx) != "":
+			// Mesa's lavapipe (in the Docker image since 0.8.5, for games) passes the test with the
+			// processor alone: HDR films were then mapped through Vulkan in software, several times
+			// slower than the processor's own tone mapping, and a 2 GB NAS container was killed for
+			// memory on the first segment, so the film never started.
+			st.Reason = i18n.F("Vulkan here is only the processor's ({device}), not a graphics chip.", "device", t.softwareVulkan(ctx))
 		case p.Kind == "pipeline":
 			if sample == "" {
 				if sample, err = t.probeSample(ctx, dir); err != nil {
@@ -235,7 +243,7 @@ func (t *Tools) testPath(ctx context.Context, log *slog.Logger, st *GPUPath, job
 	said := stderr.String()
 	if m := vulkanSelected.FindStringSubmatch(said); m != nil {
 		st.Device = strings.TrimSpace(m[1])
-		if strings.EqualFold(m[2], "cpu") || strings.Contains(strings.ToLower(m[1]), "llvmpipe") {
+		if strings.EqualFold(m[2], "cpu") || strings.EqualFold(m[2], "software") || strings.Contains(strings.ToLower(m[1]), "llvmpipe") {
 			st.Tested, st.Reason = true, i18n.F("The only Vulkan device here is a software one ({device}), which would do the work on the processor.", "device", st.Device)
 			log.Info("graphics chip path can't be used", "path", st.ID, "reason", st.Reason)
 			return
@@ -274,4 +282,44 @@ func lastLines(said string, max int) string {
 		out = out[len(out)-max:]
 	}
 	return out
+}
+
+// softwareVulkan names the Vulkan device FFmpeg would use when it is a software one (Mesa's llvmpipe or
+// lavapipe, SwiftShader): "" for a real graphics chip, or no Vulkan at all (the test itself then fails).
+// Asked once.
+func (t *Tools) softwareVulkan(ctx context.Context) string {
+	vulkanOnce.Do(func() {
+		cctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		_, stderr, _ := Run(cctx, t.FFmpeg, []string{"-hide_banner", "-loglevel", "verbose", "-nostdin", "-init_hw_device", "vulkan=vk",
+			"-f", "lavfi", "-i", "nullsrc=s=16x16:d=0.04", "-f", "null", "-"})
+		vulkanSoftware = softwareVulkanDevice(stderr.String())
+	})
+	return vulkanSoftware
+}
+
+var (
+	vulkanOnce     sync.Once
+	vulkanSoftware string
+)
+
+// softwareVulkanDevice reads the device FFmpeg chose from its verbose output ("Device 0 selected:
+// llvmpipe (LLVM 19.1.7, 256 bits) (software) (0x0)") and gives its name when it is a software one.
+func softwareVulkanDevice(log string) string {
+	for _, line := range strings.Split(log, "\n") {
+		i := strings.Index(line, "selected:")
+		if i < 0 {
+			continue
+		}
+		dev := strings.TrimSpace(line[i+len("selected:"):])
+		low := strings.ToLower(dev)
+		if strings.Contains(low, "(software)") || strings.Contains(low, "llvmpipe") || strings.Contains(low, "lavapipe") || strings.Contains(low, "swiftshader") {
+			if j := strings.Index(dev, " ("); j > 0 {
+				dev = dev[:j]
+			}
+			return dev
+		}
+		return ""
+	}
+	return ""
 }

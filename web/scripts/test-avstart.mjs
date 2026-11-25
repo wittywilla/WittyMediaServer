@@ -18,7 +18,12 @@ const token = process.env.WMS_TOKEN
 const items = process.argv.slice(2)
 if (!url || !token || !items.length) { console.error('usage: WMS_URL=… WMS_TOKEN=… node scripts/test-avstart.mjs <item id>...'); process.exit(2) }
 const BLACK_LIMIT_MS = 200
-const AV_LIMIT_MS = 40
+// Sound against the same clip's first start: at most 60 ms later or 40 ms earlier (EBU R37's lip-sync
+// tolerance). The flash is seen on whole frames, so one frame (42 ms at 24 fps) is the measurement's own step:
+// the open-GOP clip read exactly +42 now and then on CI, which a flat 40 ms failed. The 0.8.5 regression this
+// is for was hundreds of milliseconds, or no sound at all.
+const AV_LATE_MS = 60
+const AV_EARLY_MS = 40
 const MEASURE_SECONDS = Number(process.env.AVSTART_SECONDS || 15)
 const STARTS = (process.env.AVSTART_STARTS || '0,37.3,seek:80').split(',')
 
@@ -115,7 +120,7 @@ async function measure(id) {
       if (Number.isNaN(base)) base = m
       const off = m - base
       const okPicture = r.black <= BLACK_LIMIT_MS && r.held <= BLACK_LIMIT_MS && r.first != null
-      const okSound = r.offs.length >= 3 && Math.abs(off) <= AV_LIMIT_MS
+      const okSound = r.offs.length >= 3 && off <= AV_LATE_MS && off >= -AV_EARLY_MS
       if (!okPicture || !okSound) fails++
       lines.push(`${seekTo != null ? 'skip +' + seekTo + ' s' : start === '0' ? 'from the start' : 'resume at ' + start}: picture after ${r.first} ms, black ${r.black} ms, held ${r.held} ms${okPicture ? '' : ' FAIL'}; sound median ${Math.round(m)} ms (${off >= 0 ? '+' : ''}${Math.round(off)} against the start)${okSound ? '' : ' FAIL'}; at ${r.t.toFixed(1)} s`)
       } catch (e) { fails++; lines.push(`${start}: FAIL, ${String(e.message || e).slice(0, 120)}`) }
@@ -136,5 +141,5 @@ try {
 } finally {
   await browser.close()
 }
-if (fails) { console.log(`FAIL: ${fails} starts with black or held picture over ${BLACK_LIMIT_MS} ms, or sound more than ${AV_LIMIT_MS} ms out`); process.exit(1) }
+if (fails) { console.log(`FAIL: ${fails} starts with black or held picture over ${BLACK_LIMIT_MS} ms, or sound more than ${AV_LATE_MS} ms later or ${AV_EARLY_MS} ms earlier than at the start`); process.exit(1) }
 console.log('ok: every start has its picture at once and its sound in step')

@@ -101,7 +101,7 @@ fi
 
 # Every film starts with its picture and its sound in step: from the start, resumed part way, and after a
 # skip, on the open-GOP, HEVC 10-bit, late-sound and HDR10 clips (web/scripts/test-avstart.mjs). Black or
-# a held picture over 0.2 s, or sound more than 40 ms from the same clip's start, fails the run.
+# a held picture over 0.2 s, or sound more than 60 ms later or 40 ms earlier than at the same clip's start (EBU R37), fails the run.
 start_ids=$(python3 - "$NASPLAY_STATE" <<'PY'
 import json, sys, urllib.request
 st = json.load(open(sys.argv[1]))

@@ -75,3 +75,69 @@ func TestGraphicsLine(t *testing.T) {
 		t.Errorf("got  %s\nwant %s", got, want)
 	}
 }
+
+// Software drivers are never a yes: llvmpipe (OpenGL) and lavapipe (Vulkan) are the processor's. With no chip they're
+// named as software; with a chip of another make that only they could serve, the same. Transcoding mustn't take them for
+// a chip (lavapipe once made HDR tone mapping run on the processor of a NAS, which killed it), and nor should a person.
+func TestGraphicsSoftwareIsPlainlyNo(t *testing.T) {
+	lib, icd := t.TempDir(), t.TempDir()
+	dirs, icds := []string{lib}, []string{icd}
+	for _, f := range []string{"libEGL.so.1", "libEGL_mesa.so.0", "libvulkan.so.1", "dri/swrast_dri.so", "dri/kms_swrast_dri.so", "dri/libdril_dri.so"} {
+		touch(t, filepath.Join(lib, f))
+	}
+	touch(t, filepath.Join(icd, "lvp_icd.x86_64.json"))
+	why := "No graphics device was passed to the container."
+	for _, c := range []struct {
+		name string
+		got  GraphicsCheck
+	}{
+		{"OpenGL, no chip", eglCheck(dirs, "", why)},
+		{"Vulkan, no chip", vulkanCheck(dirs, icds, "", why)},
+		{"OpenGL, a chip of another make with only llvmpipe", eglCheck(dirs, "other", "")},
+		{"Vulkan, a chip of another make with only lavapipe", vulkanCheck(dirs, icds, "other", "")},
+	} {
+		if c.got.OK || !strings.HasPrefix(c.got.Detail, "Software (no graphics chip)") {
+			t.Errorf("%s: %+v", c.name, c.got)
+		}
+	}
+	// A real driver for that chip is a yes, and lavapipe beside it doesn't change that.
+	touch(t, filepath.Join(lib, "dri", "virtio_gpu_dri.so"))
+	touch(t, filepath.Join(icd, "virtio_icd.x86_64.json"))
+	if c := eglCheck(dirs, "other", ""); !c.OK || c.Detail != "Mesa virtio_gpu" {
+		t.Errorf("OpenGL with a chip's driver: %+v", c)
+	}
+	if c := vulkanCheck(dirs, icds, "other", ""); !c.OK || !strings.HasPrefix(c.Detail, "virtio_icd") {
+		t.Errorf("Vulkan with a chip's driver: %+v", c)
+	}
+}
+
+// Nothing in transcoding uses Vulkan but HDR tone mapping, whose own test refuses a software device: no encoder, no
+// decode-and-resize pipeline, and no decoder asked for by name. "-hwaccel auto" only goes with NVENC, where CUDA comes first;
+// lavapipe can't decode video at all (it has no video decode queue), so FFmpeg's auto choice never settles on it.
+func TestOnlyToneMappingUsesVulkan(t *testing.T) {
+	for _, e := range HWEncoders {
+		if strings.Contains(e.Name, "vulkan") {
+			t.Errorf("a Vulkan encoder is among the hardware encoders: %s", e.Name)
+		}
+	}
+	for _, p := range GPUPathList {
+		if strings.Contains(strings.ToLower(p.Label+p.ID), "vulkan") && p.ID != "tonemap:libplacebo" {
+			t.Errorf("a path other than tone mapping uses Vulkan: %s", p.ID)
+		}
+	}
+	for _, f := range []string{"../hls/hls.go", "../hls/live.go"} {
+		src, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lines := strings.Split(string(src), "\n")
+		for i, l := range lines {
+			if strings.Contains(l, `"-hwaccel", "vulkan"`) {
+				t.Errorf("%s:%d asks for Vulkan decoding", f, i+1)
+			}
+			if strings.Contains(l, `"-hwaccel", "auto"`) && (i == 0 || !strings.Contains(lines[i-1], "h264_nvenc")) {
+				t.Errorf("%s:%d lets FFmpeg choose a decoder (auto) outside NVENC", f, i+1)
+			}
+		}
+	}
+}

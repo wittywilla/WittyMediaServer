@@ -38,6 +38,18 @@ Developer notes:
     outside Settings. Before, a page that left Settings was skipped.
   - `align` covers titles a module draws itself and fails a centred title. It also fails a settings page whose title
     starts somewhere other than the others at the same size.
+- **Live TV: +30 is back, up to live.** At the owner's request, the jump forward returns to the live player (#688 had
+  removed it). +30, the timeline, Right, Fast forward and Next (outside an ad break) go ahead no further than the live
+  edge, and +30 is greyed out there. Back to live stays.
+- **WittyTV: leaving full screen keeps the channel where it was.** Back in the guide, the first row was highlighted for
+  a moment before the channel just left; the little TV took that, dropped the channel playing and tuned it again a
+  second later, at another point in it (and anyone who had paused or gone back lost their place). The guide now keeps
+  the channel just left until the highlight reaches its row. `npm run test:tv-handover` checks the round trip.
+- **WittyTV: a picture that stands still while the sound plays on is put right.** The web player (and the apps that
+  show it) watches the pictures it presents. When the clock runs on for a second with no new one, as when a
+  decoder can't start at a tune-in or a programme join, the sound is silenced and the player seeks to where it is,
+  which starts sound and picture again together; the sound comes back with the picture. A few tries a stream at most,
+  and never for a hidden page playing sound alone.
 
 ## 0.8.5-alpha
 

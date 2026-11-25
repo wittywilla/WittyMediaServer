@@ -17,7 +17,7 @@
 //   focus-scrolled  Tab scrolled a box that has overflow hidden, moving what it holds out of place
 //   tv-target     in TV mode, something to press smaller than 48 by 48
 //   touch-target  on a phone's Live TV, something to press smaller than 48 by 48
-//   unfilled      on a phone, Live TV doesn't reach the sides, or its preview isn't the page's width
+//   unfilled      on a phone or a tablet, Live TV doesn't reach the sides, or on a phone its preview isn't the page's width
 //   off-screen    a control of Live TV's full-screen player outside the window
 //   overlap       the player's controls drawn over the channel's banner, a message, or a break's card
 // Pictures of each page go to the out folder (<page>--<size>.png) for before-and-after comparisons.
@@ -47,6 +47,8 @@ const SIZES = {
   phone: { width: 375, height: 812, mobile: true },
   // A tall phone on its side (412 x 915 dp turned): wider than a phone's 700, under 500 tall.
   phoneland: { width: 915, height: 412, mobile: true },
+  // A tablet on its side (an iPad Air's 1180 x 820).
+  tabletland: { width: 1180, height: 820, mobile: true },
   tv: { width: 1920, height: 1080, tv: true },
 }
 const sizes = (process.env.LAYOUT_SIZES || 'wide,desktop,tablet,phone,tv').split(',')
@@ -149,15 +151,15 @@ const DETECT = (phase, tv) => `(() => {
         if (r.width < 47.5 || r.height < 47.5) { add('touch-target', e, Math.round(r.width) + ' x ' + Math.round(r.height)); if (++n >= 5) break }
       }
     }
-    // On a phone, Live TV fills the screen: its page reaches both sides (only the system's insets, which the app keeps
-    // outside its web view, may be left), and upright its preview is the page's width (#765).
+    // On a phone or a tablet, Live TV fills the screen: its page reaches both sides (only the system's insets, which the
+    // app keeps outside its web view, may be left), and on a phone upright its preview is the page's width (#765).
     if (window.__layoutTouch) {
       const page = document.querySelector('.ctv-page')
       if (page && vis(page)) {
         const r = page.getBoundingClientRect()
         if (r.left > 1 || vw - r.right > 1) add('unfilled', page, 'Live TV leaves ' + Math.round(r.left) + ' and ' + Math.round(vw - r.right) + ' empty at its sides')
         const pv = page.querySelector('.ctv-page.narrow .ctv-preview')
-        if (pv && vis(pv) && pv.getBoundingClientRect().width < r.width - 2 * 16 - 2) add('unfilled', pv, 'the preview is ' + Math.round(pv.getBoundingClientRect().width) + ' of ' + Math.round(r.width) + ' wide')
+        if (pv && vis(pv) && vw <= 720 && pv.getBoundingClientRect().width < r.width - 2 * 16 - 2) add('unfilled', pv, 'the preview is ' + Math.round(pv.getBoundingClientRect().width) + ' of ' + Math.round(r.width) + ' wide')
       }
     }
     // In TV mode: everything a remote can land on is at least 48 by 48.

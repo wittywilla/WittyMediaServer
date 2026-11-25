@@ -59,9 +59,13 @@ func (s *Session) SetRate(r float64) {
 func (s *Session) setRate(r float64) {
 	old := s.Rate()
 	s.rate.Store(math.Float64bits(r))
-	if r > old*1.2 {
+	s.mu.Lock()
+	started := !s.lastStart.IsZero()
+	s.mu.Unlock()
+	if r > old*1.2 && started {
 		// Faster: the lead that was enough may not be now. A resting stream starts again if what
 		// is made falls short of the new lead (wake looks), as it would at the next segment.
+		// A stream nothing has asked for yet waits for its first request.
 		if n := int(s.lastAsked.Load()); n >= 0 && !s.Spec.Growing && s.SegmentCount() > 0 {
 			go s.wake(n)
 		}
@@ -243,7 +247,7 @@ const fastStartRate = 1.5
 // needed it once needs it again.
 func (s *Session) step() int32 {
 	st := s.paceStep.Load()
-	if st == 0 && smallMachine() && (s.Rate() >= fastStartRate || s.m.neededFaster.Load()) && s.fasterHelps() {
+	if st == 0 && s.m.small() && (s.Rate() >= fastStartRate || s.m.neededFaster.Load()) && s.fasterHelps() {
 		return 1
 	}
 	return st
@@ -280,9 +284,15 @@ func (s *Session) preset() string {
 
 func round2(f float64) float64 { return math.Round(f*100) / 100 }
 
-// smallMachine says the machine is tiny or small (internal/pace: up to four processors or 4 GB,
-// counting a container's limits). A variable, for the tests.
-var smallMachine = func() bool { return machinepace.Machine() != machinepace.Roomy }
+// small says the machine is tiny or small (internal/pace: up to four processors or 4 GB, counting a
+// container's limits). Tests set the manager's own answer (smallMachine) rather than a package
+// variable, which streams' own goroutines read.
+func (m *Manager) small() bool {
+	if m.smallMachine != nil {
+		return m.smallMachine()
+	}
+	return machinepace.Machine() != machinepace.Roomy
+}
 
 // softwareMaxHeight is the most lines a conversion on the processor makes on a small machine.
 const softwareMaxHeight = 1080
@@ -292,7 +302,7 @@ const softwareMaxHeight = 1080
 // it plays, and the pictures of a 4K decoder and encoder together outgrow a 1 GB container: FFmpeg was
 // killed on the first segment, and the player stopped. A graphics chip that encodes is left to it.
 func (m *Manager) CapForMachine(sp *Spec) bool {
-	if sp.CopyVideo || sp.NoVideo || sp.Height <= softwareMaxHeight+8 || (sp.MaxHeight > 0 && sp.MaxHeight <= softwareMaxHeight) || !smallMachine() {
+	if sp.CopyVideo || sp.NoVideo || sp.Height <= softwareMaxHeight+8 || (sp.MaxHeight > 0 && sp.MaxHeight <= softwareMaxHeight) || !m.small() {
 		return false
 	}
 	if hardware(m.PlanWork(*sp).Encoder) {

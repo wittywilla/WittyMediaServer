@@ -107,6 +107,7 @@ func TestPaceMeasuresSpeed(t *testing.T) {
 // rests far ahead.
 func TestFallingBehindGoesFaster(t *testing.T) {
 	m := testManager(t, 4)
+	m.smallMachine = func() bool { return false } // a small machine would start fast (TestSmallMachineStartsFaster)
 	m.tools = &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}
 	s := m.Ensure(Spec{ID: "v-slow", Duration: 600, SegmentSec: 4, AudioIndex: -1, SubtitleIndex: -1})
 	s.SetRate(2)
@@ -165,8 +166,7 @@ func TestFasterPreset(t *testing.T) {
 func TestSmallMachineConvertsTo1080(t *testing.T) {
 	m := testManager(t, 4)
 	m.tools = &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}
-	defer func(f func() bool) { smallMachine = f }(smallMachine)
-	smallMachine = func() bool { return true }
+	m.smallMachine = func() bool { return true }
 	sp := Spec{Height: 2160, Duration: 60, SegmentSec: 4}
 	if !m.CapForMachine(&sp) || sp.MaxHeight != 1080 {
 		t.Fatalf("4K on a small machine: %d", sp.MaxHeight)
@@ -181,7 +181,7 @@ func TestSmallMachineConvertsTo1080(t *testing.T) {
 			t.Errorf("%s: capped", name)
 		}
 	}
-	smallMachine = func() bool { return false }
+	m.smallMachine = func() bool { return false }
 	sp = Spec{Height: 2160}
 	if m.CapForMachine(&sp) || sp.MaxHeight != 0 {
 		t.Fatal("a roomy machine keeps 4K")
@@ -193,8 +193,7 @@ func TestSmallMachineConvertsTo1080(t *testing.T) {
 func TestSmallMachineStartsFaster(t *testing.T) {
 	m := testManager(t, 4)
 	m.tools = &ffmpeg.Tools{Encoders: map[string]bool{"libx264": true}}
-	defer func(f func() bool) { smallMachine = f }(smallMachine)
-	smallMachine = func() bool { return true }
+	m.smallMachine = func() bool { return true }
 	s := m.Ensure(Spec{ID: "v-a", Duration: 60, SegmentSec: 4})
 	if s.preset() != "" || s.Pace().Fastest {
 		t.Fatalf("1×: %q", s.preset())
@@ -211,7 +210,7 @@ func TestSmallMachineStartsFaster(t *testing.T) {
 	if b.preset() != "ultrafast" {
 		t.Fatal("once one stream needed it, the next starts with it")
 	}
-	smallMachine = func() bool { return false }
+	m.smallMachine = func() bool { return false }
 	if s.preset() != "" || b.preset() != "" {
 		t.Fatal("a roomy machine goes faster only when a stream falls behind")
 	}

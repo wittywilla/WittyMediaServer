@@ -220,6 +220,8 @@ type Manager struct {
 	// neededFaster: a stream here went to the faster setting to keep up (pace.go), so on a small
 	// machine the next ones start with it.
 	neededFaster atomic.Bool
+	// smallMachine, when set, says whether this is a small machine (see small); nil asks internal/pace.
+	smallMachine func() bool
 }
 
 // ErrBusy: as many transcodes are running as the server allows

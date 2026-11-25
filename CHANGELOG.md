@@ -5,6 +5,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **WittyTV: no sound before the picture at tune-in.** A channel's sound now starts with its first picture, and
+  "Tuning…" stays until there is one, rather than giving way to a frame standing still while the sound plays. The
+  sound comes back after a few seconds at most whatever happens, and a page playing in the background isn't held.
+
 - **Recent can be clicked into again (WittyPlay).** Moving the mouse across Recent's games kept changing which one was
   chosen, and the chosen one grows, so the game under the pointer moved and a click landed on another, or opened it at
   once. The fix for this (#547, for every row with a details panel or a growing card) was undone by a later merge (#558).

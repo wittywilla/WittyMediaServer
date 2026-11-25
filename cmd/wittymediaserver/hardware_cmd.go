@@ -40,7 +40,7 @@ func cmdHardware(args []string) int {
 	gpus := ffmpeg.GPUs()
 	working := slices.ContainsFunc(list, func(h ffmpeg.HWStatus) bool { return h.Working })
 	if asJSON {
-		out, _ := json.MarshalIndent(map[string]any{"container": ffmpeg.InContainer(), "user": os.Getuid(), "groups": ffmpeg.OwnGroups(), "gpus": gpus, "encoders": list}, "", "  ")
+		out, _ := json.MarshalIndent(map[string]any{"container": ffmpeg.InContainer(), "user": os.Getuid(), "groups": ffmpeg.OwnGroups(), "gpus": gpus, "encoders": list, "graphics": tools.GraphicsStatus()}, "", "  ")
 		fmt.Println(string(out))
 	} else {
 		fmt.Printf("FFmpeg: %s\nRunning as user %d, groups %v", tools.FFmpeg, os.Getuid(), ffmpeg.OwnGroups())
@@ -81,6 +81,18 @@ func cmdHardware(args []string) int {
 				dev = " (" + h.Device + ")"
 			}
 			fmt.Printf("  %-18s %s%s\n", h.Name, state, dev)
+		}
+		g := tools.GraphicsStatus()
+		fmt.Println("\nWhat the graphics chip is used for:")
+		for _, c := range []struct {
+			name string
+			c    ffmpeg.GraphicsCheck
+		}{{"Video encoding", g.VAAPI}, {"Games, OpenGL (EGL)", g.EGL}, {"Games, Vulkan", g.Vulkan}} {
+			if c.c.OK {
+				fmt.Printf("  %-20s yes: %s\n", c.name, c.c.Detail)
+			} else {
+				fmt.Printf("  %-20s no: %s\n", c.name, c.c.Detail)
+			}
 		}
 	}
 	if !working {

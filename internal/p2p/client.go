@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
@@ -184,27 +185,30 @@ func (c *Client) State() State { return c.keeper.get() }
 func (c *Client) NetworkChanged() { c.keeper.kick() }
 
 // KnownAddrs are the server's addresses as last learnt, to keep as hints for
-// next time: the direct ones first, then up to two relay circuits.
+// next time: relay circuits first, then public addresses, then a few private.
 func (c *Client) KnownAddrs() []string {
 	return addrStrings(keptAddrs(c.host.Peerstore().Addrs(c.server), parseAddrs(c.cfg.Hints, c.server), maxKeptAddrs))
 }
 
-// maxKeptAddrs caps the hints kept for next time; keptCircuits of them are kept
-// for relay circuits.
+// The hints kept for next time: at most maxKeptAddrs, of which up to
+// keptCircuits relay circuits and keptPrivate private addresses.
 const (
 	maxKeptAddrs = 12
-	keptCircuits = 2
+	keptCircuits = 4
+	keptPrivate  = 2
 )
 
 // keptAddrs picks the hints to keep. A server with many addresses (Docker
-// bridges, VPNs, several networks) fills the list with direct ones that are
-// no use away from home, so relay circuits get places of their own: those that
-// came with the hints first (the owner's WittyRelay, from the invite), as the
-// address book may have dropped them, then the ones learnt since. Loopback
-// addresses go last, as they only ever reach a server on the same computer.
+// bridges, VPNs, several networks) would fill the list with private ones that
+// are no use away from home and push out the relay circuit, often the only
+// way in from there. So circuits come first: those that came with the hints
+// (the owner's WittyRelay, from the invite) ahead of the ones learnt since, as
+// the address book may have dropped them. Then public addresses, then at most
+// keptPrivate private ones, a home network's ranges ahead of container ones
+// and loopback last. At home an app finds the server by its own address too.
 func keptAddrs(known, hinted []ma.Multiaddr, limit int) []ma.Multiaddr {
 	seen := map[string]bool{}
-	var circuits, direct, loop []ma.Multiaddr
+	var circuits, public, private []ma.Multiaddr
 	add := func(a ma.Multiaddr) {
 		k := a.String()
 		if seen[k] {
@@ -214,10 +218,10 @@ func keptAddrs(known, hinted []ma.Multiaddr, limit int) []ma.Multiaddr {
 		switch {
 		case isRelayed(a):
 			circuits = append(circuits, a)
-		case manet.IsIPLoopback(a):
-			loop = append(loop, a)
+		case privateRank(a) >= 0:
+			private = append(private, a)
 		default:
-			direct = append(direct, a)
+			public = append(public, a)
 		}
 	}
 	for _, a := range hinted {
@@ -228,14 +232,44 @@ func keptAddrs(known, hinted []ma.Multiaddr, limit int) []ma.Multiaddr {
 	for _, a := range known {
 		add(a)
 	}
-	if len(circuits) > keptCircuits {
-		circuits = circuits[:keptCircuits]
+	slices.SortStableFunc(private, func(x, y ma.Multiaddr) int { return privateRank(x) - privateRank(y) })
+	out := append(firstN(circuits, keptCircuits), public...)
+	out = append(out, firstN(private, keptPrivate)...)
+	return firstN(out, limit)
+}
+
+func firstN(list []ma.Multiaddr, n int) []ma.Multiaddr {
+	if len(list) > n {
+		return list[:max(n, 0)]
 	}
-	direct = append(direct, loop...)
-	if room := limit - len(circuits); len(direct) > room {
-		direct = direct[:max(room, 0)]
+	return list
+}
+
+// privateRank orders the addresses that reach no further than a local network,
+// most likely a home network's first; -1 for a public address or a name.
+func privateRank(a ma.Multiaddr) int {
+	ip, err := manet.ToIP(a)
+	if err != nil {
+		return -1 // a DNS name: kept with the public ones
 	}
-	return append(direct, circuits...)
+	v4 := ip.To4()
+	switch {
+	case v4 != nil && v4[0] == 192 && v4[1] == 168:
+		return 0
+	case v4 != nil && v4[0] == 10:
+		return 1
+	case v4 != nil && v4[0] == 172 && v4[1]&0xf0 == 16:
+		return 2 // Docker's own networks are here
+	case ip.IsPrivate(), v4 != nil && v4[0] == 100 && v4[1]&0xc0 == 64:
+		return 3 // IPv6 unique local, and shared address space (CGNAT, VPNs)
+	case ip.IsLinkLocalUnicast():
+		return 4
+	case ip.IsLoopback():
+		return 5 // reaches only a server on the same computer
+	case ip.IsUnspecified(), ip.IsMulticast():
+		return 6
+	}
+	return -1
 }
 
 // Close ends the connection and the node.

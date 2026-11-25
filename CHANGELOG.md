@@ -75,9 +75,9 @@ Not released yet.
   next heading.
 - **An app keeps the way in through the owner's WittyRelay.** The addresses an app keeps for next time were capped at
   twelve, direct ones first, so a server with many addresses (Docker bridges, VPNs, several networks) pushed the relay
-  circuit from the invite out of the list, and the app couldn't reconnect from away. Two places are now kept for relay
-  circuits, the invite's first, and loopback addresses come last. This is in the library the desktop and Apple apps
-  use; Android already kept them.
+  circuit from the invite out of the list, and the app couldn't reconnect from away. Now relay circuits come first (up
+  to four, the invite's ahead of the rest), then public addresses, then at most two private ones, a home network's
+  ahead of a container's. This is in the library the desktop and Apple apps use; Android already kept circuits.
 
 **Live TV (#687, #688)**
 

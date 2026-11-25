@@ -73,6 +73,12 @@ Not released yet.
   link stays under 330.
 - **Each device's Remove button is in its own row** under **Devices that may connect**, not below the list beside the
   next heading.
+- **An app keeps the way in through the owner's WittyRelay.** The addresses an app keeps for next time were capped at
+  twelve, direct ones first, so a server with many addresses (Docker bridges, VPNs, several networks) pushed the relay
+  circuit from the invite out of the list, and the app couldn't reconnect from away. Now relay circuits come first (up
+  to four, the invite's ahead of the rest), then public addresses, then at most two private ones, a home network's
+  ahead of a container's. This is in the library the desktop and Apple apps use; Android already kept circuits.
+
 **Live TV (#687, #688)**
 
 - **Sound and picture stay together across programme changes.** A library channel joined part way into a programme

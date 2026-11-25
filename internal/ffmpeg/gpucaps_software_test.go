@@ -20,3 +20,11 @@ func TestSoftwareVulkanIsNoGraphicsChip(t *testing.T) {
 		}
 	}
 }
+
+// The path test's own reading of the device: FFmpeg 7.1 calls llvmpipe "(software)", not "(cpu)".
+func TestVulkanSelectedKnowsSoftware(t *testing.T) {
+	m := vulkanSelected.FindStringSubmatch("[AVHWDeviceContext @ 0x1] Device 0 selected: llvmpipe (LLVM 19.1.7, 256 bits) (software) (0x0)")
+	if m == nil || m[2] != "software" || m[1] != "llvmpipe (LLVM 19.1.7, 256 bits)" {
+		t.Fatalf("%q", m)
+	}
+}

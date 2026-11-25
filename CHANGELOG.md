@@ -5,6 +5,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Live TV: +30 is back, up to live.** At the owner's request, the jump forward returns to the live player (#688 had
+  removed it). +30, the timeline, Right, Fast forward and Next (outside an ad break) go ahead no further than the live
+  edge, and +30 is greyed out there. Back to live stays.
+
 ## 0.8.5-alpha
 
 Released 2026-11-25.

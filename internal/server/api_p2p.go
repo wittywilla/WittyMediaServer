@@ -306,6 +306,7 @@ func (s *Server) p2pSeed(ctx context.Context) ([]byte, error) {
 	if err := s.DB.SetSetting(ctx, p2pSeedKey, enc); err != nil {
 		return nil, fmt.Errorf("saving the connection key: %w", err)
 	}
+	s.p2pNoteNewKey(ctx) // devices on the list knew another key: p2p_key_notice.go
 	return seed, nil
 }
 
@@ -464,6 +465,9 @@ type p2pDevice struct {
 	Path      string `json:"path,omitempty"`
 	Pending   bool   `json:"pending,omitempty"`
 	Why       string `json:"why,omitempty"`
+	// Reinvite: the server's connection ID changed since the device last connected (a backup made without a
+	// password was restored), so it can't reach the server from away until it is invited again.
+	Reinvite bool `json:"reinvite,omitempty"`
 	// Mine: the device belongs to whoever asked.
 	Mine bool `json:"mine"`
 
@@ -882,6 +886,7 @@ func (s *Server) p2pDeviceViews(ctx context.Context, me *auth.User, all bool) []
 		}
 	}
 	out := []p2pDevice{}
+	newKey, keyChanged := s.p2pKeyNewAt(ctx)
 	for _, d := range s.p2p.devices.list() {
 		if d.UserID != me.ID && !all {
 			continue
@@ -896,6 +901,9 @@ func (s *Server) p2pDeviceViews(ctx context.Context, me *auth.User, all bool) []
 		if live[d.ID] == "public" {
 			d.Path = ""
 			d.Why = i18n.T("It can reach this server only through a public relay, which carries an invite but nothing more. Publish this server's peer-to-peer port (and forward it on your router), or use your own WittyRelay.")
+		}
+		if p2pNeedsReinvite(d, newKey, keyChanged) {
+			d.Pending, d.Connected, d.Reinvite, d.Why = true, false, true, p2pReinviteWords()
 		}
 		out = append(out, d)
 	}
@@ -1099,6 +1107,8 @@ type p2pView struct {
 	Verdict      *p2pVerdict     `json:"verdict,omitempty"`
 	ThirdParties []p2pThirdParty `json:"thirdParties"`
 	Devices      []p2pDevice     `json:"devices"`
+	// KeyNotice: the connection ID changed under devices on the list (p2p_key_notice.go).
+	KeyNotice *p2pKeyNotice `json:"keyNotice,omitempty"`
 }
 
 func (s *Server) p2pView(r *http.Request, applyErr string) p2pView {
@@ -1109,6 +1119,7 @@ func (s *Server) p2pView(r *http.Request, applyErr string) p2pView {
 	}
 	v := p2pView{Settings: cfg, Error: applyErr, ThirdParties: p2pThirdParties, Steps: []checkStep{}}
 	v.Devices = s.p2pDeviceViews(r.Context(), userFrom(r), true)
+	v.KeyNotice = s.p2pKeyNoticeFor(r.Context(), v.Devices)
 	if node := s.p2pNode(); node != nil {
 		st := node.Status()
 		v.Running, v.ServerID, v.Status = true, st.ID, &st

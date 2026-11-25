@@ -29,6 +29,8 @@ type Job = { kind?: 'create' | 'inspect' | 'restore'; running: boolean; phase?: 
 type Last = { ok: boolean; mode: string; name?: string; safety?: string; error?: string; notes?: string[]; at: string }
 type View = {
   parts: Part[]; files: Info[]; folder: string; chosenFolder?: string; defaultFolder?: string; folderProblem?: string; schedule: Schedule; lastAuto?: number; lastError?: string; job: Job; pending?: { mode: string; at: string; name?: string }
+  // While connections from away are on: a backup without a password can't keep this server's connection ID.
+  p2pKeyNote?: string
   last?: Last; safety: { name: string; at: string }[]; canRestart: boolean; twoFactor: boolean; firstRun: boolean
 }
 
@@ -204,6 +206,7 @@ function MakeBackup({ view, reload, call }: { view: View; reload: () => void; ca
     <SpecPage embedded page={page} handled={new Set(['make'])} onAction={(id) => { if (id === 'make') void start() }} onField={onField}
       after={{ [page.sections.findIndex((x) => x.h === t(MAKE))]: busy && job.kind === 'create' ? <JobProgress job={job} onCancel={cancel} /> : (
         <div ref={answer} tabIndex={-1} className="bk-answer">
+          {!protect && view.p2pKeyNote && <p className="bk-quiet" role="note">{view.p2pKeyNote}</p>}
           {job.kind === 'create' && job.result && (
             <Notice tone={job.problems?.length ? 'warn' : 'ok'} title={job.result}>
               {job.file && <p>{t('It’s below, as')} <code>{job.file}</code>. {t('A copy on another drive is what saves you if this one fails, so download it.')}</p>}

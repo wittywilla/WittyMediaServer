@@ -122,8 +122,10 @@ const DETECT = (phase, menu = null) => `(() => {
         const fs = getComputedStyle(first), fr = first.getBoundingClientRect()
         const bleed = parseFloat(rtl ? fs.marginRight : fs.marginLeft) < 0
         const want = rtl ? fr.right - (bleed ? parseFloat(fs.paddingRight) : 0) : fr.left + (bleed ? parseFloat(fs.paddingLeft) : 0)
-        for (const e of [h1, head.matches('h1') ? null : head.querySelector('p')].filter(Boolean)) {
-          const d = Math.round(edge(e) - want)
+        // A head that starts with a picture before its title (the module store's icon) starts at the picture.
+        const pic = head.firstElementChild && !head.firstElementChild.contains(h1) && vis(head.firstElementChild) && head.firstElementChild.getBoundingClientRect().right <= h1.getBoundingClientRect().left + 1 ? head.firstElementChild : null
+        for (const e of pic ? [pic] : [h1, head.matches('h1') ? null : head.querySelector('p')].filter(Boolean)) {
+          const d = Math.round((e === pic ? (rtl ? e.getBoundingClientRect().right : e.getBoundingClientRect().left) : edge(e)) - want)
           if (Math.abs(d) > 2) add('align', e, 'starts ' + d + 'px from the content under it (' + name(first) + ')')
         }
       }
@@ -195,9 +197,9 @@ if (!process.env.LAYOUT_ROUTES) {
   try {
     await s.page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(token)}); localStorage.removeItem('wms.tvclient')`)
     const links = []
-    for (const [path, sel] of [['/settings', 'main a.sm-row[href]'], ['/settings/about', '.set-nav a[href]']]) {
+    for (const [path, sel] of [['/settings', 'main a.sm-row[href]'], ['/settings/about', '.set-nav a[href]'], ['/settings/modules', '.set-main a[href^="/settings/modules/store/"]']]) {
       await s.go(path, 400)
-      await s.page.until(`document.querySelectorAll(${JSON.stringify(sel)}).length > 10`, 20000, 'the settings menu').catch(() => {})
+      await s.page.until(`document.querySelectorAll(${JSON.stringify(sel)}).length > (${JSON.stringify(path)} === '/settings/modules' ? 0 : 10)`, 20000, 'the settings menu').catch(() => {})
       await wait(800)
       links.push(...await s.page.eval(`[...document.querySelectorAll(${JSON.stringify(sel)})].map((a) => new URL(a.href).pathname)`))
     }
@@ -262,7 +264,7 @@ try {
           const found = await s.page.eval(DETECT('open', here === '/settings' ? null : menuWant))
           if (menuWant && here !== '/settings') {
             // The page editor is a wide workspace of its own (pages-editor.css .pe-wide): the whole frame widens for it.
-            const left = await s.page.eval(`(() => { if (document.querySelector('.pe-wide')) return null; const h = [...document.querySelectorAll('.set-main h1')].find((e) => e.getBoundingClientRect().width > 1); return h ? Math.round(h.getBoundingClientRect().left) : null })()`)
+            const left = await s.page.eval(`(() => { if (document.querySelector('.pe-wide')) return null; const h = [...document.querySelectorAll('.set-main h1')].find((e) => e.getBoundingClientRect().width > 1); if (!h) return null; const hd = h.closest('header'); const f = hd && hd.firstElementChild; const pic = f && !f.contains(h) && f.getBoundingClientRect().width > 1 && f.getBoundingClientRect().right <= h.getBoundingClientRect().left + 1; return Math.round((pic ? f : h).getBoundingClientRect().left) })()`)
             if (left != null) edges.push({ route, left })
           }
           if (!noShots) await s.shot(`${slug(route)}--${sizeName}${tag}`)

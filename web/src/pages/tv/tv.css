@@ -35,11 +35,13 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
    scrolled by focus, and Tab to the dock scrolled the whole page up under the top bar (#679). */
 .main:has(.ctv-page) { height: 100dvh; overflow: clip; }
 .main:has(.ctv-page) .topbar::after { display: none; }
-.content:has(.ctv-page) { display: flex; flex-direction: column; min-height: 0; padding-bottom: 0; overflow: clip; }
+/* Its foot keeps the room for a phone's floating bar (the website's or the app's), so "Customise this page" under the
+   page sits above that bar, not behind it (#765). */
+.content:has(.ctv-page) { display: flex; flex-direction: column; min-height: 0; padding-bottom: calc(var(--tabbar-space, 0px) + var(--dock-space, 0px)); overflow: clip; }
 .content:has(.ctv-page) > :is(.sdui, .sdui-native):has(.ctv-page), .content:has(.ctv-page) .sdui-native:has(> .ctv-page) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .content:has(.ctv-page) > :not(:has(.ctv-page)) { flex: none; }
 .content:has(.ctv-page) > .page-foot, .content:has(.ctv-page) > .legal-foot { display: none; }
-.ctv-page { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; padding-bottom: calc(var(--ctv-foot) + var(--tabbar-space, 0px) + var(--dock-space, 0px)); overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; }
+.ctv-page { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; padding-bottom: var(--ctv-foot); overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; }
 
 /* Buttons in the box's own style. */
 .ctv-btn {
@@ -227,15 +229,16 @@ html.tv-mode .ctv-legals.one-line .ctv-legal { white-space: normal; }
 @media (max-width: 720px) {
   .ctv-bar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
   .ctv-bar-group { flex: none; max-width: none; flex-wrap: nowrap; }
-  .ctv-chips, .ctv-hero-actions { flex-wrap: nowrap; }
-  .ctv-hero-actions { overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  /* The programme's buttons wrap to a second line rather than scroll: a row that scrolls sideways showed half a button at
+     the edge and hid Channel up, More about this programme and Day out of sight (#765). */
+  .ctv-chips { flex-wrap: nowrap; }
   .ctv-bar-time > *, .ctv-chips > *, .ctv-hero-actions > * { flex: none; }
   .ctv-hero-chtext span, .ctv-hero-next { display: none; }
   .ctv-hero-sub { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ctv-hero-meta { flex-wrap: nowrap; margin-top: 2px; font-size: var(--text-sm) !important; }
   .ctv-hero-meta > :not(.ctv-hero-sub) { flex: none; }
   .ctv-hero-when { margin-top: 2px; font-size: var(--text-sm); }
-  .ctv-chip, .ctv-btn, .ctv-link-btn { min-width: 44px; }
+  .ctv-chip, .ctv-btn, .ctv-link-btn { min-width: 48px; }
   .ctv-grid { --ctv-chw: 96px; flex-basis: 280px; min-height: 280px; }
   /* In a 96-wide column the number left the name about 40 to fit in, and "CHANNEL" was cut off mid-letter.
      The number goes above the name, which gets the column's whole width. */
@@ -244,8 +247,8 @@ html.tv-mode .ctv-legals.one-line .ctv-legal { white-space: normal; }
   .ctv-ch .ctv-name { max-inline-size: 100%; font-size: var(--text-sm); overflow-wrap: break-word; hyphens: auto; }
   .ctv-hero { gap: var(--sp-3); }
   .ctv-hero-title { font-size: var(--text-lg); }
-  .ctv-hero-actions .ctv-btn, .ctv-chip, .ctv-link-btn, .ctv-field select, .ctv-btn.sm { min-height: 44px; }
-  .ctv-btn.icon, .ctv-btn.sm.icon { width: 44px; min-height: 44px; }
+  .ctv-hero-actions .ctv-btn, .ctv-chip, .ctv-link-btn, .ctv-field select, .ctv-btn.sm { min-height: 48px; }
+  .ctv-btn.icon, .ctv-btn.sm.icon { width: 48px; min-height: 48px; }
   .ctv-hero-actions .ctv-btn:not(.on) span { display: none; }
   .ctv-info-desc { display: none; }
   .ctv-num { min-width: 0; font-size: var(--text-sm); }
@@ -419,4 +422,28 @@ html.tv-mode .ctv-skip-break { right: var(--space-xl); bottom: 200px; padding: v
   .ctv-mini { left: 8px; right: 8px; bottom: 76px; }
   .ctv-mini-row { grid-template-columns: minmax(72px, 1fr) minmax(0, 2fr); }
   .ctv-mini-next { display: none; }
+}
+
+/* A finger needs 48 by 48 (#765): every button on the page, the preview's own included, and a theme's smaller ones.
+   The corner handle resizes by dragging with a mouse; a finger pinches the preview's - and + instead. */
+@media (pointer: coarse) {
+  .ctv-page :is(button, select, .ctv-btn, .ctv-chip, .ctv-link-btn):not(.ctv-cell, .ctv-ch, .ctv-prog) { min-height: 48px !important; min-width: 48px !important; }
+  .ctv-page .ctv-preview-handle { display: none; }
+  /* Its - and + resize it for a mouse; on a touch screen the preview takes the size the screen gives it, and the bar keeps
+     sound, full screen and close at 48 each, which fit even the preview beside the programme on a phone on its side. */
+  .ctv-page .ctv-preview-size { display: none; }
+  .ctv-page .ctv-preview-bar { height: 48px !important; }
+}
+
+/* A phone on its side has about 410 to show the picture in: the channel's banner is one low band (the number, the
+   programme and how far through it is), so it stays under the player's -10 and play in the middle instead of being
+   drawn beneath them. The next programme, the notice and More info are in the guide and the player's own info (#765). */
+@media (max-height: 500px) {
+  .ctv-banner { bottom: 84px; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); align-items: center; } /* design-ok: the phone's offset above its controls, as at 720 wide */
+  .ctv-banner-ch { min-width: 0; padding-right: var(--sp-2); }
+  .ctv-banner-ch :is(img, span) { display: none; }
+  .ctv-banner-ch b { font-size: var(--text-lg); }
+  .ctv-banner-title { font-size: var(--text-base); }
+  .ctv-banner-main:has(.ctv-banner-progress) :is(.ctv-banner-sub, .ctv-banner-next) { display: none; }
+  .ctv-banner :is(.ctv-banner-legal, .ctv-banner-clock, .ctv-banner-more) { display: none; }
 }

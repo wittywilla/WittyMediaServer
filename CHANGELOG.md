@@ -11,6 +11,22 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   Graphics-chip decoders, as most browsers, phones and TVs use, held the picture while the sound played, then showed it
   late. The server now looks at one keyframe of each such file and converts its picture when the keyframe isn't an IDR.
 
+**Live TV in the phone app (#765)**
+
+- **Nothing behind the app's bars.** "Customise this page" under Live TV sat behind the floating bar, in the app and
+  on the website on a phone, since 0.8.5. It now sits above the bar.
+- **A phone on its side shows one top bar.** Inside the app the website hid its own bars only on a phone held upright,
+  so on its side the website's top bar appeared under the app's, with no room kept for the app's floating bar. It now
+  steps aside at any phone size.
+- **Every button for the programme can be seen.** On a phone they were a row that scrolled sideways, with half a
+  button at the edge and Channel up, More about this programme and Day out of sight. They now wrap onto a second line.
+- **48 by 48 for a finger** on Live TV's buttons and the preview's own. On a touch screen the preview's bar keeps
+  sound, full screen and close; the resize corner and its − and + are for a mouse.
+- **The channel's banner clears the player's buttons on a phone on its side**: one low band with the number, the
+  programme and how far through it is, instead of a box drawn beneath −10 and play.
+- **The layout check runs as the phone app shows a page** (`LAYOUT_APP=1`, upright and on its side, Live TV's full-screen
+  player included), in the smoke tests.
+
 ## 0.8.5-alpha
 
 Released 2026-11-25.

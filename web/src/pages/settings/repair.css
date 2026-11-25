@@ -3,7 +3,7 @@
 /* Repair. The cards themselves are WittyDiagnoser's. Long paths must wrap: nothing here may
    push the page wider than a phone. */
 
-.rp-anchor { scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.rp-anchor { scroll-margin-top: calc(var(--bar-space) + var(--sp-4)); }
 .rp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
 .rp-actions { margin-top: var(--sp-3); }
 .rp-actions .btn, .rp-confirm .btn { min-height: max(var(--control-h), 44px); }

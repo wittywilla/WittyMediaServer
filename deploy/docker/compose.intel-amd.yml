@@ -1,4 +1,5 @@
-# WittyMediaServer with Intel or AMD graphics for hardware transcoding (VA-API and Quick Sync).
+# WittyMediaServer with Intel or AMD graphics for hardware transcoding (VA-API and Quick Sync)
+# and for games (WittyPlay draws on the same device; docs/DOCKER.md#games).
 # Before starting: run  ls -ln /dev/dri  on the host and put the group number of renderD128
 # (the fourth column) under group_add. Then tick the encoder in Settings -> Live transcoding.
 # Check it with: docker exec wittymediaserver wittymediaserver hardware
@@ -21,6 +22,8 @@ services:
       - no-new-privileges:true
     ports:
       - "9797:9797"
+      - "9796:9796/tcp" # peer to peer, for devices away from home (Settings → Remote Access)
+      - "9796:9796/udp"
     volumes:
       - ./config:/config
       - /path/to/media:/media:ro

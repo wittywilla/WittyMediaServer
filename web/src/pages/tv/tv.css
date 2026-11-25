@@ -30,10 +30,15 @@ html.ten-foot .ctv-page .ctv-btn.icon, html.using-controller .ctv-page .ctv-btn.
 
 /* A TV page takes the whole space under the app's bars, however tall those are, edge to edge. On
    a short screen it scrolls rather than squeeze the guide, which always keeps some height. */
-.main:has(.ctv-page) { height: 100dvh; overflow: hidden; }
+/* The page is drawn inside the server-driven page (.sdui > .sdui-native > .ctv-page), so each wrapper passes the height
+   down; "Customise this page" keeps its own line under it. Clip, not hidden: a box with overflow hidden can still be
+   scrolled by focus, and Tab to the dock scrolled the whole page up under the top bar (#679). */
+.main:has(.ctv-page) { height: 100dvh; overflow: clip; }
 .main:has(.ctv-page) .topbar::after { display: none; }
-.content:has(> .ctv-page) { display: flex; flex-direction: column; min-height: 0; padding: 0; overflow: hidden; }
-.content:has(> .ctv-page) > .page-foot, .content:has(> .ctv-page) > .legal-foot { display: none; }
+.content:has(.ctv-page) { display: flex; flex-direction: column; min-height: 0; padding-bottom: 0; overflow: clip; }
+.content:has(.ctv-page) > :is(.sdui, .sdui-native):has(.ctv-page), .content:has(.ctv-page) .sdui-native:has(> .ctv-page) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.content:has(.ctv-page) > :not(:has(.ctv-page)) { flex: none; }
+.content:has(.ctv-page) > .page-foot, .content:has(.ctv-page) > .legal-foot { display: none; }
 .ctv-page { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; padding-bottom: calc(var(--ctv-foot) + var(--tabbar-space, 0px) + var(--dock-space, 0px)); overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; }
 
 /* Buttons in the box's own style. */
@@ -127,7 +132,10 @@ html .ctv-page.tvm, html.ten-foot .ctv-page.tvm, html.using-controller .ctv-page
 .ctv-grid.tight .ctv-cell-text b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .ctv-page.tvm .ctv-rows { scroll-behavior: auto; overflow-anchor: none; }
 .ctv-page.tvm .ctv-grid { flex: none; min-height: 0; }
-.ctv-legals.one-line .ctv-legal { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctv-legals.one-line .ctv-legal { white-space: nowrap; overflow: clip; text-overflow: ellipsis; }
+/* On a TV its Legal link is a place the remote lands, so the line wraps and the link is in view: a cut line moved
+   sideways to show a focused link at its end, hiding how it starts (#679). */
+html.tv-mode .ctv-legals.one-line .ctv-legal { white-space: normal; }
 .ctv-help-keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2) var(--sp-5); margin: 0; }
 .ctv-help-keys > div { display: flex; align-items: baseline; gap: var(--sp-3); }
 .ctv-help-keys dt { min-width: 7ch; font-weight: 700; }

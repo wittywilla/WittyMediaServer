@@ -424,7 +424,7 @@ func (s *Server) handleShareHLSSegment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, err := sess.Segment(r.Context(), n)
-	if errors.Is(err, hls.ErrBusy) || errors.Is(err, hls.ErrSuperseded) {
+	if errors.Is(err, hls.ErrBusy) || errors.Is(err, hls.ErrSuperseded) || errors.Is(err, hls.ErrStillMaking) {
 		w.Header().Set("Retry-After", "1")
 		writeErr(w, 503, "try again in a moment")
 		return

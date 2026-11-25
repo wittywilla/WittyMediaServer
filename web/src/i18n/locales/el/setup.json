@@ -461,5 +461,6 @@
   "{count} more tries before the sign-in ends.": {
     "one": "Απομένει {count} ακόμα προσπάθεια πριν τερματιστεί η σύνδεση.",
     "other": "Απομένουν {count} ακόμα προσπάθειες πριν τερματιστεί η σύνδεση."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Ανενεργό. Στο σπίτι αυτό είναι εντάξει: ένα πιστοποιητικό χρειάζεται όνομα τομέα, οπότε ρυθμίζεται στην Απομακρυσμένη πρόσβαση αν θέλετε να φτάνετε στον διακομιστή από μακριά."
 }

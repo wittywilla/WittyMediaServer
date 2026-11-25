@@ -1187,5 +1187,7 @@
   },
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "other": "{count}번 잘못 시도해서 “{name}”은(는) {time}까지 집 밖에서 로그인할 수 없습니다. 집에서는 계속 사용할 수 있습니다."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "집에서는 서버 설정에 표시된 주소(예: http://192.168.1.10:9797)입니다. 집 밖에서는 설정 > 원격 액세스의 주소입니다.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "WittyMediaServer가 실행 중인지, 그리고 이 기기가 같은 네트워크나 원격 액세스를 통해 접속할 수 있는지 확인하세요. 작업한 내용은 사라지지 않았습니다."
 }

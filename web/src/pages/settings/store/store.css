@@ -10,7 +10,7 @@
 
 /* Shelves and cards. */
 .st-results { min-width: 0; }
-.st-shelf { margin-bottom: var(--sp-6); scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.st-shelf { margin-bottom: var(--sp-6); scroll-margin-top: calc(var(--bar-space) + var(--sp-4)); }
 .st-shelf > h2 { display: flex; align-items: center; gap: var(--sp-2); margin: 0 0 var(--sp-3); font-size: var(--text-lg); font-weight: var(--weight-heading); letter-spacing: var(--tracking-heading); }
 .st-others { padding-top: var(--sp-5); border-top: 1px solid var(--border); }
 .st-others > .ms-note { margin-top: 0; }

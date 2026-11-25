@@ -30,6 +30,7 @@ import { currentParty, usePartySync } from '../remote/party'
 import PartyNote from '../remote/PartyNote'
 import { useRemoteAllowed } from '../remote/allowed'
 import { setSpeed } from './speed'
+import { lowerHeight, times, tooSlow, type Pace } from './pace'
 import { classifyPlayError } from './errors'
 import QualityMenu, { StreamInfo } from './QualityMenu'
 import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from './quality'
@@ -205,6 +206,9 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (want.video != null) body.video = want.video
     if (want.convert) body.forceTranscode = true
     body.quality = (want.quality ?? deviceChoice()) || 'auto'
+    // A stream made for this speed from its start (a player at 2× uses what was made ahead twice as fast).
+    const rate = video.current?.playbackRate
+    if (rate && rate !== 1) body.rate = rate
     const device = deviceStreaming()
     if (device !== 'auto') body.streaming = device
     // A robust stream starts at a rate chosen from what this connection carries.
@@ -276,6 +280,43 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
     if (!streamId) return
     return () => { api.del(`/hls/${streamId}`).catch(() => {}) }
   }, [streamId])
+
+  // A conversion slower than the speed this plays at stalls every few seconds. The server first
+  // goes on with a faster setting by itself; if that isn't enough, the player asks for a smaller
+  // picture, at the same place, and says why. A quality the viewer chose themself is kept, and
+  // the player says what would play smoothly instead (pace.ts).
+  const autoQuality = useRef<string | null>(null)
+  useEffect(() => {
+    if (!streamId || info?.decision !== 'transcode') return
+    let behind = 0
+    let told = false
+    let busy = false
+    const say = (n: NetNote) => { setNote(n); setNetLog((l) => [...l.slice(-7), n.text]) }
+    const look = async () => {
+      const v = video.current
+      if (busy || !v || v.paused) return
+      busy = true
+      try {
+        const p = (await api.get<StreamWork & { pace?: Pace }>(`/hls/${streamId}/work`)).pace || null
+        behind = p && !p.keepingUp && p.speed ? behind + 1 : 0
+        const height = info.output?.height || 0
+        const chosen = want.quality != null && want.quality !== 'auto' && want.quality !== autoQuality.current
+        const what = tooSlow(p, behind, height, chosen)
+        if (what === 'lower' && p) {
+          const to = lowerHeight(height)
+          autoQuality.current = 'h' + to
+          say({ kind: 'down', text: t('This server converts this video at {speed}, slower than the {rate} it plays at, so it goes on at {height}p.', { speed: times(p.speed), rate: times(p.rate), height: to }) })
+          ask({ quality: autoQuality.current })
+        } else if (what === 'tell' && p && !told) {
+          told = true
+          say({ kind: 'stall', text: t('This server converts this video at {speed}, slower than the {rate} it plays at, so it will stop now and then to catch up. A lower speed or quality plays smoothly.', { speed: times(p.speed), rate: times(p.rate) }) })
+        }
+      } catch { /* the next look */ }
+      busy = false
+    }
+    const id = window.setInterval(look, 5000)
+    return () => clearInterval(id)
+  }, [streamId, info]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // A file, or a full stream with its whole length listed ahead, seeks anywhere. A
   // rewrapped stream seeks within what has been made so far, and otherwise starts anew.

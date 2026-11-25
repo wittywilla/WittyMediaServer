@@ -111,10 +111,10 @@
   /* Only a picture that opens the page runs up under the bar, by the bar's measured room (styles.css,
      --bar-space); a title or notice starts below it. On a phone in every browser: the bar has no surface here. */
   .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) :is(
-    .content > :first-child > :is(.hero, .detail-hero):first-child,
-    .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero),
-    .content > :first-child > .sr-only:first-child + * > .detail-hero:first-child) { margin-top: calc(-1 * (var(--page-top) + var(--bar-space))); }
-  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) .content > :first-child > .sr-only:first-child + :has(> .detail-hero:first-child) { padding-top: 0; } /* no band above a title's picture (styles.css) */
+    .content > :first-child > :is(.hero, .detail-hero:not(.bare)):first-child,
+    .content > :first-child > .sr-only:first-child + :is(.hero, .detail-hero:not(.bare)),
+    .content > :first-child > .sr-only:first-child + * > .detail-hero:not(.bare):first-child) { margin-top: calc(-1 * (var(--page-top) + var(--bar-space))); }
+  .app:not(:has(.home.editing, .legal-ack-bar, .play-status)) .content > :first-child > .sr-only:first-child + :has(> .detail-hero:not(.bare):first-child) { padding-top: 0; } /* no band above a title's picture (styles.css) */
   .app .topbar::before, .app:has(.hero, .detail-hero) .topbar::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgb(var(--bg-rgb) / .85); box-shadow: 0 1px 0 var(--border); opacity: 0; animation: none; transition: opacity var(--dur-2) var(--ease-standard); }
   .app .topbar.under::before, .app:has(.hero, .detail-hero) .topbar.under::before { opacity: 1; -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); } /* design-ok: phones only, a 52-high bar, and only once scrolled under */
   .app .topbar::after { display: none; }
@@ -183,7 +183,7 @@ html[data-app] { --overlay-foot: var(--tabbar-space); }
 }
 
 /* ---------------------------------------------------------------- arranging the menu */
-.nav-custom { display: grid; gap: var(--sp-4); margin-top: var(--sp-5); scroll-margin-top: calc(var(--topbar-h) + var(--sp-4)); }
+.nav-custom { display: grid; gap: var(--sp-4); margin-top: var(--sp-5); scroll-margin-top: calc(var(--bar-space) + var(--sp-4)); }
 .nav-custom h3 { margin: 0; font-size: var(--text-lg); }
 .nav-custom-opts { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-4) var(--sp-6); }
 .nav-custom-opt { display: grid; justify-items: start; gap: var(--sp-2); min-width: 0; font-size: var(--text-sm); color: var(--fg-2); }
@@ -231,7 +231,7 @@ html[data-app] { --overlay-foot: var(--tabbar-space); }
 .theme-maker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
 .theme-maker-colours { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
 .theme-colour.input { padding: var(--sp-1); height: var(--control-h); cursor: pointer; }
-.theme-maker-preview { display: grid; gap: var(--sp-3); position: sticky; top: calc(var(--topbar-h) + 72px); }
+.theme-maker-preview { display: grid; gap: var(--sp-3); position: sticky; top: calc(var(--bar-space) + 72px); }
 .theme-maker-preview .theme-scene { border-radius: var(--r-md); border: 1px solid var(--border-strong); }
 .theme-maker .panel-actions { margin-top: 0; }
 /* The large preview: the theme in use, or the one the pointer or focus is on. */

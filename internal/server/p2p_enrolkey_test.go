@@ -55,6 +55,12 @@ func TestInviteEnrolKeyIsListedWhileOpen(t *testing.T) {
 	if slices.Contains(relayList(), enrolID) || !slices.Contains(relayList(), dev) {
 		t.Fatalf("the relay list after the invite was used: %v", relayList())
 	}
+	// Listed is not connected (#683): until its first request gets through, the device is shown as waiting.
+	for _, d := range decode[[]map[string]any](t, ts.do(t, "GET", "/api/p2p/devices", admin, nil)) {
+		if d["id"] == dev && (d["pending"] != true || d["connected"] == true) {
+			t.Fatalf("a device that has made no request is shown as connected: %v", d)
+		}
+	}
 
 	// Connect a device's link: listed while open, gone once the code beside it is used.
 	o := makeOffer(t, ts, kate, nil)

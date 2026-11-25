@@ -132,7 +132,7 @@ export default function ResetSettings() {
           <ul>
             <li>{t('Every account and profile, and every device’s sign-in. Apps have to connect again.')}</li>
             <li>{t('The list of libraries, and everything known about what’s in them: watch progress, favourites, ratings, playlists, collections and notes.')}</li>
-            <li>{t('All settings and API keys, Remote Access, TV tuners, channels and scheduled recordings.')}</li>
+            <li>{t('All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.')}</li>
             <li><b>{t('Game saves and saved states')}</b>{t(', controller profiles, game cores and custom cores.')}</li>
             <li>{t('Installed module versions, logs, reports, and the cache of posters and converted video.')}</li>
             <li><b>{t('Recordings')}</b>{t(', if they’re kept in the data folder, which is where they go unless you chose another.')}</li>

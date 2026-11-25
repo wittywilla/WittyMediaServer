@@ -20,8 +20,8 @@
 .mus-side { display: none; }
 @media (min-width: 900px) {
   .mus { grid-template-columns: var(--mus-side) minmax(0, 1fr); }
-  .mus-side { position: sticky; top: calc(var(--topbar-h) + var(--sp-2)); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: var(--mus-gap);
-    height: calc(100vh - var(--topbar-h) - var(--sp-4) - var(--dock-space, 0px)); min-height: 320px; }
+  .mus-side { position: sticky; top: calc(var(--bar-space) + var(--sp-2)); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: var(--mus-gap);
+    height: calc(100vh - var(--bar-space) - var(--sp-4) - var(--dock-space, 0px)); min-height: 320px; }
   .mus-side > * { background: var(--bg-2); border-radius: var(--r-lg); }
 }
 @media (min-width: 1500px) { .mus { --mus-side: 340px; } }
@@ -119,7 +119,7 @@
 .mus-pill:hover { transform: scale(1.03); }
 .mus-quick { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--sp-2); margin-top: var(--sp-5); }
 @media (max-width: 700px) { .mus-quick { grid-template-columns: 1fr 1fr; } }
-.mus-quick-tile { position: relative; border-radius: var(--r-sm); overflow: hidden; background: color-mix(in srgb, var(--fg) 8%, var(--bg-2)); transition: background var(--dur-2); }
+.mus-quick-tile { position: relative; border-radius: var(--r-sm); overflow: clip; /* clip, not hidden: focus could scroll a hidden box sideways (#679) */ background: color-mix(in srgb, var(--fg) 8%, var(--bg-2)); transition: background var(--dur-2); }
 .mus-quick-tile:hover, .mus-quick-tile:focus-within { background: color-mix(in srgb, var(--fg) 16%, var(--bg-2)); }
 .mus-quick-tile > a { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: var(--sp-3); padding-right: 56px; color: var(--fg); text-decoration: none; }
 .mus-quick-tile b { font-size: var(--text-sm); font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -163,7 +163,7 @@ a.mus-by:hover { text-decoration: underline; }
 }
 /* The colour runs on below the header, fading into the page behind the list. */
 .mus-head + .mus-actions, .mus-hero + .mus-actions { background: linear-gradient(180deg, rgb(var(--art, var(--bg-rgb)) / .18), transparent 120px); }
-.mus-actions { position: sticky; top: var(--topbar-h); z-index: 3; display: flex; align-items: center; gap: var(--sp-3); margin: 0 calc(-1 * var(--sp-2)); padding: var(--sp-4) var(--sp-4); min-height: 88px; }
+.mus-actions { position: sticky; top: var(--bar-space); z-index: 3; display: flex; align-items: center; gap: var(--sp-3); margin: 0 calc(-1 * var(--sp-2)); padding: var(--sp-4) var(--sp-4); min-height: 88px; }
 /* --art is set on the header, not on this bar beside it: without the fallback the colour was invalid and the stuck bar
    painted nothing, so the songs scrolling under it showed through its buttons. */
 .mus-actions.stuck { background: color-mix(in srgb, rgb(var(--art, var(--bg-rgb))) 30%, var(--bg-2)); box-shadow: var(--e-2); min-height: 64px; padding-block: var(--sp-2); }
@@ -246,7 +246,7 @@ a.mus-by:hover { text-decoration: underline; }
 
 /* ------------------------------------------------------------ library */
 .mus-lib-head { display: flex; align-items: center; gap: var(--sp-3); padding-top: var(--sp-4); }
-.mus-lib-bar { position: sticky; top: var(--topbar-h); z-index: 3; display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-3) calc(-1 * var(--sp-2)) var(--sp-3); padding: var(--sp-2); background: var(--bg); }
+.mus-lib-bar { position: sticky; top: var(--bar-space); z-index: 3; display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-3) calc(-1 * var(--sp-2)) var(--sp-3); padding: var(--sp-2); background: var(--bg); }
 .mus-lib-bar .mus-chips { padding: 0; }
 .mus-sort { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--fg-2); font-size: var(--text-sm); }
 .mus-grid-box { margin-inline: calc(-1 * var(--sp-2)); }
@@ -254,7 +254,7 @@ a.mus-by:hover { text-decoration: underline; }
 .mus-grid-row .mus-card { height: 100%; }
 
 /* ------------------------------------------------------------ search */
-.mus-search-box { position: sticky; top: calc(var(--topbar-h) + var(--sp-2)); z-index: 3; display: flex; align-items: center; gap: var(--sp-3); max-width: 560px; min-height: 52px; margin-top: var(--sp-3); padding: 0 var(--sp-5);
+.mus-search-box { position: sticky; top: calc(var(--bar-space) + var(--sp-2)); z-index: 3; display: flex; align-items: center; gap: var(--sp-3); max-width: 560px; min-height: 52px; margin-top: var(--sp-3); padding: 0 var(--sp-5);
   border-radius: var(--r-full); background: var(--bg-3); border: 2px solid transparent; box-shadow: var(--e-2); }
 .mus-search-box:focus-within { border-color: var(--fg); }
 .mus-search-box svg { width: 22px; height: 22px; color: var(--fg-2); flex: none; }
@@ -280,4 +280,4 @@ a.mus-by:hover { text-decoration: underline; }
 .mus.tv .mus-tr-heart, .mus.tv .mus-tr :is(.mh-more > button, .mp-pop > button) { opacity: 1; }
 .mus.tv :is(a, button, input, select):focus-visible, .mus.tv .mus-card:focus-within { outline: 4px solid var(--focus); outline-offset: 3px; }
 .mus.tv .mus-card:focus-within .mus-card-link:focus-visible { outline: none; }
-.mus.tv .mus-side { height: calc(100vh - var(--topbar-h) - var(--sp-4) - var(--dock-space, 0px) - 72px); }
+.mus.tv .mus-side { height: calc(100vh - var(--bar-space) - var(--sp-4) - var(--dock-space, 0px) - 72px); }

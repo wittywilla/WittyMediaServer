@@ -257,8 +257,14 @@ One rule for every page, here and in the apps (WittyMediaClient's docs/APP-DESIG
 
 - **The page's column is centred in the window.** Nothing leaves an empty band on one side only. Settings centres its
   menu and page together, and the page alone where the menu is a page of its own.
-- **Headings, lead text, single buttons, notices and footers are centred**: `PageHead`, a setup step's title and lead,
-  a spec page's head, From away, the general legal note at a page's foot.
+- **Headings, lead text, single buttons, notices and footers are centred**: a setup step's title and lead, From away,
+  the general legal note at a page's foot.
+- **A Settings page reads from one edge**: its title, lead and buttons (`PageHead`) start where its sections start, and
+  so does what's in its cards (Connect a device on Remote access). Titles are in sentence case, as the menu is.
+  `npm run test:layout` fails a page that doesn't.
+- **A page inside the app reads from one edge too** (Help, Collections, a library, Games…): a spec page's head is
+  centred only on a standalone page (`StandaloneCard`) or a page that is one centred card; otherwise it starts where its
+  sections start.
 - **Things side by side are centred as a group**: a code beside its QR code, a row of buttons (a spec page's dock), the
   words on a bar and their button (the bars under the top bar run the window's width, their contents in the middle).
 - **Long reading text, lists and forms read from the start** inside the centred column, where centring would make them
@@ -266,6 +272,9 @@ One rule for every page, here and in the apps (WittyMediaClient's docs/APP-DESIG
   as a block in its card.
 - **Two kinds of row keep their ends**: a setup step's foot (Back at the start, Continue at the end, like any step-by-step
   guide) and a settings row (what a setting is at the start, its control at the end).
+- **Nothing is drawn under the top bar.** A page starts below it; a part that stays put while the page scrolls (a
+  sticky column, the strip of links on a long Settings page, the settings menu) stays below it too, and a link to a
+  section lands below the bar and the strip. Only a page over a backdrop runs its picture under the bar.
 - TV mode follows the same rule at ten feet.
 
 ### Standalone pages

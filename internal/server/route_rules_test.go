@@ -38,6 +38,7 @@ var routeRules = map[string]string{
 	"DELETE /api/comments/{cid}":                          "Signed-in: Comment's writer, who may still see the item, or an admin",
 	"DELETE /api/dvd/{sid}":                               "Signed-in: Session id. An account with limits is checked against what it plays",
 	"GET /api/hls/{id}/work":                              "Signed-in: Stream exists. An account with limits is checked against what it plays",
+	"PUT /api/hls/{id}/rate":                              "Signed-in: Stream exists. An account with limits is checked against what it plays",
 	"DELETE /api/hls/{id}":                                "Signed-in: Removes the caller as a viewer. The stream stops when no viewer is left. An account with limits is checked against what it plays",
 	"DELETE /api/items/{id}/progress":                     "Signed-in: own. show-<n>: the show within limits, each episode the profile may see",
 	"DELETE /api/me/history":                              "Signed-in: own",

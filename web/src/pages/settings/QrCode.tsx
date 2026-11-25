@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 WittyWilla and contributors
 import { useMemo } from 'react'
-import { qrMatrix } from './qr'
+import { qrMatrix } from '../../ui/qr'
 
 // A QR code, always dark on a white card whatever the theme (phones read those
 // best). The text it holds must also be on the page for whoever can't scan it.
+// Drawn by the page's one QR maker (ui/qr.ts, up to 412 bytes): Connect a
+// device's QR code holds the address at home, the code and a relay's address.
 export default function QrCode({ text, label, size = 200 }: { text: string; label: string; size?: number }) {
-  const m = useMemo(() => qrMatrix(text), [text])
+  const m = useMemo(() => { try { return qrMatrix(text) } catch { return null } }, [text])
   if (!m) return null
   const n = m.length, quiet = 4
   let d = ''

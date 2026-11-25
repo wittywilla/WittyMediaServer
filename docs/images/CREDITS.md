@@ -78,7 +78,6 @@ Licences were read from each work's source on the day it was fetched. This is a 
 | `phone-settings.webp` | Settings on a phone, as a made-up profile. No media is pictured. |
 | `photos.webp` | The timeline, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
 | `photos-map.webp` | The map, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
-| `photos-viewer.webp` | The viewer, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](CREDITS.md). |
 | `player.webp` | The player. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
 | `player-quality.webp` | The player's quality menu. [Sintel](https://durian.blender.org/), Blender Foundation, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). |
 | `podcasts.webp` | Podcasts under open licences, credited in [the list](CREDITS.md). |

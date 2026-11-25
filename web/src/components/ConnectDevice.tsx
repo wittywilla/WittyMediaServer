@@ -16,7 +16,7 @@ import './connect-device.css'
 // ends the other (api_connect.go).
 // Nothing technical here: the details are further down the Remote Access page.
 
-type Status = { away: 'off' | 'checking' | 'yes' | 'partly' | 'no'; words: string; detail?: string; p2p: boolean; canTurnOn: boolean; other?: string }
+type Status = { away: 'off' | 'checking' | 'yes' | 'partly' | 'no'; words: string; detail?: string; p2p: boolean; canTurnOn: boolean; other?: string; hint?: string }
 type Offer = { code: string; link?: string; qrLink?: string; expiresInSec: number; away: boolean; homeAddresses: string[]; until: number }
 type Party = { layer: string; who: string; sees: string }
 
@@ -32,7 +32,8 @@ function left(until: number, now: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-export default function ConnectDevice() {
+// titled: false where the page's own title already says Connect a device (From away), so it isn't said twice.
+export default function ConnectDevice({ titled = true }: { titled?: boolean } = {}) {
   const [st, setSt] = useState<Status | null>(null)
   const [offer, setOffer] = useState<Offer | null>(null)
   const [busy, setBusy] = useState(false)
@@ -96,13 +97,15 @@ export default function ConnectDevice() {
   // Not plain ok and bad: those are app-wide classes that colour all the text.
   const level = !st ? 'cd-wait' : st.away === 'yes' ? 'cd-ok' : st.away === 'off' ? 'cd-off' : st.away === 'no' ? 'cd-bad' : 'cd-wait'
   return (
-    <section className="set-card cd" aria-labelledby="cd-title">
-      <h2 id="cd-title">{t('Connect a device')}</h2>
+    <section className="set-card cd" {...(titled ? { 'aria-labelledby': 'cd-title' } : { 'aria-label': t('Connect a device') })}>
+      {titled && <h2 id="cd-title">{t('Connect a device')}</h2>}
       <ul className="cd-who" aria-live="polite">
         <li className="cd-ok"><span aria-hidden="true"><IconCheck size={16} /></span>{t('Devices on your home network can connect.')}</li>
         {st && st.away !== 'off' && <li className={level}><span aria-hidden="true">{level === 'cd-ok' ? <IconCheck size={16} /> : <IconInfo size={16} />}</span>{st.words}</li>}
         {st && st.away === 'off' && <li className="cd-off"><span aria-hidden="true"><IconInfo size={16} /></span>{t('Devices away from home can’t connect yet.')}</li>}
       </ul>
+      {/* What to do about it, when the server can tell (in a container: the port to publish). For whoever can change it. */}
+      {st?.hint && st.canTurnOn && <p className="cd-note cd-hint">{st.hint}</p>}
       {st?.away === 'off' && st.canTurnOn && !offer && (
         <p className="cd-turn">
           <Button onClick={() => setTurnOn(true)}>{t('Let devices connect from away…')}</Button>
@@ -123,7 +126,9 @@ export default function ConnectDevice() {
             <p className="cd-code" aria-labelledby="cd-code-label" data-code={offer.code}>{offer.code}</p>
             <ol>
               <li>{t('On the other device, open WittyMediaClient and choose Add a server.')}</li>
-              <li>{t('On your home network: choose Enter a code, and type the code.')}</li>
+              {offer.link
+                ? <li>{t('On your home network: choose Enter a code and type the code, or scan the QR code.')}</li>
+                : <li>{t('On your home network: choose Enter a code, and type the code.')}</li>}
               {offer.link && <li>{t('Away from home: scan the QR code with the device’s camera, or send it the link under More options and choose Paste a link.')}</li>}
             </ol>
             {!offer.away && <p className="cd-note">{st?.canTurnOn ? t('This code works on your home network. For a device away from home, let devices connect from away first.') : t('This code works on your home network.')}</p>}

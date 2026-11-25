@@ -1212,5 +1212,7 @@
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "one": "”{name}” ei voi kirjautua kodin ulkopuolelta ennen {time} {count} väärän yrityksen jälkeen. Kotona se toimii edelleen.",
     "other": "”{name}” ei voi kirjautua kodin ulkopuolelta ennen {time} {count} väärän yrityksen jälkeen. Kotona se toimii edelleen."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Kotona se on palvelimen asetuksissa näkyvä osoite, kuten http://192.168.1.10:9797. Kodin ulkopuolella se on osoite kohdasta Asetukset, Etäkäyttö.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Että WittyMediaServer on käynnissä ja että tämä laite tavoittaa sen: samassa verkossa tai Etäkäytön kautta. Mitään tekemääsi ei ole menetetty."
 }

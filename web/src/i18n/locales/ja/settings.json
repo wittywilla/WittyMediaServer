@@ -2208,5 +2208,8 @@
   },
   "{count} things turned off": {
     "other": "{count} 件をオフにしました"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "すべての設定と API キー、リモートアクセス、テレビチューナー、チャンネル、予約録画。",
+  "Remote access": "リモートアクセス",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "サインイン時に、スマートフォンのアプリが表示する 6 桁のコードも求めるため、パスワードが盗まれただけでは不十分になります。任意ですが、リモートアクセスを使うなら設定する価値があります。どの認証アプリでも使えます。"
 }

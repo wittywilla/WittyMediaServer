@@ -26,7 +26,12 @@ func (s *Server) featureState(ctx context.Context) *diagnose.FeatureState {
 	if node := s.p2pNode(); node != nil {
 		st := node.Status()
 		p.Running, p.Reachability, p.NATUDP, p.NATTCP = true, st.Reachability, st.NATUDP, st.NATTCP
-		p.Relays, p.Connected = len(st.Relays), len(st.Devices)
+		p.Relays = len(st.Relays)
+		for _, d := range st.Devices {
+			if !d.Limited { // a public relay's connection carries no requests: not connected in any way that counts
+				p.Connected++
+			}
+		}
 		p.PortMapped, p.MappingError, p.Shared = st.Mapping.On, logging.Redact(st.Mapping.Error), st.Mapping.Shared
 	} else if cfg.Enabled {
 		p.Error = "not started; the log's Peer to peer area says why"

@@ -55,7 +55,8 @@ export default function Profiles() {
   const restricted = user?.kind !== 'adult'
   return (
     <>
-      <div className="panel">
+      {/* The menu's Password row opens this part (settingsmenu.json: /settings/users#your-account). */}
+      <div className="panel" id="your-account">
         <h2>{t('Your account')}</h2>
         <div className="form">
           <div className="profile-me"><Avatar name={user ? profileName(user) : '?'} avatar={user?.avatar} /> <b>{user && profileName(user)}</b> <span className="pill">{user?.isAdmin ? t('Administrator') : tx(KIND_LABEL[user?.kind || 'adult'])}</span></div>

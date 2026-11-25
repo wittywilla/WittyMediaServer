@@ -8028,6 +8028,9 @@
               }
             ]
           },
+          "rate": {
+            "type": "number"
+          },
           "startSec": {
             "anyOf": [
               {
@@ -8077,6 +8080,7 @@
           "measuredKbps",
           "profile",
           "quality",
+          "rate",
           "startSec",
           "streaming",
           "subtitle",
@@ -17421,6 +17425,37 @@
         "x-wms-auth": "admin"
       }
     },
+    "/backup/folder": {
+      "put": {
+        "operationId": "putBackupFolder",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Choose where backups are kept: `{folder, current, code}`.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/backup/restore/inspect": {
       "post": {
         "operationId": "postBackupRestoreInspect",
@@ -17527,37 +17562,6 @@
           "Server"
         ],
         "x-wms-auth": "public"
-      }
-    },
-    "/backup/folder": {
-      "put": {
-        "operationId": "putBackupFolder",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Choose where backups are kept: `{folder, current, code}`.",
-        "tags": [
-          "Server"
-        ],
-        "x-wms-auth": "admin"
       }
     },
     "/backup/schedule": {
@@ -19767,7 +19771,7 @@
             "bearer": []
           }
         ],
-        "summary": "GET /connect: whether devices can connect from away, in words: `away` (off, checking, yes, partly, no), `words`, `p2p`, `canTurnOn`.",
+        "summary": "GET /connect: whether devices can connect from away, in words: `away` (off, checking, yes, partly, no), `words`, `p2p`, `canTurnOn`, and `hint`, what to do about it when the server can tell (in a container: the peer-to-peer port to publish).",
         "tags": [
           "Remote access and signed-in devices"
         ],
@@ -20032,7 +20036,7 @@
             "bearer": []
           }
         ],
-        "summary": "Connect a device: `{userId, password, otp}` gives a `code` (`K7QM-2XHD`) for a device on the same network, and with peer to peer on a `link` and a shorter `qrLink` for one away from home, for this account or a Kids or Guest profile it manages. One way in: whichever is used first ends the other. Adults only; an administrator's takes the password again (403 `password-required`). Works once, for 15 minutes; a new one ends the one before.",
+        "summary": "Connect a device: `{userId, password, otp}` gives a `code` (`K7QM-2XHD`) for a device on the same network, and with peer to peer on a `link` and a shorter `qrLink` for one away from home (opened at an address of the home network, the `qrLink` also holds that address and the code, `h` and `c`, so a device at home that scans it needs no peer-to-peer path), for this account or a Kids or Guest profile it manages. One way in: whichever is used first ends the other. Adults only; an administrator's takes the password again (403 `password-required`). Works once, for 15 minutes; a new one ends the one before.",
         "tags": [
           "Remote access and signed-in devices"
         ],
@@ -21822,6 +21826,107 @@
         "x-wms-auth": "public"
       }
     },
+    "/health/library": {
+      "get": {
+        "operationId": "getHealthLibrary",
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Library health: what needs a look in the libraries, a section each, with the fixes each row offers.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/health/library/check": {
+      "delete": {
+        "operationId": "deleteHealthLibraryCheck",
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop the NFO check.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "post": {
+        "operationId": "postHealthLibraryCheck",
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the NFO and metadata files beside the media, in the background.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/health/library/fix": {
+      "post": {
+        "operationId": "postHealthLibraryFix",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A fix from Library health: `{action, key, target, id, ids}`.",
+        "tags": [
+          "Server"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/hls/{id}": {
       "delete": {
         "operationId": "deleteHlsById",
@@ -21955,6 +22060,65 @@
         ],
         "x-wms-auth": "user",
         "x-wms-stream-token": true
+      }
+    },
+    "/hls/{id}/rate": {
+      "put": {
+        "operationId": "putHlsRate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "rate": {
+                    "description": "The player's playback speed: 2 for 2×.",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "rate"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The player's playback speed changed, so the server converts as far ahead as it needs. Answers the stream's `pace`.",
+        "tags": [
+          "Playback"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/hls/{id}/seg/{n}": {
@@ -22096,7 +22260,7 @@
             "bearer": []
           }
         ],
-        "summary": "What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). For stream information.",
+        "summary": "What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). `pace`: how the conversion keeps up with the player (`speed`, `rate`, `leadSec`, `keepingUp`, `fastest`). For stream information.",
         "tags": [
           "Playback"
         ],
@@ -27926,6 +28090,268 @@
         "x-wms-auth": "user"
       }
     },
+    "/me/notifications": {
+      "delete": {
+        "operationId": "clearMeNotifications",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteCount"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clears every notification of the profile.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getMeNotifications",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteList"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The profile's notifications, newest first, with how many are unread.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/notifications/choices": {
+      "get": {
+        "operationId": "getMeNotificationChoices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteChoices"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The kinds of notification this profile can get, and which are on.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      },
+      "put": {
+        "operationId": "putMeNotificationChoices",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteChoices"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteChoices"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turns kinds on or off. Kinds not named stay as they were.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/notifications/count": {
+      "get": {
+        "operationId": "getMeNotificationCount",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteCount"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How many are unread and the newest one's id: all a bell asks for while it waits.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/notifications/read": {
+      "post": {
+        "operationId": "readMeNotifications",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "items": {
+                      "type": "integer"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteCount"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marks the ids given read, or every one with none given.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/me/notifications/{id}": {
+      "delete": {
+        "operationId": "deleteMeNotification",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteCount"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clears one notification.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
     "/me/recommended": {
       "get": {
         "operationId": "getMeRecommended",
@@ -28148,366 +28574,6 @@
           "Playback"
         ],
         "x-wms-auth": "user"
-      }
-    },
-    "/me/notifications": {
-      "delete": {
-        "operationId": "clearMeNotifications",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NoteCount"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Clears every notification of the profile.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "user"
-      },
-      "get": {
-        "operationId": "getMeNotifications",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "before",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NoteList"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The profile's notifications, newest first, with how many are unread.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/me/notifications/count": {
-      "get": {
-        "operationId": "getMeNotificationCount",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NoteCount"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "How many are unread and the newest one's id: all a bell asks for while it waits.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/me/notifications/read": {
-      "post": {
-        "operationId": "readMeNotifications",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "ids": {
-                    "items": {
-                      "type": "integer"
-                    },
-                    "type": "array"
-                  }
-                },
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NoteCount"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Marks the ids given read, or every one with none given.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/me/notifications/{id}": {
-      "delete": {
-        "operationId": "deleteMeNotification",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NoteCount"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Clears one notification.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/me/notifications/choices": {
-      "get": {
-        "operationId": "getMeNotificationChoices",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NoteChoices"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The kinds of notification this profile can get, and which are on.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "user"
-      },
-      "put": {
-        "operationId": "putMeNotificationChoices",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NoteChoices"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NoteChoices"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Turns kinds on or off. Kinds not named stay as they were.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "user"
-      }
-    },
-    "/notifications/channels": {
-      "get": {
-        "operationId": "getNotificationChannels",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NoteChannels"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "The mail server and this administrator's own email and webhook. Passwords and secrets are never read back.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "admin"
-      },
-      "put": {
-        "operationId": "putNotificationChannels",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NoteChannelsUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NoteChannels"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Saves them. Both channels are off until turned on, and send only this administrator's own notifications.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "admin"
-      }
-    },
-    "/notifications/channels/test": {
-      "post": {
-        "operationId": "testNotificationChannels",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Sends a test through each channel that is filled in, and says what went wrong.",
-        "tags": [
-          "Notifications"
-        ],
-        "x-wms-auth": "admin"
       }
     },
     "/me/ui": {
@@ -34829,6 +34895,104 @@
         "x-wms-auth": "admin"
       }
     },
+    "/notifications/channels": {
+      "get": {
+        "operationId": "getNotificationChannels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteChannels"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The mail server and this administrator's own email and webhook. Passwords and secrets are never read back.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "admin"
+      },
+      "put": {
+        "operationId": "putNotificationChannels",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteChannelsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoteChannels"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Saves them. Both channels are off until turned on, and send only this administrator's own notifications.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
+    "/notifications/channels/test": {
+      "post": {
+        "operationId": "testNotificationChannels",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sends a test through each channel that is filled in, and says what went wrong.",
+        "tags": [
+          "Notifications"
+        ],
+        "x-wms-auth": "admin"
+      }
+    },
     "/p2p": {
       "get": {
         "operationId": "getP2p",
@@ -38573,107 +38737,6 @@
         "x-wms-auth": "admin"
       }
     },
-  "/health/library": {
-    "get": {
-      "operationId": "getHealthLibrary",
-      "responses": {
-        "200": {
-          "description": "Success."
-        },
-        "default": {
-          "$ref": "#/components/responses/Error"
-        }
-      },
-      "security": [
-        {
-          "bearer": []
-        }
-      ],
-      "summary": "Library health: what needs a look in the libraries, a section each, with the fixes each row offers.",
-      "tags": [
-        "Server"
-      ],
-      "x-wms-auth": "admin"
-    }
-  },
-  "/health/library/check": {
-    "delete": {
-      "operationId": "deleteHealthLibraryCheck",
-      "responses": {
-        "200": {
-          "description": "Success."
-        },
-        "default": {
-          "$ref": "#/components/responses/Error"
-        }
-      },
-      "security": [
-        {
-          "bearer": []
-        }
-      ],
-      "summary": "Stop the NFO check.",
-      "tags": [
-        "Server"
-      ],
-      "x-wms-auth": "admin"
-    },
-    "post": {
-      "operationId": "postHealthLibraryCheck",
-      "responses": {
-        "200": {
-          "description": "Success."
-        },
-        "default": {
-          "$ref": "#/components/responses/Error"
-        }
-      },
-      "security": [
-        {
-          "bearer": []
-        }
-      ],
-      "summary": "Read the NFO and metadata files beside the media, in the background.",
-      "tags": [
-        "Server"
-      ],
-      "x-wms-auth": "admin"
-    }
-  },
-  "/health/library/fix": {
-    "post": {
-      "operationId": "postHealthLibraryFix",
-      "requestBody": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "additionalProperties": true,
-              "type": "object"
-            }
-          }
-        },
-        "required": true
-      },
-      "responses": {
-        "200": {
-          "description": "Success."
-        },
-        "default": {
-          "$ref": "#/components/responses/Error"
-        }
-      },
-      "security": [
-        {
-          "bearer": []
-        }
-      ],
-      "summary": "A fix from Library health: `{action, key, target, id, ids}`.",
-      "tags": [
-        "Server"
-      ],
-      "x-wms-auth": "admin"
-    }
-  },
     "/repair": {
       "get": {
         "operationId": "getRepair",
@@ -42090,6 +42153,195 @@
           "Server-driven UI"
         ],
         "x-wms-auth": "admin"
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "search",
+        "parameters": [
+          {
+            "description": "What to find: two letters or more. year:1999, year:1990-1999 or year:1990s in it narrows it to those years.",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only these groups, comma-separated.",
+            "in": "query",
+            "name": "groups",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Narrows it to a year, as year: in q does.",
+            "in": "query",
+            "name": "year",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Most items in each group, 1 to 40; 12 if left out.",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "1 keeps the search among the profile's recent searches: send it when someone picks a result or presses Enter, not as they type.",
+            "in": "query",
+            "name": "remember",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "groups": {
+                      "items": {
+                        "properties": {
+                          "items": {
+                            "items": {
+                              "description": "A card, as an SDUI source item.",
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "more": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "items"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "query": {
+                      "type": "string"
+                    },
+                    "tookMs": {
+                      "description": "How long the index took, in milliseconds.",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "query",
+                    "groups"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "503": {
+            "description": "The search index is still being built on a server that has just started."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The one search across every library the account can open, a letter or two wrong still matching, grouped by kind (films, shows, episodes, artists, albums, songs, books, comics, games, photos, channels, people...), the best group first. Each group's items are the search page's cards.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      }
+    },
+    "/search/recent": {
+      "delete": {
+        "operationId": "forgetRecentSearches",
+        "parameters": [
+          {
+            "description": "Forget only this search.",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Forgotten."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Forgets the profile's recent searches, or with q just that one.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
+      },
+      "get": {
+        "operationId": "getRecentSearches",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "recent": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "recent"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success."
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The profile's last ten searches, newest first.",
+        "tags": [
+          "Metadata"
+        ],
+        "x-wms-auth": "user"
       }
     },
     "/sessions": {
@@ -49015,195 +49267,6 @@
           "Media extras"
         ],
         "x-wms-auth": "admin"
-      }
-    },
-    "/search": {
-      "get": {
-        "operationId": "search",
-        "summary": "The one search across every library the account can open, a letter or two wrong still matching, grouped by kind (films, shows, episodes, artists, albums, songs, books, comics, games, photos, channels, people...), the best group first. Each group's items are the search page's cards.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "q",
-            "description": "What to find: two letters or more. year:1999, year:1990-1999 or year:1990s in it narrows it to those years.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "groups",
-            "description": "Only these groups, comma-separated.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "year",
-            "description": "Narrows it to a year, as year: in q does.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "description": "Most items in each group, 1 to 40; 12 if left out.",
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "remember",
-            "description": "1 keeps the search among the profile's recent searches: send it when someone picks a result or presses Enter, not as they type.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "query",
-                    "groups"
-                  ],
-                  "properties": {
-                    "query": {
-                      "type": "string"
-                    },
-                    "tookMs": {
-                      "type": "number",
-                      "description": "How long the index took, in milliseconds."
-                    },
-                    "groups": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "key",
-                          "label",
-                          "items"
-                        ],
-                        "properties": {
-                          "key": {
-                            "type": "string"
-                          },
-                          "label": {
-                            "type": "string"
-                          },
-                          "more": {
-                            "type": "boolean"
-                          },
-                          "items": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "description": "A card, as an SDUI source item."
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "The search index is still being built on a server that has just started."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      }
-    },
-    "/search/recent": {
-      "get": {
-        "operationId": "getRecentSearches",
-        "summary": "The profile's last ten searches, newest first.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "recent"
-                  ],
-                  "properties": {
-                    "recent": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "delete": {
-        "operationId": "forgetRecentSearches",
-        "summary": "Forgets the profile's recent searches, or with q just that one.",
-        "tags": [
-          "Metadata"
-        ],
-        "x-wms-auth": "user",
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "q",
-            "description": "Forget only this search.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Forgotten."
-          },
-          "default": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
       }
     }
   },

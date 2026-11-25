@@ -425,6 +425,10 @@ jobs:
         run: |
           docker run --rm wittymediaserver:ci version
           scripts/test/docker-smoke.sh wittymediaserver:ci
+      # A small NAS: one processor and 1 GB, a conversion played at 2× by the web app's player and
+      # the Android app's, with no stall and to the true end (scripts/nasplay/README.md).
+      - name: Play a conversion at 2x on one processor
+        run: scripts/test/nas-playback.sh wittymediaserver:ci 1 1g
 
   # Games in the image, as a NAS runs it: locked down, on Docker's own network, with no graphics
   # card. WittyPlay comes from its own repository (the branch a pull request goes into, where it

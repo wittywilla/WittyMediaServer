@@ -10,7 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"sort"
+	"slices"
 	"sync"
 	"time"
 
@@ -22,6 +22,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/net/swarm"
 	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 // ClientConfig is what an app's end is made from.
@@ -184,14 +185,91 @@ func (c *Client) State() State { return c.keeper.get() }
 func (c *Client) NetworkChanged() { c.keeper.restart() }
 
 // KnownAddrs are the server's addresses as last learnt, to keep as hints for
-// next time: the direct ones first.
+// next time: relay circuits first, then public addresses, then a few private.
 func (c *Client) KnownAddrs() []string {
-	addrs := c.host.Peerstore().Addrs(c.server)
-	sort.SliceStable(addrs, func(i, j int) bool { return !isRelayed(addrs[i]) && isRelayed(addrs[j]) })
-	if len(addrs) > 12 {
-		addrs = addrs[:12]
+	return addrStrings(keptAddrs(c.host.Peerstore().Addrs(c.server), parseAddrs(c.cfg.Hints, c.server), maxKeptAddrs))
+}
+
+// The hints kept for next time: at most maxKeptAddrs, of which up to
+// keptCircuits relay circuits and keptPrivate private addresses.
+const (
+	maxKeptAddrs = 12
+	keptCircuits = 4
+	keptPrivate  = 2
+)
+
+// keptAddrs picks the hints to keep. A server with many addresses (Docker
+// bridges, VPNs, several networks) would fill the list with private ones that
+// are no use away from home and push out the relay circuit, often the only
+// way in from there. So circuits come first: those that came with the hints
+// (the owner's WittyRelay, from the invite) ahead of the ones learnt since, as
+// the address book may have dropped them. Then public addresses, then at most
+// keptPrivate private ones, a home network's ranges ahead of container ones
+// and loopback last. At home an app finds the server by its own address too.
+func keptAddrs(known, hinted []ma.Multiaddr, limit int) []ma.Multiaddr {
+	seen := map[string]bool{}
+	var circuits, public, private []ma.Multiaddr
+	add := func(a ma.Multiaddr) {
+		k := a.String()
+		if seen[k] {
+			return
+		}
+		seen[k] = true
+		switch {
+		case isRelayed(a):
+			circuits = append(circuits, a)
+		case privateRank(a) >= 0:
+			private = append(private, a)
+		default:
+			public = append(public, a)
+		}
 	}
-	return addrStrings(addrs)
+	for _, a := range hinted {
+		if isRelayed(a) {
+			add(a)
+		}
+	}
+	for _, a := range known {
+		add(a)
+	}
+	slices.SortStableFunc(private, func(x, y ma.Multiaddr) int { return privateRank(x) - privateRank(y) })
+	out := append(firstN(circuits, keptCircuits), public...)
+	out = append(out, firstN(private, keptPrivate)...)
+	return firstN(out, limit)
+}
+
+func firstN(list []ma.Multiaddr, n int) []ma.Multiaddr {
+	if len(list) > n {
+		return list[:max(n, 0)]
+	}
+	return list
+}
+
+// privateRank orders the addresses that reach no further than a local network,
+// most likely a home network's first; -1 for a public address or a name.
+func privateRank(a ma.Multiaddr) int {
+	ip, err := manet.ToIP(a)
+	if err != nil {
+		return -1 // a DNS name: kept with the public ones
+	}
+	v4 := ip.To4()
+	switch {
+	case v4 != nil && v4[0] == 192 && v4[1] == 168:
+		return 0
+	case v4 != nil && v4[0] == 10:
+		return 1
+	case v4 != nil && v4[0] == 172 && v4[1]&0xf0 == 16:
+		return 2 // Docker's own networks are here
+	case ip.IsPrivate(), v4 != nil && v4[0] == 100 && v4[1]&0xc0 == 64:
+		return 3 // IPv6 unique local, and shared address space (CGNAT, VPNs)
+	case ip.IsLinkLocalUnicast():
+		return 4
+	case ip.IsLoopback():
+		return 5 // reaches only a server on the same computer
+	case ip.IsUnspecified(), ip.IsMulticast():
+		return 6
+	}
+	return -1
 }
 
 // Close ends the connection and the node.

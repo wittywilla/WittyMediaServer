@@ -466,5 +466,6 @@
     "one": "Ancora un tentativo prima che l’accesso termini.",
     "many": "Ancora {count} tentativi prima che l’accesso termini.",
     "other": "Ancora {count} tentativi prima che l’accesso termini."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Spento. A casa va bene così: un certificato richiede un nome di dominio, quindi si configura in Accesso remoto se vuoi raggiungere il server da fuori."
 }

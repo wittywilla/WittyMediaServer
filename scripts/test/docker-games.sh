@@ -13,6 +13,8 @@ CAT=$(cd "${2:?usage: docker-games.sh <image> <catalogue folder>}" && pwd)
 cd "$(dirname "$0")/../.." || exit 1
 fails=0
 ok() { echo "ok:   $*"; }
+# Milliseconds on a clock that never jumps (the wall clock can, under WSL or NTP).
+ms() { awk '{ printf "%d", $1 * 1000 }' /proc/uptime; }
 bad() { echo "FAIL: $*"; fails=$((fails + 1)); }
 name=wms-games-$$
 vol=wms-games-$$
@@ -67,6 +69,17 @@ for _ in $(seq 1 120); do st=$(curl -s -H "$H" "$api/modulestore/run"); grep -q 
 if grep -q '"state":"done"' <<<"$st"; then ok "WittyPlay installed"; else bad "WittyPlay install: $st"; docker logs "$name" 2>&1 | tail -20; exit 1; fi
 
 P=$api/modules/wittyplay
+
+# The image's graphics stack, as the game runner sees it in its sandbox with no card: Mesa's EGL and
+# OpenGL on the processor (llvmpipe), which GameCube and Wii draw with here, and a Vulkan loader that
+# finds lavapipe. Without libEGL the runner found no card even with /dev/dri passed in.
+runner=$(docker exec "$name" sh -c 'ls -d /config/modules/wittyplay/versions/*/wittyplay-game-runner | tail -1')
+docker exec "$name" mkdir -p /config/probe
+probe=$(docker exec "$name" "$runner" -probe-gpu -processor-gl -save /config/probe 2>&1)
+if grep -q '^gpu: llvmpipe' <<<"$probe"; then ok "OpenGL on the processor: $(sed -n 's/^version: //p' <<<"$probe")"; else bad "no OpenGL on the processor: $probe"; fi
+if grep -q "^vulkan: .*only the processor's" <<<"$probe"; then ok "Vulkan finds lavapipe"; else bad "Vulkan: $(grep '^vulkan:' <<<"$probe" || echo "$probe")"; fi
+probe=$(docker exec "$name" "$runner" -probe-gpu -save /config/probe 2>&1)
+if grep -q 'tried: llvmpipe' <<<"$probe"; then ok "with no card, the check says so: it tried llvmpipe"; else bad "the no-card check: $probe"; fi
 for core in fceumm gearsystem; do
   curl -s -X POST -H "$H" "$P/gaming/cores/$core/install" -o /dev/null -w '' || true
   for _ in $(seq 1 90); do
@@ -91,9 +104,9 @@ done
 
 for pair in $ids; do
   id=${pair%%:*}; ext=${pair##*:}
-  t0=$(date +%s%3N)
+  t0=$(ms)
   r=$(curl -s -m 120 -H "$H" -H 'Content-Type: application/json' -d '{"client":"browser"}' "$P/games/$id/play")
-  started=$(($(date +%s%3N) - t0))
+  started=$(($(ms) - t0))
   sid=$(python3 -c 'import json,sys;print(json.load(sys.stdin).get("id",""))' <<<"$r" 2>/dev/null)
   if [ -z "$sid" ]; then bad "$ext: it didn't start: $r"; continue; fi
   modes=$(python3 -c 'import json,sys;print(",".join(m["id"] for m in json.load(sys.stdin).get("modes",[])))' <<<"$r")

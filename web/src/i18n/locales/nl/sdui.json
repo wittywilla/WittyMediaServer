@@ -1212,5 +1212,7 @@
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "one": "“{name}” kan na {count} foute poging pas om {time} weer van buitenaf inloggen. Thuis werkt het nog wel.",
     "other": "“{name}” kan na {count} foute pogingen pas om {time} weer van buitenaf inloggen. Thuis werkt het nog wel."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Thuis is dat het adres in de instellingen van de server, zoals http://192.168.1.10:9797. Onderweg is het het adres uit Instellingen, Toegang op afstand.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Dat WittyMediaServer draait en dat dit apparaat hem kan bereiken: op hetzelfde netwerk of via Toegang op afstand. Niets van wat je deed, is verloren."
 }

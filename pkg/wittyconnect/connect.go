@@ -304,8 +304,12 @@ func (c *Connector) proxyError(w http.ResponseWriter, r *http.Request, err error
 	if i := strings.LastIndex(msg, ": "); i >= 0 && !errors.Is(err, p2p.ErrNoDirectPath) && strings.Contains(msg[:i], "dial") {
 		msg = msg[i+2:]
 	}
+	// The server was found, but only through an ordinary public relay, which passes on an invite but no requests,
+	// and no direct connection came of it: a named reason (connectsteps' secure/public-relay-only), with what to do.
+	reason := ""
 	if errors.Is(err, p2p.ErrNoDirectPath) {
-		msg = i18n.T("Your server was found, but a direct connection through both routers couldn't be made, and no community relay is available to carry it. It often works from another network.")
+		reason = "public-relay-only"
+		msg = i18n.T("Your server can be reached only through a public relay, which can't carry video. Publish its peer-to-peer port (9796 in Docker) or set up your own WittyRelay.")
 	}
 	msg = strings.ToUpper(msg[:1]) + msg[1:]
 	w.Header().Set("Cache-Control", "no-store")
@@ -316,6 +320,10 @@ func (c *Connector) proxyError(w http.ResponseWriter, r *http.Request, err error
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadGateway)
+	if reason != "" {
+		fmt.Fprintf(w, `{"error":%q,"reason":%q}`, msg, reason)
+		return
+	}
 	fmt.Fprintf(w, `{"error":%q}`, msg)
 }
 

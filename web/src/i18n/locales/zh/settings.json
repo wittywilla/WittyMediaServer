@@ -2208,5 +2208,8 @@
   },
   "{count} things turned off": {
     "other": "已关闭 {count} 项"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "所有设置和 API 密钥、远程访问、电视调谐器、频道和预约录制。",
+  "Remote access": "远程访问",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "登录时还需要输入手机应用生成的 6 位代码，因此仅凭被盗的密码无法登录。这是可选的，如果你使用远程访问则值得开启。任何身份验证器应用都可以。"
 }

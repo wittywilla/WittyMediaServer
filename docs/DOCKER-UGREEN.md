@@ -70,6 +70,8 @@ services:
       - no-new-privileges:true
     ports:
       - "9797:9797"
+      - "9796:9796/tcp" # peer to peer, for devices away from home (Settings → Remote Access)
+      - "9796:9796/udp"
     environment:
       - WMS_LOG=info
     volumes:
@@ -99,6 +101,24 @@ sudo docker exec wittymediaserver wittymediaserver hardware
 | *No graphics device was passed to the container* | The `devices:` lines are missing |
 | *can see /dev/dri/renderD128 but isn't allowed to use it* | `/dev/dri` was added as a volume instead of a device |
 | *The VA-API driver for this graphics chip isn't installed* | You're on an old image: pull `:alpha` again |
+
+## 5. Games on the graphics chip
+
+Most consoles don't need the graphics chip: NES, SNES, Game Boy, Mega Drive, PlayStation and Nintendo 64 play on the NAS's processor, even with no `devices:` lines. The chip makes the heavier ones possible (GameCube, Wii, PSP and PlayStation 2 at full speed, Dreamcast at all) and takes the stream's encoding off the processor. Games use the same `devices:` and `group_add:` lines as transcoding, so with step 4 working there's nothing more to add.
+
+To check it all at once: **Settings → Live transcoding → Graphics** lists *Video encoding*, *Games: OpenGL (EGL)* and *Games: Vulkan*, each **Yes** with the driver (*Mesa iris* and *Mesa intel* on an N100 or N305) or **No** with the reason. Over SSH, `sudo docker exec wittymediaserver wittymediaserver hardware` ends with the same three lines, and the server's log says it in one line when it starts (search it for `graphics:`).
+
+In WittyPlay's **Settings → Consoles & cores → Advanced**, *Graphics card* should name the chip, such as *Mesa Intel(R) Graphics (ADL-N)*. Starting a game that needs it tells you if it can't be used, and why:
+
+| It says | Do this |
+|---|---|
+| *no graphics device was passed into the container* | The `devices:` lines are missing: add `- /dev/dri:/dev/dri`, then recreate the container |
+| *this server's user can't open /dev/dri/renderD128, which belongs to group 105* | Put that number under `group_add:`, then recreate the container |
+| *which only root may use* | See [Only root may open the render node](DOCKER.md#only-root-may-open-the-render-node) |
+| *this server's Docker image has no OpenGL library (libEGL)* | The image is older than the fix: pull `:alpha` again |
+| *Playing on the server's processor, as it has no graphics card games can use* | Not an error: the game plays. It's said when the chip isn't there or can't be used, for the line above it |
+
+Nintendo 64 homebrew made with libdragon needs a chip with Vulkan. Intel's N100, N305 and newer Pentium and Celeron chips have it (the image brings Mesa's Vulkan driver), so those play here.
 
 ## Updating
 

@@ -200,17 +200,19 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
     setAim({ f: fracAt(e), drag: true })
   }
   const seekMove = (e: React.PointerEvent) => setAim((a) => ({ f: fracAt(e), drag: !!a?.drag }))
+  // Live TV goes back, never ahead of where it's playing: Back to live is the way forward (#688).
+  const seekAt = (to: number) => onSeek(live ? Math.min(to, now) : to)
   const seekUp = (e: React.PointerEvent) => {
     const f = fracAt(e)
     setAim(e.pointerType === 'mouse' ? { f, drag: false } : null)
-    onSeek(f * duration)
+    seekAt(f * duration)
   }
   // Keyboard/remote seeking while the timeline has focus.
   const seekKey = (e: React.KeyboardEvent) => {
     const to = e.key === 'ArrowRight' ? now + 10 : e.key === 'ArrowLeft' ? now - 10 : e.key === 'PageUp' ? now + 60 : e.key === 'PageDown' ? now - 60 : e.key === 'Home' ? 0 : e.key === 'End' ? duration - 5 : null
     if (to !== null) {
       e.preventDefault(); e.stopPropagation()
-      onSeek(Math.max(0, Math.min(duration, to)))
+      seekAt(Math.max(0, Math.min(duration, to)))
     }
   }
   const curChapter = chapters.filter((c) => c <= now + 0.5).length
@@ -234,7 +236,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           <div className="ctl-mid" role="group" aria-label={t('Playback')}>
             <button className="pbig step" onClick={() => onSeek(Math.max(0, now - 10))} aria-label={t('Back 10 seconds')}><span aria-hidden="true">−10</span></button>
             <button className="ibtn big play" onClick={toggle} aria-label={st.playing ? t('Pause') : t('Play')}>{st.playing ? <IconPause /> : <IconPlay />}</button>
-            <button className="pbig step" onClick={() => onSeek(Math.min(duration || now + 30, now + 30))} aria-label={t('Forward 30 seconds')}><span aria-hidden="true">+30</span></button>
+            {!live && <button className="pbig step" onClick={() => onSeek(Math.min(duration || now + 30, now + 30))} aria-label={t('Forward 30 seconds')}><span aria-hidden="true">+30</span></button>}
           </div>
           <div className="ctl-right">
             {onRemote && <button className={'ibtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-label="WittyRemote" aria-pressed={!!remoteOn} title={t('Show or hide WittyRemote (R)')}><IconRemote /></button>}
@@ -257,7 +259,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {onPrev && <button className="cbtn chap-step" onClick={onPrev} title={t('Previous chapter, or the start')} aria-label={t('Previous')}><IconPrev /><span className="lbl">{t('Prev')}</span></button>}
           <button className="cbtn step" onClick={() => onSeek(Math.max(0, now - 10))} title={t('Back 10 seconds (←)')} aria-label={t('Back 10 seconds')}><span className="lbl">−10</span></button>
           <button className="ibtn big play" onClick={toggle} title={st.playing ? t('Pause (Space)') : t('Play (Space)')} aria-label={st.playing ? t('Pause') : t('Play')}>{st.playing ? <IconPause /> : <IconPlay />}</button>
-          <button className="cbtn step" onClick={() => onSeek(Math.min(duration || now + 30, now + 30))} title={t('Forward 30 seconds')} aria-label={t('Forward 30 seconds')}><span className="lbl">+30</span></button>
+          {!live && <button className="cbtn step" onClick={() => onSeek(Math.min(duration || now + 30, now + 30))} title={t('Forward 30 seconds')} aria-label={t('Forward 30 seconds')}><span className="lbl">+30</span></button>}
           {onNext && <button className="cbtn chap-step" onClick={onNext} title={t('Next chapter, or the next one')} aria-label={t('Next')}><span className="lbl">{t('Next')}</span><IconNext /></button>}
         </div>
         <div className="ctl-right">

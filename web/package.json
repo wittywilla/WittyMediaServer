@@ -25,7 +25,9 @@
     "test:clone": "node scripts/test-clone.mjs",
     "test:settings-menu": "node scripts/test-settings-menu.mjs",
     "test:notifications": "node scripts/test-notifications.mjs",
-    "test:rtl": "node scripts/test-rtl.mjs"
+    "test:rtl": "node scripts/test-rtl.mjs",
+    "test:layout": "node scripts/test-layout.mjs",
+    "test:layout-pages": "node scripts/test-layout-pages.mjs"
   },
   "dependencies": {
     "hls.js": "^1.7.4",

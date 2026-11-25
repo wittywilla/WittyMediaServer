@@ -2257,5 +2257,8 @@
   "{count} things turned off": {
     "one": "{count} ding uitgezet",
     "other": "{count} dingen uitgezet"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Alle instellingen en API-sleutels, Toegang op afstand, tv-tuners, zenders en geplande opnames.",
+  "Remote access": "Toegang op afstand",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Bij het inloggen wordt ook gevraagd om een 6-cijferige code uit een app op je telefoon, zodat een gestolen wachtwoord niet genoeg is. Het is optioneel, en de moeite waard als je Toegang op afstand gebruikt. Elke authenticator-app werkt."
 }

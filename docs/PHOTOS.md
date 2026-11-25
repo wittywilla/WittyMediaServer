@@ -48,9 +48,6 @@ Places come from EXIF GPS tags, and from the location tag of clips. Phones and s
 
 Press a picture to open it. **Details** shows its date, file, camera, exposure and place, with **Download the original**. **Slideshow** runs at 2, 3, 5, 8 or 15 seconds a picture. A clip plays to its end before the slideshow moves on.
 
-![One photo filling the screen](images/photos-viewer.webp)
-*The viewer, with pictures from [Wikimedia Commons](https://commons.wikimedia.org/), each credited in [the list](images/CREDITS.md).*
-
 | Key | What it does |
 |---|---|
 | ← → | Previous or next picture. When zoomed in, these move the picture |

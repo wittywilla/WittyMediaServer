@@ -229,8 +229,8 @@ export default function TvPlayer() {
   const seekTo = (t: number) => {
     const v = video.current
     if (!v) return
-    // Live TV never skips ahead: Back to live, or Skip break in a break, is the way forward (#688).
-    if (t > v.currentTime + 0.25) return
+    // Ahead no further than live (a start-over stream finds its own way there, by the schedule).
+    if (!shifted && t > v.currentTime) t = Math.min(t, v.currentTime + win.behind)
     // Further back than the window on a library channel, or anywhere on a start-over stream: by
     // the schedule, which may mean starting that stream again from there.
     if (canShift && (shifted || t < win.start - 0.5)) {
@@ -348,6 +348,7 @@ export default function TvPlayer() {
         case ' ': case 'k': case 'MediaPlayPause': e.preventDefault(); v.paused ? v.play() : v.pause(); break
         case 'ArrowUp': case 'PageUp': case 'ChannelUp': e.preventDefault(); void step(1); break
         case 'ArrowDown': case 'PageDown': case 'ChannelDown': e.preventDefault(); void step(-1); break
+        case 'ArrowRight': seekTo(v.currentTime + 10); break
         case 'ArrowLeft': seekTo(v.currentTime - 10); break
         case '+': case '=': v.volume = Math.min(1, v.volume + 0.1); break
         case '-': v.volume = Math.max(0, v.volume - 0.1); break
@@ -377,7 +378,8 @@ export default function TvPlayer() {
       case 'up': void step(1); break
       case 'down': void step(-1); break
       case 'left': case 'rew': case 'prev': if (v) seekTo(v.currentTime - 10); break
-      case 'next': if (inBreak) skipBreak(); break
+      case 'next': if (inBreak) { skipBreak(); break } if (v) seekTo(v.currentTime + 30); break
+      case 'right': case 'ff': if (v) seekTo(v.currentTime + 30); break
       case 'enter': case 'menu': showBanner(); break
       case 'topmenu': guide(); break
       case 'return': last(); break
@@ -393,7 +395,7 @@ export default function TvPlayer() {
   // Another device steering this one (docs/REMOTE-PROTOCOL.md): see remote/tvTarget.ts.
   useTvRemote({ video, now: info?.now, positionSec: info?.positionSec || 0, serverTime: info?.serverTime || 0, ready: picture,
     audio: tracks.audio, subtitles: tracks.subtitles, chooseAudio: tracks.chooseAudio, chooseSubtitle: tracks.chooseSubtitle,
-    seekBy: (sec) => { const v = video.current; if (v && sec < 0) seekTo(v.currentTime + sec) }, step: (dir) => void step(dir), stop: guide })
+    seekBy: (sec) => { const v = video.current; if (v) seekTo(v.currentTime + sec) }, step: (dir) => void step(dir), stop: guide })
   const windowLen = Math.max(0, win.end - win.start)
   // Off live: once the viewer has paused or gone back, live sync leaves this player be, so it's
   // behind until Live; otherwise only when it has fallen further behind than live sync catches up by
@@ -452,12 +454,12 @@ export default function TvPlayer() {
           onChoose={(c) => { setQualityOpen(false); setDeviceDefault(here(), c); announce(t('Quality: {quality}', { quality: describe(c, info.quality?.presets || []) })); if (c !== info.quality?.asked) retune() }} />
       )}
       <Controls video={video} duration={prog ? prog.end - prog.start : windowLen} offset={prog && win.sched != null ? win.sched - prog.start - (video.current?.currentTime ?? 0) : -win.start}
-        onSeek={(t) => { if (prog) { if (win.sched == null || prog.start + t <= win.sched + 0.25) goTo(prog.start + t) } else seekTo(win.start + t) }} onFullscreen={() => toggleFullscreen(root.current)}
+        onSeek={(t) => { if (prog) goTo(shifted || win.sched == null ? prog.start + t : Math.min(prog.start + t, win.sched + win.behind)); else seekTo(win.start + t) }} onFullscreen={() => toggleFullscreen(root.current)}
         remoteOn={remoteOn} onRemote={() => setRemoteOn(!remoteOn)} showChapterMarks={false} onSettings={() => setSettingsOpen(true)}
         quality={info?.quality ? sizeName(video.current?.videoHeight || 0, video.current?.videoWidth || 0) || describe(info.quality.asked, info.quality.presets) : undefined}
         onQualityMenu={info?.quality ? () => setQualityOpen((o) => !o) : undefined} qualityMenuOpen={qualityOpen}
         audio={tracks.audio} subtitles={tracks.subtitles} onAudio={tracks.chooseAudio} onSubtitle={tracks.chooseSubtitle}
-        live compact={compact} sheetItems={[
+        live liveAhead={shifted ? shiftBehind : win.behind} compact={compact} sheetItems={[
           ...(fromStart || isBehind ? [{ key: 'live', icon: <IconTv />, label: t('Back to live'), onClick: goLive }] : []),
           // The compact bar shows only this sheet, so Start over is here too (#648).
           ...(canStartOver ? [{ key: 'startover', icon: <IconRefresh />, label: t('Start over'), onClick: startOver }] : []),

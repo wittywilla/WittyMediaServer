@@ -18,6 +18,7 @@
     "test:standalone": "node scripts/test-standalone.mjs",
     "test:keys": "node scripts/test-keys.mjs",
     "test:tv": "node scripts/test-tv-themes.mjs",
+    "test:tv-handover": "node scripts/test-tv-handover.mjs",
     "test:quality": "node scripts/test-quality-menu.mjs",
     "test:contrast": "node scripts/test-contrast.mjs",
     "test:tv-levels": "node scripts/test-tv-levels.mjs",

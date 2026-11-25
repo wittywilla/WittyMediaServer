@@ -54,6 +54,7 @@ import './tvmode/tvmode.css'
 import { installErrorReporter } from './errorReport'
 import { setStreamQuality } from './api'
 import { deviceChoice, startsStream } from './player/quality'
+import { autoChoice } from './pages/tv/liveAuto'
 import { setLanguage, startingLanguage, t, tn, tx, useLanguage, bidi } from './i18n'
 import { setWords } from './sdui/words'
 
@@ -62,7 +63,8 @@ installDensity()
 installTvMode()
 installErrorReporter()
 // A disc or a channel starts at this device's quality default (player/quality.ts).
-setStreamQuality((method, path) => (startsStream(method, path) ? deviceChoice() : ''))
+// Live TV with no quality chosen asks for Auto's step (pages/tv/liveAuto.ts): a rate the link carries.
+setStreamQuality((method, path) => (startsStream(method, path) ? deviceChoice() || (path.startsWith('/tv/') ? autoChoice() : '') : ''))
 
 // One route that hands everything to App's own routes. A data router is what lets a page
 // with unsaved changes ask before it is left (useBlocker); the boundary inside it keeps a

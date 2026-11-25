@@ -125,6 +125,10 @@ type qualityView struct {
 	// home, those for viewers away from home.
 	Limits playback.Limits `json:"limits"`
 	Away   bool            `json:"away"`
+	// Via is how this device reaches the server: p2p, p2p-relay, proxy, https or http. A player uses it to
+	// start live TV at a rate a home connection's upload can carry (pages/tv/liveAuto.ts), and its
+	// playback report says it.
+	Via string `json:"via"`
 	// Source is the picture's own size and rate, when known.
 	SourceWidth  int `json:"sourceWidth,omitempty"`
 	SourceHeight int `json:"sourceHeight,omitempty"`
@@ -141,7 +145,7 @@ func (s *Server) qualityFor(r *http.Request, width, height, kbps int) *qualityVi
 		lim.MaxKbps = playback.Smallest(lim.MaxKbps, l.MaxKbps)
 	}
 	asked := s.viewerChoice(r)
-	v := &qualityView{Choice: asked.Within(lim).String(), Asked: asked.String(), Limits: lim, Away: !clientFrom(r).Where.AtHome(),
+	v := &qualityView{Choice: asked.Within(lim).String(), Asked: asked.String(), Limits: lim, Away: !clientFrom(r).Where.AtHome(), Via: viaName(clientFrom(r), r),
 		SourceWidth: width, SourceHeight: height, SourceKbps: kbps, VideoCodecs: playback.VideoCodecs, AudioRates: playback.AudioRates}
 	for _, p := range playback.PresetsForSource(width, height, kbps) {
 		if lim.MaxHeight > 0 && p.Height > lim.MaxHeight {

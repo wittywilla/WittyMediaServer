@@ -139,7 +139,7 @@ export type PlaybackInfoExtra = {
 export type QualityPreset = { name: string; height: number; kbps: number }
 export type QualityLimits = { maxHeight: number; maxKbps: number }
 export type QualityView = {
-  choice: string; asked: string; presets: QualityPreset[]; limits: QualityLimits; away: boolean
+  choice: string; asked: string; presets: QualityPreset[]; limits: QualityLimits; away: boolean; via?: string
   sourceWidth?: number; sourceHeight?: number; sourceKbps?: number; videoCodecs: string[]; audioRates: number[]
 }
 // The stream as it reaches the player.

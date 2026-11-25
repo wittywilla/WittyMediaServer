@@ -26,6 +26,23 @@ export function syncStep(behind: number, nudging: boolean): SyncStep {
   return { rate: behind > 0 ? 1 + RATE : 1 - RATE }
 }
 
+// Live TV never jumps while it plays. A jump throws away the segment on its way (hls.js aborts it),
+// so it stalls the picture, which leaves it behind again, which makes it jump again: the freeze of a
+// second or so, with the sound behind, that 0.8.6 had. So a live player only catches up by playing up
+// to LIVE_RATE faster or slower, which is still too little to notice, and jumps only when a real
+// stall has left it LIVE_JUMP seconds or more out, where catching up by speed would take minutes.
+// Back to live is the viewer's own jump and doesn't come through here.
+export const LIVE_RATE = 0.05
+export const LIVE_JUMP = 30
+
+export function liveStep(behind: number, nudging: boolean, afterStall: boolean): SyncStep {
+  const off = Math.abs(behind)
+  if (afterStall && off >= LIVE_JUMP) return { seekBy: behind }
+  if (off < (nudging ? SETTLED : STILL)) return { rate: 1 }
+  const by = off >= SEEK ? LIVE_RATE : RATE
+  return { rate: behind > 0 ? 1 + by : 1 - by }
+}
+
 // How far the server's clock is ahead of this one, in ms, from timed requests: the one with the
 // shortest round trip is the one least delayed on the way, so its midpoint is the best guess.
 export type ClockSample = { sent: number; server: number; got: number }

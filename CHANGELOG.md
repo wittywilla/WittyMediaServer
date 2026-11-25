@@ -3,6 +3,8 @@
 All notable changes to WittyMediaServer. Versions follow [semantic versioning](https://semver.org);
 `-alpha` releases may change settings and APIs between versions.
 
+## Unreleased
+
 ## 0.8.5-alpha
 
 Released 2026-11-25.

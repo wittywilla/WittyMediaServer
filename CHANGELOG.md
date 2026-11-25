@@ -5,6 +5,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Sound and picture back together after 4× is checked on every build again.** The A/V test measures the return to
+  1× against a fresh start at the same place, and on CI's one-processor runner it is back within 40 ms, so the check
+  fails the build again (0.8.6 only reported it). Start checks average each start's flashes, keeping a flat 40 ms.
+
 ## 0.8.6-alpha
 
 Released 2026-11-25.

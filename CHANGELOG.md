@@ -8,8 +8,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 - **Sound and picture together again after a change of speed.** Watching at 4× and going back to normal could leave
   the sound out of step with the picture until the next seek. After each real change of speed (half a step or more)
   the player now lines them up by itself, in the browser, the desktop app, and the Android and Apple apps (client
-  0.6.4). In Firefox, a rewrapped film no longer stops at 2×. CI plays 1×, 4× and back to 1× and fails if the sound
-  is more than 40 ms from where it was.
+  0.6.4). CI plays 1×, 4× and back to 1× and fails if the sound is more than 40 ms from where it was.
 - **WittyTV: no frozen picture at tune-in on open-GOP H.264 (#760).** Some H.264 encodes, many Blu-ray ones among
   them, mark I-frames that aren't IDR frames as keyframes, with one IDR at the very start. A channel copied them as
   they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.

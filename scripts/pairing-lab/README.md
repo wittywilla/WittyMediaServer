@@ -37,6 +37,8 @@ A case is `network.server.only.phone.way`, for example `symmetric-relay.restart.
 | phone | `fresh`: a new install. `upgrade`: an older app's leftovers (its key, the local port it used, addresses kept for this server from before it restarted on new ports); on the emulator, the old APK signed in at home, then updated. `previous`: paired with another server first, whose connection is still open when this one starts. |
 | way | `link` or `code`. |
 
+`PL_KEEP=library` keeps only what the library remembers (`KnownAddrs`) for next time, without the app's own rules, to test the library itself.
+
 The link is what Connect a device's QR code holds (`qrLink`); `PL_LINK=plain` uses the link to paste instead.
 
 Sets: `fast` (a dozen cases, every pull request), `full` (everything, nightly and before a release tag),

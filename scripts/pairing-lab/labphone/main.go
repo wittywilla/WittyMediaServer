@@ -68,6 +68,7 @@ var (
 	stepW            io.Writer = os.Stdout
 	order                      = "0.6.3"
 	codeWait                   = 180 * time.Second
+	keep                       = "app"
 	webHome, webCode string
 )
 
@@ -109,6 +110,7 @@ func main() {
 	t0 := flag.Int64("t0", 0, "the case's start, in Unix milliseconds, so both sides share a clock")
 	wh := flag.String("home", "", "webcode mode: the web address the phone finds the server at, at home")
 	wc := flag.String("code", "", "webcode mode: the Connect a device code typed in")
+	keepFlag := flag.String("keep", "app", "what is kept for next time: app (the app's own rules) or library (KnownAddrs alone, to test the library)")
 	retryFile := flag.String("retry", "", "if the first try fails, ask for a new link (this file + .ask) and try once more within 30 s")
 	relayListen := flag.String("public-relay", "", "run an ordinary public relay on these multiaddrs (comma-separated) instead")
 	flag.Parse()
@@ -140,6 +142,7 @@ func main() {
 		stepW = f
 	}
 	order = *orderFlag
+	keep = *keepFlag
 	webHome, webCode = *wh, *wc
 	codeWait = *cw
 	err := run(*mode, *link, *state, *stateDir, *codeFile, *name)
@@ -387,7 +390,7 @@ func run(mode, link, state, dir, codeFile, name string) error {
 	// joined(): what the app keeps for next time.
 	var addrs []string
 	_ = json.Unmarshal([]byte(sess.KnownAddrs()), &addrs)
-	if enrolFirst() {
+	if enrolFirst() && keep != "library" {
 		// 0.6.3 (PeerManager.keepAddrs, #141): up to two relay circuits from the invite stay first, ahead of what the
 		// library learnt, which a list of direct addresses would otherwise push out.
 		var circuits []string

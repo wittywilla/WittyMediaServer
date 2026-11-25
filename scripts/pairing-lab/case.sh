@@ -217,7 +217,7 @@ print(json.dumps(out, sort_keys=True))' 2>/dev/null)
 
 # ---------------------------------------------------------------- the phone's state before pairing
 PHONE=$OUT/phone; mkdir -p "$PHONE"; chown "$RUNAS" "$PHONE"
-phone() { asuser pl-cli env GOLOG_LOG_LEVEL="${PL_PHONE_GOLOG:-error}" "$BUILD/bin/labphone" -t0 "$T0" -order "${PL_ORDER:-0.6.3}" -steps "$STEPS" -statedir "$PHONE" "$@"; }
+phone() { asuser pl-cli env GOLOG_LOG_LEVEL="${PL_PHONE_GOLOG:-error}" "$BUILD/bin/labphone" -t0 "$T0" -order "${PL_ORDER:-0.6.3}" -keep "${PL_KEEP:-app}" -steps "$STEPS" -statedir "$PHONE" "$@"; }
 
 # PL_PHONE=emulator: the real app instead (PL_APK, and PL_OLD_APK for an upgrade), on an emulator started
 # inside the phone's namespace (AVD PL_AVD, console port PL_EMU_PORT), so its traffic crosses the phone's router.

@@ -137,9 +137,10 @@ func placeboChain(rng string, maxHeight int) string {
 		"hwdownload,format=nv12,setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709"
 }
 
-// vulkanSelected finds the device FFmpeg chose in its verbose output; cpu says it is a software
+// vulkanSelected finds the device FFmpeg chose in its verbose output; cpu or software (FFmpeg 7.1 says
+// "(software)" for Mesa's llvmpipe) says it is a software
 // one (llvmpipe), which would do the work on the processor after all.
-var vulkanSelected = regexp.MustCompile(`Device \d+ selected: ([^\n]+?) \((integrated|discrete|virtual|cpu|other)\)`)
+var vulkanSelected = regexp.MustCompile(`Device \d+ selected: ([^\n]+?) \((integrated|discrete|virtual|cpu|software|other)\)`)
 
 // probePaths tests every path whose encoder (if it has one) works. A pipeline is given a tiny
 // file to decode, resize and encode; the tone map a few frames of HDR test picture.
@@ -242,7 +243,7 @@ func (t *Tools) testPath(ctx context.Context, log *slog.Logger, st *GPUPath, job
 	said := stderr.String()
 	if m := vulkanSelected.FindStringSubmatch(said); m != nil {
 		st.Device = strings.TrimSpace(m[1])
-		if strings.EqualFold(m[2], "cpu") || strings.Contains(strings.ToLower(m[1]), "llvmpipe") {
+		if strings.EqualFold(m[2], "cpu") || strings.EqualFold(m[2], "software") || strings.Contains(strings.ToLower(m[1]), "llvmpipe") {
 			st.Tested, st.Reason = true, i18n.F("The only Vulkan device here is a software one ({device}), which would do the work on the processor.", "device", st.Device)
 			log.Info("graphics chip path can't be used", "path", st.ID, "reason", st.Reason)
 			return

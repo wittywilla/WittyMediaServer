@@ -47,6 +47,13 @@ Developer notes:
     outside Settings. Before, a page that left Settings was skipped.
   - `align` covers titles a module draws itself and fails a centred title. It also fails a settings page whose title
     starts somewhere other than the others at the same size.
+- **WittyTV: a quicker tune-in on a small server.** On a machine with up to four processors or 4 GB (a NAS, a
+  container held to 2 CPUs), a live picture the processor converts now uses the fastest encoder setting, at most 1080
+  lines, in 2-second segments, and a stream is ready after its first one. At 2 CPUs a 1080p HEVC 10-bit channel was
+  converted slower than it plays, so the picture stood still at every tune-in; it now keeps up at 1.7 times, and the
+  server has a stream ready in 2.3 to 3.5 s for an HDR10 channel (was 6 to 11 s), 1.6 to 2.1 s for HEVC 10-bit and 1.4
+  to 1.9 s for H.264. Larger machines and graphics chips are as before.
+
 - **The processor's graphics drivers are called what they are.** Since 0.8.5 the image has Mesa's software drivers
   (llvmpipe for OpenGL, lavapipe for Vulkan), which WittyPlay uses to draw GameCube and Wii with no graphics card. The
   Graphics status (Settings → Live transcoding, `wittymediaserver hardware`, the log) now says "Software (no graphics

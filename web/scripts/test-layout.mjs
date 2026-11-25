@@ -11,6 +11,8 @@
 //   off-centre   centred words in a box that isn't in the middle of what holds it, so they only look centred to it
 //   title-case   a Settings page's title in Title Case; the menu and every title are in sentence case
 //   repeated     two headings on one page that say the same thing
+//   no-menu      a page the settings menu opens without the menu: on a computer, laptop or tablet the menu is beside
+//                every Settings page; on a phone the page has Back to it. A row that leaves Settings fails here (#763).
 // Pictures of each page go to the out folder (<page>--<size>[--<layout>].png) for before-and-after comparisons.
 //
 //   WMS_SERVER=http://layout.localhost:19706 WMS_USER=owner WMS_PASSWORD=... node scripts/test-layout.mjs out-folder
@@ -30,16 +32,13 @@ if (!server) { console.error('Set WMS_SERVER.'); process.exit(2) }
 mkdirSync(out, { recursive: true })
 const noShots = !!process.env.LAYOUT_NO_SHOTS
 
-// Every page the settings menu opens, every settings page of the server's own (SettingsPage.tsx), and, found as the
-// test runs, the pages modules add to the settings menu.
+// Every page the settings menu opens, as the web's menu links it (found as the test runs: the rows of settingsmenu.json,
+// drawn inside Settings, and the pages modules add), and every settings page of the server's own (SettingsPage.tsx).
 const menu = JSON.parse(readFileSync(new URL('../../pkg/sdui/data/settingsmenu.json', import.meta.url), 'utf8'))
-const menuPaths = [...new Set(menu.groups.flatMap((g) => g.rows.map((r) => r.path)).filter((p) => p && p.startsWith('/')).map((p) => p.split('#')[0]))]
 const CORE = ['libraries', 'pages', 'metadata', 'playback', 'quality', 'channels', 'transcoding', 'library-transcoding', 'appearance', 'users',
   'sharing', 'logs', 'network', 'data-folder', 'remote', 'security', 'activity', 'notifications', 'diagnoser', 'repair', 'health', 'backup',
   'reset', 'about', 'legal', 'module-settings', 'modules'].map((p) => '/settings/' + p)
-// Help is a page of the app's own, checked with the rest of them (test-layout-pages.mjs).
-const OTHERS = ['/help']
-const fixedRoutes = process.env.LAYOUT_ROUTES ? process.env.LAYOUT_ROUTES.split(',') : [...new Set(['/you', '/settings', ...menuPaths.filter((p) => p !== '/you' && !OTHERS.includes(p)), ...CORE])]
+const fixedRoutes = process.env.LAYOUT_ROUTES ? process.env.LAYOUT_ROUTES.split(',') : ['/you', '/settings', ...CORE]
 // Pages a link opens at one of its sections: the section must land below the bar.
 const ANCHORS = [...new Set(menu.groups.flatMap((g) => g.rows.map((r) => r.path)).filter((p) => p && p.includes('#')))]
 const SIZES = {
@@ -57,8 +56,9 @@ const TV_ROUTES = process.env.LAYOUT_TV_ROUTES ? process.env.LAYOUT_TV_ROUTES.sp
 // Words in a title that keep their capital: names of things, not Title Case.
 const NAMES = /^(Witty\w*|TV|TVs|HTTPS?|VPN|IPTV|DVR|DVD|DVDs|Blu-ray|QR|PIN|ID|IDs|Wi-Fi|Android|Apple|Linux|Windows|macOS|FreeBSD|Docker|FFmpeg|GPU|CPU|HDR|EPG|M3U|XMLTV|API|URL|OK|I)$/
 
-// Runs in the page. `phase` is 'open' (as the page first appears) or 'scrolled'.
-const DETECT = (phase) => `(() => {
+// Runs in the page. `phase` is 'open' (as the page first appears) or 'scrolled'. `menu` is what a settings page must
+// have to get back to the menu: 'side' (the menu beside it), 'back' (a phone's Back to it) or null (not a settings page).
+const DETECT = (phase, menu = null) => `(() => {
   const out = []
   const vw = innerWidth
   const vis = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 1 && r.height > 1 && s.visibility !== 'hidden' && s.display !== 'none' && +s.opacity > 0.05 }
@@ -96,11 +96,21 @@ const DETECT = (phase) => `(() => {
       if (r.top < barBottom - 1 && r.bottom > barBottom && r.top > -r.height) add('under-bar', e, 'stays at ' + Math.round(r.top) + ', the bar (' + name(bar) + ') ends at ' + Math.round(barBottom))
     }
   }
+  if (${JSON.stringify(menu)} && ${JSON.stringify(phase)} === 'open') {
+    const shell = document.querySelector('.set-shell'), nav = shell && shell.querySelector('.set-nav')
+    // A phone's Back to the menu: the page's own, or the top bar's, which takes its place there (shell/TopBar.tsx TopBack).
+    const back = shell && [...document.querySelectorAll('.set-back a, .set-back button, .top-back')].find(vis)
+    if (!shell) add('no-menu', null, 'not drawn inside Settings: no settings menu, no way back to it')
+    else if (${JSON.stringify(menu)} === 'side' && !(nav && vis(nav))) add('no-menu', nav, 'the settings menu is hidden beside this page')
+    else if (${JSON.stringify(menu)} === 'back' && !(back && vis(back))) add('no-menu', null, 'no Back to the settings menu')
+  }
   if (${JSON.stringify(phase)} === 'open') {
-    // A Settings page: its title, lead and content start at the same edge.
-    const head = document.querySelector('.set-main .set-head')
+    // A Settings page: its title, lead and content start at the same edge. A page that draws its own title (a module's
+    // section) is held to the same: its title's box is its head.
+    const ownH1 = [...document.querySelectorAll('.set-main h1')].find(vis)
+    const head = document.querySelector('.set-main .set-head') || (ownH1 && (ownH1.closest('header') || (ownH1.parentElement !== document.querySelector('.set-main') && ownH1.parentElement) || ownH1))
     if (head && vis(head)) {
-      const h1 = head.querySelector('h1')
+      const h1 = head.matches('h1') ? head : head.querySelector('h1')
       const textLeft = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const rs = [...rg.getClientRects()].filter((r) => r.width > 0); return rs.length ? Math.min(...rs.map((r) => r.left)) : e.getBoundingClientRect().left }
       const textRight = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const rs = [...rg.getClientRects()].filter((r) => r.width > 0); return rs.length ? Math.max(...rs.map((r) => r.right)) : e.getBoundingClientRect().right }
       const rtl = getComputedStyle(head).direction === 'rtl'
@@ -112,13 +122,17 @@ const DETECT = (phase) => `(() => {
         const fs = getComputedStyle(first), fr = first.getBoundingClientRect()
         const bleed = parseFloat(rtl ? fs.marginRight : fs.marginLeft) < 0
         const want = rtl ? fr.right - (bleed ? parseFloat(fs.paddingRight) : 0) : fr.left + (bleed ? parseFloat(fs.paddingLeft) : 0)
-        for (const e of [h1, head.querySelector('p')].filter(Boolean)) {
-          const d = Math.round(edge(e) - want)
+        // A head that starts with a picture before its title (the module store's icon) starts at the picture.
+        const pic = head.firstElementChild && !head.firstElementChild.contains(h1) && vis(head.firstElementChild) && head.firstElementChild.getBoundingClientRect().right <= h1.getBoundingClientRect().left + 1 ? head.firstElementChild : null
+        for (const e of pic ? [pic] : [h1, head.matches('h1') ? null : head.querySelector('p')].filter(Boolean)) {
+          const d = Math.round((e === pic ? (rtl ? e.getBoundingClientRect().right : e.getBoundingClientRect().left) : edge(e)) - want)
           if (Math.abs(d) > 2) add('align', e, 'starts ' + d + 'px from the content under it (' + name(first) + ')')
         }
       }
+      if (h1 && getComputedStyle(h1).textAlign === 'center' && !document.documentElement.classList.contains('tv-mode')) add('align', h1, 'a Settings page title in the middle, not at the edge its content starts at')
       if (h1) {
-        const words = h1.textContent.trim().split(/\\s+/).slice(1)
+        // What follows a · names something (Controllers · Game Boy): only the title before it is in sentence case.
+        const words = h1.textContent.split('·')[0].trim().split(/\\s+/).slice(1)
         const caps = words.filter((w) => /^[A-Z][a-z]+$/.test(w.replace(/[^A-Za-z-]/g, '')) && !${NAMES}.test(w.replace(/[^A-Za-z-]/g, '')))
         if (caps.length) add('title-case', h1, 'capitals on ' + caps.join(', '))
       }
@@ -176,18 +190,22 @@ const api = async (method, path, body) => {
   return { status: r.status, body: await r.json().catch(() => null) }
 }
 
-// The settings pages modules add (a module's own tab, or its page under /m/): the links the settings menu draws.
+// The pages the settings menu opens: every link it draws, on the Settings page and beside a settings page (a module's
+// own tab, its page, a row whose page has an address elsewhere). Each must open inside Settings (no-menu).
 let ROUTES = fixedRoutes
 if (!process.env.LAYOUT_ROUTES) {
   const s = await open(server, out, { width: 1920, height: 1080, path: '/legal' })
   try {
     await s.page.eval(`localStorage.setItem('wms.token', ${JSON.stringify(token)}); localStorage.removeItem('wms.tvclient')`)
-    await s.go('/settings/about', 400)
-    await s.page.until(`document.querySelectorAll('.set-nav a[href]').length > 10`, 20000, 'the settings menu').catch(() => {})
-    await wait(800)
-    const links = await s.page.eval(`[...document.querySelectorAll('.set-nav a[href]')].map((a) => new URL(a.href).pathname)`)
-    const extra = [...new Set(links)].filter((p) => (p.startsWith('/settings/') || p.startsWith('/m/')) && !fixedRoutes.includes(p))
-    if (extra.length) console.log('modules add', extra.join(' '))
+    const links = []
+    for (const [path, sel] of [['/settings', 'main a.sm-row[href]'], ['/settings/about', '.set-nav a[href]'], ['/settings/modules', '.set-main a[href^="/settings/modules/store/"]']]) {
+      await s.go(path, 400)
+      await s.page.until(`document.querySelectorAll(${JSON.stringify(sel)}).length > (${JSON.stringify(path)} === '/settings/modules' ? 0 : 10)`, 20000, 'the settings menu').catch(() => {})
+      await wait(800)
+      links.push(...await s.page.eval(`[...document.querySelectorAll(${JSON.stringify(sel)})].map((a) => new URL(a.href).pathname)`))
+    }
+    const extra = [...new Set(links)].filter((p) => p !== '/' && !fixedRoutes.includes(p))
+    console.log('the menu opens', extra.join(' '))
     ROUTES = [...fixedRoutes, ...extra]
   } finally { await s.browser.close() }
 }
@@ -223,6 +241,8 @@ try {
         const all = look && lookRoutes ? lookRoutes : ROUTES
         const routes = size.tv && TV_ROUTES ? all.filter((r) => TV_ROUTES.includes(r)) : all
         const seen = new Set()
+        // Where each settings page's title starts: every one at the same place, so moving between them nothing jumps.
+        const edges = []
         for (const route of routes) {
           const path = size.tv ? route + (route.includes('?') ? '&' : '?') + 'tv=1&client=tv' : route
           await s.go(path, 400)
@@ -230,11 +250,24 @@ try {
           await s.page.until(`!!document.querySelector('main h1, main [data-settings-group], main .row, main .grid, .tv-root')`, 20000, 'the page').catch(() => {})
           await wait(900)
           const here = await s.page.eval(`location.pathname`)
+          // A settings page has the menu beside it, or on a phone Back to it; one that sends you out of Settings fails.
+          const menuWant = size.tv || !route.startsWith('/settings/') ? null : sizeName === 'phone' ? 'back' : 'side'
+          if (menuWant && here !== '/settings' && !here.startsWith('/settings/')) {
+            findings.push({ route, size: sizeName, look: lookName, kind: 'no-menu', where: '', text: '', detail: 'opens ' + here + ', outside Settings, without the settings menu' })
+            if (!noShots) await s.shot(`${slug(route)}--${sizeName}${tag}`)
+            console.log('FAIL', route, sizeName, lookName, 'opens', here, 'outside Settings')
+            continue
+          }
           // A page that sends you on (a module's settings tab opening its own settings pages) is checked where it lands,
           // once; one that lands on a page checked anyway is skipped.
-          if (!here.startsWith(route.split('?')[0]) && (seen.has(here) || all.includes(here) || !/settings|\/you$/.test(here))) { console.log('SKIP', route, sizeName, lookName, 'went to', here); continue }
+          if (!here.startsWith(route.split('?')[0]) && (seen.has(here) || all.includes(here))) { console.log('SKIP', route, sizeName, lookName, 'went to', here); continue }
           seen.add(here)
-          const found = await s.page.eval(DETECT('open'))
+          const found = await s.page.eval(DETECT('open', here === '/settings' ? null : menuWant))
+          if (menuWant && here !== '/settings') {
+            // The page editor is a wide workspace of its own (pages-editor.css .pe-wide): the whole frame widens for it.
+            const left = await s.page.eval(`(() => { if (document.querySelector('.pe-wide')) return null; const h = [...document.querySelectorAll('.set-main h1')].find((e) => e.getBoundingClientRect().width > 1); if (!h) return null; const hd = h.closest('header'); const f = hd && hd.firstElementChild; const pic = f && !f.contains(h) && f.getBoundingClientRect().width > 1 && f.getBoundingClientRect().right <= h.getBoundingClientRect().left + 1; return Math.round((pic ? f : h).getBoundingClientRect().left) })()`)
+            if (left != null) edges.push({ route, left })
+          }
           if (!noShots) await s.shot(`${slug(route)}--${sizeName}${tag}`)
           await s.page.eval(`scrollTo(0, Math.min(700, document.documentElement.scrollHeight - innerHeight))`)
           await wait(300)
@@ -242,6 +275,14 @@ try {
           if (!noShots && found.some((f) => f.kind === 'under-bar')) await s.shot(`${slug(route)}--${sizeName}${tag}--scrolled`)
           for (const f of found) findings.push({ route, size: sizeName, look: lookName, ...f })
           console.log(found.length ? 'FAIL' : 'PASS', route, sizeName, lookName, found.length ? JSON.stringify(found) : '')
+        }
+        if (edges.length > 2) {
+          const count = new Map(); for (const e of edges) count.set(e.left, (count.get(e.left) || 0) + 1)
+          const usual = [...count.entries()].sort((a, b) => b[1] - a[1])[0][0]
+          for (const e of edges) if (Math.abs(e.left - usual) > 2) {
+            findings.push({ route: e.route, size: sizeName, look: lookName, kind: 'align', where: 'h1', text: '', detail: `the title starts at ${e.left}, other settings pages' at ${usual}: it moves going from one to the other` })
+            console.log('FAIL', e.route, sizeName, lookName, 'title at', e.left, 'not', usual)
+          }
         }
         if (!size.tv && !(look && lookRoutes)) {
           for (const link of ANCHORS) {

@@ -39,6 +39,8 @@ body:has(.play-dock) .set-nav { --set-nav-end: calc(4.5rem + var(--text-xs) * 2 
 .set-card-head p { margin: var(--sp-1) 0 0; color: var(--fg-2); font-size: var(--text-sm); line-height: 1.5; max-width: 62ch; }
 .set-card-actions { flex: none; }
 .set-card-body { padding: var(--sp-1) var(--sp-6) var(--sp-2); }
+/* A card with no heading (a module's untitled group, a page's one button) keeps the same room above as beside. */
+.set-card > .set-card-body:first-child { padding-block: var(--sp-5); }
 .set-main .panel { padding: var(--sp-5) var(--sp-6) var(--sp-6); }
 .set-main .panel > h2 { margin-bottom: var(--sp-3); }
 .set-main .panel .form { max-width: none; }
@@ -103,10 +105,11 @@ body:has(.play-dock) .set-nav { --set-nav-end: calc(4.5rem + var(--text-xs) * 2 
   .set-main .list-item > .grow { flex: 1 1 calc(100% - 64px); min-width: 0; }
 
 }
-@media (max-width: 1280px) {
+/* Only on a phone is the menu a page of its own (Settings, then the page, with Back to it): on a tablet or a laptop it
+   stays beside the page, as on a computer, so no Settings page is ever without it (#763). */
+@media (max-width: 760px) {
   .set-nav { position: static; padding: 0; max-height: none; overflow: visible; }
-  .set-shell:not(.at-menu) .set-nav, .set-shell.at-menu .set-main { display: none; }
-
+  .set-shell .set-nav { display: none; }
 }
 @media (max-width: 760px) {
   .set-nav { gap: var(--sp-6); }
@@ -162,6 +165,9 @@ body:has(.play-dock) .set-nav { --set-nav-end: calc(4.5rem + var(--text-xs) * 2 
    jump (test:layout, anchors). */
 :root { --set-toc-room: calc(var(--bar-space) + var(--control-h-sm) + var(--sp-5)); }
 html:has(.set-main) { scroll-padding-top: var(--set-toc-room); }
+/* The page keeps the scroll bar's room whether it scrolls or not: a short page and a long one start their title and
+   content at the same place, instead of 5px apart as the centred column moved with the bar (#763). */
+html:has(.set-shell) { scrollbar-gutter: stable; }
 
 /* Demucs for karaoke: the install's confirmation and progress (MusicOnline). */
 .sep-confirm { display: grid; gap: 8px; max-width: 640px; }

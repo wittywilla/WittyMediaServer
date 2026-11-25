@@ -151,8 +151,12 @@
    floating bar round the server's pages, and sets <html data-app="wittymediaclient"> before a
    page loads. The website's own top bar and floating bar step aside, so there's one of each. The
    room kept at the foot (--tabbar-space) stays, for the app's bar. */
-@media (max-width: 700px) {
+/* A phone on its side is a phone too (wider than 700, under 500 tall): the app still draws its bars, so the website's step
+   aside there as well, and the page keeps the same room at its foot for the app's floating bar (#765). */
+@media (max-width: 700px), (max-height: 500px) {
   html[data-app="wittymediaclient"] .tabbar, html[data-app="wittymediaclient"] .app .topbar { display: none; }
+  html[data-app="wittymediaclient"] { --tabbar-space: calc(var(--tabbar-h) + var(--sp-4)); }
+  html[data-app="wittymediaclient"] .app .content { padding-bottom: calc(var(--sp-6) + var(--tabbar-space) + var(--dock-space)); }
 }
 /* The app's bar is drawn over the page, so nothing the page puts on top can cover it: menus, popovers,
    tooltips, dialogs and sheets keep clear of it instead (--overlay-foot; ui/overlayFoot.ts for the ones

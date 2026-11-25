@@ -68,7 +68,14 @@ export function liveVideo(): HTMLVideoElement {
   video = document.createElement('video')
   video.playsInline = true
   video.preload = 'auto'
-  video.addEventListener('playing', () => { if (!live.playing) setLive({ playing: true }) })
+  // Playing once a picture is shown, not when the element says so: it may say so with the sound running and
+  // the picture still to come, and "Tuning…" would give way to a frame standing still.
+  video.addEventListener('playing', () => {
+    if (live.playing) return
+    const v = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number }
+    if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(() => { if (!live.playing) setLive({ playing: true }) })
+    else setLive({ playing: true })
+  })
   parking = document.createElement('div')
   parking.setAttribute('aria-hidden', 'true')
   parking.style.cssText = 'position:fixed;right:0;bottom:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none;z-index:-1'

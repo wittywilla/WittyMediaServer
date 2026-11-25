@@ -5,6 +5,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **WittyTV: no sound before the picture at tune-in.** A channel's sound now starts with its first picture, and
+  "Tuning…" stays until there is one, rather than giving way to a frame standing still while the sound plays. The
+  sound comes back after a few seconds at most whatever happens, and a page playing in the background isn't held.
+
 - **The processor's graphics drivers are called what they are.** Since 0.8.5 the image has Mesa's software drivers
   (llvmpipe for OpenGL, lavapipe for Vulkan), which WittyPlay uses to draw GameCube and Wii with no graphics card. The
   Graphics status (Settings → Live transcoding, `wittymediaserver hardware`, the log) now says "Software (no graphics

@@ -80,6 +80,14 @@ if grep -q '^gpu: llvmpipe' <<<"$probe"; then ok "OpenGL on the processor: $(sed
 if grep -q "^vulkan: .*only the processor's" <<<"$probe"; then ok "Vulkan finds lavapipe"; else bad "Vulkan: $(grep '^vulkan:' <<<"$probe" || echo "$probe")"; fi
 probe=$(docker exec "$name" "$runner" -probe-gpu -save /config/probe 2>&1)
 if grep -q 'tried: llvmpipe' <<<"$probe"; then ok "with no card, the check says so: it tried llvmpipe"; else bad "the no-card check: $probe"; fi
+# Those same drivers, as the server's Graphics status tells a person: software, no graphics chip, never a yes. WittyPlay may
+# draw on them (above); the server mustn't count them as a chip.
+gs=$(curl -s -H "$H" "$api/system" | python3 -c 'import json,sys
+g=json.load(sys.stdin).get("graphics") or {}
+for k in ("egl","vulkan"):
+  c=g.get(k) or {}
+  print(k, "yes" if c.get("ok") else ("software" if str(c.get("detail","")).startswith("Software (no graphics chip)") else "other: "+str(c.get("detail",""))))')
+if grep -q "^egl software" <<<"$gs" && grep -q "^vulkan software" <<<"$gs"; then ok "the Graphics status calls llvmpipe and lavapipe software, not a chip"; else bad "the Graphics status: $gs"; fi
 for core in fceumm gearsystem; do
   curl -s -X POST -H "$H" "$P/gaming/cores/$core/install" -o /dev/null -w '' || true
   for _ in $(seq 1 90); do

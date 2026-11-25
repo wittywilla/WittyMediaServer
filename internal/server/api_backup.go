@@ -182,6 +182,26 @@ func BackupScrubSettings() map[string]func(string) string {
 	return map[string]func(string) string{p2pSettingKey: scrubP2PSetting}
 }
 
+// BackupSecretWords name the secrets a backup without a password leaves out, in a restore's summary.
+func BackupSecretWords() map[string]string {
+	return map[string]string{
+		p2pSeedKey:       i18n.T("the peer-to-peer connection key, so this server's connection ID stays the same"),
+		"serverId":       i18n.T("this server's identity, which the apps recognise it by"),
+		"tmdbKey":        i18n.T("the TMDB key"),
+		"tvdbKey":        i18n.T("the TVDB key"),
+		"tvdbPin":        i18n.T("the TVDB PIN"),
+		"guideKey":       i18n.T("the TV guide's key"),
+		backupKeySetting: i18n.T("the password for scheduled backups"),
+		p2pSettingKey:    i18n.T("the access keys of your WittyRelays"),
+	}
+}
+
+// BackupStageOptions are what a restore keeps this machine's own secrets by (backup, keep_live.go).
+func BackupStageOptions(o backup.StageOptions) backup.StageOptions {
+	o.SecretSettings, o.ScrubSettings, o.SecretWords = BackupSecretSettings(), BackupScrubSettings(), BackupSecretWords()
+	return o
+}
+
 // NoteRestore is told how the restore at this start went.
 func (s *Server) NoteRestore(r *backup.Result) {
 	s.backup.mu.Lock()
@@ -867,7 +887,7 @@ func (s *Server) handleBackupRestore(w http.ResponseWriter, r *http.Request) {
 	by := userFrom(r)
 	t := s.Tasks.Start(tasks.Spec{Type: tasks.TypeBackup, Title: "Restoring a backup", Unit: "bytes", By: byUser(by), Cancel: cancel, AdminOnly: true})
 	logging.Go("backup restore", func() {
-		_, err := in.Stage(ctx, s.backupFolders(), backup.StageOptions{Parts: b.Parts, LiveDB: s.DB.DB, Progress: s.backupProgress(t)})
+		_, err := in.Stage(ctx, s.backupFolders(), BackupStageOptions(backup.StageOptions{Parts: b.Parts, LiveDB: s.DB.DB, Progress: s.backupProgress(t)}))
 		if err != nil {
 			t.Finish(err)
 			s.endBackup(func(j *backupJob) { j.Error = err.Error() })

@@ -209,6 +209,9 @@ type Manifest struct {
 	Files         []FileEntry   `json:"files,omitempty"` // left out of the outer manifest of a protected archive
 	DataDir       string        `json:"dataDir,omitempty"`
 	Crypt         *CryptHeader  `json:"crypt,omitempty"` // how the payload is protected
+	// Stripped are the settings a backup without a password left out or cleaned, by name only: what a
+	// restore onto the machine that still holds them keeps from it (keep_live.go).
+	Stripped []string `json:"stripped,omitempty"`
 }
 
 // Info is a backup kept on this server.

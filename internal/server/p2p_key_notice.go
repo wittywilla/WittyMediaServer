@@ -21,6 +21,10 @@ import (
 // list still looked paired, and every device away from home simply failed
 // (audit F8, #746).
 //
+// Since #755 a restore onto a machine that still holds its key keeps it, so
+// this is for a server whose key is gone with devices still listed: another
+// machine that got the list somehow, or a key lost some other way.
+//
 // Now the moment is kept (p2pKeyNewSetting), the administrators are told, the
 // Remote Access page says so until it no longer matters, and each device that
 // hasn't connected since is shown as waiting for a new invite. A device that
@@ -71,7 +75,7 @@ func (s *Server) p2pNoteNewKey(ctx context.Context) {
 	if s.notes != nil {
 		s.notes.Send(ctx, s.noteAdmins(ctx), notify.Note{Kind: notify.Server,
 			Title: i18n.T("This server has a new connection ID"),
-			Body: i18n.F("The backup it was restored from was made without a password, which can't keep it. {n} devices that connect from away must be invited again.",
+			Body: i18n.F("Its connection key was missing (as after restoring, on another computer, a backup made without a password), so it made a new one. {n} devices that connect from away must be invited again.",
 				"n", strconv.Itoa(n)),
 			Link: "/settings/remote"}, "p2pkey:"+strconv.FormatInt(k.At, 10))
 	}
@@ -85,7 +89,7 @@ func p2pNeedsReinvite(d p2pDevice, k p2pKeyNew, have bool) bool {
 
 // p2pReinviteWords is what a device waiting for a new invite says, in the list.
 func p2pReinviteWords() string {
-	return i18n.T("This server has a new connection ID since a backup made without a password was restored. Invite this device again.")
+	return i18n.T("This server has a new connection ID since it last connected: its connection key was missing. Invite this device again.")
 }
 
 // p2pKeyNoticeFor is the page's notice, or nil once no device waits any more,
@@ -106,7 +110,7 @@ func (s *Server) p2pKeyNoticeFor(ctx context.Context, devices []p2pDevice) *p2pK
 		return nil
 	}
 	return &p2pKeyNotice{At: k.At, Reinvite: n,
-		Words: i18n.F("This server has a new connection ID, because the backup it was restored from was made without a password. {n} devices that connect from away must be invited again: they show as waiting below.", "n", strconv.Itoa(n))}
+		Words: i18n.F("This server has a new connection ID, because its connection key was missing (as after restoring, on another computer, a backup made without a password). {n} devices that connect from away must be invited again: they show as waiting below.", "n", strconv.Itoa(n))}
 }
 
 // p2pBackupKeyNote is the backup screen's line while connections from away
@@ -115,5 +119,5 @@ func (s *Server) p2pBackupKeyNote(ctx context.Context) string {
 	if !s.loadP2P(ctx).Enabled {
 		return ""
 	}
-	return i18n.T("Without a password, a backup can't keep this server's connection ID: after restoring it, devices that connect from away must be invited again.")
+	return i18n.T("Without a password, a backup can't take this server's connection ID to another computer: restored there, devices that connect from away must be invited again. Restored here, this server keeps its own.")
 }

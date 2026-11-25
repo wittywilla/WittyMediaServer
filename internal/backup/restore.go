@@ -51,6 +51,10 @@ type Request struct {
 	Copy  string    `json:"copy,omitempty"` // undo: the safety copy to bring back
 	Name  string    `json:"name,omitempty"` // the archive it came from
 	At    time.Time `json:"at"`
+	// Kept is what a backup without a password left out and this machine's own was kept for, and New
+	// what it left out that this machine has none of either, in words (keep_live.go).
+	Kept []string `json:"kept,omitempty"`
+	New  []string `json:"new,omitempty"`
 }
 
 // Result says how it went.
@@ -135,6 +139,13 @@ type StageOptions struct {
 	// LiveDB is the running server's database, to keep what isn't being restored.
 	LiveDB   *sql.DB
 	Progress func(Step)
+	// SecretSettings and ScrubSettings are Options' own, as backups are made here: what a backup without
+	// a password leaves out, and cleans. A restore of one keeps this machine's own (keep_live.go).
+	SecretSettings []string
+	ScrubSettings  map[string]func(string) string
+	// SecretWords name settings in the restore's summary, for a person ("the connection key"). A setting
+	// not named here is called by its key.
+	SecretWords map[string]string
 }
 
 // Stage unpacks a checked archive beside the data, and writes the request. Nothing a
@@ -246,6 +257,7 @@ func (in *Inspection) Stage(ctx context.Context, f Folders, o StageOptions) (*Re
 		}
 	}
 	hasDB := false
+	var kept, fresh []string
 	for _, p := range parts {
 		if part, _ := partByID(p); part.HasTables {
 			hasDB = true
@@ -258,11 +270,11 @@ func (in *Inspection) Stage(ctx context.Context, f Folders, o StageOptions) (*Re
 		if _, err := os.Stat(filepath.Join(in.workDir, "clean", "wms.db")); err != nil {
 			return fail(errors.New("this backup holds no database to restore those from"))
 		}
-		if err := buildFinalDB(ctx, in, f, staged, chosen, o.LiveDB); err != nil {
+		if kept, fresh, err = buildFinalDB(ctx, in, f, staged, chosen, o); err != nil {
 			return fail(err)
 		}
 	}
-	req := &Request{Mode: "restore", Parts: parts, HasDB: hasDB, Name: filepath.Base(in.Name), At: time.Now().UTC()}
+	req := &Request{Mode: "restore", Parts: parts, HasDB: hasDB, Name: filepath.Base(in.Name), At: time.Now().UTC(), Kept: kept, New: fresh}
 	if err := writeRequest(f, req); err != nil {
 		return fail(err)
 	}
@@ -398,7 +410,13 @@ var moduleIDShape = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,63}$`)
 // archive, and everything else as it is on this server now. A part whose numbers depend
 // on a part being replaced can't keep what it has: a profile or a film's number would
 // point at something else. Those are emptied, and the page says so before anyone agrees.
-func buildFinalDB(ctx context.Context, in *Inspection, f Folders, staged string, chosen map[string]bool, live *sql.DB) error {
+func buildFinalDB(ctx context.Context, in *Inspection, f Folders, staged string, chosen map[string]bool, o StageOptions) (kept, fresh []string, err error) {
+	err = buildFinalDBInto(ctx, in, f, staged, chosen, o, &kept, &fresh)
+	return kept, fresh, err
+}
+
+func buildFinalDBInto(ctx context.Context, in *Inspection, f Folders, staged string, chosen map[string]bool, o StageOptions, kept, fresh *[]string) error {
+	live := o.LiveDB
 	dir := filepath.Join(staged, "database")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
@@ -511,6 +529,12 @@ func buildFinalDB(ctx context.Context, in *Inspection, f Folders, staged string,
 					return err
 				}
 			}
+		}
+	}
+	// What a backup without a password left out, this machine still has: kept, not made anew (#755).
+	if haveCurrent && !in.Protected {
+		if *kept, *fresh, err = keepLiveSecrets(ctx, d, in, chosen, o); err != nil {
+			return err
 		}
 	}
 	if haveCurrent {
@@ -912,6 +936,14 @@ func Apply(f Folders) *Result {
 		res.Notes = append(res.Notes, i18n.F("The safety copy's list couldn't be saved: {serr}", "serr", serr.Error()))
 	}
 	res.Safety = name
+	if req.Mode == "restore" {
+		if len(req.Kept) > 0 {
+			res.Notes = append(res.Notes, i18n.F("The backup was made without a password, so it held no secrets. This server's own were kept: {list}.", "list", strings.Join(req.Kept, "; ")))
+		}
+		if len(req.New) > 0 {
+			res.Notes = append(res.Notes, i18n.F("This server had none of these either, so they are new or empty now: {list}.", "list", strings.Join(req.New, "; ")))
+		}
+	}
 	if req.Mode == "undo" {
 		_ = os.RemoveAll(filepath.Join(f.Dir(), req.Copy))
 		res.Notes = append(res.Notes, i18n.T("What the restore replaced is back, and what it brought is kept as a safety copy."))

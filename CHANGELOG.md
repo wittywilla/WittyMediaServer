@@ -11,6 +11,9 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   converted slower than it plays, so the picture stood still at every tune-in; it now keeps up at 1.7 times, and the
   server has a stream ready in 2.3 to 3.5 s for an HDR10 channel (was 6 to 11 s), 1.6 to 2.1 s for HEVC 10-bit and 1.4
   to 1.9 s for H.264. Larger machines and graphics chips are as before.
+- **WittyTV: no sound before the picture at tune-in.** A channel's sound now starts with its first picture, and
+  "Tuning…" stays until there is one, rather than giving way to a frame standing still while the sound plays. The
+  sound comes back after a few seconds at most whatever happens, and a page playing in the background isn't held.
 
 - **Recent can be clicked into again (WittyPlay).** Moving the mouse across Recent's games kept changing which one was
   chosen, and the chosen one grows, so the game under the pointer moved and a click landed on another, or opened it at

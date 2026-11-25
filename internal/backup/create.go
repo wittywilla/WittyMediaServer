@@ -328,7 +328,7 @@ func Create(ctx context.Context, o Options) (out string, man *Manifest, err erro
 	}
 	if hasDB {
 		report(i18n.T("Copying the database"))
-		if man.Schema, err = copyDatabase(ctx, o, dbFile, want, key != nil); err != nil {
+		if man.Schema, err = copyDatabase(ctx, o, dbFile, want, key != nil, &man.Stripped); err != nil {
 			return "", nil, err
 		}
 	} else if v, verr := liveVersions(ctx, o); verr == nil {
@@ -532,7 +532,7 @@ var (
 // copyDatabase writes the working copy: only what was asked for, and no sign-ins. Without a
 // password, nothing secret either. It finishes with a second VACUUM, so what was deleted
 // isn't still lying in free pages.
-func copyDatabase(ctx context.Context, o Options, out string, want map[string]bool, protected bool) (db.Versions, error) {
+func copyDatabase(ctx context.Context, o Options, out string, want map[string]bool, protected bool, stripped *[]string) (db.Versions, error) {
 	var none db.Versions
 	raw := out + ".raw"
 	defer os.Remove(raw)
@@ -597,8 +597,12 @@ func copyDatabase(ctx context.Context, o Options, out string, want map[string]bo
 		}
 	}
 	if !protected {
-		if err := stripSecrets(ctx, d, o.SecretSettings, o.ScrubSettings); err != nil {
+		names, err := stripSecrets(ctx, d, o.SecretSettings, o.ScrubSettings)
+		if err != nil {
 			return none, err
+		}
+		if stripped != nil {
+			*stripped = names
 		}
 	}
 	if _, err := d.ExecContext(ctx, `VACUUM INTO ?`, out); err != nil {
@@ -637,14 +641,15 @@ func isSecretSetting(key string, listed map[string]bool) bool {
 }
 
 // stripSecrets leaves out what would let someone in or cost someone money.
-func stripSecrets(ctx context.Context, d *sql.DB, secret []string, scrub map[string]func(string) string) error {
+// It answers the settings it left out or cleaned, by name.
+func stripSecrets(ctx context.Context, d *sql.DB, secret []string, scrub map[string]func(string) string) ([]string, error) {
 	listed := map[string]bool{}
 	for _, k := range secret {
 		listed[k] = true
 	}
 	rows, err := d.QueryContext(ctx, `SELECT key, value FROM settings`)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	type kv struct{ k, v string }
 	var drop, clean []kv
@@ -652,26 +657,31 @@ func stripSecrets(ctx context.Context, d *sql.DB, secret []string, scrub map[str
 		var k, v string
 		if err := rows.Scan(&k, &v); err != nil {
 			rows.Close()
-			return err
+			return nil, err
 		}
 		if isSecretSetting(k, listed) {
 			drop = append(drop, kv{k: k})
 		} else if f := scrub[k]; f != nil {
-			clean = append(clean, kv{k, f(v)})
+			if c := f(v); c != v {
+				clean = append(clean, kv{k, c})
+			}
 		} else if c := scrubAddress(v); c != v {
 			clean = append(clean, kv{k, c})
 		}
 	}
 	rows.Close()
+	var names []string
 	for _, x := range drop {
 		if _, err := d.ExecContext(ctx, `DELETE FROM settings WHERE key = ?`, x.k); err != nil {
-			return err
+			return nil, err
 		}
+		names = append(names, x.k)
 	}
 	for _, x := range clean {
 		if _, err := d.ExecContext(ctx, `UPDATE settings SET value = ? WHERE key = ?`, x.v, x.k); err != nil {
-			return err
+			return nil, err
 		}
+		names = append(names, x.k)
 	}
 	for _, stmt := range []string{
 		`UPDATE users SET totp_secret = NULL, totp_on = 0, recovery_codes = NULL`,
@@ -680,17 +690,20 @@ func stripSecrets(ctx context.Context, d *sql.DB, secret []string, scrub map[str
 		`UPDATE notify_channels SET webhook_on = 0, webhook_url = '', webhook_secret = ''`,
 	} {
 		if _, err := d.ExecContext(ctx, stmt); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	// Addresses may have a login in them. (Tuners and guide sources are WittyTuner's, in its own data.)
-	for _, col := range []struct{ table, id, col string }{{"podcasts", "id", "url"}} {
+	for _, col := range scrubbedColumns {
 		if err := scrubColumn(ctx, d, col.table, col.id, col.col); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return names, nil
 }
+
+// scrubbedColumns are the addresses kept with their logins taken out, in a backup without a password.
+var scrubbedColumns = []struct{ table, id, col string }{{"podcasts", "id", "url"}}
 
 func scrubAddress(v string) string {
 	if !strings.Contains(v, "://") {

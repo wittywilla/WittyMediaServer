@@ -370,7 +370,7 @@ func backupInspectRestore(ctx context.Context, f backup.Folders, a backupArgs, r
 			return 1
 		}
 	}
-	if _, err := in.Stage(ctx, f, backup.StageOptions{Parts: parts, Progress: progress}); err != nil {
+	if _, err := in.Stage(ctx, f, server.BackupStageOptions(backup.StageOptions{Parts: parts, Progress: progress})); err != nil {
 		fmt.Fprintln(os.Stderr, "\n"+err.Error())
 		return 1
 	}

@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"sort"
 	"sync"
 	"time"
 
@@ -22,6 +21,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/net/swarm"
 	"github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	ma "github.com/multiformats/go-multiaddr"
+	manet "github.com/multiformats/go-multiaddr/net"
 )
 
 // ClientConfig is what an app's end is made from.
@@ -184,14 +184,58 @@ func (c *Client) State() State { return c.keeper.get() }
 func (c *Client) NetworkChanged() { c.keeper.kick() }
 
 // KnownAddrs are the server's addresses as last learnt, to keep as hints for
-// next time: the direct ones first.
+// next time: the direct ones first, then up to two relay circuits.
 func (c *Client) KnownAddrs() []string {
-	addrs := c.host.Peerstore().Addrs(c.server)
-	sort.SliceStable(addrs, func(i, j int) bool { return !isRelayed(addrs[i]) && isRelayed(addrs[j]) })
-	if len(addrs) > 12 {
-		addrs = addrs[:12]
+	return addrStrings(keptAddrs(c.host.Peerstore().Addrs(c.server), parseAddrs(c.cfg.Hints, c.server), maxKeptAddrs))
+}
+
+// maxKeptAddrs caps the hints kept for next time; keptCircuits of them are kept
+// for relay circuits.
+const (
+	maxKeptAddrs = 12
+	keptCircuits = 2
+)
+
+// keptAddrs picks the hints to keep. A server with many addresses (Docker
+// bridges, VPNs, several networks) fills the list with direct ones that are
+// no use away from home, so relay circuits get places of their own: those that
+// came with the hints first (the owner's WittyRelay, from the invite), as the
+// address book may have dropped them, then the ones learnt since. Loopback
+// addresses go last, as they only ever reach a server on the same computer.
+func keptAddrs(known, hinted []ma.Multiaddr, limit int) []ma.Multiaddr {
+	seen := map[string]bool{}
+	var circuits, direct, loop []ma.Multiaddr
+	add := func(a ma.Multiaddr) {
+		k := a.String()
+		if seen[k] {
+			return
+		}
+		seen[k] = true
+		switch {
+		case isRelayed(a):
+			circuits = append(circuits, a)
+		case manet.IsIPLoopback(a):
+			loop = append(loop, a)
+		default:
+			direct = append(direct, a)
+		}
 	}
-	return addrStrings(addrs)
+	for _, a := range hinted {
+		if isRelayed(a) {
+			add(a)
+		}
+	}
+	for _, a := range known {
+		add(a)
+	}
+	if len(circuits) > keptCircuits {
+		circuits = circuits[:keptCircuits]
+	}
+	direct = append(direct, loop...)
+	if room := limit - len(circuits); len(direct) > room {
+		direct = direct[:max(room, 0)]
+	}
+	return append(direct, circuits...)
 }
 
 // Close ends the connection and the node.

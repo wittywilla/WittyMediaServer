@@ -36,6 +36,7 @@ import { ControlView, FormView } from './forms'
 import { controlOf } from '../formsModel'
 import { Markdown } from './markdown'
 import { WidgetGridView } from './widgets'
+import { pointerChooser } from '../../ui/pointerChoose'
 import { CardRouteContext } from './cardRoute'
 import { gameTitleLabel, gameTitleParts, titleLang, type GameTitles } from './titles'
 import { useGameTitlePref } from './useGameTitles'
@@ -316,6 +317,13 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
   const shown = onlyConsole && consoles.some((c) => c.name === onlyConsole) ? view.children.filter((c) => c.node.props?.console === onlyConsole) : view.children
   const [focusId, setFocusId] = useState('')
   const focused = focusedOf(shown, focusId)
+  // The chosen card (drawn larger, or shown in the details) is the one the focus is on: arrows, a remote or a pad move it. A
+  // pointer only points: a click chooses, and a second click, a double-click or Enter opens (ui/pointerChoose.ts). Choosing on
+  // hover made Recent impossible to click into: crossing cards changed the details and moved the layout under the pointer.
+  const focusedRef = useRef<string | undefined>(undefined)
+  focusedRef.current = focused?.id
+  // Made once: it keeps which card was pressed from the press to the click, across the render the focus causes in between.
+  const [chooser] = useState(() => pointerChooser(() => focusedRef.current, setFocusId))
   // A shell may lay a growing row out as a grid or a list (WittyPlay's layout choice); up and down then move between its lines.
   const chosenLayout = useContext(RowLayoutContext)
   const laid = grow ? chosenLayout : 'shelf'
@@ -338,7 +346,7 @@ function ShelfView({ view, depth }: { view: View; depth: number }) {
         <div className="row-wrap">
           <button ref={prev} type="button" className="row-arrow prev" tabIndex={-1} aria-hidden="true" aria-label={t('Back in this row')} title={t('Back in this row')} onClick={() => by(-1)} hidden><IconLeft /></button>
           <div className={'row' + (chips ? ' sdui-chips' : '')} ref={row} data-nav-group role="list" onKeyDown={lines} aria-labelledby={view.text?.title ? id : undefined} aria-label={view.text?.title ? undefined : view.label || undefined}>
-            {waiting ? <Placeholders view={view} /> : shown.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined} onPointerEnter={grow || detail ? () => setFocusId(c.id) : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
+            {waiting ? <Placeholders view={view} /> : shown.map((c) => <div role="listitem" key={c.id} className={'sdui-item' + (grow && c.id === focused?.id ? ' grown' : '')} onFocus={grow || detail ? () => setFocusId(c.id) : undefined} {...(grow || detail ? chooser(c.id) : {})} aria-current={(grow || detail) && c.id === focused?.id ? 'true' : undefined}><CardView view={c} showTitles={showTitles} /></div>)}
             {view.hasMore && !waiting && <Near horizontal root={row} onNear={() => page.more(view.id)} />}
             {page.busy(view.id) && !waiting && <Placeholders view={{ ...view, placeholders: 2 }} />}
             {seeAllCard && !waiting && !view.hasMore && <div role="listitem" className="sdui-item"><SeeAllCard to={view.seeAll!} label={seeAllLabel} title={view.text?.title} wide={wideCards} /></div>}

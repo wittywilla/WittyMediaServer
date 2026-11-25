@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { api } from '../../api'
 import { useSource } from '../../player/hooks'
 import { clockOffset, syncStep, type ClockSample } from '../../player/sync'
+import { freshGuard, guardStep, type Sample } from '../../player/stallGuard'
 import { lendHls, liveNow, liveVideo, liveViewer, setLive, setLiveCatchUp, useLiveState } from './live'
 import { preflight, type TuneInfo } from './tvApi'
 import { parseCatchupKey } from './guideLogic'
@@ -53,6 +54,30 @@ export default function TvHost() {
     }, wait)
     return () => clearTimeout(t)
   }, [key, end])
+
+  // A picture standing still while its sound plays on (a decoder that couldn't start at a tune-in or a
+  // programme join, or fell behind): the sound is silenced and the player seeks to where its clock is, which
+  // starts both decoders again together. The viewer's own mute comes back with the picture (player/stallGuard).
+  useEffect(() => {
+    if (!url || !ready) return
+    const v = liveVideo()
+    let st = freshGuard(), prev: Sample | null = null, mutedBefore = v.muted
+    const t = setInterval(() => {
+      // A hidden page, or a video parked out of it, shows no pictures on purpose (a channel kept playing in the
+      // background is sound alone): that's not a stall.
+      const shown = !document.hidden && v.isConnected
+      const now: Sample = { t: v.currentTime, frames: v.getVideoPlaybackQuality?.().totalVideoFrames ?? 0, paused: v.paused || v.seeking || !shown, ready: v.readyState >= 2 }
+      const r = guardStep(prev, now, st)
+      st = r.st
+      prev = now
+      switch (r.step.kind) {
+        case 'silence': mutedBefore = v.muted; v.muted = true; break
+        case 'seek': v.currentTime = v.currentTime; break
+        case 'restore': v.muted = mutedBefore; break
+      }
+    }, 250)
+    return () => { clearInterval(t); if (st.silenced) v.muted = mutedBefore }
+  }, [url, ready])
 
   // Live sync: everyone on a channel at the same moment, "the server's time now, less the
   // hold-back", by the program date-times on its segments. Checked every 2 seconds from what's in

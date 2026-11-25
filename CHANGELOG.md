@@ -15,6 +15,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   the sound out of step with the picture until the next seek. After each real change of speed (half a step or more)
   the player now lines them up by itself, in the browser, the desktop app, and the Android and Apple apps (client
   0.6.4). CI plays 1×, 4× and back to 1× and fails if the sound is more than 40 ms from where it was.
+- **The processor's graphics drivers are called what they are.** Since 0.8.5 the image has Mesa's software drivers
+  (llvmpipe for OpenGL, lavapipe for Vulkan), which WittyPlay uses to draw GameCube and Wii with no graphics card. The
+  Graphics status (Settings → Live transcoding, `wittymediaserver hardware`, the log) now says "Software (no graphics
+  chip)" for them, never a yes, including on a chip of another make that only they could serve. Nothing in transcoding
+  uses Vulkan but HDR tone mapping, which refuses a software device; a test keeps it so (no Vulkan encoder, decode
+  pipeline or named decoder; FFmpeg's automatic decoder choice only alongside NVENC). The no-card CI run checks both.
 - **Recent can be clicked into again (WittyPlay).** Moving the mouse across Recent's games kept changing which one was
   chosen, and the chosen one grows, so the game under the pointer moved and a click landed on another, or opened it at
   once. The fix for this (#547, for every row with a details panel or a growing card) was undone by a later merge (#558).

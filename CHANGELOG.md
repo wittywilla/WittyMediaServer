@@ -5,6 +5,15 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+## 0.8.6-alpha
+
+Released 2026-11-25.
+
+A fix release for 0.8.5, mostly for a NAS or other small server in Docker: HDR films start again, regular playback no
+longer opens on black with the sound behind, WittyTV tunes in without a frozen picture, and Settings keeps its menu.
+Use client 0.6.4 with it. Docker users: as in 0.8.5, publish port **9796** (TCP and UDP) and pass `/dev/dri` for an
+Intel or AMD graphics chip; **Settings → Live transcoding → Graphics** says what the server can use.
+
 - **WittyTV: no sound before the picture at tune-in.** A channel's sound now starts with its first picture, and
   "Tuning…" stays until there is one, rather than giving way to a frame standing still while the sound plays. The
   sound comes back after a few seconds at most whatever happens, and a page playing in the background isn't held.
@@ -15,10 +24,13 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   isn't taken for a graphics chip any more: HDR is tone-mapped on the processor as in 0.8.4, and on a real Intel,
   AMD or NVIDIA chip as before. CI now starts open-GOP, HEVC 10-bit, late-sound and HDR10 test films from the start,
   part way and after a skip, and fails on a black or frozen picture or the sound out of step.
-- **Sound and picture together again after a change of speed.** Watching at 4× and going back to normal could leave
+- **Sound and picture closer together after a change of speed.** Watching at 4× and going back to normal could leave
   the sound out of step with the picture until the next seek. After each real change of speed (half a step or more)
   the player now lines them up by itself, in the browser, the desktop app, and the Android and Apple apps (client
-  0.6.4). CI plays 1×, 4× and back to 1× and fails if the sound is more than 40 ms from where it was.
+  0.6.4). Played straight from the file it's back within 20 ms. A video the server converts on a slow machine can
+  still end up to about 60 ms apart after 4×; that part follows in the next release, and CI reports it meanwhile.
+- **A NAS that can't keep up at a speed plays at the fastest speed it can, and says so** (web and Android), instead of
+  stalling: it steps down to a smaller picture once, then caps the speed menu for that video.
 **Settings keeps its menu, and every page reads from one edge (#763)**
 
 - **Every Settings choice opens inside Settings, with the menu beside it.** Sign in a TV, Connect a device, Your year,
@@ -111,6 +123,9 @@ Developer notes:
 - **Music visualizer on a server without WittyVisualizer.** An effect chosen earlier (or on another server) drew
   nothing at all there; the player's own Bars now stand in. `npm run test:visualizer` checks every way into the full
   player (mini player first, straight away, Next, pause and play, Bars then an effect, no module).
+- **Music visualizer: no empty screen while an effect loads the first time.** Opened with an effect chosen, the full
+  player showed nothing for the seconds the effect took to arrive from a new server; Bars now swell gently under it
+  until it fades in.
 
 ## 0.8.5-alpha
 

@@ -7,6 +7,9 @@
 // draw at once while it loads. On a server without the module, a chosen effect falls back to Bars: the player's own
 // styles never need it.
 //
+// WMS_SOFTWARE=1 draws without a graphics chip (a machine or WSL with none). WMS_EXPECT_MODULE=1 fails at once when the
+// server has no WittyVisualizer, instead of checking effects as Bars (for a release check that installed it).
+//
 // A real browser's autoplay rules, not the headless default of no rules, and real clicks, so a sound engine
 // that waits for a press is caught. No window opens. Needs a music library with at least two songs.
 //
@@ -29,6 +32,9 @@ const lib = (await call('GET', '/libraries', null, token)).find((l) => l.type ==
 if (!lib) throw new Error('no music library')
 const prefs = await call('GET', '/prefs', null, token)
 const moduleHere = prefs.visualizer !== false
+// Said at the start, as a run on a server where the module isn't on (yet) checks effects as Bars and passes.
+console.log(moduleHere ? 'WittyVisualizer is on this server: effects are checked as effects' : 'no WittyVisualizer on this server: effects are checked as Bars')
+if (process.env.WMS_EXPECT_MODULE === '1' && !moduleHere) throw new Error('WMS_EXPECT_MODULE=1, but this server says it has no WittyVisualizer (/api/prefs visualizer: false): is it installed and turned on?')
 // An effect is chosen either way: without the module it must still draw (as Bars).
 const styles = (process.env.WMS_STYLES || 'bars,molten').split(',') // WMS_STYLES=molten for one
 
@@ -46,7 +52,7 @@ const HOOKS = `
 const AUDIO = `[...document.querySelectorAll('audio')].find((a) => a.src && !a.paused)`
 // The browser's own default (a press first), not the test launcher's "anything may play".
 // A browser of its own for each run through, so one page can't change what the next one reads (settings, storage).
-const browser = () => launch({ width: 1400, height: 900, args: ['--autoplay-policy=document-user-activation-required'] })
+const browser = () => launch({ software: process.env.WMS_SOFTWARE === '1', width: 1400, height: 900, args: ['--autoplay-policy=document-user-activation-required'] })
 const results = []
 let failed = 0
 
@@ -62,9 +68,9 @@ const check = async (p, style, label) => {
   let got = null
   const end = Date.now() + 9000
   while (Date.now() < end) {
-    await p.eval(`window.__heard = { freq: 0, wave: 0, reads: 0 }; window.__draws = 0`)
+    await p.eval(`window.__heard = { freq: 0, wave: 0, reads: 0 }; window.__draws = 0; window.__t0 = ([...document.querySelectorAll('audio')].find((a) => a.src && !a.paused) || {}).currentTime || 0`)
     await wait(1500)
-    got = await p.eval(`({ heard: window.__heard, draws: window.__draws, playing: !!${AUDIO},
+    got = await p.eval(`({ heard: window.__heard, draws: window.__draws, playing: !!${AUDIO}, moved: +((${AUDIO}?.currentTime || 0) - window.__t0).toFixed(2),
       fps: +(document.querySelector('.np-shader .wv-stage')?.dataset.fps || 0), tap: document.querySelector('.np-shader .wv-stage')?.dataset.tap || '',
       shown: !!document.querySelector('.np-shader.shown'), canvas: !!document.querySelector('.np-canvas') })`)
     got.ok = got.playing && (shader ? got.shown && got.fps > 0 && got.tap === 'live' && got.heard.wave > 0.01 : got.canvas && got.draws > 10 && got.heard.freq > 0)

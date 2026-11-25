@@ -148,6 +148,9 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   }, [p.fullOpts]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const style = shown || prefs.style
+  // What draws behind: an effect needs the server's WittyVisualizer; without it (a new install, the owner took it off)
+  // the player's own Bars stand in, rather than nothing at all.
+  const behind = isNative(style) || p.vizHere ? style : 'bars'
 
   // The look (look.ts): everyone's, with this song's own over it. The bar and karaoke read the same.
   useEffect(() => { if (prefsLoaded) publishLook({ look: prefs.look, songs: prefs.songLooks, canvas: prefs.canvas, viz: prefs.viz }) }, [prefsLoaded, prefs.look, prefs.songLooks, prefs.canvas, prefs.viz])
@@ -296,7 +299,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         { value: 'read', label: <><IconReadOpen size={16} /> {t('Read')}{extras.length > 0 && <span className="np-count">{extras.length}</span>}</> }]} />
   )
   const karaokeBehind = prefs.viz
-    ? (isNative(style) || p.vizHere) ? <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} /> : null
+    ? <NpBackground style={behind} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />
     : canvasBehind ? <NowPlayingCanvas itemId={it.id} playing={p.playing} />
       : artUrl && look.backdrop !== 'plain' ? <div className={'kar-art' + (look.backdrop === 'blur' || look.backdrop === 'glow' ? ' blur' : '')} aria-hidden="true" style={{ backgroundImage: `url(${artUrl})` }} /> : null
   // The cover beside the words, in the same look as here, the Canvas in its place when it is there.
@@ -312,7 +315,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
       {canvasBehind && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
       {/* One canvas: it goes to the whole-screen view or to karaoke while that's open, and comes back after
           (two at once shared one effect session, and closing karaoke ended it for the player too). */}
-      {prefsLoaded && prefs.viz && !wholeShader && !karaoke && (isNative(style) || p.vizHere) && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
+      {prefsLoaded && prefs.viz && !wholeShader && !karaoke && <NpBackground style={behind} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
       {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') leaveWhole() }} onClose={leaveWhole} />}
 
       <header className="np-top">
@@ -482,6 +485,9 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
 // whatever effect it last had (or its first), and blends from there to the one chosen: seen, that was Bars or another
 // style first, then the chosen one (#524). So a shader is drawn unseen until the chosen effect is all that's on it, the
 // style that was showing carries on under it until then, and it fades in.
+// For Bars standing in while an effect loads: nothing to listen to, so they swell gently (backdrop.ts).
+const noSound = () => null
+
 function NpBackground({ style, slow, rgb, playing, media, trackMedia, onDecline }: { style: string; slow: boolean; rgb: string; playing: boolean; media: () => HTMLAudioElement | null; trackMedia: () => HTMLMediaElement | null; onDecline: () => void }) {
   const native = isNative(style)
   // The player's own style last shown, kept drawing under a shader that isn't ready yet.
@@ -489,9 +495,13 @@ function NpBackground({ style, slow, rgb, playing, media, trackMedia, onDecline 
   const [ready, setReady] = useState(false)
   useEffect(() => { if (native) { setUnder(style); setReady(false) } }, [native, style])
   if (native) return <NativeBackground style={style} slow={slow} rgb={rgb} playing={playing} media={media} />
+  // Opened with an effect already chosen, nothing was showing before it: the first time, the effect is fetched from the
+  // server and can take seconds to appear. Bars stand in meanwhile with their gentle swell, not listening: the effect's
+  // stage is already listening to the same element, and a second copy of a song just switched to left the effect
+  // silent in Chrome.
   return (
     <>
-      {!ready && under && <NativeBackground style={under} slow={slow} rgb={rgb} playing={playing} media={media} />}
+      {!ready && <NativeBackground style={under || 'bars'} slow={slow} rgb={rgb} playing={playing} media={under ? media : noSound} />}
       <ShaderBackground id={style} slow={slow} media={trackMedia} onDecline={onDecline} onReady={() => { setReady(true); setUnder('') }} />
     </>
   )

@@ -17,6 +17,15 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.
   Graphics-chip decoders, as most browsers, phones and TVs use, held the picture while the sound played, then showed it
   late. The server now looks at one keyframe of each such file and converts its picture when the keyframe isn't an IDR.
+- **Music visualizer: an effect hears the music after Bars.** In Chrome, Edge and the desktop app, choosing a
+  WittyVisualizer effect while Bars was showing gave an effect that moved but heard only silence, and it stayed silent
+  for the next songs: Bars, handing over, switched off the copy of the sound the effect was listening to as well.
+- **Music visualizer on a server without WittyVisualizer.** An effect chosen earlier (or on another server) drew
+  nothing at all there; the player's own Bars now stand in. `npm run test:visualizer` checks every way into the full
+  player (mini player first, straight away, Next, pause and play, Bars then an effect, no module).
+- **Music visualizer: no empty screen while an effect loads the first time.** Opened with an effect chosen, the full
+  player showed nothing for the seconds the effect took to arrive from a new server; Bars now swell gently under it
+  until it fades in.
 - **Live TV: +30 is back, up to live.** At the owner's request, the jump forward returns to the live player (#688 had
   removed it). +30, the timeline, Right, Fast forward and Next (outside an ad break) go ahead no further than the live
   edge, and +30 is greyed out there. Back to live stays.

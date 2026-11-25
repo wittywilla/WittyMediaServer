@@ -29,7 +29,8 @@
     "test:rtl": "node scripts/test-rtl.mjs",
     "test:layout": "node scripts/test-layout.mjs",
     "test:layout-pages": "node scripts/test-layout-pages.mjs",
-    "test:pointer": "node scripts/test-pointer-choose.mjs"
+    "test:pointer": "node scripts/test-pointer-choose.mjs",
+    "test:visualizer": "node scripts/test-visualizer.mjs"
   },
   "dependencies": {
     "hls.js": "^1.7.4",

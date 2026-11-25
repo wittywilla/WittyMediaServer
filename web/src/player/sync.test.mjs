@@ -3,7 +3,7 @@
 // The live sync rules, fed with made-up drifts and clocks.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { clockOffset, RATE, SEEK, SETTLED, STILL, syncStep } from './sync.ts'
+import { clockOffset, LIVE_JUMP, LIVE_RATE, liveStep, RATE, SEEK, SETTLED, STILL, syncStep } from './sync.ts'
 
 test('a small drift is left alone, small enough for two viewers to be within a quarter second', () => {
   assert.deepEqual(syncStep(0.1, false), { rate: 1 })
@@ -39,4 +39,21 @@ test('the clock offset comes from the quickest round trip', () => {
   assert.equal(clockOffset(samples), 5000)
   assert.equal(clockOffset([]), 0)
   assert.equal(clockOffset([{ sent: 10, server: 99, got: 5 }]), 0) // a clock that went back is no use
+})
+
+test('live never jumps while it plays: it plays a little faster or slower, however far out', () => {
+  for (const behind of [0.5, SEEK, 7.5, LIVE_JUMP + 5, -4, -(LIVE_JUMP + 5)]) {
+    const step = liveStep(behind, false, false)
+    assert.ok('rate' in step, `jumped at ${behind}`)
+    assert.ok(Math.abs(step.rate - 1) <= LIVE_RATE + 1e-9, `${step.rate} at ${behind}`)
+  }
+  assert.deepEqual(liveStep(1.2, false, false), { rate: 1 + RATE })
+  assert.deepEqual(liveStep(SEEK, false, false), { rate: 1 + LIVE_RATE })
+  assert.deepEqual(liveStep(0.1, false, false), { rate: 1 })
+  assert.ok(LIVE_RATE <= 0.05, 'too little to notice')
+})
+
+test('live jumps only after a real stall left it far out', () => {
+  assert.deepEqual(liveStep(8, false, true), { rate: 1 + LIVE_RATE })
+  assert.deepEqual(liveStep(LIVE_JUMP + 2, false, true), { seekBy: LIVE_JUMP + 2 })
 })

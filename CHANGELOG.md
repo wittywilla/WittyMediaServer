@@ -5,6 +5,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Apps can say what connecting is doing.** Each step in `pkg/connectsteps/steps.json` gains `doing`, the words an
+  app shows while on it ("Looking for a way to reach your server…"), and the file gains `slow`, a hint shown after ten
+  seconds ("This can take up to a minute the first time from away."), for WittyMediaClient's connecting screen
+  (wittywilla/WittyMediaClient#173).
+
 ## 0.8.6-alpha
 
 Released 2026-11-25.

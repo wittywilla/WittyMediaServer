@@ -1,12 +1,13 @@
 {
-  "about": "The steps of connecting a device from away, and why one can fail. One list for the server and every app: WittyMediaClient keeps a copy in shared/data/connect-steps.json (shared/scripts/sync-connect-steps.mjs). Codes never change meaning; add new ones at the end of their step. `match` is lower-case text found in an error or a reason, tried in order, first code wins. `cases` are what the server and every app must answer, each tested against them.",
+  "about": "The steps of connecting a device from away, and why one can fail. One list for the server and every app: WittyMediaClient keeps a copy in shared/data/connect-steps.json (shared/scripts/sync-connect-steps.mjs). Codes never change meaning; add new ones at the end of their step. `match` is lower-case text found in an error or a reason, tried in order, first code wins. `cases` are what the server and every app must answer, each tested against them. While connecting, an app shows each step's `doing` for the step it is on, and `slow.say` once it has taken `slow.after` seconds.",
   "version": 1,
   "steps": [
-    { "id": "read", "title": "Code or link read", "failed": "The code or link couldn't be read" },
-    { "id": "found", "title": "Server found", "failed": "Your server wasn't found" },
-    { "id": "secure", "title": "Encrypted connection made", "failed": "No encrypted connection could be made" },
-    { "id": "signin", "title": "Signed in", "failed": "This device couldn't sign in" }
+    { "id": "read", "title": "Code or link read", "failed": "The code or link couldn't be read", "doing": "Reading the code or link…" },
+    { "id": "found", "title": "Server found", "failed": "Your server wasn't found", "doing": "Looking for your server…" },
+    { "id": "secure", "title": "Encrypted connection made", "failed": "No encrypted connection could be made", "doing": "Looking for a way to reach your server…" },
+    { "id": "signin", "title": "Signed in", "failed": "This device couldn't sign in", "doing": "Signing in…" }
   ],
+  "slow": { "after": 10, "say": "This can take up to a minute the first time from away." },
   "codes": [
     { "code": "invite-bad", "step": "read", "reasons": [], "match": ["not an invite link", "not a connection id", "isn't an invite"],
       "say": "This link isn't a whole invite.", "next": "Ask for a new invite, and open it straight from the message instead of copying part of it." },

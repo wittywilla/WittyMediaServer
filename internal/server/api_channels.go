@@ -17,6 +17,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wittywilla/wittymediaserver/internal/channels"
@@ -1256,11 +1257,37 @@ func (s *Server) itemLiveInput(ctx context.Context, p *channels.Programme, off, 
 		if interlaced {
 			in.VideoFilter = "bwdif=mode=send_frame:parity=auto:deint=interlaced"
 		}
-		in.CopyVideo = copyOK && !interlaced && canCopy(v, maxHeight)
+		in.CopyVideo = copyOK && !interlaced && canCopy(v, maxHeight) && !s.openGOP(pctx, it.Path, seek, pr.Duration())
 	} else {
 		return nil, errors.New("no video in the file")
 	}
 	return in, nil
+}
+
+// openGOPs remembers, by file, whether a file's H.264 keyframes aren't IDR frames.
+var openGOPs sync.Map
+
+// openGOP says whether a file's keyframes aren't IDR frames, so that a copy of it would give
+// players no frame to start from: the graphics chips most browsers, phones and TVs decode with
+// then hold the picture while the sound plays, and show it late (#760). It looks at the
+// keyframe a run starts at, or one a third of the way in for a run from the start (whose first
+// frame is always one), once a file. Not knowing leaves the copy be.
+func (s *Server) openGOP(ctx context.Context, path string, seek, duration float64) bool {
+	if v, ok := openGOPs.Load(path); ok {
+		return v.(bool)
+	}
+	at := seek
+	if at <= 0 {
+		at = duration / 3
+	}
+	open, known := s.Tools.OpenGOP(ctx, path, 0, at)
+	if known {
+		openGOPs.Store(path, open)
+		if open {
+			s.Log.InfoContext(ctx, "live TV converts this file's picture: its keyframes aren't IDR frames, which players need to start from", "cat", "transcode", "file", path)
+		}
+	}
+	return open
 }
 
 // canCopy: 8-bit H.264 every browser can play as it is. Anything else is

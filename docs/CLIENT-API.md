@@ -522,6 +522,24 @@ file's own, or the cap it's converted to), `audioKbps`, `audioChannels`, `encode
 (as `GET /hls/{id}/work`, which says what a running stream really uses, after any step down to the processor). To change the
 choice mid-stream, call `/playback` again with the new `quality` and `startSec` at the position.
 
+### Playback speed
+
+A converted stream is made ahead of the player, and a player at 2× uses that up twice as fast. Say the
+speed, and the server keeps the same lead in the viewer's time: `rate` in the `/playback` body (2 for
+2×; left out, 1), then, when it changes, `PUT /hls/{id}/rate` with `{"rate": 2}`. A player that can put
+a header on its segment requests may send `X-WMS-Playback-Rate: 2` with each instead (hls.js does, on
+the server's own site). Keep your own buffer in step: players count it in the film's seconds, so 30
+seconds ahead at 1× should be 60 at 2×. A remux reads the file at twice the speed, at least four times
+real time.
+
+`GET /hls/{id}/work` has `pace`: `speed` (seconds of the film the conversion makes per second, 0 until
+measured), `rate`, `leadSec` (how far ahead of your newest request it is), `keepingUp`, and `fastest`.
+A conversion slower than the player, with the player close behind, goes on with a faster encoder
+setting by itself; once `fastest` is true and `keepingUp` false, only a lower `quality` (or a lower
+speed) plays smoothly: ask again with one, at the position, or tell the viewer. A segment still being
+made after 50 seconds is answered `503` with `Retry-After`: ask again, it's coming. Wait at least a
+minute for a segment before counting a timeout.
+
 ### Robust streaming
 
 Every video answer has `streaming`, which says how it is sent and what the player should do for that:
@@ -1743,7 +1761,8 @@ What the store's pages use. Everything a catalogue says is plain text, to be sho
 | `GET /hls/{id}/playlist.m3u8` | user, `st` | HLS media playlist. |
 | `GET /hls/{id}/seg/{n}` | user, `st` | One HLS segment (`{n}.ts`, `{n}.m4s`) or the fMP4 header (`init.mp4`). |
 | `GET /hls/{id}/subs/{file}` | user, `st` | One subtitle rendition: `{n}.m3u8` and its `{n}.vtt`. |
-| `GET /hls/{id}/work` | user | What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). For stream information. |
+| `GET /hls/{id}/work` | user | What is converting the stream now: `encoder`, and whether the graphics chip encodes (`gpuEncode`), decodes and resizes (`gpuDecode`) and maps HDR (`gpuToneMap`). `pace`: how the conversion keeps up with the player ([Playback speed](#playback-speed)). For stream information. |
+| `PUT /hls/{id}/rate` | user | `{"rate": 2}`: the player's playback speed changed ([Playback speed](#playback-speed)). Answers `pace`. |
 | `DELETE /hls/{id}` | user | Stop a stream when finished, freeing the transcoder. Streams nobody asks for also stop by themselves. |
 
 ### Discs

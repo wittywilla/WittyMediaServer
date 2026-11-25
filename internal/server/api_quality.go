@@ -286,7 +286,44 @@ func (s *Server) handleHLSWork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, 200, sess.Work())
+	p := sess.Pace()
+	writeJSON(w, 200, struct {
+		hls.Work
+		Pace hls.Pace `json:"pace"`
+	}{sess.Work(), p})
+}
+
+// playbackRateHeader carries the player's playback rate on its stream requests (hls.js sends it
+// with every segment), so the server makes as far ahead as that rate needs.
+const playbackRateHeader = "X-WMS-Playback-Rate"
+
+// noteRate takes the player's rate from a stream request, when it says one.
+func noteRate(r *http.Request, sess *hls.Session) {
+	if v := r.Header.Get(playbackRateHeader); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			sess.SetRate(f)
+		}
+	}
+}
+
+// PUT /api/hls/{id}/rate {"rate": 2}: the player's playback rate changed. For players that can't
+// put a header on their segment requests (AVPlayer), and for every player at the moment it
+// changes, before its next segment.
+func (s *Server) handleHLSRate(w http.ResponseWriter, r *http.Request) {
+	sess := s.visibleStream(r, r.PathValue("id"))
+	if sess == nil {
+		writeErr(w, 404, "no such stream")
+		return
+	}
+	var b struct {
+		Rate float64 `json:"rate"`
+	}
+	if err := readJSON(r, &b); err != nil || b.Rate <= 0 || b.Rate > 100 {
+		writeErr(w, 400, "expected {\"rate\": a number above 0}")
+		return
+	}
+	sess.SetRate(b.Rate)
+	writeJSON(w, 200, sess.Pace())
 }
 
 // GET /api/tv/{key}/live/work?quality=: the same for the live stream this viewer watches.

@@ -17,7 +17,10 @@ const token = process.env.WMS_TOKEN
 const items = process.argv.slice(2)
 if (!url || !token || !items.length) { console.error('usage: WMS_URL=… WMS_TOKEN=… node scripts/test-avsync.mjs <item id>...'); process.exit(2) }
 const RATES = [1, 1.5, 2, 3]
-const LIMIT_MS = 40
+const LIMIT_MS = 40 // at 1×, and back at 1× after being fast
+// While fast, the bar wittywilla/WittyMediaServer#715 set for 2×: a one-processor runner's pitch-keeping
+// time stretch puts the sound 25-50 ms behind there, and late sound is the less noticeable way round.
+const FAST_LIMIT_MS = 80
 const SECONDS_EACH = 9
 
 // Runs in the page: the meter (see the top of this file).
@@ -88,7 +91,7 @@ try {
       const m = median(got)
       if (r === 1) base = m
       const off = m - base
-      const ok = got.length >= 3 && Math.abs(off) <= LIMIT_MS
+      const ok = got.length >= 3 && Math.abs(off) <= (r === 1 ? LIMIT_MS : FAST_LIMIT_MS)
       if (!ok) fails++
       line.push(`${r}×: ${got.length} flashes, median ${Math.round(m)} ms (${off >= 0 ? '+' : ''}${Math.round(off)} against 1×)${ok ? '' : ' FAIL'}`)
     }
@@ -103,7 +106,7 @@ try {
     await wait(SECONDS_EACH * 1000)
     const after = await p.eval(`__avSince(${since})`)
     const off = median(after) - base
-    const ok = after.length >= 3 && Math.abs(off) <= LIMIT_MS
+    const ok = after.length >= 3 && Math.abs(off) <= FAST_LIMIT_MS
     if (!ok) fails++
     line.push(`after a seek and a pause at 3×: ${after.length} flashes, ${off >= 0 ? '+' : ''}${Math.round(off)} ms against 1×${ok ? '' : ' FAIL'}`)
     // The owner's case: fast for a while, then back to normal. After the return to 1× the sound must be
@@ -131,5 +134,5 @@ try {
 }
 if (backFails) { console.log(`FAIL: sound and picture still apart after going back to 1× (more than ${LIMIT_MS} ms)`); process.exit(1) }
 // Apart at a speed, but together again at 1×: exit 3, which the CI script reports without failing for now.
-if (fails) { console.log(`FAIL: ${fails} measurements more than ${LIMIT_MS} ms from 1× while fast`); process.exit(3) }
-console.log(`ok: sound within ${LIMIT_MS} ms of the picture at ${RATES.join('×, ')}×, after a seek and a pause`)
+if (fails) { console.log(`FAIL: ${fails} measurements more than ${FAST_LIMIT_MS} ms from 1× while fast`); process.exit(3) }
+console.log(`ok: sound within ${FAST_LIMIT_MS} ms of where it is at 1× while fast, and within ${LIMIT_MS} ms back at 1× after 4×`)

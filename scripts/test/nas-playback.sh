@@ -25,6 +25,16 @@ chmod -R a+rwx "$media"
 docker run --rm --entrypoint ffmpeg -v "$media/Movies/NAS Test (2024)":/out "$IMG" -v error -y \
   -f lavfi -i testsrc2=size=1280x720:rate=25 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 90 \
   -c:v mpeg2video -q:v 4 -g 12 -c:a ac3 -b:a 192k "/out/NAS Test (2024).mkv" || { echo "FAIL: could not make the clip"; exit 1; }
+# Two A/V sync clips: the middle of the picture flashes white and a 1 kHz tone beeps at the same instant
+# every 2 s. One the browser plays as it is (H.264 and AAC in MP4), one the server converts (MPEG-2, AC-3).
+sync_v="testsrc2=s=1280x720:r=30,drawbox=x=320:y=180:w=640:h=360:color=black:t=fill,drawbox=x=320:y=180:w=640:h=360:color=white:t=fill:enable='lt(mod(t,2),0.1)'"
+sync_a="aevalsrc='if(lt(mod(t,2),0.05),0.8*sin(2*PI*1000*t),0)':s=48000:c=stereo"
+for clip in "Kilo (2020)|mp4|-c:v libx264 -preset veryfast -g 60 -pix_fmt yuv420p -c:a aac -b:a 160k -movflags +faststart" "Lima (2020)|mkv|-c:v mpeg2video -q:v 3 -g 15 -c:a ac3 -b:a 192k"; do
+  IFS='|' read -r title ext opts <<<"$clip"
+  mkdir -p "$media/Movies/$title" && chmod a+rwx "$media/Movies/$title"
+  # shellcheck disable=SC2086
+  docker run --rm --entrypoint ffmpeg -v "$media/Movies/$title":/out "$IMG" -v error -y -f lavfi -i "$sync_v" -f lavfi -i "$sync_a" -t 60 $opts "/out/$title.$ext" || { echo "FAIL: could not make $title"; exit 1; }
+done
 
 docker run -d --name "$name" --cpus "$CPUS" --memory "$MEM" --memory-swap "$MEM" \
   --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
@@ -44,3 +54,23 @@ if [ $fails -gt 0 ]; then
   exit 1
 fi
 echo "ok: played to the end at 2x with no stall, in both players"
+
+# Sound and picture together at 1×, 1.5×, 2× and 3×, and after a seek and a pause, in the web player
+# in a headless browser (web/scripts/test-avsync.mjs), played straight from the file and converted.
+browser=${WV_BROWSER:-$(command -v google-chrome || command -v chromium || true)}
+if [ -z "$browser" ] || ! command -v node >/dev/null; then
+  echo "skipped: A/V sync needs node and Chrome or Chromium"
+  exit 0
+fi
+ids=$(python3 - "$NASPLAY_STATE" <<'PY'
+import json, sys, urllib.request
+st = json.load(open(sys.argv[1]))
+r = urllib.request.Request(st['url'] + '/api/items?limit=50&kind=video', headers={'Authorization': 'Bearer ' + st['token']})
+items = json.load(urllib.request.urlopen(r))['items']
+print(' '.join(str(i['id']) for i in items if i["title"] in ("Kilo", "Lima")))
+PY
+)
+[ -n "$ids" ] || { echo "FAIL: the sync clips aren't in the library"; exit 1; }
+echo "== A/V sync in the web player"
+WV_BROWSER=$browser WMS_URL=http://127.0.0.1:$PORT WMS_TOKEN=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['token'])" "$NASPLAY_STATE") \
+  node web/scripts/test-avsync.mjs $ids || exit 1

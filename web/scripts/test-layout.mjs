@@ -131,7 +131,8 @@ const DETECT = (phase, menu = null) => `(() => {
       }
       if (h1 && getComputedStyle(h1).textAlign === 'center' && !document.documentElement.classList.contains('tv-mode')) add('align', h1, 'a Settings page title in the middle, not at the edge its content starts at')
       if (h1) {
-        const words = h1.textContent.trim().split(/\\s+/).slice(1)
+        // What follows a · names something (Controllers · Game Boy): only the title before it is in sentence case.
+        const words = h1.textContent.split('·')[0].trim().split(/\\s+/).slice(1)
         const caps = words.filter((w) => /^[A-Z][a-z]+$/.test(w.replace(/[^A-Za-z-]/g, '')) && !${NAMES}.test(w.replace(/[^A-Za-z-]/g, '')))
         if (caps.length) add('title-case', h1, 'capitals on ' + caps.join(', '))
       }

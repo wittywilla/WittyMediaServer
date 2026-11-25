@@ -215,19 +215,22 @@ type backupView struct {
 	Folder string        `json:"folder"`
 	// Chosen is the folder an administrator typed, if any, and FolderProblem why a backup
 	// can't be made there now (a drive that isn't plugged in).
-	Chosen        string              `json:"chosenFolder,omitempty"`
-	DefaultFolder string              `json:"defaultFolder,omitempty"`
-	FolderProblem string              `json:"folderProblem,omitempty"`
-	Schedule      backupSchedule      `json:"schedule"`
-	LastAuto      int64               `json:"lastAuto,omitempty"`
-	LastErr       string              `json:"lastError,omitempty"`
-	Job           backupJob           `json:"job"`
-	Pending       *backup.Request     `json:"pending,omitempty"`
-	Last          *backup.Result      `json:"last,omitempty"`
-	Safety        []backup.SafetyCopy `json:"safety"`
-	CanRestart    bool                `json:"canRestart"`
-	TwoFactor     bool                `json:"twoFactor"`
-	FirstRun      bool                `json:"firstRun"`
+	Chosen        string         `json:"chosenFolder,omitempty"`
+	DefaultFolder string         `json:"defaultFolder,omitempty"`
+	FolderProblem string         `json:"folderProblem,omitempty"`
+	Schedule      backupSchedule `json:"schedule"`
+	LastAuto      int64          `json:"lastAuto,omitempty"`
+	LastErr       string         `json:"lastError,omitempty"`
+	Job           backupJob      `json:"job"`
+	// P2PKeyNote: while connections from away are on, a backup made without a password can't keep the
+	// server's connection ID, and the screen says so (p2p_key_notice.go).
+	P2PKeyNote string              `json:"p2pKeyNote,omitempty"`
+	Pending    *backup.Request     `json:"pending,omitempty"`
+	Last       *backup.Result      `json:"last,omitempty"`
+	Safety     []backup.SafetyCopy `json:"safety"`
+	CanRestart bool                `json:"canRestart"`
+	TwoFactor  bool                `json:"twoFactor"`
+	FirstRun   bool                `json:"firstRun"`
 }
 
 // GET /api/backup: what's kept, what's scheduled and what's going on.
@@ -239,6 +242,7 @@ func (s *Server) handleBackupView(w http.ResponseWriter, r *http.Request) {
 	job := st.job
 	st.mu.Unlock()
 	v := backupView{Parts: backup.Parts(), Files: backup.List(f), Folder: f.ArchiveDir(), Chosen: f.Store, DefaultFolder: f.Dir(), Job: job, Pending: backup.Pending(f), Last: backup.Last(f), Safety: backup.SafetyCopies(f), CanRestart: s.Restart != nil}
+	v.P2PKeyNote = s.p2pBackupKeyNote(r.Context())
 	if u := userFrom(r); u != nil {
 		v.TwoFactor = u.TwoFactor
 		v.Schedule = s.loadBackupSchedule(ctx)

@@ -25,7 +25,7 @@ type P2PSettings = {
   shareKbps: number; shareMaxHeight: number; ownRelays: OwnRelay[]
 }
 type Step = { name: string; state: 'ok' | 'warn' | 'fail' | 'off' | 'wait'; detail: string }
-type Device = { id: string; user?: string; name: string; platform: string; how: string; created: number; lastSeen: number; connected: boolean; path?: string; pending?: boolean; why?: string }
+type Device = { id: string; user?: string; name: string; platform: string; how: string; created: number; lastSeen: number; connected: boolean; path?: string; pending?: boolean; why?: string; reinvite?: boolean }
 type Verdict = { state: 'ok' | 'warn' | 'fail' | 'wait'; title: string; detail: string; todo: string[] }
 type RelayHealth = { state: 'ok' | 'busy' | 'full' | 'starting'; load: number }
 type Offer = { name?: string; note?: string; software?: string; access: 'open' | 'key'; kbps?: number; maxHeight?: number; health?: RelayHealth }
@@ -35,6 +35,8 @@ type View = {
   settings: P2PSettings; running: boolean; serverId?: string; error?: string; steps: Step[]; verdict?: Verdict
   status?: { ownRelays: OwnRelayStatus[]; relays: RelayStatus[] }
   thirdParties: { layer: keyof Layers; who: string; sees: string }[]; devices: Device[]
+  // The connection ID changed under devices on the list (a backup made without a password was restored).
+  keyNotice?: { at: number; reinvite: number; words: string }
 }
 
 // The answer to "will it work from away?", in a line, and what to do about it. The words are
@@ -219,6 +221,7 @@ export default function PeerToPeer() {
     <Section id="p2p" title={tk('Peer-to-peer connections')} desc={<>{t('On. Apps on paired devices reach this server from away without anything set up on your router.')} <HelpLink to="remote#peer-to-peer-connections">{t('How it works')}</HelpLink></>}
       actions={<button type="button" className="btn sm" disabled={busy} onClick={() => save({ enabled: false }, t('Peer-to-peer connections are off'))}>{t('Turn off')}</button>}>
       {v.error && <p className="rem-note warn"><IconInfo size={14} /> {v.error}</p>}
+      {v.keyNotice && <p className="rem-note warn" role="status"><IconInfo size={14} /> {v.keyNotice.words}</p>}
       {(test?.verdict || v.verdict) && <VerdictCard v={(test?.verdict || v.verdict)!} />}
       <div className="rem-actions p2p-gap">
         <button type="button" className="btn primary sm" disabled={testing || !v.running} onClick={runTest}>{testing ? t('Testing… (up to a minute)') : t('Test my connection')}</button>

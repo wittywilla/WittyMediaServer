@@ -6,6 +6,7 @@ import { api, getToken, mediaUrl, serverBase, type StreamingHints } from '../api
 import { reportClient, reportHlsError, watchPlayback } from '../errorReport'
 import { mediaSourceWorks } from './mse'
 import { settleSeeks } from './seekSettle'
+import { keepInStep } from './speed'
 import { bufferFor } from './pace'
 import { rememberSpeed } from './streaming'
 import { t, tk } from '../i18n'
@@ -44,6 +45,8 @@ export function useSource(video: React.RefObject<HTMLVideoElement | null>, url: 
   optsRef.current = opts
   // What goes wrong is reported to the server's log, under this stream's session.
   useEffect(() => (video.current && url ? watchPlayback(video.current, url, optsRef.current.logSession) : undefined), [url, video])
+  // Sound and picture lined up again after each real change of speed (speed.ts).
+  useEffect(() => (video.current && url ? keepInStep(video.current) : undefined), [url, video])
   useEffect(() => {
     const v = video.current
     if (!v || !url) return

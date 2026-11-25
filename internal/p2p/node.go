@@ -646,6 +646,9 @@ type DeviceConn struct {
 	Addr    string `json:"addr,omitempty"`
 	Streams int    `json:"streams"`
 	Since   int64  `json:"since"`
+	// Limited: relayed by an ordinary node of the public network, which passes on a few kilobytes (enough to show an
+	// invite) but no requests: the device can't use this server through it, however connected it looks.
+	Limited bool `json:"limited,omitempty"`
 }
 
 // RelayStatus is one relay this node holds a place on.
@@ -755,6 +758,7 @@ func (n *Node) Status() Status {
 		d := DeviceConn{ID: p.String(), Path: "direct", Streams: streams[p], Since: c.Stat().Opened.Unix()}
 		if c.Stat().Limited || isRelayed(c.RemoteMultiaddr()) {
 			d.Path = "relayed"
+			d.Limited = !h.IsCommunityRelay(relayOf(c.RemoteMultiaddr()))
 		} else {
 			d.Addr = ipOf(c.RemoteMultiaddr()).String()
 		}

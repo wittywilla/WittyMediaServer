@@ -9,6 +9,7 @@
 // the namespaces, and the address book (DHT) is off.
 //
 //	p2p-netsim observers -ips 80.0.0.21,80.0.0.22,... -out observers.txt
+//	p2p-netsim public-relay -ip 80.0.0.30 -out public-relay.txt
 //	p2p-netsim server -relay <addr> -key <key> -device <id> -observers observers.txt -out server.json
 //	p2p-netsim client -server server.json -observers observers.txt -mb 8 -out client.json
 //	p2p-netsim client ... -loop 90s   (requests every half second; reports outages)
@@ -48,13 +49,15 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: p2p-netsim observers|server|client|id ...")
+		fmt.Fprintln(os.Stderr, "usage: p2p-netsim observers|public-relay|server|client|id ...")
 		os.Exit(2)
 	}
 	var err error
 	switch os.Args[1] {
 	case "observers":
 		err = observers(os.Args[2:])
+	case "public-relay":
+		err = publicRelay(os.Args[2:])
 	case "server":
 		err = server(os.Args[2:])
 	case "client":
@@ -111,6 +114,37 @@ func observers(args []string) error {
 		for _, a := range h.Addrs() {
 			lines = append(lines, a.String()+"/p2p/"+h.ID().String())
 		}
+	}
+	if err := os.WriteFile(*out, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
+		return err
+	}
+	waitForSignal()
+	return nil
+}
+
+// publicRelay is an ordinary node of the public network that relays for
+// anyone, with libp2p's own limits: a connection through it lasts two minutes
+// and carries 128 KiB each way. That is enough to arrange a direct connection
+// or show an invite, never a film, and it isn't a WittyMediaServer community
+// relay, so apps send no requests through it. A server whose only way in is
+// such a relay (in a container whose peer-to-peer port isn't published) is
+// on a device's list after an invite, but the device can't use it. Like the
+// public network's nodes it also tells the nodes connected to it whether
+// they can be reached (AutoNAT), which is what starts their search for relays.
+func publicRelay(args []string) error {
+	fs := flag.NewFlagSet("public-relay", flag.ExitOnError)
+	ip := fs.String("ip", "", "the address it listens on")
+	out := fs.String("out", "", "file to write its addresses to")
+	_ = fs.Parse(args)
+	h, err := libp2p.New(libp2p.ListenAddrStrings(fmt.Sprintf("/ip4/%s/udp/4001/quic-v1", *ip), fmt.Sprintf("/ip4/%s/tcp/4001", *ip)),
+		libp2p.DisableMetrics(), libp2p.ForceReachabilityPublic(), libp2p.EnableRelayService(), libp2p.EnableNATService())
+	if err != nil {
+		return err
+	}
+	defer h.Close()
+	var lines []string
+	for _, a := range h.Addrs() {
+		lines = append(lines, a.String()+"/p2p/"+h.ID().String())
 	}
 	if err := os.WriteFile(*out, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
 		return err

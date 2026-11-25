@@ -372,6 +372,11 @@ func (s *Server) applyP2P(ctx context.Context) error {
 		s.stopP2PLocked()
 		return nil
 	}
+	// A port set on the machine (WMS_P2P_PORT: the one a container publishes) wins over the one chosen here, which
+	// nobody could have published in advance. It isn't saved, so taking it away brings the chosen one back.
+	if s.Cfg.P2PPort > 0 {
+		cfg.Port = s.Cfg.P2PPort
+	}
 	if s.p2p.node != nil && fmt.Sprint(s.p2p.started) == fmt.Sprint(cfg) {
 		return nil
 	}
@@ -452,9 +457,13 @@ type p2pDevice struct {
 	Created  int64  `json:"created"`
 	LastSeen int64  `json:"lastSeen"`
 	LastPath string `json:"lastPath,omitempty"`
-	// Connected and Path are filled in from the running node.
+	// Connected and Path are filled in from the running node. Connected means requests get through now: a device
+	// that has never made one (LastSeen 0) isn't connected, whatever the network says, and Pending says so; nor is one
+	// whose only connection is a public relay, which can't carry requests (Why says that).
 	Connected bool   `json:"connected"`
 	Path      string `json:"path,omitempty"`
+	Pending   bool   `json:"pending,omitempty"`
+	Why       string `json:"why,omitempty"`
 	// Mine: the device belongs to whoever asked.
 	Mine bool `json:"mine"`
 
@@ -849,11 +858,18 @@ func (s *Server) p2pDeviceViews(ctx context.Context, me *auth.User, all bool) []
 	if err := s.p2p.devices.ensure(ctx, s); err != nil {
 		return []p2pDevice{}
 	}
+	// The best way each device is connected now: direct, then relayed by a relay that carries requests, then
+	// "public" (an ordinary node's relay, which carries an invite and nothing more).
 	live := map[string]string{}
+	rank := map[string]int{"public": 1, "relayed": 2, "direct": 3}
 	if node := s.p2pNode(); node != nil {
 		for _, c := range node.Status().Devices {
-			if live[c.ID] != "direct" {
-				live[c.ID] = c.Path
+			path := c.Path
+			if c.Limited {
+				path = "public"
+			}
+			if rank[path] > rank[live[c.ID]] {
+				live[c.ID] = path
 			}
 		}
 	}
@@ -872,7 +888,15 @@ func (s *Server) p2pDeviceViews(ctx context.Context, me *auth.User, all bool) []
 		}
 		d.Mine = d.UserID == me.ID
 		d.User = names[d.UserID]
-		d.Path, d.Connected = live[d.ID], live[d.ID] != ""
+		d.Path, d.Connected = live[d.ID], live[d.ID] != "" && live[d.ID] != "public"
+		// Showing an invite is not connecting: until the device's first request gets through, it is waiting.
+		if d.LastSeen == 0 {
+			d.Pending, d.Connected = true, false
+		}
+		if live[d.ID] == "public" {
+			d.Path = ""
+			d.Why = i18n.T("It can reach this server only through a public relay, which carries an invite but nothing more. Publish this server's peer-to-peer port (and forward it on your router), or use your own WittyRelay.")
+		}
 		out = append(out, d)
 	}
 	return out
@@ -1006,7 +1030,7 @@ func (s *Server) handleP2PInvite(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, 500, err.Error())
 		return
 	}
-	link := p2p.Invite{ServerID: node.ID(), Secret: secret, Name: s.ServerName(r.Context()), Addrs: inviteAddrs(node.Addrs())}.String()
+	link := p2p.Invite{ServerID: node.ID(), Secret: secret, Name: s.ServerName(r.Context()), Addrs: inviteAddrs(node.Addrs(), s.ownRelayIDs(r.Context()))}.String()
 	// The link is a way in for fifteen minutes: it must not sit in a log.
 	logging.AddSecret(secret)
 	logging.Audit(r.Context(), s.Log, "a peer-to-peer invite was made", "cat", "p2p", "by", me.Name, "for", target.Name)
@@ -1014,24 +1038,36 @@ func (s *Server) handleP2PInvite(w http.ResponseWriter, r *http.Request) {
 }
 
 // inviteAddrs picks the addresses worth the room in a QR code: ones the
-// internet can reach first, then relayed ones; never this machine's own.
-func inviteAddrs(addrs []string) []string {
-	var public, relayed []string
+// internet can reach first, then relayed ones; never this machine's own. Two
+// relayed ones always keep their place: when no direct way works (a
+// container whose port isn't published, strict routers at both ends) they are
+// all an app has left.
+func inviteAddrs(addrs []string, own map[string]bool) []string {
+	var public, relayed, others []string
 	for _, a := range addrs {
 		switch {
+		case strings.Contains(a, "/p2p-circuit") && own[circuitRelay(a)]:
+			relayed = append(relayed, a) // the owner's own relays first: from away often the only way in
 		case strings.Contains(a, "/p2p-circuit"):
-			relayed = append(relayed, a)
+			others = append(others, a)
 		case strings.HasPrefix(a, "/ip4/127.") || strings.HasPrefix(a, "/ip6/::1/"):
 		default:
 			public = append(public, a)
 		}
 	}
+	relayed = append(relayed, others...)
+	if keep := maxLinkAddrs - min(2, len(relayed)); len(public) > keep {
+		public = public[:keep]
+	}
 	out := append(public, relayed...)
-	if len(out) > 6 {
-		out = out[:6]
+	if len(out) > maxLinkAddrs {
+		out = out[:maxLinkAddrs]
 	}
 	return out
 }
+
+// maxLinkAddrs is how many addresses a link holds (p2p.ParseInvite reads no more).
+const maxLinkAddrs = 6
 
 // ---------------------------------------------------------------- handlers for the owner
 
@@ -1068,6 +1104,9 @@ type p2pView struct {
 func (s *Server) p2pView(r *http.Request, applyErr string) p2pView {
 	cfg := s.loadP2P(r.Context())
 	cfg.OwnRelays = maskRelayKeys(cfg.OwnRelays)
+	if s.Cfg.P2PPort > 0 {
+		cfg.Port = s.Cfg.P2PPort // the port in use: set on the machine (WMS_P2P_PORT), as in a container
+	}
 	v := p2pView{Settings: cfg, Error: applyErr, ThirdParties: p2pThirdParties, Steps: []checkStep{}}
 	v.Devices = s.p2pDeviceViews(r.Context(), userFrom(r), true)
 	if node := s.p2pNode(); node != nil {

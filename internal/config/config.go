@@ -77,8 +77,12 @@ type Config struct {
 	MaxTranscode   int
 	// MaxConnections is how many connections can be open at once, on both ports together.
 	MaxConnections int
-	WatchStdin     bool // exit when stdin closes (used by the tray launcher)
-	OpenBrowser    bool // open the setup page on first start (desktops only)
+	// P2PPort is the peer-to-peer port (UDP and TCP) when it is set on the machine; 0 lets the server choose one
+	// when peer to peer is first turned on. A container sets it (the image: 9796), as only a port known in
+	// advance can be published.
+	P2PPort     int
+	WatchStdin  bool // exit when stdin closes (used by the tray launcher)
+	OpenBrowser bool // open the setup page on first start (desktops only)
 
 	ConfigFile string // the file that was loaded ("" = none)
 	Portable   bool
@@ -109,6 +113,7 @@ type File struct {
 	JavaPath          string `json:"javaPath,omitempty"`
 	MaxTranscodes     int    `json:"maxTranscodes,omitempty"`
 	MaxConnections    int    `json:"maxConnections,omitempty"`
+	P2PPort           int    `json:"p2pPort,omitempty"`
 	PublicURL         string `json:"publicUrl,omitempty"`
 	RemoteAccess      bool   `json:"remoteAccess,omitempty"`
 	SetupFromHome     bool   `json:"setupFromHome,omitempty"`
@@ -390,6 +395,10 @@ func ParseOnly(args []string) (*Config, error) {
 	if v, err := strconv.Atoi(os.Getenv("WMS_MAX_CONNECTIONS")); err == nil && v != 0 {
 		connDef = v
 	}
+	p2pDef := f.P2PPort
+	if v, err := strconv.Atoi(os.Getenv("WMS_P2P_PORT")); err == nil && v != 0 {
+		p2pDef = v
+	}
 	openDef := f.OpenBrowser == nil || *f.OpenBrowser
 
 	c := &Config{ConfigFile: path, Portable: portable}
@@ -415,6 +424,7 @@ func ParseOnly(args []string) (*Config, error) {
 	fs.BoolVar(&c.OpenBrowser, "open-browser", openDef && os.Getenv("WMS_NO_BROWSER") != "1", "open the setup page in the browser on first start")
 	fs.IntVar(&c.MaxTranscode, "max-transcodes", maxDef, "maximum concurrent transcodes")
 	fs.IntVar(&c.MaxConnections, "max-connections", connDef, "maximum connections open at once, for the whole server (WMS_MAX_CONNECTIONS)")
+	fs.IntVar(&c.P2PPort, "p2p-port", p2pDef, "peer-to-peer port, UDP and TCP (WMS_P2P_PORT); default: one chosen when peer to peer is first turned on")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
@@ -441,6 +451,9 @@ func ParseOnly(args []string) (*Config, error) {
 	}
 	if c.MaxConnections < minConnections {
 		return nil, fmt.Errorf("max-connections must be at least %d: a single browser can use that many", minConnections)
+	}
+	if c.P2PPort != 0 && (c.P2PPort < 1024 || c.P2PPort > 65535) {
+		return nil, errors.New("p2p-port must be between 1024 and 65535")
 	}
 	c.TranscodeDir = env("WMS_TRANSCODE_DIR", or(rel(f.TranscodeDir), filepath.Join(c.DataDir, "transcode")))
 	c.CacheDir = env("WMS_CACHE_DIR", or(rel(f.CacheDir), filepath.Join(c.DataDir, "cache")))

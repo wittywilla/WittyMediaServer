@@ -133,12 +133,19 @@ type Invite struct {
 	Secret   string
 	Name     string   // the server's name, to show before connecting
 	Addrs    []string // multiaddrs without the /p2p/ part
+	// Home and Code are for a device on the server's own network (the QR code
+	// on Connect a device holds them): the web address the page was opened at
+	// and the code shown beside the QR code. Such a device asks there with the
+	// code first, as Enter a code does (internal/server/api_connect.go), and
+	// needs no peer-to-peer path at all. Apps that don't know them ignore them.
+	Home string
+	Code string // as CleanJoinCode gives it, without the dash
 }
 
 // maxInviteAddrs keeps a link short enough for a QR code a phone can read.
 const maxInviteAddrs = 6
 
-// String is the link: wittymedia://p2p/<server ID>?s=<secret>&n=<name>&a=<address>...
+// String is the link: wittymedia://p2p/<server ID>?s=<secret>&n=<name>&a=<address>...&h=<home>&c=<code>
 func (in Invite) String() string {
 	q := url.Values{}
 	q.Set("s", in.Secret)
@@ -151,7 +158,25 @@ func (in Invite) String() string {
 		}
 		q.Add("a", a)
 	}
+	if in.Home != "" && in.Code != "" {
+		q.Set("h", in.Home)
+		q.Set("c", in.Code)
+	}
 	return InviteScheme + "://p2p/" + in.ServerID + "?" + q.Encode()
+}
+
+// InviteHome is a web address fit for an invite's Home: http or https, a host
+// and maybe a port, nothing else. "" when it isn't one.
+func InviteHome(s string) string {
+	if len(s) > 200 {
+		return ""
+	}
+	u, err := url.Parse(s)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil ||
+		(u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || u.Opaque != "" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
 }
 
 // ParseInvite reads a link. Nothing in it is trusted further than this: the
@@ -177,6 +202,12 @@ func ParseInvite(link string) (Invite, error) {
 		}
 		if _, err := ma.NewMultiaddr(a); err == nil {
 			in.Addrs = append(in.Addrs, a)
+		}
+	}
+	// Both or neither: an address with no code, or a code with nowhere to use it, is no use.
+	if home, code := InviteHome(q.Get("h")), q.Get("c"); home != "" && code != "" {
+		if clean, err := CleanJoinCode(code); err == nil {
+			in.Home, in.Code = home, clean
 		}
 	}
 	return in, nil

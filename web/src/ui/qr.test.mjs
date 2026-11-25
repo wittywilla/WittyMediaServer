@@ -16,12 +16,41 @@ function readFormat(m) {
   return bits ^ 0x5412
 }
 
-test('the size follows the length: version 1 is 21 modules, version 10 is 57', () => {
+test('the size follows the length: version 1 is 21 modules, version 10 is 57, version 15 is 77', () => {
   assert.equal(qrMatrix('A').length, 21)
   assert.equal(qrMatrix('x'.repeat(14)).length, 21)
   assert.equal(qrMatrix('x'.repeat(15)).length, 25)
-  assert.equal(qrMatrix('x'.repeat(QR_MAX_BYTES)).length, 57)
+  assert.equal(qrMatrix('x'.repeat(213)).length, 57)
+  // The standard's byte capacities at level M from version 11: 251, 287, 331, 362, 412.
+  for (const [bytes, v] of [[214, 11], [251, 11], [252, 12], [287, 12], [288, 13], [331, 13], [332, 14], [362, 14], [363, 15]]) {
+    assert.equal(qrMatrix('x'.repeat(bytes)).length, 17 + 4 * v, `${bytes} bytes`)
+  }
+  assert.equal(qrMatrix('x'.repeat(QR_MAX_BYTES)).length, 77)
   assert.throws(() => qrMatrix('x'.repeat(QR_MAX_BYTES + 1)))
+})
+
+// Versions 11 to 15 (pairing links with a relay's address): three finders, the timing lines and alignment patterns
+// where the standard puts them, and the version information read back as a valid code word.
+test('larger codes are drawn as the standard says', () => {
+  for (const v of [11, 12, 13, 14, 15]) {
+    const caps = { 11: 251, 12: 287, 13: 331, 14: 362, 15: 412 }
+    const m = qrMatrix('wittymedia://p2p/'.padEnd(caps[v], 'k')), n = m.length
+    assert.equal(n, 17 + 4 * v)
+    assert.ok(at(m, 0, 0) && at(m, n - 7, 0) && at(m, 0, n - 7), 'three finders')
+    for (let i = 8; i < n - 8; i++) { assert.equal(m[6][i], i % 2 === 0); assert.equal(m[i][6], i % 2 === 0) }
+    // The alignment pattern nearest the bottom right: a dark centre in a light ring in a dark ring.
+    const c = n - 7
+    assert.equal(m[c][c], true)
+    for (let d = -1; d <= 1; d++) { assert.equal(m[c - 1][c + d], false); assert.equal(m[c + 1][c + d], false) }
+    for (let d = -2; d <= 2; d++) { assert.equal(m[c - 2][c + d], true); assert.equal(m[c + 2][c + d], true) }
+    // Version information, bottom-left copy: 6 version bits then 12 BCH bits over generator 0x1f25.
+    let bits = 0
+    for (let i = 0; i < 18; i++) if (m[n - 11 + (i % 3)][Math.floor(i / 3)]) bits |= 1 << i
+    assert.equal(bits >>> 12, v)
+    let rem = bits
+    for (let i = 17; i >= 12; i--) if ((rem >>> i) & 1) rem ^= 0x1f25 << (i - 12)
+    assert.equal(rem, 0, `version ${v}'s information is a code word`)
+  }
 })
 
 test('finder patterns, timing and the dark module are where a scanner looks', () => {

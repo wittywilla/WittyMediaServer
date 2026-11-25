@@ -52,6 +52,27 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 Not released yet.
 
+**Connecting a phone to a server in Docker (#683)**
+
+- **A phone at home connects to a server in Docker by its QR code.** In a container the server only knows the
+  container's own addresses, which nothing else at home can reach, and apps can't find it on the network. **Connect a
+  device** now uses the address its page was opened at: as the address at home, and in the QR code with the code, so
+  an app at home that scans it signs in straight away, with no peer-to-peer connection needed.
+- **Peer to peer works from a container.** The image listens for peer-to-peer connections on a fixed port, **9796**
+  (UDP and TCP), and the compose files and NAS guides publish it. Containers made before need the two `9796` lines added
+  to `ports:` ([Docker](docs/DOCKER.md#devices-away-from-home)). Without them a phone could be added to **Devices that
+  may connect** and get no further. Outside a container, set the port with `WMS_P2P_PORT` or `-p2p-port`.
+- **Connect a device says which port to publish** when the server runs in a container and devices away from home
+  can't connect yet.
+- **A device isn't shown as connected until it is.** Showing an invite puts a device on **Devices that may connect**,
+  but 0.8.4 then called it "Connected through a relay" though nothing had got through. Until its first request does,
+  it says **Invited — hasn't connected yet**, and when the server knows why not (it reached the server only through a
+  public relay, which carries an invite and nothing more) it says that and what to do.
+- **The QR code carries the owner's own WittyRelay** when there is one, first, ahead of the server's name if they
+  don't both fit: away from home it's often the only way in. QR codes now go up to 412 bytes (version 15); a pairing
+  link stays under 330.
+- **Each device's Remove button is in its own row** under **Devices that may connect**, not below the list beside the
+  next heading.
 **Live TV (#687, #688)**
 
 - **Sound and picture stay together across programme changes.** A library channel joined part way into a programme

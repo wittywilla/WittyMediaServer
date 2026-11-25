@@ -25,7 +25,7 @@
 .ec-foot .panel-actions { margin-top: 0; }
 .ec-warnings { margin: var(--sp-1) 0; padding-left: var(--sp-5); }
 
-.ec-looks { display: grid; gap: var(--sp-3); position: sticky; top: calc(var(--topbar-h) + 72px); min-width: 0; }
+.ec-looks { display: grid; gap: var(--sp-3); position: sticky; top: calc(var(--bar-space) + 72px); min-width: 0; }
 .ec-look { margin: 0; display: grid; gap: var(--sp-1); min-width: 0; }
 .ec-look figcaption { color: var(--fg-2); font-size: var(--text-sm); }
 

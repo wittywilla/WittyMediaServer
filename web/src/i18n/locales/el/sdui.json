@@ -1212,5 +1212,7 @@
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "one": "Ο «{name}» δεν μπορεί να συνδεθεί εκτός σπιτιού έως {time}, μετά από {count} λάθος προσπάθεια. Στο σπίτι λειτουργεί ακόμη.",
     "other": "Ο «{name}» δεν μπορεί να συνδεθεί εκτός σπιτιού έως {time}, μετά από {count} λάθος προσπάθειες. Στο σπίτι λειτουργεί ακόμη."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Στο σπίτι, είναι η διεύθυνση που φαίνεται στις ρυθμίσεις του διακομιστή, όπως http://192.168.1.10:9797. Εκτός σπιτιού, είναι η διεύθυνση από Ρυθμίσεις, Απομακρυσμένη πρόσβαση.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Ότι το WittyMediaServer εκτελείται και ότι αυτή η συσκευή μπορεί να το φτάσει: στο ίδιο δίκτυο ή μέσω Απομακρυσμένης πρόσβασης. Τίποτα από όσα κάνατε δεν χάθηκε."
 }

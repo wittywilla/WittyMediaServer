@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"net/netip"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -83,6 +84,39 @@ func TestInviteLinks(t *testing.T) {
 	got, err := ParseInvite(many)
 	if err != nil || len(got.Addrs) != maxInviteAddrs {
 		t.Fatalf("%d addresses kept, %v", len(got.Addrs), err)
+	}
+}
+
+// A QR code's invite holds, for a device at home, the web address the page was opened at and the code
+// beside it: both or neither, a plain web address only, and a code as a person might type it.
+func TestInviteHomeAndCode(t *testing.T) {
+	id := testID(t, 7)
+	in := Invite{ServerID: id, Secret: "abcdefghijklmnopqrstuv", Home: "http://192.168.1.50:9797", Code: "K7QM2XHD"}
+	back, err := ParseInvite(in.String())
+	if err != nil || back.Home != in.Home || back.Code != in.Code {
+		t.Fatalf("read back: %+v, %v", back, err)
+	}
+	base := "wittymedia://p2p/" + id + "?s=abcdefghijklmnopqrstuv"
+	if got, _ := ParseInvite(base + "&h=" + url.QueryEscape("https://nas.local") + "&c=k7qm-2xhd"); got.Home != "https://nas.local" || got.Code != "K7QM2XHD" {
+		t.Fatalf("a code typed loosely: %+v", got)
+	}
+	for what, q := range map[string]string{
+		"no code":              "&h=" + url.QueryEscape("http://192.168.1.50:9797"),
+		"no address":           "&c=K7QM2XHD",
+		"not a code":           "&h=" + url.QueryEscape("http://192.168.1.50:9797") + "&c=hello",
+		"not the web":          "&h=" + url.QueryEscape("ftp://192.168.1.50") + "&c=K7QM2XHD",
+		"a name and password":  "&h=" + url.QueryEscape("http://me:pw@192.168.1.50:9797") + "&c=K7QM2XHD",
+		"a page, not a server": "&h=" + url.QueryEscape("http://192.168.1.50:9797/settings") + "&c=K7QM2XHD",
+		"a script":             "&h=" + url.QueryEscape("javascript:alert(1)") + "&c=K7QM2XHD",
+	} {
+		got, err := ParseInvite(base + q)
+		if err != nil || got.Home != "" || got.Code != "" {
+			t.Errorf("%s: %+v %v", what, got, err)
+		}
+	}
+	// With no address, the link is the invite it always was: no code in it.
+	if strings.Contains(Invite{ServerID: id, Secret: "abcdefghijklmnopqrstuv", Code: "K7QM2XHD"}.String(), "c=") {
+		t.Fatal("a code with no address was put in the link")
 	}
 }
 

@@ -471,5 +471,6 @@
     "few": "Осталось {count} попытки, затем вход прервётся.",
     "many": "Осталось {count} попыток, затем вход прервётся.",
     "other": "Осталось {count} попытки, затем вход прервётся."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Выключено. Дома это нормально: для сертификата нужно доменное имя, поэтому он настраивается в разделе «Удалённый доступ», если вы хотите подключаться к серверу вне дома."
 }

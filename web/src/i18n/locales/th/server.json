@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "พื้นที่ใน {folder} ไม่พอ: ข้อมูลต้องใช้ {need} แต่มีพื้นที่ว่าง {free}",
   "the copy didn't match, so nothing was changed: {reason}": "สำเนาไม่ตรงกัน จึงไม่มีการเปลี่ยนแปลงใด ๆ: {reason}",
   "the choice couldn't be saved: {reason}": "บันทึกตัวเลือกไม่ได้: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "บันทึกตำแหน่งใหม่ใน {file} ไม่ได้: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "บันทึกตำแหน่งใหม่ใน {file} ไม่ได้: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "เชื่อมต่อกับเซิร์ฟเวอร์ของคุณไม่ได้ โปรดตรวจสอบว่า WittyMediaServer ทำงานอยู่ และอุปกรณ์เครื่องนี้เข้าถึงได้ ไม่ว่าจะอยู่ในเครือข่ายเดียวกันหรือผ่านการเข้าถึงจากระยะไกล"
 }

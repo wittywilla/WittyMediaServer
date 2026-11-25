@@ -2257,5 +2257,8 @@
   "{count} things turned off": {
     "one": "{count} चीज़ बंद की गई",
     "other": "{count} चीज़ें बंद की गईं"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "सभी सेटिंग्स और API कुंजियाँ, Remote Access, TV ट्यूनर, चैनल और शेड्यूल की गई रिकॉर्डिंग।",
+  "Remote access": "रिमोट एक्सेस",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "साइन इन करते समय आपके फ़ोन के किसी ऐप से 6 अंकों का कोड भी माँगा जाता है, ताकि चोरी हुआ पासवर्ड काफ़ी न हो। यह वैकल्पिक है, और अगर आप Remote Access इस्तेमाल करते हैं तो रखने लायक है। कोई भी ऑथेंटिकेटर ऐप काम करता है।"
 }

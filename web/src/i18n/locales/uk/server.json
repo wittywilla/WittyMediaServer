@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "у {folder} не вистачає місця: даним потрібно {need}, а вільно {free}",
   "the copy didn't match, so nothing was changed: {reason}": "копія не збіглася, тому нічого не змінено: {reason}",
   "the choice couldn't be saved: {reason}": "не вдалося зберегти вибір: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "не вдалося зберегти нове місце в {file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "не вдалося зберегти нове місце в {file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "Не вдається зв’язатися з вашим сервером. Перевірте, що WittyMediaServer запущено і що цей пристрій має до нього доступ: у тій самій мережі або через віддалений доступ."
 }

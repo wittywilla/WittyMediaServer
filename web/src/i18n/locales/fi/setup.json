@@ -461,5 +461,6 @@
   "{count} more tries before the sign-in ends.": {
     "one": "Vielä {count} yritys, ennen kuin kirjautuminen päättyy.",
     "other": "Vielä {count} yritystä, ennen kuin kirjautuminen päättyy."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Pois päältä. Kotona se on ihan hyvä: varmenne tarvitsee verkkotunnuksen, joten se asetetaan kohdassa Etäkäyttö, jos haluat käyttää palvelinta kodin ulkopuolelta."
 }

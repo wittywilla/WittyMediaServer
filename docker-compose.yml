@@ -19,6 +19,8 @@ services:
       - no-new-privileges:true
     ports:
       - "9797:9797"
+      - "9796:9796/tcp" # peer to peer, for devices away from home (Settings → Remote Access)
+      - "9796:9796/udp"
       # - "9443:9443"                # only if you use Settings → Remote Access with HTTPS
       # - "9798:9798/udp"            # games over WebRTC: set this port and the NAS's address in Settings → Consoles & cores (docs/DOCKER.md#games)
     environment:

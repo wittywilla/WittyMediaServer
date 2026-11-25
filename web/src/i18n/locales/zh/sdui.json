@@ -1187,5 +1187,7 @@
   },
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "other": "“{name}”因 {count} 次错误尝试，在 {time} 之前无法从家庭网络以外登录。在家中仍可使用。"
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "在家时，就是服务器设置中显示的地址，例如 http://192.168.1.10:9797。在外时，是“设置 > 远程访问”中的地址。",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "请确认 WittyMediaServer 正在运行，并且此设备能访问它：在同一网络中，或通过远程访问。你所做的一切都没有丢失。"
 }

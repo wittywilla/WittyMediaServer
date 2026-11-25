@@ -82,10 +82,12 @@ COPY --from=build /out/wittymediaserver /usr/local/bin/
 ENV WMS_DOCKER=1 \
     WMS_DATA_DIR=/config \
     WMS_LISTEN=:9797 \
+    WMS_P2P_PORT=9796 \
     WMS_TRANSCODE_DIR=/config/transcode \
     XDG_CACHE_HOME=/config/cache/xdg \
     NVIDIA_DRIVER_CAPABILITIES=compute,video,utility,graphics
-EXPOSE 9797
+# 9796 is peer to peer (Settings → Remote Access), UDP and TCP: a fixed port, so compose files can publish it.
+EXPOSE 9797 9796/tcp 9796/udp
 VOLUME ["/config"]
 USER wms
 # The server checks itself, on the port in WMS_LISTEN, so the image needs no HTTP client.

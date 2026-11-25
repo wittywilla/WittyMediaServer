@@ -14,7 +14,7 @@
     { "id": "settings.library-transcoding", "path": "/settings/library-transcoding", "level": "desktopOnly", "title": "Library transcoding" },
     { "id": "settings.network", "path": "/settings/network", "level": "desktopOnly", "title": "Network", "summary": "network" },
     { "id": "settings.data-folder", "path": "/settings/data-folder", "level": "desktopOnly", "title": "Data folder", "summary": "data-folder" },
-    { "id": "settings.remote", "path": "/settings/remote", "level": "desktopOnly", "title": "Remote Access", "summary": "remote" },
+    { "id": "settings.remote", "path": "/settings/remote", "level": "desktopOnly", "title": "Remote access", "summary": "remote" },
     { "id": "settings.users", "path": "/settings/users", "level": "view", "title": "Profiles" },
     { "id": "settings.security", "path": "/settings/security", "level": "view", "title": "Sign-in and security" },
     { "id": "settings.sharing", "path": "/settings/sharing", "level": "view", "title": "Sharing and photos" },

@@ -19771,7 +19771,7 @@
             "bearer": []
           }
         ],
-        "summary": "GET /connect: whether devices can connect from away, in words: `away` (off, checking, yes, partly, no), `words`, `p2p`, `canTurnOn`.",
+        "summary": "GET /connect: whether devices can connect from away, in words: `away` (off, checking, yes, partly, no), `words`, `p2p`, `canTurnOn`, and `hint`, what to do about it when the server can tell (in a container: the peer-to-peer port to publish).",
         "tags": [
           "Remote access and signed-in devices"
         ],
@@ -20000,7 +20000,7 @@
             "bearer": []
           }
         ],
-        "summary": "Connect a device: `{userId, password, otp}` gives a `code` (`K7QM-2XHD`) for a device on the same network, and with peer to peer on a `link` and a shorter `qrLink` for one away from home, for this account or a Kids or Guest profile it manages. One way in: whichever is used first ends the other. Adults only; an administrator's takes the password again (403 `password-required`). Works once, for 15 minutes; a new one ends the one before.",
+        "summary": "Connect a device: `{userId, password, otp}` gives a `code` (`K7QM-2XHD`) for a device on the same network, and with peer to peer on a `link` and a shorter `qrLink` for one away from home (opened at an address of the home network, the `qrLink` also holds that address and the code, `h` and `c`, so a device at home that scans it needs no peer-to-peer path), for this account or a Kids or Guest profile it manages. One way in: whichever is used first ends the other. Adults only; an administrator's takes the password again (403 `password-required`). Works once, for 15 minutes; a new one ends the one before.",
         "tags": [
           "Remote access and signed-in devices"
         ],

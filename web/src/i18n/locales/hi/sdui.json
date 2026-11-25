@@ -1212,5 +1212,7 @@
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "one": "{count} गलत कोशिश के बाद “{name}” {time} तक आपके घर के बाहर से साइन इन नहीं कर सकता। घर पर यह अब भी काम करता है।",
     "other": "{count} गलत कोशिशों के बाद “{name}” {time} तक आपके घर के बाहर से साइन इन नहीं कर सकता। घर पर यह अब भी काम करता है।"
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "घर पर, यह सर्वर की सेटिंग्स में दिखाया गया पता है, जैसे http://192.168.1.10:9797। घर से बाहर, यह सेटिंग्स, रिमोट एक्सेस वाला पता है।",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "देखें कि WittyMediaServer चल रहा है, और यह डिवाइस उस तक पहुँच सकता है: उसी नेटवर्क पर, या रिमोट एक्सेस के ज़रिए। आपका किया कुछ भी खोया नहीं है।"
 }

@@ -36,7 +36,7 @@ export default function NetworkSettings() {
           <li><b>{t('Apps on your home network')}</b> {t('find the server again by themselves. They ask on UDP port {port}, which stays the same.', { port: view.discoveryPort })}</li>
           <li><b>{t('The tray or menu-bar icon')}</b> {t('opens the new address.')}</li>
           <li><b>{t('Windows’ firewall')}</b>: {t('the rule the installer made lets the server in on any port. Another firewall, or a router rule you made yourself, needs the new port.')}</li>
-          <li><b>{t('Remote Access')}</b> {view.httpsPort ? t('keeps its own HTTPS port ({port}), so forwarding on your router stays as it is. A reverse proxy or a VPN address you set up yourself needs the new port.', { port: view.httpsPort }) : t('keeps its own HTTPS port, so forwarding on your router stays as it is. A reverse proxy or a VPN address you set up yourself needs the new port.')}</li>
+          <li><b>{t('Remote access')}</b> {view.httpsPort ? t('keeps its own HTTPS port ({port}), so forwarding on your router stays as it is. A reverse proxy or a VPN address you set up yourself needs the new port.', { port: view.httpsPort }) : t('keeps its own HTTPS port, so forwarding on your router stays as it is. A reverse proxy or a VPN address you set up yourself needs the new port.')}</li>
           <li><b>{t('Bookmarks')}</b> {t('and devices you set up by typing the address need the new one.')}</li>
         </ul>
       </Section>

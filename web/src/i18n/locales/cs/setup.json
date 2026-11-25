@@ -471,5 +471,6 @@
     "few": "Zbývají ještě {count} pokusy, než přihlášení skončí.",
     "many": "Zbývá ještě {count} pokusu, než přihlášení skončí.",
     "other": "Zbývá ještě {count} pokusů, než přihlášení skončí."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Vypnuto. Doma to nevadí: certifikát potřebuje doménové jméno, takže se nastavuje v části Vzdálený přístup, pokud chcete server používat i mimo domov."
 }

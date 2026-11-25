@@ -1212,5 +1212,7 @@
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "one": "„{name}” {count} hibás próbálkozás után {time}-ig nem jelentkezhet be otthonon kívülről. Otthon továbbra is működik.",
     "other": "„{name}” {count} hibás próbálkozás után {time}-ig nem jelentkezhet be otthonon kívülről. Otthon továbbra is működik."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Otthon ez a szerver beállításaiban látható cím, például http://192.168.1.10:9797. Otthonon kívül a Beállítások, Távoli hozzáférés részben található cím.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Hogy a WittyMediaServer fut, és ez az eszköz eléri: ugyanazon a hálózaton vagy Távoli hozzáféréssel. Semmi sem veszett el abból, amit csináltál."
 }

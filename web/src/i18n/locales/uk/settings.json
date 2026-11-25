@@ -2355,5 +2355,8 @@
     "few": "Вимкнено {count} пункти",
     "many": "Вимкнено {count} пунктів",
     "other": "Вимкнено {count} пункту"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Усі налаштування й API-ключі, віддалений доступ, ТВ-тюнери, канали й заплановані записи.",
+  "Remote access": "Віддалений доступ",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Під час входу також потрібен 6-значний код із застосунку на телефоні, тож украденого пароля недостатньо. Це необов’язково, але варто, якщо ви користуєтеся віддаленим доступом. Підійде будь-який застосунок автентифікації."
 }

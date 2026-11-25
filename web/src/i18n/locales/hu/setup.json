@@ -461,5 +461,6 @@
   "{count} more tries before the sign-in ends.": {
     "one": "Még {count} próbálkozás, mielőtt a bejelentkezés véget ér.",
     "other": "Még {count} próbálkozás, mielőtt a bejelentkezés véget ér."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Kikapcsolva. Otthon ez rendben van: a tanúsítványhoz domainnév kell, ezért a Távoli elérés menüpontban állítható be, ha otthonon kívülről is el akarod érni a szervert."
 }

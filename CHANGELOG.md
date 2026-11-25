@@ -10,6 +10,7 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.
   Graphics-chip decoders, as most browsers, phones and TVs use, held the picture while the sound played, then showed it
   late. The server now looks at one keyframe of each such file and converts its picture when the keyframe isn't an IDR.
+
 **Live TV in the phone app (#765)**
 
 - **Nothing behind the app's bars.** "Customise this page" under Live TV sat behind the floating bar, in the app and
@@ -25,7 +26,6 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   programme and how far through it is, instead of a box drawn beneath −10 and play.
 - **The layout check runs as the phone app shows a page** (`LAYOUT_APP=1`, upright and on its side, Live TV's full-screen
   player included), in the smoke tests.
-
 
 ## 0.8.5-alpha
 

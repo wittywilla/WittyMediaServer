@@ -5,6 +5,13 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Recent can be clicked into again (WittyPlay).** Moving the mouse across Recent's games kept changing which one was
+  chosen, and the chosen one grows, so the game under the pointer moved and a click landed on another, or opened it at
+  once. The fix for this (#547, for every row with a details panel or a growing card) was undone by a later merge (#558).
+  It's back, as one rule in `web/src/ui/pointerChoose.ts` that every such row uses: a pointer only points, a click chooses,
+  and a second click, a double-click or Enter opens; arrows, a remote and a pad move the choice as before. The chosen card
+  is marked `aria-current`. A unit test fails if a row chooses on hover again, and `npm run test:pointer` checks Recent,
+  Consoles and All games in a real browser (mouse across, click, click again, focus and Enter).
 - **WittyTV: no frozen picture at tune-in on open-GOP H.264 (#760).** Some H.264 encodes, many Blu-ray ones among
   them, mark I-frames that aren't IDR frames as keyframes, with one IDR at the very start. A channel copied them as
   they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.
@@ -50,6 +57,27 @@ Developer notes:
   decoder can't start at a tune-in or a programme join, the sound is silenced and the player seeks to where it is,
   which starts sound and picture again together; the sound comes back with the picture. A few tries a stream at most,
   and never for a hidden page playing sound alone.
+
+**Live TV in the phone app (#765)**
+
+- **Nothing behind the app's bars.** "Customise this page" under Live TV sat behind the floating bar, in the app and
+  on the website on a phone, since 0.8.5. It now sits above the bar.
+- **A phone on its side shows one top bar.** Inside the app the website hid its own bars only on a phone held upright,
+  so on its side the website's top bar appeared under the app's, with no room kept for the app's floating bar. It now
+  steps aside at any phone size.
+- **Every button for the programme can be seen.** On a phone they were a row that scrolled sideways, with half a
+  button at the edge and Channel up, More about this programme and Day out of sight. They now wrap onto a second line.
+- **48 by 48 for a finger** on Live TV's buttons and the preview's own. On a touch screen the preview's bar keeps
+  sound, full screen and close; the resize corner and its − and + are for a mouse.
+- **The channel's banner clears the player's buttons on a phone on its side**: one low band with the number, the
+  programme and how far through it is, instead of a box drawn beneath −10 and play.
+- **Live TV fills a phone's screen.** The page's side margins and the space round Live TV's panel were a frame of
+  empty space round every part of it on a 412-wide phone. Upright, the preview is the screen's width. A TV keeps its
+  overscan margin.
+- **The player's −10 and play step aside** while it shows a message (a channel that can't be watched) or a break's
+  "We'll be right back" card. They were drawn over the message and its buttons.
+- **The layout check runs as the phone app shows a page** (`LAYOUT_APP=1`, upright and on its side, Live TV's full-screen
+  player and a channel's message included), in the smoke tests. It fails when Live TV doesn't reach a phone's sides.
 
 ## 0.8.5-alpha
 

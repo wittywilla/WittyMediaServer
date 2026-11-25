@@ -17,6 +17,7 @@
 //   focus-scrolled  Tab scrolled a box that has overflow hidden, moving what it holds out of place
 //   tv-target     in TV mode, something to press smaller than 48 by 48
 //   touch-target  on a phone's Live TV, something to press smaller than 48 by 48
+//   unfilled      on a phone, Live TV doesn't reach the sides, or its preview isn't the page's width
 //   off-screen    a control of Live TV's full-screen player outside the window
 //   overlap       the player's controls drawn over the words of the channel's banner
 // Pictures of each page go to the out folder (<page>--<size>.png) for before-and-after comparisons.
@@ -146,6 +147,17 @@ const DETECT = (phase, tv) => `(() => {
         if (!vis(e) || e.disabled || e.closest('.ctv-cell, .ctv-ch, .ctv-prog')) continue
         const r = e.getBoundingClientRect()
         if (r.width < 47.5 || r.height < 47.5) { add('touch-target', e, Math.round(r.width) + ' x ' + Math.round(r.height)); if (++n >= 5) break }
+      }
+    }
+    // On a phone, Live TV fills the screen: its page reaches both sides (only the system's insets, which the app keeps
+    // outside its web view, may be left), and upright its preview is the page's width (#765).
+    if (window.__layoutTouch) {
+      const page = document.querySelector('.ctv-page')
+      if (page && vis(page)) {
+        const r = page.getBoundingClientRect()
+        if (r.left > 1 || vw - r.right > 1) add('unfilled', page, 'Live TV leaves ' + Math.round(r.left) + ' and ' + Math.round(vw - r.right) + ' empty at its sides')
+        const pv = page.querySelector('.ctv-page.narrow .ctv-preview')
+        if (pv && vis(pv) && pv.getBoundingClientRect().width < r.width - 2 * 16 - 2) add('unfilled', pv, 'the preview is ' + Math.round(pv.getBoundingClientRect().width) + ' of ' + Math.round(r.width) + ' wide')
       }
     }
     // In TV mode: everything a remote can land on is at least 48 by 48.

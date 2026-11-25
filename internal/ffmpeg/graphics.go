@@ -156,7 +156,7 @@ func eglCheck(dirs []string, vendor, noDevice string) GraphicsCheck {
 	}
 	if noDevice != "" {
 		if findLib(dri, "swrast_dri.so", "kms_swrast_dri.so") != "" {
-			return GraphicsCheck{Detail: i18n.F("Only on the processor (llvmpipe): {why}", "why", noDevice)}
+			return GraphicsCheck{Detail: softwareOnly("llvmpipe", noDevice)}
 		}
 		return GraphicsCheck{Detail: noDevice}
 	}
@@ -167,7 +167,27 @@ func eglCheck(dirs []string, vendor, noDevice string) GraphicsCheck {
 		}
 		return GraphicsCheck{OK: true, Detail: "Mesa " + strings.TrimSuffix(filepath.Base(p), "_dri.so")}
 	}
-	return GraphicsCheck{OK: true, Detail: "Mesa"}
+	// A chip of another make: Mesa draws on it only with a driver for a chip. llvmpipe and softpipe (swrast) are the
+	// processor's, never a yes.
+	for _, d := range dri {
+		entries, _ := os.ReadDir(d)
+		for _, e := range entries {
+			if n := e.Name(); strings.HasSuffix(n, "_dri.so") && !softwareDRI[n] {
+				return GraphicsCheck{OK: true, Detail: "Mesa " + strings.TrimSuffix(n, "_dri.so")}
+			}
+		}
+	}
+	return GraphicsCheck{Detail: softwareOnly("llvmpipe", i18n.T("Mesa has no OpenGL driver for this graphics chip."))}
+}
+
+// The DRI drivers that draw on the processor.
+var softwareDRI = map[string]bool{"swrast_dri.so": true, "kms_swrast_dri.so": true, "libdril_dri.so": true}
+
+// softwareOnly is the answer when the only driver there is the processor's (llvmpipe for OpenGL, lavapipe for
+// Vulkan): plainly a no, as transcoding mustn't count it as a chip and a person shouldn't either. Games may still use it
+// (WittyPlay draws GameCube and Wii on llvmpipe with no card), which is theirs to say.
+func softwareOnly(driver, why string) string {
+	return i18n.F("Software (no graphics chip): only {driver}, on the processor. {why}", "driver", driver, "why", why)
 }
 
 func vulkanCheck(dirs, icdDirs []string, vendor, noDevice string) GraphicsCheck {
@@ -189,7 +209,7 @@ func vulkanCheck(dirs, icdDirs []string, vendor, noDevice string) GraphicsCheck 
 	}
 	if noDevice != "" {
 		if icd("lvp_icd") != "" {
-			return GraphicsCheck{Detail: i18n.F("Only on the processor (lavapipe): {why}", "why", noDevice)}
+			return GraphicsCheck{Detail: softwareOnly("lavapipe", noDevice)}
 		}
 		return GraphicsCheck{Detail: noDevice}
 	}
@@ -206,8 +226,17 @@ func vulkanCheck(dirs, icdDirs []string, vendor, noDevice string) GraphicsCheck 
 		}
 		return GraphicsCheck{OK: true, Detail: "Mesa " + strings.TrimSuffix(n, "_icd")}
 	}
-	if n := icd(""); n != "" {
-		return GraphicsCheck{OK: true, Detail: n}
+	// A chip of another make: any driver for a chip, never lavapipe (lvp), which is the processor's.
+	for _, d := range icdDirs {
+		entries, _ := os.ReadDir(d)
+		for _, e := range entries {
+			if n := e.Name(); strings.HasSuffix(n, ".json") && !strings.HasPrefix(n, "lvp_icd") {
+				return GraphicsCheck{OK: true, Detail: strings.TrimSuffix(n, ".json")}
+			}
+		}
+	}
+	if icd("lvp_icd") != "" {
+		return GraphicsCheck{Detail: softwareOnly("lavapipe", i18n.T("No Vulkan driver for this graphics chip is installed."))}
 	}
 	return GraphicsCheck{Detail: i18n.T("No Vulkan driver is installed.")}
 }

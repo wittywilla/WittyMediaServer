@@ -33,6 +33,12 @@ Developer notes:
     outside Settings. Before, a page that left Settings was skipped.
   - `align` covers titles a module draws itself and fails a centred title. It also fails a settings page whose title
     starts somewhere other than the others at the same size.
+- **The processor's graphics drivers are called what they are.** Since 0.8.5 the image has Mesa's software drivers
+  (llvmpipe for OpenGL, lavapipe for Vulkan), which WittyPlay uses to draw GameCube and Wii with no graphics card. The
+  Graphics status (Settings → Live transcoding, `wittymediaserver hardware`, the log) now says "Software (no graphics
+  chip)" for them, never a yes, including on a chip of another make that only they could serve. Nothing in transcoding
+  uses Vulkan but HDR tone mapping, which refuses a software device; a test keeps it so (no Vulkan encoder, decode
+  pipeline or named decoder; FFmpeg's automatic decoder choice only alongside NVENC). The no-card CI run checks both.
 - **Recent can be clicked into again (WittyPlay).** Moving the mouse across Recent's games kept changing which one was
   chosen, and the chosen one grows, so the game under the pointer moved and a click landed on another, or opened it at
   once. The fix for this (#547, for every row with a details panel or a growing card) was undone by a later merge (#558).
@@ -40,11 +46,44 @@ Developer notes:
   and a second click, a double-click or Enter opens; arrows, a remote and a pad move the choice as before. The chosen card
   is marked `aria-current`. A unit test fails if a row chooses on hover again, and `npm run test:pointer` checks Recent,
   Consoles and All games in a real browser (mouse across, click, click again, focus and Enter).
+- **Live TV: +30 is back, up to live.** At the owner's request, the jump forward returns to the live player (#688 had
+  removed it). +30, the timeline, Right, Fast forward and Next (outside an ad break) go ahead no further than the live
+  edge, and +30 is greyed out there. Back to live stays.
+- **WittyTV: leaving full screen keeps the channel where it was.** Back in the guide, the first row was highlighted for
+  a moment before the channel just left; the little TV took that, dropped the channel playing and tuned it again a
+  second later, at another point in it (and anyone who had paused or gone back lost their place). The guide now keeps
+  the channel just left until the highlight reaches its row. `npm run test:tv-handover` checks the round trip.
+- **WittyTV: a picture that stands still while the sound plays on is put right.** The web player (and the apps that
+  show it) watches the pictures it presents. When the clock runs on for a second with no new one, as when a
+  decoder can't start at a tune-in or a programme join, the sound is silenced and the player seeks to where it is,
+  which starts sound and picture again together; the sound comes back with the picture. A few tries a stream at most,
+  and never for a hidden page playing sound alone.
 - **WittyTV: no frozen picture at tune-in on open-GOP H.264 (#760).** Some H.264 encodes, many Blu-ray ones among
   them, mark I-frames that aren't IDR frames as keyframes, with one IDR at the very start. A channel copied them as
   they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.
   Graphics-chip decoders, as most browsers, phones and TVs use, held the picture while the sound played, then showed it
   late. The server now looks at one keyframe of each such file and converts its picture when the keyframe isn't an IDR.
+
+**Live TV in the phone app (#765)**
+
+- **Nothing behind the app's bars.** "Customise this page" under Live TV sat behind the floating bar, in the app and
+  on the website on a phone, since 0.8.5. It now sits above the bar.
+- **A phone on its side shows one top bar.** Inside the app the website hid its own bars only on a phone held upright,
+  so on its side the website's top bar appeared under the app's, with no room kept for the app's floating bar. It now
+  steps aside at any phone size.
+- **Every button for the programme can be seen.** On a phone they were a row that scrolled sideways, with half a
+  button at the edge and Channel up, More about this programme and Day out of sight. They now wrap onto a second line.
+- **48 by 48 for a finger** on Live TV's buttons and the preview's own. On a touch screen the preview's bar keeps
+  sound, full screen and close; the resize corner and its − and + are for a mouse.
+- **The channel's banner clears the player's buttons on a phone on its side**: one low band with the number, the
+  programme and how far through it is, instead of a box drawn beneath −10 and play.
+- **Live TV fills a phone's screen.** The page's side margins and the space round Live TV's panel were a frame of
+  empty space round every part of it on a 412-wide phone. Upright, the preview is the screen's width. A TV keeps its
+  overscan margin.
+- **The player's −10 and play step aside** while it shows a message (a channel that can't be watched) or a break's
+  "We'll be right back" card. They were drawn over the message and its buttons.
+- **The layout check runs as the phone app shows a page** (`LAYOUT_APP=1`, upright and on its side, Live TV's full-screen
+  player and a channel's message included), in the smoke tests. It fails when Live TV doesn't reach a phone's sides.
 
 ## 0.8.5-alpha
 

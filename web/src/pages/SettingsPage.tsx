@@ -9,7 +9,7 @@ import { BackLink, VersionTag, LoadError } from '../components/common'
 import { ScanControl, scanProgressText, useScanProgress } from '../components/ScanControl'
 import { ChooseFolderButton } from '../components/FolderPicker'
 import { useModulePages } from '../moduleBundles'
-import { ModuleSettingsView, useModuleSettingsTabs, type ModuleSettingsTab } from '../moduleRegistry'
+import { ModuleSettingsView, matchModuleRoute, useModuleSettingsTabs, useModuleWeb, type ModuleSettingsTab } from '../moduleRegistry'
 import { IconActivity, IconBell, IconChannels, IconCheck, IconClose, IconDownload, IconDrive, IconEdit, IconFile, IconFilm, IconFolder, IconGlobe, IconImage, IconInfo, IconLibrary, IconLock, IconNetwork, IconPalette, IconPlay, IconPlug, IconPlus, IconRefresh, IconRight, IconShield, IconSidebar, IconTag, IconTrash, IconTune, IconUsers, IconWrench, libIcon } from '../icons'
 import { toast, useApp } from '../state'
 import { settingsPageHidden } from '../profileWords'
@@ -26,6 +26,7 @@ import { ConsolePicker } from '../components/ConsolePicker'
 import { kindTitle, libraryKinds, missingKind, orList, type LibraryKind } from '../moduleStore'
 import { PageHead, Row, SaveBar, Section, Switch, useServerSettings } from './settings/ui'
 import { jumpWhenReady } from './settings/jump'
+import { InSettings, inSettings } from './settings/open'
 import { commercialsSwitchText, nfoOn, nfoSwitchShown, nfoSwitchText } from './settings/librarySwitches'
 import { SettingsResults, SettingsSearch } from './settings/SettingsSearch'
 import TranscodeSettings from './TranscodeSettings'
@@ -136,7 +137,9 @@ function withModuleTabs(groups: typeof GROUPS, tabs: ModuleSettingsTab[]): typeo
   return out
 }
 
-export default function SettingsPage() {
+// page: a page with an address elsewhere that the menu opens, drawn here beside the menu (App.tsx PageRoutes,
+// settings/open.ts).
+export default function SettingsPage({ page }: { page?: React.ReactNode } = {}) {
   const { user, version } = useApp()
   const loc = useLocation()
   const modulePages = useModulePages().filter((p) => p.where === 'settings')
@@ -185,7 +188,9 @@ export default function SettingsPage() {
     ...moduleTabs.filter((m) => !menuPaths.has('/settings/' + m.id)).map((m): MenuRow => ({ id: 'tab-' + m.module + '-' + m.id, key: '', title: m.label, icon: MODULE_ICON, tint: '#7f46b8', path: m.launch || '/settings/' + m.id })),
     ...modulePages.map((p): MenuRow => ({ id: 'page-' + p.module + '-' + p.id, key: '', title: p.title, icon: MODULE_ICON, tint: '#7f46b8', path: `/m/${p.module}/${p.id}` })),
   ]
-  const shown: SettingsMenuState = extra.length ? { ...menu, groups: [...menu.groups.slice(0, -1), { id: 'fromModules', key: '', title: tk('From modules'), rows: extra }, ...menu.groups.slice(-1)] } : menu
+  const withExtra: SettingsMenuState = extra.length ? { ...menu, groups: [...menu.groups.slice(0, -1), { id: 'fromModules', key: '', title: tk('From modules'), rows: extra }, ...menu.groups.slice(-1)] } : menu
+  // Every row opens inside Settings, its own address or not: the menu stays beside it (settings/open.ts).
+  const shown: SettingsMenuState = { ...withExtra, groups: withExtra.groups.map((g) => ({ ...g, rows: g.rows.map((r) => (r.path ? { ...r, path: inSettings(r.path) } : r)) })) }
   if (!user?.isAdmin && GROUPS.some((g) => g.pages.some((p) => p.admin && p.to === slug))) return <Navigate to="/settings/users" replace />
   // The menu as a page: the person and every group, one column on a phone, two on a computer, as on a TV.
   if (!slug) return tvMode ? <Navigate to="/you" replace /> : <SettingsHome wide={!phone} tv={false} menu={shown} />
@@ -211,7 +216,7 @@ export default function SettingsPage() {
           </div>
         )}
         {slug !== 'about' && <UpdateBanner />}
-        {moduleTab?.launch ? <Navigate to={moduleTab.launch} replace /> : moduleTab ? <ModuleSettingsView tab={moduleTab} /> : <Routes>
+        {page ? <InSettings.Provider value={true}><div className="set-opened">{page}</div></InSettings.Provider> : moduleTab?.launch ? <ModuleLaunch tab={moduleTab} /> : moduleTab ? <ModuleSettingsView tab={moduleTab} /> : <Routes>
           {/* On a television the menu is the page: its first choice may be one a computer changes (TV mode's guide). */}
           <Route path="libraries" element={<Libraries />} />
           <Route path="pages/*" element={<Suspense fallback={<div className="loading-box"><div className="spinner" /></div>}><PagesSettings /></Suspense>} />
@@ -611,4 +616,21 @@ function About() {
 function LibraryScanPill({ library }: { library: Library }) {
   const progress = useScanProgress(library.id, library.scanning)
   return <span className="set-pill live scan-progress" role="status">{scanProgressText(progress ?? { mode: library.scanMode })}</span>
+}
+
+// A module's settings section that opens a place of the module's own (launch). A page of the app opens here, beside
+// the menu (settings/open.ts). A screen of the module's that fills the window (WittyPlay's console) is not something
+// the menu throws you into: this page says where it is and opens it when asked, and the menu stays (#763).
+function ModuleLaunch({ tab }: { tab: ModuleSettingsTab }) {
+  const launch = tab.launch || ''
+  const full = !!matchModuleRoute(useModuleWeb(), launch.split(/[?#]/)[0], ['fullscreen'])
+  if (!full) return <Navigate to={inSettings(launch)} replace />
+  return (
+    <>
+      <PageHead title={tab.label} desc={t('These settings have screens of their own, made for a TV and a controller as well as a computer, and they open over the whole window.')} />
+      <Section>
+        <div className="set-launch"><Link className="btn primary" to={launch}>{t('Open {name}', { name: tx(tab.label) })}</Link></div>
+      </Section>
+    </>
+  )
 }

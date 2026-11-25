@@ -150,10 +150,13 @@ a.mod-row:hover { background: var(--hover); }
 .set-back { display: none; }
 /* Where the menu is the page (narrower windows, TV mode), its title is a page title: centred. */
 .set-shell.tv-menu .set-nav-title { margin-left: 0; text-align: center; }
-@media (max-width: 1280px) {
-  /* One column, in the middle of the page rather than against its left edge with 40% empty beside it (#551). */
+/* A laptop or a tablet: the menu stays beside the page, in a narrower column (#763). */
+@media (min-width: 761px) and (max-width: 1280px) {
+  .set-shell { --set-nav-w: calc(200px + var(--sp-5)); grid-template-columns: var(--set-nav-w) minmax(0, 760px); gap: var(--sp-8); max-width: none; }
+}
+@media (max-width: 760px) {
+  /* A phone: one column, the page alone, with Back to the menu above it. */
   .set-shell { grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 760px; margin-inline: auto; }
-  .set-shell.at-menu .set-nav-title { margin-left: 0; text-align: center; }
   .set-back { display: block; margin-bottom: var(--sp-2); }
   .set-nav-link { min-height: 56px; padding: var(--sp-2); }
   .set-nav-hint { display: block; color: var(--fg-2); font-size: var(--text-sm); font-weight: 400; line-height: 1.4; }

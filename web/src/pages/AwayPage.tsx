@@ -5,13 +5,18 @@ import { useApp } from '../state'
 import ConnectDevice from '../components/ConnectDevice'
 import { StandaloneCard } from '../components/StandaloneCard'
 import { Fill } from './setup/parts'
-import { t } from '../i18n'
+import { t, tk } from '../i18n'
+import { PageHead } from './settings/ui'
+import { useInSettings } from './settings/open'
 
 // From away: connecting another device, for everyone who can sign devices in. The same screen as the top of
 // Settings, Remote Access (components/ConnectDevice), so the words and the way are the same wherever it's
 // found. Signed out, it says where the code comes from.
 export default function AwayPage() {
   const { user } = useApp()
+  const inSettings = useInSettings()
+  // Opened from Settings it is a Settings page: its head, start-aligned, with the menu beside it (#763).
+  if (user && inSettings) return <><PageHead title={tk('Connect a device')} desc={t('Sign in another phone, tablet, TV or computer with a code or a QR code, at home or away.')} /><ConnectDevice titled={false} /></>
   if (user) return <div className="away"><h1>{t('Connect a device')}</h1><ConnectDevice titled={false} /></div>
   // Signed out it is a standalone page (docs/DESIGN.md): the steps, in a card with the server's name.
   return (

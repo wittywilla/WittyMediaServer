@@ -5,6 +5,11 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Live TV fills a tablet's width.** The page's margins left 23 px at each side of the guide on a tablet, either
+  way up, as they did on a phone before 0.8.6. Live TV now runs to the edges up to 1180 wide, and on a touch screen
+  up to 1366. A TV keeps its overscan margin. The smoke's layout check now fails at tablet sizes too when Live TV
+  doesn't reach both sides.
+
 ## 0.8.6-alpha
 
 Released 2026-11-25.

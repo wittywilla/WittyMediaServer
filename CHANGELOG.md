@@ -5,6 +5,10 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **WittyTV: no sound before the picture at tune-in.** A channel's sound now starts with its first picture, and
+  "Tuning…" stays until there is one, rather than giving way to a frame standing still while the sound plays. The
+  sound comes back after a few seconds at most whatever happens, and a page playing in the background isn't held.
+
 - **HDR films start again on a NAS without a graphics chip.** 0.8.5's image carries a Vulkan driver that runs on the
   processor (for games), and HDR films were tone-mapped through it: several times slower, and in a 2 GB container
   FFmpeg ran out of memory on the first segment, so the picture stayed black and the film never started. That driver

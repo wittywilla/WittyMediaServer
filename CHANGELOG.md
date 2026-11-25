@@ -12,6 +12,13 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   or keeps stalling, up again once there's room, and remembers the step on the device. A copied channel over the cap
   is converted to it. Measured at 5 Mbit/s and 50 ms through the connector: no stalls in 76 s (was 11 s in 60 s).
   The remote smoke test checks it through a 5 Mbit/s upload and WittyRelay.
+- **Live TV no longer freezes for a second with the sound behind.** To keep everyone at the same moment, the player
+  jumped ahead whenever it was 3 s behind. On a slow link that landed past what it had loaded, so it dropped the
+  segment on its way, stalled, fell behind and jumped again: at 5 Mbit/s and 50 ms, 49 freezes and 125 s frozen in
+  5 minutes. Live TV now only catches up by playing 3 to 5% faster or slower, never faster with under a segment in
+  hand, and jumps only when a real stall has left it 30 s or more out. Measured the same way for 10 minutes: no
+  stalls after tune-in and no jumps. The web smoke tests watch a channel for 10 minutes on 2 CPUs and 2 GB behind a
+  5 Mbit/s link.
 - **Copy playback report**, in the live player's quality menu: the last segments (when each was asked for, how long
   it took, its size), the buffers, stalls, how the device reaches the server, the quality step, the server's version
   and the encoder, as plain text to paste into a message. Nothing that signs in or finds the server is in it.

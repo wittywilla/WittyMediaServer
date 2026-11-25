@@ -5,6 +5,13 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+- **Recent can be clicked into again (WittyPlay).** Moving the mouse across Recent's games kept changing which one was
+  chosen, and the chosen one grows, so the game under the pointer moved and a click landed on another, or opened it at
+  once. The fix for this (#547, for every row with a details panel or a growing card) was undone by a later merge (#558).
+  It's back, as one rule in `web/src/ui/pointerChoose.ts` that every such row uses: a pointer only points, a click chooses,
+  and a second click, a double-click or Enter opens; arrows, a remote and a pad move the choice as before. The chosen card
+  is marked `aria-current`. A unit test fails if a row chooses on hover again, and `npm run test:pointer` checks Recent,
+  Consoles and All games in a real browser (mouse across, click, click again, focus and Enter).
 - **WittyTV: no frozen picture at tune-in on open-GOP H.264 (#760).** Some H.264 encodes, many Blu-ray ones among
   them, mark I-frames that aren't IDR frames as keyframes, with one IDR at the very start. A channel copied them as
   they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.

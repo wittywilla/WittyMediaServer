@@ -15,15 +15,22 @@
 # needs the real internet, for the public address book).
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
-NETS="direct fullcone cone-relay ipv4-only symmetric-relay cgnat-relay udp-blocked ipv6-only docker-home docker-away public-cone public-sym"
+NETS="direct fullcone cone-relay ipv4-only symmetric-relay cgnat-relay udp-blocked ipv6-only docker-home docker-away docker-unpub public-cone public-sym"
 SERVERS="fresh settled restart"
 ONLYS="on off"
 PHONES="fresh upgrade previous"
 WAYS="link code"
 
-# One case per line. The fast set is a cross-section: every network once, every server and phone
+# One case per line. The fast set gates the owner's own setup first (Docker, 9797 and 9796 published, their own
+# WittyRelay, the phone on mobile data, by QR and by code), then a cross-section: every network once, every server and phone
 # state at least once, both ways in.
-FAST="cone-relay.fresh.on.fresh.link
+FAST="docker-away.settled.on.fresh.link
+docker-away.settled.on.fresh.code
+docker-away.fresh.on.upgrade.link
+docker-unpub.settled.on.fresh.link
+docker-home.settled.on.fresh.link
+docker-home.settled.on.fresh.code
+cone-relay.fresh.on.fresh.link
 symmetric-relay.fresh.on.fresh.link
 symmetric-relay.restart.on.fresh.link
 cgnat-relay.settled.on.upgrade.link
@@ -31,22 +38,22 @@ udp-blocked.settled.on.fresh.link
 ipv6-only.settled.on.fresh.link
 cone-relay.settled.off.previous.link
 direct.fresh.on.fresh.link
-fullcone.settled.on.fresh.link
-ipv4-only.settled.off.fresh.link
-docker-home.settled.on.fresh.link
-docker-home.settled.on.fresh.code
-docker-away.fresh.on.fresh.link
-public-cone.settled.on.fresh.link
+manyaddr.settled.on.fresh.link
 public-sym.settled.on.fresh.retry
 cone-relay.settled.on.fresh.paste
-cone-relay.settled.on.fresh.newcode"
+cone-relay.settled.on.fresh.newcode
+cone-relay.settled.on.fresh.three
+symmetric-relay.settled.on.fresh.code"
+
 
 # Beyond the cross product: the ways in that only make sense on some networks. retry: the QR code, and a new one
 # within 30 s when the first try fails. paste: the link pasted rather than the QR code. newcode: a QR code shown,
 # Connect a device opened again, and the first QR code scanned.
 EXTRA="$(for n in public-cone public-sym cone-relay symmetric-relay docker-away; do echo "$n.settled.on.fresh.retry"; done)
 $(for n in cone-relay symmetric-relay public-cone udp-blocked ipv6-only docker-away; do echo "$n.settled.on.fresh.paste"; done)
-$(for n in direct cone-relay docker-home docker-away; do echo "$n.settled.on.fresh.newcode"; done)"
+$(for n in direct cone-relay docker-home docker-away; do echo "$n.settled.on.fresh.newcode"; done)
+$(for n in cone-relay symmetric-relay docker-away; do echo "$n.settled.on.fresh.three"; done)
+$(for w in link paste; do echo "manyaddr.settled.on.fresh.$w"; done)"
 
 full() {
   local n s o p w

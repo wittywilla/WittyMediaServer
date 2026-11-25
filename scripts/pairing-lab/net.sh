@@ -23,7 +23,10 @@
 #   docker-home       the server in a container on Docker's bridge (172.17.0.2), behind its host's NAT, the
 #                     web and peer-to-peer ports published, the host behind a cone router; the phone on the
 #                     same home network as the host / only an ordinary public relay (issue #683)
-#   docker-away       as docker-home, the phone away behind its own cone router / own WittyRelay
+#   docker-away       the owner's setup: as docker-home, the phone away on mobile data (symmetric) / own WittyRelay
+#   docker-unpub      the owner's 0.8.4 setup: as docker-away, but 9796 not published, and only a public relay:
+#                     pairing can't finish, and must say so (Port 9796 isn't published from Docker)
+#   manyaddr          as cone-relay, the server with eight more interface addresses (VPNs, virtual adapters)
 #
 # PL_RELAY_KIND says which relay a network has: own (WittyRelay, with the owner's key), public (an
 # ordinary libp2p relay with default limits, the kind found on the public network) or none.
@@ -134,7 +137,9 @@ lab_net() {
   PL_RELAY_ADDRS=/ip4/$PL_RELAY4/udp/4001/quic-v1,/ip4/$PL_RELAY4/tcp/4001
   local snat=cone cnat=cone
   case "$net" in
-    docker-home | docker-away)
+    docker-home | docker-away | docker-unpub)
+      # The image's own ports, as the owner runs it.
+      PL_HTTP=9797; PL_P2P=9796
       PL_RELAY_KIND=public
       [ "$net" = docker-away ] && PL_RELAY_KIND=own
       _docker "$net"
@@ -148,6 +153,7 @@ lab_net() {
     public-cone) PL_RELAY_KIND=public ;;
     public-sym) cnat=symmetric; PL_RELAY_KIND=public ;;
     symmetric-relay) snat=symmetric; cnat=symmetric ;;
+    manyaddr) PL_MANY_ADDRS=8 ;;
     cgnat-relay) cnat=symmetric ;;
     udp-blocked) cnat=symmetric ;;
     ipv6-only) PL_V6=yes; PL_RELAY_ADDRS=/ip6/$PL_RELAY6/udp/4001/quic-v1,/ip6/$PL_RELAY6/tcp/4001 ;;
@@ -197,16 +203,27 @@ lab_net() {
     # No IPv6 anywhere: not even link-local chatter.
     for n in pl-srv pl-cli; do nsx "$n" sysctl -qw net.ipv6.conf.all.disable_ipv6=1; done
   fi
+  # More addresses on the server, as a Windows machine with VPNs and virtual adapters has: each one an address
+  # the server lists, none of them any use from away.
+  for ((n = 1; n <= ${PL_MANY_ADDRS:-0}; n++)); do
+    nsx pl-srv ip link add "vad$n" type dummy
+    nsx pl-srv ip addr add "10.77.$n.1/24" dev "vad$n"
+    nsx pl-srv ip link set "vad$n" up
+  done
   [ "$uplink" = uplink ] && _uplink
   true
 }
 
-# _docker docker-home|docker-away: a home network (a bridge in the router, 192.168.1.0/24) with a
-# computer on it (pl-dh, 192.168.1.10) running the server in a container on Docker's default bridge
-# (pl-srv, 172.17.0.2). As Docker does it: the host hands the container's traffic on with its own
-# address, and only the web port is published. The peer-to-peer port is not.
+# _docker docker-home|docker-away|docker-unpub: a home network (a bridge in the router, 192.168.1.0/24) with a
+# computer on it (pl-dh, 192.168.1.10) running the server in a container on Docker's default bridge (pl-srv,
+# 172.17.0.2), on the image's ports: the web port 9797 and the peer-to-peer port 9796. As Docker does it: the
+# host hands the container's traffic on with its own address, publishes ports by DNAT (from outside, and from the
+# container itself to the host's address: the hairpin the server's own "is my port published" check goes through),
+# and the rest of the host answers a connection to an unpublished port with a refusal. The peer-to-peer port is
+# published unless the network is docker-unpub (the stock compose file before 0.8.5).
 _docker() {
-  local net=$1
+  local net=$1 p ports="$PL_HTTP/tcp"
+  [ "$net" = docker-unpub ] || ports="$ports $PL_P2P/tcp $PL_P2P/udp"
   _wire pl-rc wan "$PL_CLI_WAN4/16"
   _wire pl-relay eth0 "$PL_RELAY4/16"
   _wire pl-rs wan "$PL_SRV_WAN4/16"
@@ -225,17 +242,15 @@ _docker() {
   nsx pl-srv ip route add default via 172.17.0.1
   nsx pl-dh sysctl -qw net.ipv4.ip_forward=1
   nsx pl-dh iptables -t nat -A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
-  nsx pl-dh iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 19890 -j DNAT --to-destination 172.17.0.2:19890
-  # The peer-to-peer port too, UDP and TCP, as the compose files publish it since #683.
-  local p
-  for p in udp tcp; do
-    nsx pl-dh iptables -t nat -A PREROUTING -i eth0 -p "$p" --dport "$PL_P2P" -j DNAT --to-destination "172.17.0.2:$PL_P2P"
-    nsx pl-dh iptables -A FORWARD -i eth0 -o docker0 -p "$p" -d 172.17.0.2 --dport "$PL_P2P" -j ACCEPT
-  done
+  # The hairpin: the container reaching a published port at the host's own address.
+  nsx pl-dh iptables -t nat -A POSTROUTING -s 172.17.0.0/16 -d 172.17.0.2 -o docker0 -j MASQUERADE
   nsx pl-dh iptables -P FORWARD DROP
   nsx pl-dh iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-  nsx pl-dh iptables -A FORWARD -i docker0 -j ACCEPT
-  nsx pl-dh iptables -A FORWARD -i eth0 -o docker0 -p tcp -d 172.17.0.2 --dport 19890 -j ACCEPT
+  nsx pl-dh iptables -A FORWARD -i docker0 -o eth0 -j ACCEPT
+  for p in $ports; do
+    nsx pl-dh iptables -t nat -A PREROUTING -d 192.168.1.10 -p "${p#*/}" --dport "${p%/*}" -j DNAT --to-destination "172.17.0.2:${p%/*}"
+    nsx pl-dh iptables -A FORWARD -o docker0 -p "${p#*/}" -d 172.17.0.2 --dport "${p%/*}" -j ACCEPT
+  done
   # The home router: lan is the bridge here.
   nsx pl-rs sysctl -qw net.ipv4.ip_forward=1
   nsx pl-rs iptables -t nat -A POSTROUTING -o wan -j MASQUERADE
@@ -254,14 +269,17 @@ _docker() {
     nsx pl-cli ip addr add 192.168.1.20/24 dev eth0; nsx pl-cli ip link set eth0 up
     nsx pl-cli ip route add default via 192.168.1.1
   else
+    # Away on mobile data: a carrier's NAT, a new outside port for every destination.
     _home pl-rc pl-cli 192.168.2 ""
-    _nat pl-rc cone
+    _nat pl-rc symmetric
   fi
   for n in pl-srv pl-cli pl-dh; do nsx "$n" sysctl -qw net.ipv6.conf.all.disable_ipv6=1; done
   PL_SRV_IP=172.17.0.2
-  PL_HOME_URL=http://192.168.1.10:19890
+  PL_IN_DOCKER=1
+  PL_HOME_URL=http://192.168.1.10:$PL_HTTP
   # The phone is at home only on docker-home: there it can use the web port with a code.
   [ "$net" = docker-home ] && PL_PHONE_HOME=$PL_HOME_URL
+  true
 }
 
 # The pretend internet's way out to the real one: a cable to this machine, which hands packets on
@@ -269,9 +287,9 @@ _docker() {
 _uplink() {
   local r
   nsx pl-inet ip addr add 80.0.0.1/16 dev br0
-  ip link add pl-up type veth peer name up netns pl-inet
+  ip link add pl-up type veth peer name upl netns pl-inet
   ip addr add 10.254.77.1/30 dev pl-up; ip link set pl-up up
-  nsx pl-inet ip addr add 10.254.77.2/30 dev up; nsx pl-inet ip link set up up
+  nsx pl-inet ip addr add 10.254.77.2/30 dev upl; nsx pl-inet ip link set dev upl up
   nsx pl-inet ip route add default via 10.254.77.1
   nsx pl-inet sysctl -qw net.ipv4.ip_forward=1
   sysctl -qw net.ipv4.ip_forward=1

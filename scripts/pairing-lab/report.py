@@ -12,6 +12,10 @@ import json
 import os
 import sys
 
+# Networks with no WittyRelay of the owner's, and those where no way through can exist (see case()).
+NO_OWN_RELAY = {"direct", "public-cone", "public-sym", "docker-unpub"}  # docker-home: a code there is typed at home
+EXPLAINED = {"public-cone", "public-sym", "docker-unpub"}
+
 KEY_STEPS = ["invite-made", "connector-start", "connected", "enrol", "join-answer", "identity", "pair-redeem",
              "use-after-pairing", "reopen-identity", "reopen-use"]
 
@@ -57,20 +61,36 @@ def case(folder, rc):
     }
     parts = name.split(".")
     net, way = (parts[0], parts[4]) if len(parts) == 5 else ("", "")
-    if rc in (1, 4) and way == "code" and net != "docker-home":
-        # A code from away is a TV's shown code, found through the public address book: known to be slow and
-        # unreliable, and not what a phone uses (it scans the QR code or pastes the link). Recorded, not a gate.
+    phone = [s for s in ss if s.get("side") == "phone" and isinstance(s.get("detail"), dict)]
+    if rc in (1, 4) and way == "code" and net in NO_OWN_RELAY:
+        # A code from away with no WittyRelay of the owner's: a TV's shown code found only through the public
+        # address book, known to be slow and unreliable. Recorded, not a gate. (With the owner's relay it is.)
         r["outcome"], r["ok"] = "known-unreliable", True
-    if rc == 1 and net == "public-sym":
-        # Only a public relay, which carries no requests, and no direct path that can exist: pairing can't
-        # finish. What matters is that the phone is told so by the connector (its X-Witty-Connect-Error), not
-        # left with a bare timeout. A retry must say the same, not fail differently.
-        explained = [s for s in ss if s.get("side") == "phone" and isinstance(s.get("detail"), dict)
-                     and s["detail"].get("connectorError")]
-        bare = [s for s in ss if s.get("side") == "phone" and s.get("step") in ("identity", "reopen-identity")
-                and s.get("ok") is False and isinstance(s.get("detail"), dict) and not s["detail"].get("connectorError")]
-        if explained and not bare:
+    if rc == 1 and net in EXPLAINED:
+        # No way through can exist here: only a public relay, which carries no requests, and no direct path (in
+        # the lab no hole punch can succeed; on real networks one often does). Pairing can't finish; what is
+        # checked is that the phone is told why, in the connector's own words (X-Witty-Connect-Error and its
+        # body), never a bare timeout, and in a container that the server names the port to publish.
+        told = [s for s in phone if s["step"] in ("identity", "reopen-identity") and s["detail"].get("connectorError")
+                and "relay" in str(s["detail"].get("body", ""))]
+        bare = [s for s in phone if s["step"] in ("identity", "reopen-identity") and s.get("ok") is False
+                and not s["detail"].get("connectorError")]
+        hint = net != "docker-unpub" or any(
+            "isn't published from Docker" in str((s.get("detail") or {}).get("hint", ""))
+            for s in ss if s.get("step") == "connect-status")
+        r["explained"] = {"connectorWords": bool(told), "bareTimeout": bool(bare), "portHint": hint}
+        if told and not bare and hint:
             r["outcome"], r["ok"] = "explained", True
+    if rc == 0 and way == "three":
+        # Three invites in 30 s: the relay never answered "busy", and the enrol says the relay had the device
+        # listed before it answered (relayReady), so the first dial through it works.
+        busy = "busy" in open(os.path.join(folder, "relay.log"), errors="replace").read() if os.path.exists(
+            os.path.join(folder, "relay.log")) else False
+        ready = any(s["step"] == "enrol" and isinstance(s["detail"].get("answer"), dict)
+                    and s["detail"]["answer"].get("relayReady") is True for s in phone)
+        r["three"] = {"relayBusy": busy, "relayReady": ready}
+        if busy or not ready:
+            r["outcome"], r["ok"] = "fail", False
     with open(os.path.join(folder, "result.json"), "w") as f:
         json.dump(r, f, indent=2)
     return r

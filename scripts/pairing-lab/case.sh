@@ -108,7 +108,7 @@ start_server() {
   local tag=$1 http=$2 ff
   mkdir -p "$OUT/data-$tag"; chown "$RUNAS" "$OUT" "$OUT/data-$tag"
   ff=$(command -v ffmpeg || true)
-  ip netns exec pl-srv sudo -u "$RUNAS" env HOME="$UH" WMS_NO_BROWSER=1 ${ff:+WMS_FFMPEG=$ff} GOLOG_LOG_LEVEL="${GOLOG_LOG_LEVEL:-error,p2p-holepunch=debug,autorelay=debug}" \
+  ip netns exec pl-srv sudo -u "$RUNAS" env HOME="$UH" WMS_NO_BROWSER=1 ${PL_IN_DOCKER:+WMS_DOCKER=1} ${ff:+WMS_FFMPEG=$ff} GOLOG_LOG_LEVEL="${GOLOG_LOG_LEVEL:-error,p2p-holepunch=debug,autorelay=debug}" \
     sh -c 'echo $$ >"$0"; exec "$@"' "$OUT/server-$tag.pid" "$BUILD/bin/wittymediaserver" serve -data "$OUT/data-$tag" \
     -listen "0.0.0.0:$http" -open-browser=false </dev/null >>"$OUT/server-$tag.log" 2>&1 &
   local i
@@ -305,6 +305,11 @@ else
   [ -z "$RELAY$PUBLIC_RELAY" ] && sleep 5
 fi
 SID=$(jget "d['serverId']" <"$OUT/p2p-a.json")
+# What Connect a device says about connections from away (and, in a container, which port to publish).
+sstep connect-status true "$(api a GET /api/connect | python3 -c 'import json,sys
+try: d = json.load(sys.stdin)
+except Exception: d = {}
+print(json.dumps({k: d.get(k) for k in ("away", "words", "hint", "detail") if d.get(k)}))' 2>/dev/null || echo null)"
 POLLER_START
 
 if [ "$CSTATE" = upgrade ] && [ -z "$EMU" ]; then
@@ -347,7 +352,7 @@ case "$WAY" in
   # link: Connect a device's QR code, scanned. paste: its link, pasted. retry: the QR code, and if that fails,
   # a new one scanned within 30 s. newcode: a QR code shown, then Connect a device opened again (a new code),
   # and the first QR code scanned.
-  link | paste | retry | newcode) LINKWAY=yes ;;
+  link | paste | retry | newcode | three) LINKWAY=yes ;;
   *) LINKWAY= ;;
 esac
 if [ -n "$LINKWAY" ]; then
@@ -355,6 +360,11 @@ if [ -n "$LINKWAY" ]; then
   LINK=$(make_invite a "$kind")
   [ -n "$LINK" ] || die "no invite: $(cat "$OUT/invite-a.json")"
   link_step invite-made "$LINK"
+  if [ "$WAY" = three ]; then
+    # Three invites within 30 s (a person pressing Connect a device again and again), the last one scanned.
+    for _ in 1 2; do sleep 3; LINK=$(make_invite a "$kind"); done
+    link_step third-invite-made "$LINK"
+  fi
   if [ "$WAY" = newcode ]; then
     cp "$OUT/invite-a.json" "$OUT/invite-a-first.json"
     sleep 2

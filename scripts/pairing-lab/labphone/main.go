@@ -46,6 +46,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -386,6 +387,17 @@ func run(mode, link, state, dir, codeFile, name string) error {
 	// joined(): what the app keeps for next time.
 	var addrs []string
 	_ = json.Unmarshal([]byte(sess.KnownAddrs()), &addrs)
+	if enrolFirst() {
+		// 0.6.3 (PeerManager.keepAddrs, #141): up to two relay circuits from the invite stay first, ahead of what the
+		// library learnt, which a list of direct addresses would otherwise push out.
+		var circuits []string
+		for _, h := range hints {
+			if strings.Contains(h, "/p2p-circuit") && !slices.Contains(addrs, h) && len(circuits) < 2 {
+				circuits = append(circuits, h)
+			}
+		}
+		addrs = appHints(append(circuits, addrs...))
+	}
 	k.Port = sess.Port()
 	k.Servers[serverID] = addrs
 	k.Previous = serverID
@@ -514,7 +526,13 @@ func identity(base, secret, name string) error {
 	raw := make([]byte, 24)
 	_, _ = rand.Read(raw)
 	t := time.Now()
-	code, b, h, err := callWith(quickClient, "POST", base+"/api/v1/identity", secret, "", map[string]string{"nonce": base64.StdEncoding.EncodeToString(raw)})
+	// 0.6.2 checks through its 5 s quick client; 0.6.3 (#142, Api.kt identify, quick = !viaConnector) waits for the
+	// connector's own answer, and shows its words (X-Witty-Connect-Error) when it has no way through.
+	idc := quickClient
+	if enrolFirst() {
+		idc = client
+	}
+	code, b, h, err := callWith(idc, "POST", base+"/api/v1/identity", secret, "", map[string]string{"nonce": base64.StdEncoding.EncodeToString(raw)})
 	detail := map[string]any{"ms": time.Since(t).Milliseconds(), "status": code, "err": errText(err)}
 	if h != nil && h.Get("X-Witty-Connect-Error") != "" {
 		detail["connectorError"] = h.Get("X-Witty-Connect-Error")

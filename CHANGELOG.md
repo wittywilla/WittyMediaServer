@@ -10,6 +10,12 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.
   Graphics-chip decoders, as most browsers, phones and TVs use, held the picture while the sound played, then showed it
   late. The server now looks at one keyframe of each such file and converts its picture when the keyframe isn't an IDR.
+- **Music visualizer: an effect hears the music after Bars.** In Chrome, Edge and the desktop app, choosing a
+  WittyVisualizer effect while Bars was showing gave an effect that moved but heard only silence, and it stayed silent
+  for the next songs: Bars, handing over, switched off the copy of the sound the effect was listening to as well.
+- **Music visualizer on a server without WittyVisualizer.** An effect chosen earlier (or on another server) drew
+  nothing at all there; the player's own Bars now stand in. `npm run test:visualizer` checks every way into the full
+  player (mini player first, straight away, Next, pause and play, Bars then an effect, no module).
 
 ## 0.8.5-alpha
 

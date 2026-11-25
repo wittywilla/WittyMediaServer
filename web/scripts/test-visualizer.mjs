@@ -3,7 +3,9 @@
 // The music visualizer listens to the song however the full player was reached: a song started in the mini
 // player and opened later, the full player opened straight away, closed and opened again, the next song, and
 // pause then play. Each time the analyser must hear something (not all zeros) and the picture must be drawing.
-// Bars (the player's own), and a WittyVisualizer effect when the server has the module.
+// Bars (the player's own), and a WittyVisualizer effect when the server has the module. With an effect chosen, Bars
+// draw at once while it loads. On a server without the module, a chosen effect falls back to Bars: the player's own
+// styles never need it.
 //
 // A real browser's autoplay rules, not the headless default of no rules, and real clicks, so a sound engine
 // that waits for a press is caught. No window opens. Needs a music library with at least two songs.
@@ -26,7 +28,9 @@ if (!token) throw new Error('could not sign in')
 const lib = (await call('GET', '/libraries', null, token)).find((l) => l.type === 'music')
 if (!lib) throw new Error('no music library')
 const prefs = await call('GET', '/prefs', null, token)
-const styles = ['bars', ...(prefs.visualizer ? ['molten'] : [])]
+const moduleHere = prefs.visualizer !== false
+// An effect is chosen either way: without the module it must still draw (as Bars).
+const styles = (process.env.WMS_STYLES || 'bars,molten').split(',') // WMS_STYLES=molten for one
 
 // What the page can't show from outside: what every analyser read, and how often the Bars canvas was drawn.
 const HOOKS = `
@@ -41,7 +45,8 @@ const HOOKS = `
 `
 const AUDIO = `[...document.querySelectorAll('audio')].find((a) => a.src && !a.paused)`
 // The browser's own default (a press first), not the test launcher's "anything may play".
-const b = await launch({ width: 1400, height: 900, args: ['--autoplay-policy=document-user-activation-required'] })
+// A browser of its own for each run through, so one page can't change what the next one reads (settings, storage).
+const browser = () => launch({ width: 1400, height: 900, args: ['--autoplay-policy=document-user-activation-required'] })
 const results = []
 let failed = 0
 
@@ -53,7 +58,7 @@ const click = async (p, sel) => {
 
 // Listening and drawing, over a few seconds: the effect may first blend in from the last one it showed.
 const check = async (p, style, label) => {
-  const shader = style !== 'bars'
+  const shader = style !== 'bars' && moduleHere
   let got = null
   const end = Date.now() + 9000
   while (Date.now() < end) {
@@ -71,12 +76,16 @@ const check = async (p, style, label) => {
 }
 
 const scenario = async (style, name, fn) => {
+  const b = await browser()
   const p = await b.open()
   try {
     await p.send('Page.addScriptToEvaluateOnNewDocument', { source: HOOKS })
     await p.go(server + '/')
     await p.eval(`fetch('/api/login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: ${JSON.stringify(process.env.WMS_NAME)}, password: ${JSON.stringify(process.env.WMS_PASS)} }) }).then((r) => r.json()).then((d) => localStorage.setItem('wms.token', d.token))`)
-    await call('PUT', '/me/ui', { musicPlayer: { viz: true, style }, visualizerPlayer: { on: true, notice: true } }, token)
+    // The effect last shown is another one, as after someone changes effect: the chosen one then blends in over a few seconds.
+    await call('PUT', '/me/ui', { musicPlayer: { viz: true, style }, visualizerPlayer: { on: true, notice: true }, modules: { wittyvisualizer: { effect: 'aurora', cycleSec: '0' } } }, token)
+    const saved = (await call('GET', '/me/ui', null, token)).musicPlayer
+    if (saved?.viz !== true || saved?.style !== style) throw new Error('the visualizer settings did not stick: ' + JSON.stringify(saved))
     await p.go(`${server}/library/${lib.id}?tab=songs`)
     await p.until(`document.querySelector('.mus-tr-play')`, 20000, 'the songs')
     await fn(p)
@@ -86,16 +95,30 @@ const scenario = async (style, name, fn) => {
     console.log('FAIL', style, name, String(e))
     writeFileSync(join(out, `${style}-${name}-failed.png`), await p.shot())
   }
-  p.close()
+  await b.close()
 }
 const play = async (p) => { await click(p, '.mus-tr-play'); await p.until(`${AUDIO}?.currentTime > 0.3`, 20000, 'the music') }
-const openFull = async (p) => { await click(p, '.ab-expand'); await p.until(`document.querySelector('.np')`, 5000, 'the full player') }
+const openFull = async (p) => {
+  await p.eval('window.__draws = 0')
+  await click(p, '.ab-expand')
+  await p.until(`document.querySelector('.np')`, 5000, 'the full player')
+}
+// With an effect chosen, the screen isn't left empty while it loads: Bars draw under it from the first moment.
+const drawsAtOnce = async (p, style, label) => {
+  await wait(1200)
+  const r = await p.eval(`({ draws: window.__draws, bars: !!document.querySelector('.np-canvas'), shown: !!document.querySelector('.np-shader.shown') })`)
+  const ok = r.shown || (r.bars && r.draws > 0)
+  if (!ok) failed++
+  results.push({ style, label, ...r, ok })
+  console.log(ok ? 'ok  ' : 'FAIL', style, label, JSON.stringify(r))
+}
 
 for (const style of styles) {
   await scenario(style, 'mini first', async (p) => {
     await play(p)
     await wait(4000) // playing in the mini player for a while
     await openFull(p)
+    if (style !== 'bars') await drawsAtOnce(p, style, 'something draws at once while the effect loads')
     await check(p, style, 'mini player, then the full player')
     await click(p, '.np-close'); await wait(1500)
     await click(p, '.audio-bar [aria-label^="Next"]'); await wait(2500)
@@ -113,7 +136,24 @@ for (const style of styles) {
     await check(p, style, 'next song in the full player')
   })
 }
+// Bars first, then an effect chosen while the song plays: Bars stay under it until it's ready, and letting go of
+// them must not silence the effect (both listen to the same element).
+if (moduleHere) {
+  await scenario('bars', 'then an effect', async (p) => {
+    await play(p)
+    await wait(2000)
+    await openFull(p)
+    await check(p, 'bars', 'Bars in the full player')
+    await click(p, '[aria-label="More visualizer styles"]')
+    await p.until(`document.querySelectorAll('.np-style-menu button').length > 2`, 15000, 'the effects')
+    await p.eval(`[...document.querySelectorAll('.np-style-menu button')].find((b) => /Molten Glass/.test(b.textContent)).click()`)
+    await wait(1500)
+    await check(p, 'molten', 'an effect chosen after Bars')
+    await click(p, '.np [aria-label^="Next"]'); await wait(1500)
+    await check(p, 'molten', 'next song after choosing the effect')
+  })
+}
+console.log(moduleHere ? 'WittyVisualizer is on this server' : 'no WittyVisualizer on this server: effects draw as Bars')
 writeFileSync(join(out, 'visualizer.json'), JSON.stringify(results, null, 1))
-await b.close()
 console.log(failed ? `${failed} failed` : 'all passed')
 process.exit(failed ? 1 : 0)

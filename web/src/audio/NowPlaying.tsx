@@ -148,6 +148,9 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
   }, [p.fullOpts]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const style = shown || prefs.style
+  // What draws behind: an effect needs the server's WittyVisualizer; without it (a new install, the owner took it off)
+  // the player's own Bars stand in, rather than nothing at all.
+  const behind = isNative(style) || p.vizHere ? style : 'bars'
 
   // The look (look.ts): everyone's, with this song's own over it. The bar and karaoke read the same.
   useEffect(() => { if (prefsLoaded) publishLook({ look: prefs.look, songs: prefs.songLooks, canvas: prefs.canvas, viz: prefs.viz }) }, [prefsLoaded, prefs.look, prefs.songLooks, prefs.canvas, prefs.viz])
@@ -296,7 +299,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
         { value: 'read', label: <><IconReadOpen size={16} /> {t('Read')}{extras.length > 0 && <span className="np-count">{extras.length}</span>}</> }]} />
   )
   const karaokeBehind = prefs.viz
-    ? (isNative(style) || p.vizHere) ? <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} /> : null
+    ? <NpBackground style={behind} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />
     : canvasBehind ? <NowPlayingCanvas itemId={it.id} playing={p.playing} />
       : artUrl && look.backdrop !== 'plain' ? <div className={'kar-art' + (look.backdrop === 'blur' || look.backdrop === 'glow' ? ' blur' : '')} aria-hidden="true" style={{ backgroundImage: `url(${artUrl})` }} /> : null
   // The cover beside the words, in the same look as here, the Canvas in its place when it is there.
@@ -312,7 +315,7 @@ export default function NowPlaying({ p }: { p: PlayerView }) {
       {canvasBehind && <NowPlayingCanvas itemId={it.id} playing={p.playing} />}
       {/* One canvas: it goes to the whole-screen view or to karaoke while that's open, and comes back after
           (two at once shared one effect session, and closing karaoke ended it for the player too). */}
-      {prefsLoaded && prefs.viz && !wholeShader && !karaoke && (isNative(style) || p.vizHere) && <NpBackground style={style} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
+      {prefsLoaded && prefs.viz && !wholeShader && !karaoke && <NpBackground style={behind} slow={prefs.slow} rgb={rgb} playing={p.playing} media={p.media} trackMedia={trackMedia} onDecline={() => { setShown(''); setPrefs({ style: 'bars' }) }} />}
       {wholeShader && <VisualizerView media={trackMedia} place="full" onPlace={(pl) => { if (pl !== 'full') leaveWhole() }} onClose={leaveWhole} />}
 
       <header className="np-top">

@@ -65,7 +65,9 @@ async function map(label) {
   for (const id of all) {
     const edges = {}
     for (const k of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
-      await page.eval(`document.querySelector('[data-t="${id}"]')?.focus({ preventScroll: true })`)
+      // Brought into view as a remote's focus would be: from a control left off screen, the arrows find nothing on a
+      // long page (Your media, Look, a module's page), and the map said the buttons under it couldn't be reached.
+      await page.eval(`(() => { const e = document.querySelector('[data-t="${id}"]'); e?.focus(); e?.scrollIntoView({ block: 'center' }) })()`)
       await press(k)
       // A group of choices moves its focus on the next frame (ui/Choice.tsx), so the map waits for it.
       await page.eval(`new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(0))))`)
@@ -73,7 +75,7 @@ async function map(label) {
     }
     graph.set(id, edges)
   }
-  if (start) await page.eval(`document.querySelector('[data-t="${start}"]')?.focus({ preventScroll: true })`)
+  if (start) await page.eval(`(() => { const e = document.querySelector('[data-t="${start}"]'); e?.focus(); e?.scrollIntoView({ block: 'center' }) })()`)
   const reached = new Set([all[0]]); const q = [all[0]]
   while (q.length) for (const t of Object.values(graph.get(q.shift()) || {})) if (t && !reached.has(t) && graph.has(t)) { reached.add(t); q.push(t) }
   for (const a of all) if (!reached.has(a)) problems.add(`${label}: the arrows can't reach "${await nameOf(a)}"`)

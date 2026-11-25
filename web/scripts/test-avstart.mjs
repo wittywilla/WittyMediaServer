@@ -83,6 +83,7 @@ const METER = `(() => {
 const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : NaN }
 const wait = (ms) => new Promise((d) => setTimeout(d, ms))
 const browser = await launch({ software: true, args: ['--autoplay-policy=no-user-gesture-required'] })
+const p = await browser.open('about:blank')
 let fails = 0
 try {
   for (const id of items) {
@@ -91,7 +92,8 @@ try {
     for (const start of STARTS) {
       try {
       const seekTo = start.startsWith('seek:') ? Number(start.slice(5)) : null
-      const p = await browser.open(url + '/')
+      // One tab, navigated from film to film: leaving a page stops its film, and its stream on the server.
+      await p.go(url + '/')
       await p.eval(`localStorage.setItem('wms.token', ${JSON.stringify(token)}), true`)
       await p.go(`${url}/play/${id}${seekTo == null && Number(start) > 0 ? `?start=${start}` : ''}`)
       await p.until(`document.querySelector('video') && document.querySelector('video').readyState >= 1`, 60000, 'the video to open').catch(async (e) => { throw new Error(e.message + '; the page says: ' + (await p.eval('document.body.innerText.slice(0, 160)'))) })
@@ -106,7 +108,6 @@ try {
       await wait(MEASURE_SECONDS * 1000)
       if (process.env.AVSTART_TRACE) console.log('  trace:', JSON.stringify(await p.eval(`__av.flashes.map((f, i) => [Math.round((f - __av.armedAt) / 1000), __avOffsets()[i] == null ? null : Math.round(__avOffsets()[i])])`)))
       const r = await p.eval(`(() => { const v = document.querySelector('video'); return { offs: __avOffsets(), black: Math.round(__av.black), held: Math.round(__av.held), first: __av.firstFrame == null ? null : Math.round(__av.firstFrame - __av.armedAt), t: v.currentTime } })()`)
-      await p.close?.()
       const m = median(r.offs)
       if (Number.isNaN(base)) base = m
       const off = m - base

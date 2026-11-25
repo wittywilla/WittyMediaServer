@@ -1983,6 +1983,7 @@
   "Very little: mostly copying, plus a short conversion for an added stereo track.",
   "Video CD track",
   "Video being converted is written here and read back right away, and that's slow over a network: playback may stall.",
+  "Vulkan here is only the processor's ({device}), not a graphics chip.",
   "Wait a few minutes. If it wasn't you, check who can reach this server.",
   "Wait for that to finish, then try this again.",
   "Waiting for its turn",

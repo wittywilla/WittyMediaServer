@@ -9,6 +9,16 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   "Tuning…" stays until there is one, rather than giving way to a frame standing still while the sound plays. The
   sound comes back after a few seconds at most whatever happens, and a page playing in the background isn't held.
 
+- **HDR films start again on a NAS without a graphics chip.** 0.8.5's image carries a Vulkan driver that runs on the
+  processor (for games), and HDR films were tone-mapped through it: several times slower, and in a 2 GB container
+  FFmpeg ran out of memory on the first segment, so the picture stayed black and the film never started. That driver
+  isn't taken for a graphics chip any more: HDR is tone-mapped on the processor as in 0.8.4, and on a real Intel,
+  AMD or NVIDIA chip as before. CI now starts open-GOP, HEVC 10-bit, late-sound and HDR10 test films from the start,
+  part way and after a skip, and fails on a black or frozen picture or the sound out of step.
+- **Sound and picture together again after a change of speed.** Watching at 4× and going back to normal could leave
+  the sound out of step with the picture until the next seek. After each real change of speed (half a step or more)
+  the player now lines them up by itself, in the browser, the desktop app, and the Android and Apple apps (client
+  0.6.4). CI plays 1×, 4× and back to 1× and fails if the sound is more than 40 ms from where it was.
 - **The processor's graphics drivers are called what they are.** Since 0.8.5 the image has Mesa's software drivers
   (llvmpipe for OpenGL, lavapipe for Vulkan), which WittyPlay uses to draw GameCube and Wii with no graphics card. The
   Graphics status (Settings → Live transcoding, `wittymediaserver hardware`, the log) now says "Software (no graphics

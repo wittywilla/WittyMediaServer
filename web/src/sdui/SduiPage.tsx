@@ -33,6 +33,8 @@ import { date, t, tn, tx, bidi } from '../i18n'
 import { setWords } from './words'
 import './sdui.css'
 import './play.css'
+import { PageHead } from '../pages/settings/ui'
+import { useInSettings } from '../pages/settings/open'
 
 const Customise = lazy(() => import('./Customise'))
 const CardMenu = lazy(() => import('./render/CardMenu'))
@@ -167,6 +169,7 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
   // A page whose first row says the page's name (Photos with one library, "Photos") shows that row's heading only:
   // the same word twice, one above the other, reads as a mistake.
   const sameWords = (a?: string, b?: string) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase()
+  const inSettings = useInSettings()
   const ownHeading = !first || homeWithPicture || first.type === 'Hero' || first.type === 'DetailHeader' || first.type === 'NativeView' || (first.type === 'Text' && first.role === 'heading 1')
     || ((first.type === 'Shelf' || first.type === 'Grid') && sameWords(first.label, title))
   const style = {
@@ -179,7 +182,8 @@ export function PageView({ doc, device, handlers, width, children }: { doc: Docu
       <PressContext.Provider value={press}>
       <div ref={box} className={`sdui ff-${l.formFactor} bp-${l.breakpoint} density-${l.density || 'comfortable'} kind-${doc.page.kind}` + (inert ? ' inert' : '')} style={style}
         data-sdui-page={doc.page.id} data-scope={doc.theme?.scope || undefined} data-source={doc.meta?.source === 'draft' ? 'draft' : undefined}>
-        {title && <h1 className={tv || ownHeading ? 'sr-only' : 'sdui-page-title'}>{title}</h1>}
+        {/* Opened inside Settings (pages/settings/open.ts), the page has Settings' head, as every Settings page does. */}
+        {title && (inSettings && !tv ? <PageHead title={title} /> : <h1 className={tv || ownHeading ? 'sr-only' : 'sdui-page-title'}>{title}</h1>)}
         {children}
         <Sections views={model.root.children} />
         {/* A title's own facts, where else it is listed and the small print go here, after its episodes, cast and more like it (DetailExtras). */}

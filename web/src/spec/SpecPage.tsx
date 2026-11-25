@@ -11,6 +11,8 @@ import type { SpecCard, SpecChip, SpecField, SpecPageData, SpecRow, SpecSection 
 import { t, tn, tx, bidi } from '../i18n'
 import { setWords } from '../sdui/words'
 import './spec.css'
+import { PageHead } from '../pages/settings/ui'
+import { useInSettings } from '../pages/settings/open'
 
 // The page specs (specs/) also run under node's tests, so they are handed the app's words here.
 setWords(t, tn, tx, bidi)
@@ -46,9 +48,13 @@ export default function SpecPage({ page: raw, onAction, onField, handled, after,
     id: a.id || a.title, label: a.title, primary: a.kind === 'primary', to: a.to, disabled: a.disabled || (!a.to && !(a.id && handled?.has(a.id))),
     onClick: a.to ? undefined : () => a.id && onAction?.(a.id),
   }))
+  // Opened inside Settings (a page the settings menu opens, pages/settings/open.ts), it is a Settings page: Settings'
+  // head, start-aligned, in place of its own (#763).
+  const inSettings = useInSettings() && !embedded && !bare
   return (
-    <article className={'spec-page' + (embedded ? ' embedded' : '') + (bare ? ' bare' : '') + (className ? ' ' + className : '')} data-spec={page.key}>
-      {!embedded && !bare && (
+    <article className={'spec-page' + (embedded || inSettings ? ' embedded' : '') + (bare ? ' bare' : '') + (className ? ' ' + className : '')} data-spec={page.key}>
+      {inSettings && <PageHead title={page.title} desc={page.lead} />}
+      {!embedded && !bare && !inSettings && (
         <header className="spec-head">
           {page.eyebrow && <p className="spec-eyebrow">{page.eyebrow}</p>}
           <h1>{page.title}</h1>

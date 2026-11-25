@@ -104,14 +104,15 @@ function PageToc() {
   )
 }
 
-// A section's id is its title in plain words, so a link or a search result can jump to it.
-export function Section({ title, desc, actions, children, id }: { title: string; desc?: ReactNode; actions?: ReactNode; children: ReactNode; id?: string }) {
+// A section's id is its title in plain words, so a link or a search result can jump to it. A module's group may
+// come without a title (WittyPlay's first): it is a card with no heading, not a page that fails to draw (#763).
+export function Section({ title, desc, actions, children, id }: { title?: string; desc?: ReactNode; actions?: ReactNode; children: ReactNode; id?: string }) {
   return (
-    <section className="set-card" id={id || sectionId(title)} aria-label={tx(title)}>
-      <header className="set-card-head">
-        <div><h2>{tx(title)}</h2>{desc && <p>{desc}</p>}</div>
+    <section className="set-card" id={id || (title ? sectionId(title) : undefined)} aria-label={title ? tx(title) : undefined}>
+      {(title || desc || actions) && <header className="set-card-head">
+        <div>{title && <h2>{tx(title)}</h2>}{desc && <p>{desc}</p>}</div>
         {actions && <div className="set-card-actions">{actions}</div>}
-      </header>
+      </header>}
       <div className="set-card-body">{children}</div>
     </section>
   )

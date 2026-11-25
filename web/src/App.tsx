@@ -37,6 +37,7 @@ import { frameFor } from './shell/navModel'
 import { useMedia, useMenu, useNavMigration, useNavPrefs } from './shell/useNav'
 import { IconTv } from './icons'
 import { backToTvMode, cameFromTvMode, forgetTvReturn, useTvMode } from './tvmode/mode'
+import { openedPath } from './pages/settings/open'
 import RemoteHost from './remote/RemoteHost'
 import { t, tx } from './i18n'
 
@@ -236,6 +237,21 @@ function RouteSkeleton() {
 
 // Every page of the app, by its address. The usual frame and TV mode's frame both show them.
 export function PageRoutes() {
+  const loc = useLocation()
+  const moduleWeb = useModuleWeb()
+  const tvMode = useTvMode()
+  // A page the Settings menu opens that has an address elsewhere (Sign in a TV, a module's own page): drawn inside
+  // Settings, the menu beside it, as /settings/open/<its address> (pages/settings/open.ts). TV mode has a menu of its own.
+  const opened = openedPath(loc.pathname)
+  if (opened && (tvMode || opened === '/settings' || opened.startsWith('/settings/'))) return <Navigate to={opened + loc.search + loc.hash} replace />
+  if (opened) return <SettingsPage page={<Routes location={{ ...loc, pathname: opened }}><Route path="*" element={<PageRoutesAt />} /></Routes>} />
+  // A module's screen at an address under Settings is inside Settings too, not a page without its menu.
+  const settingsModule = !tvMode && loc.pathname.startsWith('/settings/') ? matchModuleRoute(moduleWeb, loc.pathname, ['app']) : null
+  if (settingsModule) return <SettingsPage page={<ModuleRouteView match={settingsModule} fallback={<RouteSkeleton />} />} />
+  return <PageRoutesAt />
+}
+
+function PageRoutesAt() {
   // A page a module of API 5 draws inside the app's frame comes before the app's own.
   const moduleWeb = useModuleWeb()
   const loc = useLocation()

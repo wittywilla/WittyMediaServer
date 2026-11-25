@@ -17,6 +17,34 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
   they were, so a player tuning in, or a programme joined part way through, had no frame its decoder could start from.
   Graphics-chip decoders, as most browsers, phones and TVs use, held the picture while the sound played, then showed it
   late. The server now looks at one keyframe of each such file and converts its picture when the keyframe isn't an IDR.
+**Settings keeps its menu, and every page reads from one edge (#763)**
+
+- **Every Settings choice opens inside Settings, with the menu beside it.** Sign in a TV, Connect a device, Your year,
+  Collections and playlists, Fix matches, Controllers, Help and Legal used to open as pages of their own with no menu.
+  They now open beside the menu, under Settings' own title. Libraries opens Settings' own Libraries page. Opened any
+  other way, each is the page it always was.
+- **The menu no longer disappears on a laptop or a tablet.** At 1280 pixels wide and narrower, Settings showed the page
+  alone, without its menu. The menu now stays beside the page down to a tablet's width. On a phone, Settings is the
+  menu, then the page, with Back to the menu.
+- **A module's settings stay in Settings.** Games & emulators threw you into WittyPlay's console. It is now a Settings
+  page with a button that opens the console. A module's own page that the menu opens is drawn inside Settings.
+- **Settings pages no longer shift sideways.** Each page's title and content started 5 pixels to one side or the other,
+  depending on whether the page was long enough to scroll. Every Settings page now starts at the same place.
+- **Module settings for WittyPlay opens again.** A group of settings without a title stopped the page with "This page
+  ran into a problem".
+
+Developer notes:
+
+- `pages/settings/open.ts`: `inSettings()` gives a menu row's address inside Settings (`/settings/open/<address>`, or
+  the web's own Settings page for it). `App.tsx` `PageRoutes` draws `/settings/open/*`, and a module's app route under
+  `/settings/`, inside `SettingsPage`'s frame (its new `page` prop). `InSettings` tells a page it is there: `SpecPage`
+  and Connect a device use `PageHead`.
+- `test-layout.mjs`:
+  - It takes its pages from the links the menu draws, not the raw paths in settingsmenu.json.
+  - A new kind, `no-menu`, fails a settings page without the menu beside it (Back to it on a phone), or one that opens
+    outside Settings. Before, a page that left Settings was skipped.
+  - `align` covers titles a module draws itself and fails a centred title. It also fails a settings page whose title
+    starts somewhere other than the others at the same size.
 - **Live TV: +30 is back, up to live.** At the owner's request, the jump forward returns to the live player (#688 had
   removed it). +30, the timeline, Right, Fast forward and Next (outside an ad break) go ahead no further than the live
   edge, and +30 is greyed out there. Back to live stays.

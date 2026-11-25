@@ -29,8 +29,8 @@ import { registerPlayer, reportSoon, type RemoteCommand, type RemoteState } from
 import { currentParty, usePartySync } from '../remote/party'
 import PartyNote from '../remote/PartyNote'
 import { useRemoteAllowed } from '../remote/allowed'
-import { setSpeed } from './speed'
-import { lowerHeight, times, tooSlow, type Pace } from './pace'
+import { setSpeed, setSpeedCap } from './speed'
+import { lowerHeight, sustainableRate, times, tooSlow, type Pace } from './pace'
 import { classifyPlayError } from './errors'
 import QualityMenu, { StreamInfo } from './QualityMenu'
 import { describe, deviceChoice, here, noteAway, setDeviceDefault, setShowStreamInfo, showStreamInfo, sizeName, streamLines } from './quality'
@@ -286,6 +286,8 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
   // picture, at the same place, and says why. A quality the viewer chose themself is kept, and
   // the player says what would play smoothly instead (pace.ts).
   const autoQuality = useRef<string | null>(null)
+  // A speed cap belongs to the film it was found for: a new one starts without it.
+  useEffect(() => { const v = video.current; if (v) setSpeedCap(v, null) }, [item.id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!streamId || info?.decision !== 'transcode') return
     let behind = 0
@@ -307,6 +309,13 @@ export default function VideoPlayer({ item, startAt }: { item: Item; startAt: nu
           autoQuality.current = 'h' + to
           say({ kind: 'down', text: t('This server converts this video at {speed}, slower than the {rate} it plays at, so it goes on at {height}p.', { speed: times(p.speed), rate: times(p.rate), height: to }) })
           ask({ quality: autoQuality.current })
+        } else if (what === 'slower' && p && v) {
+          // Even the smaller picture can't keep up at this speed: the fastest speed it can, and no faster in the menu.
+          const to = sustainableRate(p.speed, p.rate)
+          setSpeedCap(v, to)
+          setSpeed(v, to)
+          behind = 0
+          say({ kind: 'down', text: t('This server can’t keep up at {rate} for this video, so it plays at {to}.', { rate: times(p.rate), to: times(to) }) })
         } else if (what === 'tell' && p && !told) {
           told = true
           say({ kind: 'stall', text: t('This server converts this video at {speed}, slower than the {rate} it plays at, so it will stop now and then to catch up. A lower speed or quality plays smoothly.', { speed: times(p.speed), rate: times(p.rate) }) })

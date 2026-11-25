@@ -26,14 +26,29 @@ export function lowerHeight(height: number): number {
 }
 
 // Too slow: what the player does about a conversion that can't keep up. 'lower' asks the server
-// for a smaller picture; 'tell' only says so, once there is nothing smaller to ask for (or the
-// viewer chose this quality themself, which the player doesn't overrule); 'wait' means not yet:
-// the server's own faster setting comes first, and one bad reading is not enough.
-export function tooSlow(p: Pace | null, behindFor: number, height: number, viewerChose: boolean): 'ok' | 'wait' | 'lower' | 'tell' {
+// for a smaller picture; faster than 1× it does that once, to 720p, and then 'slower' brings the speed
+// down to one the server can keep up with (sustainableRate), rather than a picture that stops and
+// starts, each reopen a moment of black. 'tell' only says so, when neither helps (or the viewer chose
+// this quality themself and plays at 1×); 'wait' means not yet: the server's own faster setting
+// comes first, and one bad reading is not enough.
+export function tooSlow(p: Pace | null, behindFor: number, height: number, viewerChose: boolean): 'ok' | 'wait' | 'lower' | 'slower' | 'tell' {
   if (!p || p.keepingUp || !p.speed) return 'ok'
   if (!p.fastest || behindFor < 2) return 'wait'
-  if (viewerChose || !lowerHeight(height)) return 'tell'
+  const fast = p.rate > 1
+  if (viewerChose || !lowerHeight(height) || (fast && height <= 720)) return fast && sustainableRate(p.speed, p.rate) < p.rate ? 'slower' : 'tell'
   return 'lower'
+}
+
+// The playback speeds a viewer can pick, the same list as the speed menu (speed.ts SPEEDS, which this file
+// can't import and still run in the tests as it is).
+const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 5, 6, 8, 10, 12, 16]
+
+// sustainableRate is the fastest speed a conversion making `speed` seconds of film a second keeps up with,
+// with a tenth to spare, and never below 1×: what the player slows to, and the top of its speed menu, when
+// even the smallest picture at the server's fastest setting can't keep up at the chosen speed.
+export function sustainableRate(speed: number, rate: number): number {
+  const fits = SPEED_STEPS.filter((s) => s >= 1 && s <= rate && s * 1.1 <= speed)
+  return fits.length ? fits[fits.length - 1] : 1
 }
 
 // Words for the viewer: how fast the server converts, against the speed they play at.

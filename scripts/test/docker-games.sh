@@ -88,6 +88,22 @@ for k in ("egl","vulkan"):
   c=g.get(k) or {}
   print(k, "yes" if c.get("ok") else ("software" if str(c.get("detail","")).startswith("Software (no graphics chip)") else "other: "+str(c.get("detail",""))))')
 if grep -q "^egl software" <<<"$gs" && grep -q "^vulkan software" <<<"$gs"; then ok "the Graphics status calls llvmpipe and lavapipe software, not a chip"; else bad "the Graphics status: $gs"; fi
+# The same lavapipe must never be taken for a chip by transcoding: HDR tone mapping on it is libplacebo on the processor,
+# which a small NAS can't hold (0.8.5's HDR films never started on 2 CPUs and 2 GB). Once the hardware test is done, the
+# tone-mapping path has to be not working, for a software device.
+for _ in $(seq 1 90); do
+  sys=$(curl -s -H "$H" "$api/system")
+  grep -q '"hwTested":true' <<<"$sys" && break
+  sleep 2
+done
+tm=$(python3 -c 'import json,sys
+p=[x for x in json.load(sys.stdin).get("gpuPaths") or [] if x.get("id")=="tonemap:libplacebo"]
+print("missing" if not p else ("working" if p[0].get("working") else "not working: "+(p[0].get("reason") or "")))' <<<"$sys")
+case $tm in
+  "not working: "*) ok "HDR tone mapping isn't put on lavapipe: ${tm#not working: }";;
+  missing) ok "HDR tone mapping on the chip isn't offered in this FFmpeg";;
+  *) bad "HDR tone mapping counts lavapipe as a chip ($tm)";;
+esac
 for core in fceumm gearsystem; do
   curl -s -X POST -H "$H" "$P/gaming/cores/$core/install" -o /dev/null -w '' || true
   for _ in $(seq 1 90); do

@@ -16,9 +16,12 @@ func TestTheListHoldsTogether(t *testing.T) {
 		t.Fatalf("steps: %v", steps)
 	}
 	for i, s := range steps {
-		if s.ID != want[i] || s.Title == "" || s.Failed == "" {
+		if s.ID != want[i] || s.Title == "" || s.Failed == "" || !strings.HasSuffix(s.Doing, "…") {
 			t.Errorf("step %d: %+v", i, s)
 		}
+	}
+	if slow := SlowHint(); slow.After <= 0 || !strings.HasSuffix(slow.Say, ".") {
+		t.Errorf("slow: %+v", slow)
 	}
 	seen := map[string]bool{}
 	reasons := map[string]string{}

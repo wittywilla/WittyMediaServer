@@ -30,6 +30,13 @@ type Step struct {
 	ID     string `json:"id"`
 	Title  string `json:"title"`
 	Failed string `json:"failed"`
+	Doing  string `json:"doing"` // shown while an app is on this step
+}
+
+// Slow is what an app adds while connecting once it has taken After seconds.
+type Slow struct {
+	After int    `json:"after"`
+	Say   string `json:"say"`
 }
 
 // Code is one reason a step can fail.
@@ -46,6 +53,7 @@ type Code struct {
 type File struct {
 	Version int    `json:"version"`
 	Steps   []Step `json:"steps"`
+	Slow    Slow   `json:"slow"`
 	Codes   []Code `json:"codes"`
 }
 
@@ -62,6 +70,9 @@ func Raw() []byte { return raw }
 
 // Steps are the steps, in order.
 func Steps() []Step { return append([]Step(nil), file.Steps...) }
+
+// SlowHint is what to add while connecting takes a while, and after how long.
+func SlowHint() Slow { return file.Slow }
 
 // Codes are every code, in the order they are tried.
 func Codes() []Code { return append([]Code(nil), file.Codes...) }

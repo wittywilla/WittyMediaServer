@@ -23,8 +23,12 @@ ref=${SMOKE_MODULE_REF:-}
 clone() {
   local r=$1
   [ -d "$repos/$r/.git" ] || [ -f "$repos/$r/go.mod" ] && return 0
-  local b=$ref
-  if [ -n "$b" ] && ! git ls-remote --exit-code --heads "https://github.com/wittywilla/$r" "$b" >/dev/null 2>&1; then b=; fi
+  # A module's release line (0.8, for v0.8.5-alpha) is where its fixes for this server land; failing that, its branch
+  # of the same name as this one; failing that, its default branch.
+  local b= c
+  for c in $(sed -nE 's/^v([0-9]+\.[0-9]+)\..*/\1/p' <<<"$ref") $ref; do
+    if git ls-remote --exit-code --heads "https://github.com/wittywilla/$r" "$c" >/dev/null 2>&1; then b=$c; break; fi
+  done
   git clone -q --depth 1 ${b:+--branch "$b"} "https://github.com/wittywilla/$r" "$repos/$r"
   # SMOKE_REF_WITTYPLAY=<tag or commit> (any module, by its name in capitals): that version instead,
   # to show what a test makes of an older one.

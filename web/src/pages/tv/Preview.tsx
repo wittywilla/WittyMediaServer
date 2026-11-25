@@ -139,8 +139,8 @@ export default function Preview({ channel, label, look, max, start }: { channel:
       </div>
       <div className="ctv-preview-bar">
         <span className="ctv-preview-name">{label}</span>
-        <button type="button" onClick={down} disabled={width <= least} aria-label={t('Smaller preview')} title={t('Smaller')}>−</button>
-        <button type="button" onClick={up} disabled={width >= max} aria-label={t('Larger preview')} title={t('Larger')}>+</button>
+        <button type="button" className="ctv-preview-size" onClick={down} disabled={width <= least} aria-label={t('Smaller preview')} title={t('Smaller')}>−</button>
+        <button type="button" className="ctv-preview-size" onClick={up} disabled={width >= max} aria-label={t('Larger preview')} title={t('Larger')}>+</button>
         <button type="button" onClick={() => setLook({ previewSound: !look.previewSound })} aria-pressed={look.previewSound} aria-label={t('Preview sound')} title={look.previewSound ? t('Sound on') : t('Sound off')}>{look.previewSound ? <IconVolume size={15} /> : <IconMute size={15} />}</button>
         <button type="button" disabled={!channel} onClick={() => nav(`/tv/watch/${channel}`, { state: { fromGuide: true } })} aria-label={t('Watch {channel} full screen', { channel: label })} title={t('Full screen')}><IconFull size={15} /></button>
         <button type="button" onClick={() => setLook({ preview: 'off' })} aria-label={t('Hide the preview')} title={t('Hide the preview')}><IconClose size={15} /></button>

@@ -25,6 +25,8 @@ export function setSpeed(v: HTMLMediaElement, rate: number) {
 // buffer, not the network.
 export const REALIGN_AFTER_MS = 400
 export const REALIGN_MIN_CHANGE = 0.5
+// How many times, REALIGN_AFTER_MS apart, it waits for a player that can't seek yet (30 s).
+export const REALIGN_TRIES = 75
 
 // realignNeeded says a change of speed from one rate to another is big enough to line up after.
 export function realignNeeded(from: number, to: number): boolean {
@@ -40,17 +42,25 @@ export const isRealigning = (v: HTMLMediaElement) => aligning.has(v)
 export function keepInStep(v: HTMLVideoElement): () => void {
   let settled = v.playbackRate || 1
   let timer = 0
+  let tries = 0
+  const attempt = () => {
+    const now = v.playbackRate || 1
+    if (!realignNeeded(settled, now)) return
+    // Only once it can: a player that is seeking, waiting for data (a converting server behind at
+    // 4×) or paused tries again shortly, rather than giving up and leaving them apart.
+    if (v.paused || v.seeking || v.ended || v.readyState < 3) {
+      if (++tries < REALIGN_TRIES) timer = window.setTimeout(attempt, REALIGN_AFTER_MS)
+      return
+    }
+    settled = now
+    aligning.add(v)
+    v.addEventListener('seeked', () => aligning.delete(v), { once: true })
+    v.currentTime = v.currentTime
+  }
   const changed = () => {
     clearTimeout(timer)
-    timer = window.setTimeout(() => {
-      const now = v.playbackRate || 1
-      if (!realignNeeded(settled, now)) return
-      settled = now
-      if (v.paused || v.seeking || v.readyState < 2 || v.ended) return
-      aligning.add(v)
-      v.addEventListener('seeked', () => aligning.delete(v), { once: true })
-      v.currentTime = v.currentTime
-    }, REALIGN_AFTER_MS)
+    tries = 0
+    timer = window.setTimeout(attempt, REALIGN_AFTER_MS)
   }
   v.addEventListener('ratechange', changed)
   return () => { clearTimeout(timer); v.removeEventListener('ratechange', changed) }

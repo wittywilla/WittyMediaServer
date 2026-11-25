@@ -459,3 +459,6 @@ html.tv-mode .ctv-skip-break { right: var(--space-xl); bottom: 200px; padding: v
 @media (max-width: 720px) {
   html:not(.ten-foot, .tv-mode) .ctv-page.narrow .ctv-preview { width: 100% !important; justify-self: stretch; }
 }
+/* While the player says something in the middle (a channel that can't be watched, or the "We'll be right back" card
+   of a break), its -10 and play step aside: they were drawn over the message and its buttons on a phone (#765). */
+.ctv-player:has(.overlay-msg, .ctv-slate) .ctl-mid { display: none; }

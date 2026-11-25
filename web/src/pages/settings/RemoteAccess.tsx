@@ -126,13 +126,13 @@ export default function RemoteAccess() {
       return true
     } catch (e: any) { toast(e.message); return false } finally { setBusy(false) }
   }
-  if (!st && failed) return <LoadError what={t('Remote Access')} onRetry={() => { setFailed(false); load().catch(() => setFailed(true)) }} />
-  if (!st) return <PageHead title={tk('Remote Access')} desc={t('Loading…')} />
+  if (!st && failed) return <LoadError what={t('Remote access')} onRetry={() => { setFailed(false); load().catch(() => setFailed(true)) }} />
+  if (!st) return <PageHead title={tk('Remote access')} desc={t('Loading…')} />
   const s = st.settings
   const choice = choiceOf(st)
   return (
     <>
-      <PageHead title={tk('Remote Access')} desc={t('Connect your other devices to this server, at home or away.')} />
+      <PageHead title={tk('Remote access')} desc={t('Connect your other devices to this server, at home or away.')} />
       {/* One thing first, so no contents bar listing the technical sections folded below. */}
       <nav data-own-toc hidden aria-hidden="true" />
       <ConnectDevice />

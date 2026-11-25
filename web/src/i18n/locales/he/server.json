@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "אין מספיק מקום ב־{folder}: הנתונים צריכים {need}, ופנויים {free}",
   "the copy didn't match, so nothing was changed: {reason}": "העותק לא תאם, ולכן שום דבר לא שונה: {reason}",
   "the choice couldn't be saved: {reason}": "לא ניתן היה לשמור את הבחירה: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "לא ניתן היה לשמור את המיקום החדש ב־{file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "לא ניתן היה לשמור את המיקום החדש ב־{file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "אי אפשר להגיע לשרת שלך. ודא ש-WittyMediaServer פועל ושהמכשיר הזה מסוגל להגיע אליו: ברשת הביתית או דרך גישה מרחוק."
 }

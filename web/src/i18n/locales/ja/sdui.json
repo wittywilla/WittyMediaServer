@@ -1187,5 +1187,7 @@
   },
   "“{name}” can't sign in from outside your home until {time}, after {count} wrong tries. It still works at home.": {
     "other": "{count}回の失敗により、「{name}」は{time}まで自宅の外からサインインできません。自宅では引き続き使えます。"
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "自宅では、サーバーの設定に表示されるアドレス（例: http://192.168.1.10:9797）です。外出先では「設定」の「リモートアクセス」にあるアドレスです。",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "WittyMediaServerが起動していること、そしてこのデバイスから同じネットワークまたはリモートアクセス経由で接続できることを確認してください。操作した内容は失われていません。"
 }

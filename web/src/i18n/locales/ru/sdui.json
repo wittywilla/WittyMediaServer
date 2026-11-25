@@ -1262,5 +1262,7 @@
     "few": "«{name}» не может войти вне дома до {time} после {count} неудачных попыток. Дома вход по-прежнему работает.",
     "many": "«{name}» не может войти вне дома до {time} после {count} неудачных попыток. Дома вход по-прежнему работает.",
     "other": "«{name}» не может войти вне дома до {time} после {count} неудачной попытки. Дома вход по-прежнему работает."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "Дома это адрес из настроек сервера, например http://192.168.1.10:9797. Вне дома — адрес из раздела «Настройки», «Удалённый доступ».",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "Что WittyMediaServer запущен и это устройство может до него достучаться: в той же сети или через удалённый доступ. Ничего из сделанного вами не потеряно."
 }

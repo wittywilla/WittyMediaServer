@@ -2208,5 +2208,8 @@
   },
   "{count} things turned off": {
     "other": "ปิด {count} รายการแล้ว"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "การตั้งค่าและ API key ทั้งหมด การเข้าถึงระยะไกล จูนเนอร์ทีวี ช่อง และการบันทึกตามกำหนดเวลา",
+  "Remote access": "การเข้าถึงระยะไกล",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "การลงชื่อเข้าใช้จะขอรหัส 6 หลักจากแอปบนโทรศัพท์ของคุณด้วย รหัสผ่านที่ถูกขโมยจึงไม่เพียงพอ เป็นตัวเลือกเสริม และควรมีหากคุณใช้การเข้าถึงระยะไกล แอปยืนยันตัวตนใดก็ได้"
 }

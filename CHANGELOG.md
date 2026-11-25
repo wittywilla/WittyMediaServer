@@ -5,6 +5,25 @@ All notable changes to WittyMediaServer. Versions follow [semantic versioning](h
 
 ## Unreleased
 
+**Layout (#678)**
+
+- **Every Settings page reads from one edge, with WittyPlay installed too.** A page's title, lead and buttons start
+  where its sections start, and Connect a device on Remote access does too. With WittyPlay installed, an old copy of
+  the server's settings stylesheet in its bundle pushed every page's title off to one side and the menu under the top
+  bar; WittyPlay 0.7.19 drops it (wittywilla/WittyPlay#121). "Remote Access" is "Remote access", as the menu says.
+- **Nothing sits under the top bar, whatever the layout.** Settings' sticky parts (the menu, the strip of links, You's
+  picture and name, the pages editor's toolbar) stop below the bar's measured height (`--bar-space`), so a floating
+  glass bar, a cable box's bar or a taller one no longer covers them. At the end of a short page the menu isn't pushed
+  under the bar: the version line it already shows isn't repeated under the page, and the menu ends above whatever is
+  docked at the foot.
+- **A link to part of a settings page lands below the bar and the strip of links**, whether the strip is drawn yet or
+  not, and stays there while a slow page finishes arriving. The menu's Password row lands on Your account.
+- **From away** says Connect a device once, not as the page's title and again on the card under it.
+- **A layout check** (`npm run test:layout`, in the smoke tests, which install WittyPlay and WittyTuner) opens You,
+  every page the settings menu opens, every other settings page and the ones modules add, at computer, laptop, tablet,
+  phone and TV sizes, in any layout (`LAYOUT_LOOKS`). It fails on anything under the top bar (as a page opens, after
+  scrolling, and after a link to a section), a Settings title out of line with its content, centred words in an
+  off-centre box, a Title Case title, and a heading said twice.
 **Layout outside Settings (#679)**
 
 - **Nothing slides under the top bar, whatever its style.** Every part that stays put as a page scrolls (a library's

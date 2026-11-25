@@ -95,7 +95,7 @@ const GROUPS: { title: string; pages: Page[] }[] = [
     { to: 'library-transcoding', label: tk('Library transcoding'), icon: <IconFilm />, admin: true, hint: tk('Convert files ahead of time, and connect Tdarr') },
     { to: 'network', label: tk('Network'), icon: <IconNetwork />, admin: true, hint: tk('The port this server answers on at home') },
     { to: 'data-folder', label: tk('Data folder'), icon: <IconDrive />, admin: true, hint: tk('Where settings, the database and artwork are kept, and moving them') },
-    { to: 'remote', label: tk('Remote Access'), icon: <IconGlobe />, admin: true, hint: tk('Reaching your server away from home') },
+    { to: 'remote', label: tk('Remote access'), icon: <IconGlobe />, admin: true, hint: tk('Reaching your server away from home') },
   ] },
   { title: tk('You'), pages: [
     { to: 'users', label: tk('Profiles'), icon: <IconUsers />, hint: tk('People, passwords and limits') },

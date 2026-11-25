@@ -461,5 +461,6 @@
   "{count} more tries before the sign-in ends.": {
     "one": "साइन इन खत्म होने से पहले {count} और कोशिश बची है।",
     "other": "साइन इन खत्म होने से पहले {count} और कोशिशें बची हैं।"
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "बंद। घर पर यह ठीक है: सर्टिफ़िकेट के लिए डोमेन नाम चाहिए, इसलिए अगर आप बाहर से सर्वर तक पहुँचना चाहें तो इसे रिमोट ऐक्सेस में सेट किया जाता है।"
 }

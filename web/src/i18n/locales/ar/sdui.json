@@ -1312,5 +1312,7 @@
     "few": "لا يمكن لـ «{name}» تسجيل الدخول من خارج منزلك حتى {time}، بعد {count} محاولات خاطئة. لا يزال يعمل في المنزل.",
     "many": "لا يمكن لـ «{name}» تسجيل الدخول من خارج منزلك حتى {time}، بعد {count} محاولة خاطئة. لا يزال يعمل في المنزل.",
     "other": "لا يمكن لـ «{name}» تسجيل الدخول من خارج منزلك حتى {time}، بعد {count} محاولة خاطئة. لا يزال يعمل في المنزل."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "في المنزل، هو العنوان الظاهر في إعدادات الخادم، مثل http://192.168.1.10:9797. خارج المنزل، هو العنوان من الإعدادات، الوصول عن بُعد.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "أن WittyMediaServer يعمل، وأن هذا الجهاز يستطيع الوصول إليه: على الشبكة نفسها، أو عبر الوصول عن بُعد. لم يضِع شيء مما فعلته."
 }

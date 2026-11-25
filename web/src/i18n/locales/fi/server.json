@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "kohteessa {folder} ei ole tilaa: tiedot tarvitsevat {need}, ja vapaana on {free}",
   "the copy didn't match, so nothing was changed: {reason}": "kopio ei vastannut alkuperäistä, joten mitään ei muutettu: {reason}",
   "the choice couldn't be saved: {reason}": "valintaa ei voitu tallentaa: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "uutta sijaintia ei voitu tallentaa tiedostoon {file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "uutta sijaintia ei voitu tallentaa tiedostoon {file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "Palvelimeen ei saada yhteyttä. Tarkista, että WittyMediaServer on käynnissä ja että tämä laite tavoittaa sen: samassa verkossa tai etäyhteyden kautta."
 }

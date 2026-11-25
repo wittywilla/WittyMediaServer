@@ -2257,5 +2257,8 @@
   "{count} things turned off": {
     "one": "{count} sak avstängd",
     "other": "{count} saker avstängda"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Alla inställningar och API-nycklar, Fjärråtkomst, tv-mottagare, kanaler och schemalagda inspelningar.",
+  "Remote access": "Fjärråtkomst",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Vid inloggning krävs också en sexsiffrig kod från en app på din mobil, så att ett stulet lösenord inte räcker. Det är valfritt, och värt att ha om du använder Fjärråtkomst. Alla autentiseringsappar fungerar."
 }

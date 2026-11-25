@@ -81,7 +81,7 @@ export default function StreamQualitySettings() {
       </Section>
       <Section title={t('Limits')} desc={t('What the server allows. Your choices never go above these.')}>
         <Row label={t('Your profile')}>{cap.maxHeight || cap.maxKbps ? limitWords(cap) : t('No limit')}</Row>
-        <Row label={t('Away from home, for everyone')} desc={user?.isAdmin ? linked(t('Set in {page}.'), { page: <Link to="/settings/remote">{t('Remote Access')}</Link> }) : undefined}>{data.remote.maxHeight || data.remote.maxKbps ? limitWords(data.remote) : t('No limit')}</Row>
+        <Row label={t('Away from home, for everyone')} desc={user?.isAdmin ? linked(t('Set in {page}.'), { page: <Link to="/settings/remote">{t('Remote access')}</Link> }) : undefined}>{data.remote.maxHeight || data.remote.maxKbps ? limitWords(data.remote) : t('No limit')}</Row>
         {user?.isAdmin && <Row label={t('Each profile')} desc={linked(t('An administrator sets them in {page}, with each profile’s Streaming button.'), { page: <Link to="/settings/users">{t('Profiles')}</Link> })} />}
       </Section>
     </>
@@ -124,7 +124,7 @@ export function StreamLimitsDialog({ user, onClose }: { user: UserView; onClose:
 export function QualityLimitsSection() {
   return (
     <Section title={t('Video quality')} desc={t('Viewers choose a size and data rate in the player’s Quality menu, and keep defaults for home and away in Settings → Video quality.')}>
-      <Row label={t('Limits for viewers away from home')} desc={linked(t('The largest picture and the most data any stream over the internet uses: {page}.'), { page: <Link to="/settings/remote">{t('Remote Access')}</Link> })} />
+      <Row label={t('Limits for viewers away from home')} desc={linked(t('The largest picture and the most data any stream over the internet uses: {page}.'), { page: <Link to="/settings/remote">{t('Remote access')}</Link> })} />
       <Row label={t('Limits for each profile')} desc={linked(t('The same for one profile, everywhere: the Streaming button beside it in {page}.'), { page: <Link to="/settings/users">{t('Profiles')}</Link> })} />
       <Row label={t('How conversions are made')} desc={linked(t('The encoder, hardware and quality: {page}. A viewer’s choice caps the size and rate; it never turns hardware encoding on or off.'), { page: <Link to="/settings/transcoding">{t('Live transcoding')}</Link> })} />
     </Section>

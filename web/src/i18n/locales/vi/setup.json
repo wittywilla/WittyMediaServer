@@ -456,5 +456,6 @@
   },
   "{count} more tries before the sign-in ends.": {
     "other": "Còn {count} lần thử trước khi lượt đăng nhập kết thúc."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Tắt. Ở nhà thì không sao: chứng chỉ cần một tên miền, nên được thiết lập trong Truy cập từ xa nếu bạn muốn vào máy chủ khi ra ngoài."
 }

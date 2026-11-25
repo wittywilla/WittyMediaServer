@@ -12,7 +12,7 @@ import { t } from '../i18n'
 // found. Signed out, it says where the code comes from.
 export default function AwayPage() {
   const { user } = useApp()
-  if (user) return <div className="away"><h1>{t('Connect a device')}</h1><ConnectDevice /></div>
+  if (user) return <div className="away"><h1>{t('Connect a device')}</h1><ConnectDevice titled={false} /></div>
   // Signed out it is a standalone page (docs/DESIGN.md): the steps, in a card with the server's name.
   return (
     <StandaloneCard className="away-sa">

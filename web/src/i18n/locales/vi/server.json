@@ -1173,5 +1173,6 @@
   "there isn't room in {folder}: the data needs {need}, and {free} is free": "không đủ chỗ trong {folder}: dữ liệu cần {need}, và còn trống {free}",
   "the copy didn't match, so nothing was changed: {reason}": "bản sao không khớp, nên không có gì bị thay đổi: {reason}",
   "the choice couldn't be saved: {reason}": "không lưu được lựa chọn: {reason}",
-  "the new place couldn't be saved in {file}: {reason}": "không lưu được vị trí mới vào {file}: {reason}"
+  "the new place couldn't be saved in {file}: {reason}": "không lưu được vị trí mới vào {file}: {reason}",
+  "Can't reach your server. Check that WittyMediaServer is running and that this device can reach it: on the same network, or through Remote access.": "Không kết nối được tới máy chủ của bạn. Hãy kiểm tra WittyMediaServer đang chạy và thiết bị này có thể kết nối tới máy chủ: cùng mạng, hoặc qua Truy cập từ xa."
 }

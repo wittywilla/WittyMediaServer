@@ -2257,5 +2257,8 @@
   "{count} things turned off": {
     "one": "{count} στοιχείο απενεργοποιήθηκε",
     "other": "{count} στοιχεία απενεργοποιήθηκαν"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Όλες οι ρυθμίσεις και τα κλειδιά API, η Απομακρυσμένη πρόσβαση, οι δέκτες TV, τα κανάλια και οι προγραμματισμένες εγγραφές.",
+  "Remote access": "Απομακρυσμένη πρόσβαση",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "Η σύνδεση ζητά επίσης έναν 6ψήφιο κωδικό από μια εφαρμογή στο κινητό σας, ώστε ένας κλεμμένος κωδικός να μην αρκεί. Είναι προαιρετικό, και αξίζει αν χρησιμοποιείτε Απομακρυσμένη πρόσβαση. Λειτουργεί οποιαδήποτε εφαρμογή επαλήθευσης."
 }

@@ -13,6 +13,6 @@ export function unreachableSpec(d: UnreachableIn): SpecPageData {
   const actions: SpecAction[] = [{ ...A1(t('Try again')), id: 'retry', disabled: d.trying }, { ...A2(t('Help'), '/help') }]
   return mk('unreachable', t('Every app'), t('Can’t reach the server'), lead, [
     secR(t('This server'), [R(t('Address'), d.address), R(t('Tried'), tn('Once', '{count} times', d.tries))]),
-    secN(t('What to check'), t('That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote Access. Nothing you did is lost.')),
+    secN(t('What to check'), t('That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.')),
   ], actions)
 }

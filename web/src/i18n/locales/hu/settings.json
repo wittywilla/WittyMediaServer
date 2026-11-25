@@ -2257,5 +2257,8 @@
   "{count} things turned off": {
     "one": "{count} dolog kikapcsolva",
     "other": "{count} dolog kikapcsolva"
-  }
+  },
+  "All settings and API keys, Remote access, TV tuners, channels and scheduled recordings.": "Minden beállítás és API-kulcs, a Távoli elérés, a tévétunerek, a csatornák és az ütemezett felvételek.",
+  "Remote access": "Távoli hozzáférés",
+  "Signing in also asks for a 6-digit code from an app on your phone, so a stolen password isn't enough. It is optional, and worth having if you use Remote access. Any authenticator app works.": "A bejelentkezéshez egy telefonos alkalmazás 6 jegyű kódja is kell, így egy ellopott jelszó nem elég. Nem kötelező, de érdemes használni, ha a Távoli elérést igénybe veszed. Bármilyen hitelesítő alkalmazás működik."
 }

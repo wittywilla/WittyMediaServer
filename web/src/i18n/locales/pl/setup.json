@@ -471,5 +471,6 @@
     "few": "Jeszcze {count} próby przed zakończeniem logowania.",
     "many": "Jeszcze {count} prób przed zakończeniem logowania.",
     "other": "Jeszcze {count} próby przed zakończeniem logowania."
-  }
+  },
+  "Off. At home this is fine: a certificate needs a domain name, so it is set up under Remote access if you want to reach the server from away.": "Wyłączone. W domu to w porządku: certyfikat wymaga nazwy domeny, więc konfiguruje się go w sekcji Dostęp zdalny, jeśli chcesz łączyć się z serwerem spoza domu."
 }

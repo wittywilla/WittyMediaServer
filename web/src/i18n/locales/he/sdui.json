@@ -1237,5 +1237,7 @@
     "one": "„{name}” לא יכול להתחבר מחוץ לבית עד {time}, אחרי ניסיון שגוי {count}. בבית זה עדיין עובד.",
     "two": "„{name}” לא יכול להתחבר מחוץ לבית עד {time}, אחרי {count} ניסיונות שגויים. בבית זה עדיין עובד.",
     "other": "„{name}” לא יכול להתחבר מחוץ לבית עד {time}, אחרי {count} ניסיונות שגויים. בבית זה עדיין עובד."
-  }
+  },
+  "At home, that’s the address shown in the server’s settings, such as http://192.168.1.10:9797. Away from home, it’s the address from Settings, Remote access.": "בבית, זו הכתובת שמופיעה בהגדרות השרת, למשל http://192.168.1.10:9797. מחוץ לבית, זו הכתובת מהגדרות, גישה מרחוק.",
+  "That WittyMediaServer is running, and that this device can reach it: on the same network, or through Remote access. Nothing you did is lost.": "ש־WittyMediaServer פועל, ושהמכשיר הזה יכול להגיע אליו: באותה רשת, או דרך גישה מרחוק. שום דבר ממה שעשית לא אבד."
 }

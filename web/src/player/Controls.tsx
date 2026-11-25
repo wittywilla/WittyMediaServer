@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { fmtTime, getPrefs } from '../api'
 import { Thumb } from './ChapterThumb'
 import { announce } from '../a11y'
-import { SPEEDS, setSpeed } from './speed'
+import { SPEEDS, isRealigning, setSpeed, speedCap } from './speed'
 import { useMedia } from '../shell/useNav'
 import { IconAngle, IconAudio, IconBolt, IconChapters, IconCheck, IconTune, IconBack, IconClose, IconFull, IconMute, IconInfo, IconMini, IconMore, IconNext, IconPause, IconPlay, IconPrev, IconRemote, IconSettings, IconSubs, IconVolume } from '../icons'
 import { t, tk, tn, tx } from '../i18n'
@@ -59,6 +59,8 @@ type Props = {
   sheetItems?: SheetItem[]
   // Live TV: what's on can't be sped up or slowed down, so there is no speed (chip, sheet row or < and > keys).
   live?: boolean
+  // Live: how far ahead the live edge is, in seconds. +30 and the timeline go no further, and +30 is off at it.
+  liveAhead?: number
 }
 
 export type SheetItem = { key: string; icon: React.ReactNode; label: string; value?: string; on?: boolean; onClick: () => void }
@@ -100,7 +102,7 @@ export function useVideoState(video: React.RefObject<HTMLVideoElement | null>) {
 }
 
 export function Controls({ video, duration, chapters = [], chapterNames, chapterThumb, onSeek, onPrev, onNext, audio, subtitles, onAudio, onSubtitle, onPick, angles = 1,
-  onFullscreen, onSettings, onEditInfo, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen, compact = false, sheetItems = [], live = false, pauseForScenes = false }: Props) {
+  onFullscreen, onSettings, onEditInfo, remoteOn, onRemote, showSeek = true, showChapterMarks = true, extra, offset = 0, disc = false, copy = false, quality, onQuality, onQualityMenu, qualityMenuOpen, compact = false, sheetItems = [], live = false, liveAhead = 0, pauseForScenes = false }: Props) {
   const st = useVideoState(video)
   const [pop, setPop] = useState<'audio' | 'subs' | 'chapters' | 'speed' | 'more' | null>(null)
   const resumeAfterScenes = useRef(false)
@@ -128,7 +130,16 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
   const [maxSpeed, setMaxSpeed] = useState(4)
   const [rate, setRate] = useState(() => video.current?.playbackRate || 1)
   useEffect(() => { getPrefs().then((p) => setMaxSpeed(p.maxSpeed || 4)).catch(() => {}) }, [])
-  const speeds = SPEEDS.filter((s) => s <= maxSpeed)
+  // A server that can't convert this video fast enough for more caps the menu too (speed.ts, speedCap).
+  const [cap, setCap] = useState(() => speedCap(video.current))
+  useEffect(() => {
+    const v = video.current
+    if (!v) return
+    const changed = () => setCap(speedCap(v))
+    v.addEventListener('wms-speedcap', changed)
+    return () => v.removeEventListener('wms-speedcap', changed)
+  }, [video])
+  const speeds = SPEEDS.filter((s) => s <= maxSpeed && s <= cap)
   // The browser's own picture in picture: the film in a small window of its own over everything else, on a computer or
   // a phone's browser that has it. Not on a TV, and the apps use their system's own (docs/plans/PLAYER-UI-PORTING.md).
   const canPip = !getTvMode() && typeof document !== 'undefined' && !!document.pictureInPictureEnabled
@@ -162,7 +173,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
     let muted = v.muted
     const onPlay = () => announce(t('Playing'))
     const onPause = () => { if (!v.ended) announce(t('Paused')) }
-    const onSeeked = () => { clearTimeout(tSeek); tSeek = setTimeout(() => announce(t('At {time}', { time: fmtTime(v.currentTime + offset) })), 400) }
+    const onSeeked = () => { if (isRealigning(v)) return; clearTimeout(tSeek); tSeek = setTimeout(() => announce(t('At {time}', { time: fmtTime(v.currentTime + offset) })), 400) }
     const onVol = () => {
       clearTimeout(tVol)
       if (v.muted !== muted) { muted = v.muted; announce(v.muted ? t('Muted') : t('Sound on')); return }
@@ -200,8 +211,10 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
     setAim({ f: fracAt(e), drag: true })
   }
   const seekMove = (e: React.PointerEvent) => setAim((a) => ({ f: fracAt(e), drag: !!a?.drag }))
-  // Live TV goes back, never ahead of where it's playing: Back to live is the way forward (#688).
-  const seekAt = (to: number) => onSeek(live ? Math.min(to, now) : to)
+  // Live TV goes ahead no further than the live edge (the owner's call, reversing #688's "back only").
+  const seekAt = (to: number) => onSeek(live ? Math.min(to, now + Math.max(0, liveAhead)) : to)
+  const forward = () => (live ? seekAt(now + 30) : onSeek(Math.min(duration || now + 30, now + 30)))
+  const atEdge = live && liveAhead < 1
   const seekUp = (e: React.PointerEvent) => {
     const f = fracAt(e)
     setAim(e.pointerType === 'mouse' ? { f, drag: false } : null)
@@ -236,7 +249,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           <div className="ctl-mid" role="group" aria-label={t('Playback')}>
             <button className="pbig step" onClick={() => onSeek(Math.max(0, now - 10))} aria-label={t('Back 10 seconds')}><span aria-hidden="true">−10</span></button>
             <button className="ibtn big play" onClick={toggle} aria-label={st.playing ? t('Pause') : t('Play')}>{st.playing ? <IconPause /> : <IconPlay />}</button>
-            {!live && <button className="pbig step" onClick={() => onSeek(Math.min(duration || now + 30, now + 30))} aria-label={t('Forward 30 seconds')}><span aria-hidden="true">+30</span></button>}
+            <button className="pbig step" onClick={forward} disabled={atEdge} aria-label={t('Forward 30 seconds')}><span aria-hidden="true">+30</span></button>
           </div>
           <div className="ctl-right">
             {onRemote && <button className={'ibtn remote-toggle' + (remoteOn ? ' on' : '')} onClick={onRemote} aria-label="WittyRemote" aria-pressed={!!remoteOn} title={t('Show or hide WittyRemote (R)')}><IconRemote /></button>}
@@ -259,7 +272,7 @@ export function Controls({ video, duration, chapters = [], chapterNames, chapter
           {onPrev && <button className="cbtn chap-step" onClick={onPrev} title={t('Previous chapter, or the start')} aria-label={t('Previous')}><IconPrev /><span className="lbl">{t('Prev')}</span></button>}
           <button className="cbtn step" onClick={() => onSeek(Math.max(0, now - 10))} title={t('Back 10 seconds (←)')} aria-label={t('Back 10 seconds')}><span className="lbl">−10</span></button>
           <button className="ibtn big play" onClick={toggle} title={st.playing ? t('Pause (Space)') : t('Play (Space)')} aria-label={st.playing ? t('Pause') : t('Play')}>{st.playing ? <IconPause /> : <IconPlay />}</button>
-          {!live && <button className="cbtn step" onClick={() => onSeek(Math.min(duration || now + 30, now + 30))} title={t('Forward 30 seconds')} aria-label={t('Forward 30 seconds')}><span className="lbl">+30</span></button>}
+          <button className="cbtn step" onClick={forward} disabled={atEdge} title={t('Forward 30 seconds')} aria-label={t('Forward 30 seconds')}><span className="lbl">+30</span></button>
           {onNext && <button className="cbtn chap-step" onClick={onNext} title={t('Next chapter, or the next one')} aria-label={t('Next')}><span className="lbl">{t('Next')}</span><IconNext /></button>}
         </div>
         <div className="ctl-right">

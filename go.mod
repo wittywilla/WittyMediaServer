@@ -14,7 +14,7 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.43.0
 	github.com/marcopolo/simnet v0.0.7
 	github.com/multiformats/go-multiaddr v0.16.1
-	github.com/multiformats/go-multihash v0.2.3
+	github.com/multiformats/go-multihash v0.3.0
 	github.com/multiformats/go-multistream v0.6.1
 	github.com/nwaples/rardecode/v2 v2.4.6
 	github.com/ulikunitz/xz v0.5.17
